@@ -45,3 +45,10 @@ artifacts/
 backend/tmp/
 backend/logs/
 backend/output/
+
+# Local production model directories
+models/e2/
+models/ppocrv6_medium/
+
+# Third-party source checkouts
+third_party/
