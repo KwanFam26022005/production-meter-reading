@@ -1,0 +1,9 @@
+meter_code,name,location,meter_type
+CT-001,Công tơ Trạm A,Trạm điện A,MECHANICAL
+CT-002,Công tơ Kho B,Kho B,LCD
+CT-003,Công tơ Cầu cảng 1,Cầu cảng 1,MECHANICAL
+CT-004,Công tơ Cầu cảng 2,Cầu cảng 2,LCD
+CT-005,Công tơ Kho C,Kho C,UNKNOWN
+CT-006,Công tơ Kho D,Kho D,MECHANICAL
+CT-007,Công tơ Trạm B,Trạm điện B,LCD
+CT-008,Công tơ Cầu cảng 3,Cầu cảng 3,MECHANICAL

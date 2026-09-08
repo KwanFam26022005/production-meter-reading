@@ -1,0 +1,24 @@
+{$APP_DOMAIN:localhost} {
+    # Forward API requests directly to FastAPI backend without SPA fallback
+    handle /api/* {
+        reverse_proxy backend:8000
+    }
+
+    # Forward healthcheck endpoint directly to backend
+    handle /health {
+        reverse_proxy backend:8000
+    }
+
+    # Serve static PWA assets with SPA fallback for client-side navigation
+    handle {
+        root * /srv/frontend
+        try_files {path} /index.html
+        file_server
+    }
+
+    # Structured access logging (excluding request bodies)
+    log {
+        output stdout
+        format json
+    }
+}

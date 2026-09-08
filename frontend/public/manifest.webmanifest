@@ -1,0 +1,24 @@
+{
+  "name": "Đọc Công Tơ - Cảng Sài Gòn",
+  "short_name": "Đọc Công Tơ",
+  "description": "Ứng dụng nhận diện và đọc chỉ số công tơ điện hiện trường Cảng Sài Gòn",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F6F8F9",
+  "theme_color": "#073B5C",
+  "lang": "vi",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

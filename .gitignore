@@ -19,6 +19,7 @@ frontend/node_modules/
 frontend/dist/
 frontend/.next/
 frontend/.env*
+frontend/tsconfig.tsbuildinfo
 
 # Model weights / inference exports
 models/**/*.pt
@@ -41,10 +42,18 @@ datasets/
 uploads/
 artifacts/
 
-# Runtime output
+# Whitelist frontend static assets & public icons
+!frontend/src/assets/**
+!frontend/public/**
+
+# Runtime output and logs
 backend/tmp/
 backend/logs/
 backend/output/
+*.log
+backend_err.log
+backend_out.log
+.demo_pids.json
 
 # Local production model directories
 models/e2/

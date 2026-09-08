@@ -37,6 +37,45 @@ class ReadingResult:
     det_confidence: float | None
     ocr_confidence: float | None
     localization_imgsz: int | None
+    roi_bbox: tuple[float, float, float, float] | None = None
+
+
+def compute_recognition_crop_geometry(
+    x1: float,
+    y1: float,
+    x2: float,
+    y2: float,
+    width: int,
+    height: int,
+    roi_shift_x: float = 0.025,
+    roi_padding: float = 0.05,
+) -> tuple[int, int, int, int, float, float, float, float]:
+    """
+    Computes exact production recognition transform:
+    pad 5%, horizontal shift +2.5% of bbox width.
+    Returns: (nx1, ny1, nx2, ny2, norm_x1, norm_y1, norm_x2, norm_y2)
+    """
+    box_w = max(x2 - x1, 1.0)
+    box_h = max(y2 - y1, 1.0)
+
+    dx = roi_shift_x * box_w
+    pad_x = roi_padding * box_w
+    pad_y = roi_padding * box_h
+
+    nx1 = max(0, math.floor(x1 + dx - pad_x))
+    nx2 = min(width, math.ceil(x2 + dx + pad_x))
+    ny1 = max(0, math.floor(y1 - pad_y))
+    ny2 = min(height, math.ceil(y2 + pad_y))
+
+    if nx2 <= nx1 or ny2 <= ny1:
+        raise ValueError("Invalid ROI crop")
+
+    norm_x1 = float(nx1) / max(width, 1)
+    norm_y1 = float(ny1) / max(height, 1)
+    norm_x2 = float(nx2) / max(width, 1)
+    norm_y2 = float(ny2) / max(height, 1)
+
+    return nx1, ny1, nx2, ny2, norm_x1, norm_y1, norm_x2, norm_y2
 
 
 class MeterReader:
@@ -145,7 +184,7 @@ class MeterReader:
                     localization_imgsz=None,
                 )
 
-            crop = self._crop(image, detection.bbox)
+            crop, roi_norm = self._crop(image, detection.bbox)
             reading, ocr_score = self._recognize(crop)
 
             if not reading:
@@ -156,6 +195,7 @@ class MeterReader:
                     det_confidence=detection.confidence,
                     ocr_confidence=ocr_score,
                     localization_imgsz=detection.imgsz,
+                    roi_bbox=roi_norm,
                 )
 
             return ReadingResult(
@@ -165,6 +205,7 @@ class MeterReader:
                 det_confidence=detection.confidence,
                 ocr_confidence=ocr_score,
                 localization_imgsz=detection.imgsz,
+                roi_bbox=roi_norm,
             )
 
     def _detect(self, image: np.ndarray, imgsz: int) -> Detection | None:
@@ -211,28 +252,25 @@ class MeterReader:
         self,
         image: np.ndarray,
         bbox: tuple[float, float, float, float],
-    ) -> np.ndarray:
+    ) -> tuple[np.ndarray, tuple[float, float, float, float]]:
         height, width = image.shape[:2]
         x1, y1, x2, y2 = bbox
-        box_w = max(x2 - x1, 1.0)
-        box_h = max(y2 - y1, 1.0)
-
-        dx = self.settings.roi_shift_x * box_w
-        pad_x = self.settings.roi_padding * box_w
-        pad_y = self.settings.roi_padding * box_h
-
-        nx1 = max(0, math.floor(x1 + dx - pad_x))
-        nx2 = min(width, math.ceil(x2 + dx + pad_x))
-        ny1 = max(0, math.floor(y1 - pad_y))
-        ny2 = min(height, math.ceil(y2 + pad_y))
-
-        if nx2 <= nx1 or ny2 <= ny1:
-            raise ValueError("Invalid ROI crop")
+        nx1, ny1, nx2, ny2, norm_x1, norm_y1, norm_x2, norm_y2 = compute_recognition_crop_geometry(
+            x1=x1,
+            y1=y1,
+            x2=x2,
+            y2=y2,
+            width=width,
+            height=height,
+            roi_shift_x=self.settings.roi_shift_x,
+            roi_padding=self.settings.roi_padding,
+        )
 
         crop = image[ny1:ny2, nx1:nx2].copy()
         if crop.size == 0:
             raise ValueError("Empty ROI crop")
-        return crop
+
+        return crop, (norm_x1, norm_y1, norm_x2, norm_y2)
 
     def _recognize(self, crop: np.ndarray) -> tuple[str, float]:
         assert self._recognizer is not None

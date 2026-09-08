@@ -6,3 +6,6 @@ numpy>=2.0,<3
 opencv-python-headless>=4.10,<5
 ultralytics>=8.4,<9
 paddlepaddle>=3.3,<4
+sqlalchemy>=2.0.0,<3
+argon2-cffi>=23.1.0,<26
+tzdata>=2024.1
