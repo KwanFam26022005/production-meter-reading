@@ -12343,4 +12343,409 @@ body:has(.admin-portal-root) {
   }
 }
 
+/* ==========================================================================
+   PHASE 4: TAN THUAN PORT DIGITAL TWIN LITE (2.5D / 3D OPERATIONAL CONSOLE)
+   ========================================================================== */
+
+/* 2D / 3D Dimension Toggle */
+.sgp-dimension-toggle {
+  display: inline-flex;
+  align-items: center;
+  background-color: var(--sgp-surface);
+  border: 1px solid var(--sgp-border);
+  border-radius: 6px;
+  padding: 2px;
+  gap: 2px;
+}
+
+.sgp-dim-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--sgp-ink-secondary);
+  background: none;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.sgp-dim-btn:hover:not(.active) {
+  background-color: var(--sgp-canvas);
+  color: var(--sgp-ink);
+}
+
+.sgp-dim-btn.active {
+  background-color: var(--sgp-brand-700);
+  color: #FFFFFF;
+  box-shadow: 0 1px 3px rgba(7, 59, 92, 0.25);
+}
+
+/* Digital Twin 3D Viewport - Primary Full-Canvas Workspace (~80-85% height) */
+.sgp-digital-twin-viewport {
+  position: relative;
+  width: 100%;
+  height: calc(100vh - 215px);
+  min-height: 560px;
+  max-height: 86vh;
+  border-radius: 8px;
+  overflow: hidden;
+  background: radial-gradient(circle at 50% 30%, #EDF5FA 0%, #DCE8EE 100%);
+  border: 1px solid var(--sgp-border);
+  box-shadow: inset 0 0 1px rgba(7, 59, 92, 0.08);
+}
+
+.sgp-digital-twin-viewport canvas {
+  outline: none;
+  display: block;
+}
+
+/* Fallback notice when WebGL is unsupported */
+.sgp-fallback-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.sgp-fallback-notice {
+  background-color: #FEF3F2;
+  border: 1px solid #FECDCA;
+  color: #B42318;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 6px 12px;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+/* 3D Centroid Zone HTML Badges (Rendered via Drei Html) */
+.sgp-3d-zone-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  background-color: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(7, 59, 92, 0.2);
+  border-radius: 20px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.14);
+  cursor: pointer;
+  pointer-events: auto;
+  user-select: none;
+  transform: translate(-50%, -50%);
+  transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.2s ease, border-color 0.2s ease;
+  white-space: nowrap;
+}
+
+.sgp-3d-zone-badge:hover,
+.sgp-3d-zone-badge.hovered {
+  transform: translate(-50%, -55%) scale(1.08);
+  box-shadow: 0 6px 16px rgba(7, 59, 92, 0.24);
+  border-color: var(--sgp-brand-600);
+}
+
+.sgp-3d-zone-badge.selected {
+  transform: translate(-50%, -55%) scale(1.12);
+  background-color: #FFFFFF;
+  border: 2px solid var(--sgp-brand-700);
+  box-shadow: 0 8px 22px rgba(7, 59, 92, 0.35);
+}
+
+.sgp-3d-zone-name {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--sgp-brand-800);
+  letter-spacing: 0.3px;
+}
+
+.sgp-3d-zone-pill {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 10px;
+  background-color: var(--sgp-brand-100);
+  color: var(--sgp-brand-700);
+}
+
+/* 3D Meter Tooltip (Drei Html) */
+.sgp-3d-meter-tooltip {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 10px;
+  background-color: rgba(15, 23, 42, 0.92);
+  color: #FFFFFF;
+  border-radius: 6px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  pointer-events: none;
+  user-select: none;
+  transform: translate(-50%, -120%);
+  white-space: nowrap;
+  font-size: 11px;
+  z-index: 100;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.sgp-3d-meter-tooltip-code {
+  font-weight: 700;
+  color: #38BDF8;
+}
+
+.sgp-3d-meter-tooltip-val {
+  font-size: 10px;
+  color: #CBD5E1;
+}
+
+/* Exception Drawer Alert Button & Indicator */
+.sgp-exception-btn.has-alerts {
+  background-color: #FFF4DF;
+  border-color: #F59E0B;
+  color: #B45309;
+}
+
+.sgp-exception-btn.has-alerts:hover {
+  background-color: #FEEBC8;
+}
+
+/* Exception Slide-Over Drawer */
+.sgp-exception-drawer {
+  border-left: 3px solid #F59E0B;
+}
+
+.sgp-drawer-tag.alert {
+  background-color: #FEF3F2;
+  color: #B42318;
+  border-color: #FECDCA;
+}
+
+.sgp-exception-drawer-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+}
+
+.sgp-exception-drawer-card {
+  padding: 12px;
+  background-color: var(--sgp-surface);
+  border: 1px solid var(--sgp-border);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: all 0.15s ease;
+}
+
+.sgp-exception-drawer-card.review {
+  border-left: 4px solid #D97706;
+}
+
+.sgp-exception-drawer-card.overdue {
+  border-left: 4px solid #DC2626;
+}
+
+.sgp-exception-drawer-card:hover {
+  box-shadow: 0 4px 12px rgba(24, 36, 44, 0.08);
+  border-color: var(--sgp-border-strong);
+}
+
+.sgp-edc-header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sgp-edc-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sgp-edc-code {
+  font-size: 13px;
+  color: var(--sgp-brand-800);
+}
+
+.sgp-edc-name {
+  font-size: 12px;
+  color: var(--sgp-ink-secondary);
+}
+
+.sgp-edc-meta-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 10px;
+  font-size: 11px;
+  padding: 6px 8px;
+  background-color: var(--sgp-canvas);
+  border-radius: 4px;
+}
+
+.sgp-edc-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow: hidden;
+}
+
+.sgp-edc-lbl {
+  color: var(--sgp-ink-muted);
+  flex-shrink: 0;
+}
+
+.sgp-edc-val {
+  color: var(--sgp-ink);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.sgp-edc-reason {
+  font-size: 11px;
+  font-weight: 500;
+  color: #B45309;
+  background-color: #FFFBEB;
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid #FEF3C7;
+}
+
+.sgp-edc-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 2px;
+}
+
+.sgp-goto-meter-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--sgp-brand-700);
+  background-color: var(--sgp-brand-050);
+  border: 1px solid var(--sgp-brand-100);
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.sgp-goto-meter-btn:hover {
+  background-color: var(--sgp-brand-100);
+  color: var(--sgp-brand-800);
+  transform: translateX(2px);
+}
+
+/* On-Demand Table Drawer / Modal */
+.sgp-table-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--sgp-ink-secondary);
+  background-color: var(--sgp-surface);
+  border: 1px solid var(--sgp-border);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.sgp-table-toggle-btn:hover {
+  background-color: var(--sgp-canvas);
+  color: var(--sgp-ink);
+}
+
+.sgp-table-toggle-btn.active {
+  background-color: var(--sgp-brand-100);
+  border-color: var(--sgp-brand-600);
+  color: var(--sgp-brand-800);
+  font-weight: 600;
+}
+
+.sgp-linked-list-drawer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  max-height: 52vh;
+  background-color: var(--sgp-surface);
+  border-top: 2px solid var(--sgp-border);
+  box-shadow: 0 -8px 30px rgba(7, 59, 92, 0.15);
+  z-index: 1040;
+  display: flex;
+  flex-direction: column;
+  animation: sgp-slide-up 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes sgp-slide-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.sgp-table-switch-legacy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--sgp-brand-700);
+  background-color: var(--sgp-brand-050);
+  border: 1px solid var(--sgp-brand-100);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.sgp-table-switch-legacy-btn:hover {
+  background-color: var(--sgp-brand-100);
+  color: var(--sgp-brand-800);
+}
+
+/* Status strip interactive card */
+.sgp-strip-card.interactive {
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.sgp-strip-card.interactive:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(7, 59, 92, 0.12);
+}
+
+/* Tablet & Mobile Layout Refinements */
+@media (max-width: 1024px) {
+  .sgp-digital-twin-viewport {
+    height: calc(100vh - 250px);
+    min-height: 480px;
+  }
+}
+
+@media (max-width: 768px) {
+  .sgp-digital-twin-viewport {
+    height: calc(100vh - 280px);
+    min-height: 420px;
+  }
+  
+  .sgp-toolbar-group-left,
+  .sgp-toolbar-group-right {
+    flex-wrap: wrap;
+  }
+
+  .sgp-linked-list-drawer {
+    max-height: 70vh;
+  }
+}
+
 

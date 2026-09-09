@@ -6,6 +6,7 @@ import {
   AlertTriangle,
   Layers,
   Clock,
+  Table as TableIcon,
 } from 'lucide-react';
 import { OperationalLayerType } from '../types';
 import { VnDatePicker } from '../../../components/ui/VnDatePicker';
@@ -24,6 +25,11 @@ interface OperationsToolbarProps {
   currentRoundStatus?: string | null;
   onRefresh: () => void;
   isLoading: boolean;
+  is2D?: boolean;
+  onToggle2D?: () => void;
+  onOpenExceptions?: () => void;
+  onToggleTable?: () => void;
+  isTableOpen?: boolean;
 }
 
 export const OperationsToolbar: React.FC<OperationsToolbarProps> = ({
@@ -40,10 +46,15 @@ export const OperationsToolbar: React.FC<OperationsToolbarProps> = ({
   currentRoundStatus,
   onRefresh,
   isLoading,
+  is2D = false,
+  onToggle2D,
+  onOpenExceptions,
+  onToggleTable,
+  isTableOpen = false,
 }) => {
   return (
     <div className="sgp-operations-toolbar">
-      {/* LEFT: View Mode Switcher + Date Selector */}
+      {/* LEFT: View Mode Switcher + 2D/3D Dimension Toggle + Date Selector */}
       <div className="sgp-toolbar-group-left">
         {/* PRESENTATION SWITCH: [Bản đồ] [Danh sách] */}
         <div className="sgp-view-mode-toggle" role="group" aria-label="Chế độ hiển thị">
@@ -65,6 +76,32 @@ export const OperationsToolbar: React.FC<OperationsToolbarProps> = ({
           </button>
         </div>
 
+        {/* 2D / 3D DIMENSION TOGGLE (Tan Thuan Port Digital Twin) */}
+        {viewMode === 'map' && onToggle2D && (
+          <div className="sgp-dimension-toggle" role="group" aria-label="Chế độ không gian">
+            <button
+              type="button"
+              className={`sgp-dim-btn ${is2D ? 'active' : ''}`}
+              onClick={() => {
+                if (!is2D) onToggle2D();
+              }}
+              title="Góc nhìn 2D thẳng đứng (Top-down)"
+            >
+              2D
+            </button>
+            <button
+              type="button"
+              className={`sgp-dim-btn ${!is2D ? 'active' : ''}`}
+              onClick={() => {
+                if (is2D) onToggle2D();
+              }}
+              title="Góc nhìn 3D không gian Cảng (Isometric)"
+            >
+              3D
+            </button>
+          </div>
+        )}
+
         {/* Date Picker */}
         <div className="sgp-toolbar-date">
           <VnDatePicker value={selectedDate} onChange={onDateChange} />
@@ -82,7 +119,7 @@ export const OperationsToolbar: React.FC<OperationsToolbarProps> = ({
         )}
       </div>
 
-      {/* RIGHT: Layer Selection + Exception Mode + Refresh */}
+      {/* RIGHT: Layer Selection + Exception Drawer / Mode + Table Drawer + Refresh */}
       <div className="sgp-toolbar-group-right">
         {/* Layer Selector */}
         <div className="sgp-layer-selector">
@@ -104,19 +141,34 @@ export const OperationsToolbar: React.FC<OperationsToolbarProps> = ({
           </select>
         </div>
 
-        {/* EXCEPTION MODE TOGGLE */}
+        {/* EXCEPTION DRAWER BUTTON */}
         <button
           type="button"
-          className={`sgp-exception-btn ${exceptionsOnly ? 'active' : ''}`}
-          onClick={onToggleExceptionsOnly}
-          title="Lọc chỉ hiển thị các công tơ có ngoại lệ hoặc cần duyệt"
+          className={`sgp-exception-btn ${exceptionsCount > 0 ? 'has-alerts' : ''} ${exceptionsOnly ? 'active' : ''}`}
+          onClick={onOpenExceptions || onToggleExceptionsOnly}
+          title={onOpenExceptions ? 'Mở danh sách cảnh báo ngoại lệ' : 'Lọc chỉ hiện ngoại lệ'}
+          aria-label="Cảnh báo ngoại lệ"
         >
           <AlertTriangle size={15} />
-          <span>Chỉ hiện ngoại lệ</span>
+          <span>Ngoại lệ</span>
           {exceptionsCount > 0 && (
             <span className="sgp-exception-badge">{exceptionsCount}</span>
           )}
         </button>
+
+        {/* ON-DEMAND TABLE TOGGLE BUTTON */}
+        {onToggleTable && (
+          <button
+            type="button"
+            className={`sgp-table-toggle-btn ${isTableOpen ? 'active' : ''}`}
+            onClick={onToggleTable}
+            title="Mở bảng dữ liệu công tơ theo yêu cầu"
+            aria-label="Mở bảng dữ liệu công tơ"
+          >
+            <TableIcon size={15} />
+            <span>Bảng số liệu</span>
+          </button>
+        )}
 
         {/* REFRESH BUTTON */}
         <button

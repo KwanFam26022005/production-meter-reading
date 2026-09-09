@@ -9,6 +9,7 @@ interface OperationsStatusStripProps {
   overdueCount: number;
   dueCount: number;
   pendingCount: number;
+  onOpenExceptions?: () => void;
 }
 
 export const OperationsStatusStrip: React.FC<OperationsStatusStripProps> = ({
@@ -19,6 +20,7 @@ export const OperationsStatusStrip: React.FC<OperationsStatusStripProps> = ({
   overdueCount,
   dueCount,
   pendingCount,
+  onOpenExceptions,
 }) => {
   return (
     <div className="sgp-status-strip">
@@ -49,7 +51,13 @@ export const OperationsStatusStrip: React.FC<OperationsStatusStripProps> = ({
       </div>
 
       {/* 3. Review Stat */}
-      <div className="sgp-strip-card stat-card review">
+      <div
+        className={`sgp-strip-card stat-card review ${onOpenExceptions ? 'interactive' : ''}`}
+        onClick={onOpenExceptions}
+        title={onOpenExceptions ? 'Bấm để xem danh sách cần kiểm tra' : undefined}
+        role={onOpenExceptions ? 'button' : undefined}
+        tabIndex={onOpenExceptions ? 0 : undefined}
+      >
         <div className="sgp-strip-icon-wrapper review">
           <AlertTriangle size={16} />
         </div>
@@ -60,7 +68,13 @@ export const OperationsStatusStrip: React.FC<OperationsStatusStripProps> = ({
       </div>
 
       {/* 4. Overdue Stat */}
-      <div className="sgp-strip-card stat-card overdue">
+      <div
+        className={`sgp-strip-card stat-card overdue ${onOpenExceptions ? 'interactive' : ''}`}
+        onClick={onOpenExceptions}
+        title={onOpenExceptions ? 'Bấm để xem danh sách quá hạn' : undefined}
+        role={onOpenExceptions ? 'button' : undefined}
+        tabIndex={onOpenExceptions ? 0 : undefined}
+      >
         <div className="sgp-strip-icon-wrapper overdue">
           <ShieldAlert size={16} />
         </div>
