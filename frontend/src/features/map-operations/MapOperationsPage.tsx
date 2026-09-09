@@ -31,9 +31,11 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
     mapMeters,
     mapZones,
     overallKpis,
+    availableOperators,
     loading,
     error,
     refresh,
+    reassignOperator,
   } = useMapOperations();
 
   const {
@@ -191,12 +193,14 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
         </div>
 
         {/* RIGHT SIDE DETAIL DRAWER */}
-        {selection.drawerType === 'zone' && selectedZone && (
+        {(selection.drawerType === 'zone' || selection.drawerType === 'reassign') && selectedZone && (
           <ZoneDrawer
             zone={selectedZone}
+            availableOperators={availableOperators}
             onClose={closeDrawer}
             onSelectMeter={handleFocusMeter}
             onRequestReassign={openReassignDrawer}
+            onReassignOperator={reassignOperator}
           />
         )}
 

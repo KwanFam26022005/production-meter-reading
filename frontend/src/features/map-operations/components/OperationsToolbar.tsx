@@ -99,6 +99,7 @@ export const OperationsToolbar: React.FC<OperationsToolbarProps> = ({
             <option value="STATUS">Trạng thái công tơ</option>
             <option value="PROGRESS">Tiến độ khu vực</option>
             <option value="OWNERSHIP">Phụ trách nhân sự</option>
+            <option value="EXCEPTIONS">Cảnh báo ngoại lệ</option>
             <option value="WORKLOAD">Khối lượng tác nghiệp</option>
           </select>
         </div>

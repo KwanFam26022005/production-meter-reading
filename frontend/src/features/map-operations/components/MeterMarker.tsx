@@ -37,6 +37,26 @@ export const MeterMarker: React.FC<MeterMarkerProps> = ({
   // Radius sizing: compact yet accessible (radius ~12-14px)
   const radius = isSelected ? 16 : isHovered ? 15 : 13;
 
+  // Center glyph based on layer
+  let centerText = meter.meterCode.replace('CT-', '');
+  if (activeLayer === 'PROGRESS') {
+    if (meter.semanticState === 'CONFIRMED') centerText = '✓';
+    else if (meter.semanticState === 'REVIEW' || meter.semanticState === 'OVERDUE') centerText = '!';
+    else if (meter.semanticState === 'DUE') centerText = '⏱';
+    else if (meter.semanticState === 'INACTIVE') centerText = '×';
+    else centerText = '—';
+  }
+
+  // Sub-label text
+  let subText = meter.meterCode;
+  if (activeLayer === 'PROGRESS' && meter.latestReading?.readingValue) {
+    subText = `${meter.latestReading.readingValue}`;
+  } else if (activeLayer === 'EXCEPTIONS' && isException) {
+    subText = meter.semanticState === 'REVIEW' ? 'CẦN DUYỆT' : 'QUÁ HẠN';
+  }
+
+  const subWidth = Math.max(54, subText.length * 6.5 + 14);
+
   return (
     <g
       className={`sgp-meter-marker ${isSelected ? 'selected' : ''} ${isException ? 'exception' : ''}`}
@@ -88,15 +108,15 @@ export const MeterMarker: React.FC<MeterMarkerProps> = ({
         fontFamily="inherit"
         style={{ pointerEvents: 'none' }}
       >
-        {meter.meterCode.replace('CT-', '')}
+        {centerText}
       </text>
 
       {/* Compact Code Tooltip / Label */}
       <g transform={`translate(0, ${radius + 12})`} style={{ pointerEvents: 'none' }}>
         <rect
-          x="-32"
+          x={-subWidth / 2}
           y="-9"
-          width="64"
+          width={subWidth}
           height="18"
           rx="3"
           fill="#18242C"
@@ -111,7 +131,7 @@ export const MeterMarker: React.FC<MeterMarkerProps> = ({
           fill="#FFFFFF"
           fontFamily="inherit"
         >
-          {meter.meterCode}
+          {subText}
         </text>
       </g>
     </g>

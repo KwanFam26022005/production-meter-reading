@@ -216,3 +216,19 @@ def test_zone_reassignment_with_audit_log():
         assert audit.resource_type == "ZONE_ASSIGNMENT"
     finally:
         db.close()
+
+
+def test_map_operators_endpoint():
+    token, csrf_token, _ = create_test_admin_session()
+    cookies = {get_settings().session_cookie_name: token}
+
+    resp = client.get("/api/v1/map/operators", cookies=cookies)
+    assert resp.status_code == 200
+    operators = resp.json()
+    assert isinstance(operators, list)
+    assert len(operators) > 0
+    for op in operators:
+        assert "id" in op
+        assert "employee_code" in op
+        assert "full_name" in op
+
