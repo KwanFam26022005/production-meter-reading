@@ -8,6 +8,7 @@ import {
   FileCheck,
   ExternalLink,
   ShieldCheck,
+  Box,
 } from 'lucide-react';
 import { MapMeterItem } from '../types';
 import { SEMANTIC_STATE_CONFIG } from '../utils/mapStatus';
@@ -16,12 +17,14 @@ interface MeterDrawerProps {
   meter: MapMeterItem;
   onClose: () => void;
   onInspectReading?: (readingId: string) => void;
+  onViewIn3D?: () => void;
 }
 
 export const MeterDrawer: React.FC<MeterDrawerProps> = ({
   meter,
   onClose,
   onInspectReading,
+  onViewIn3D,
 }) => {
   const stateCfg = SEMANTIC_STATE_CONFIG[meter.semanticState];
   const reading = meter.latestReading;
@@ -39,14 +42,27 @@ export const MeterDrawer: React.FC<MeterDrawerProps> = ({
           </div>
           <h2 className="sgp-drawer-title">{meter.name}</h2>
         </div>
-        <button
-          type="button"
-          className="sgp-drawer-close-btn"
-          onClick={onClose}
-          aria-label="Đóng bảng thông tin"
-        >
-          <X size={18} />
-        </button>
+        <div className="sgp-drawer-actions">
+          {onViewIn3D && (
+            <button
+              type="button"
+              className="sgp-drawer-3d-btn"
+              onClick={onViewIn3D}
+              title="Xem vị trí công tơ trong không gian 3D"
+            >
+              <Box size={13} />
+              <span>Xem 3D</span>
+            </button>
+          )}
+          <button
+            type="button"
+            className="sgp-drawer-close-btn"
+            onClick={onClose}
+            aria-label="Đóng bảng thông tin"
+          >
+            <X size={18} />
+          </button>
+        </div>
       </div>
 
       {/* Body */}

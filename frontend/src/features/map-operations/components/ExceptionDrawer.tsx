@@ -3,6 +3,7 @@ import {
   X,
   AlertTriangle,
   ArrowRight,
+  Box,
 } from 'lucide-react';
 import { MapMeterItem } from '../types';
 import { SEMANTIC_STATE_CONFIG } from '../utils/mapStatus';
@@ -12,6 +13,7 @@ interface ExceptionDrawerProps {
   meters: MapMeterItem[];
   onClose: () => void;
   onNavigateToMeter: (meterId: string) => void;
+  onNavigateTo3DMeter?: (meterId: string) => void;
 }
 
 export const ExceptionDrawer: React.FC<ExceptionDrawerProps> = ({
@@ -19,6 +21,7 @@ export const ExceptionDrawer: React.FC<ExceptionDrawerProps> = ({
   meters,
   onClose,
   onNavigateToMeter,
+  onNavigateTo3DMeter,
 }) => {
   if (!isOpen) return null;
 
@@ -114,12 +117,24 @@ export const ExceptionDrawer: React.FC<ExceptionDrawerProps> = ({
                     </div>
                   )}
 
-                  {/* Action "Đi tới" button */}
+                  {/* Actions: "Đi tới 2D" & "Xem trong 3D" */}
                   <div className="sgp-edc-actions">
+                    {onNavigateTo3DMeter && (
+                      <button
+                        type="button"
+                        className="sgp-goto-3d-btn"
+                        onClick={() => onNavigateTo3DMeter(m.id)}
+                        title="Chuyển sang chế độ 3D và định vị công tơ"
+                      >
+                        <Box size={13} />
+                        <span>Xem 3D</span>
+                      </button>
+                    )}
                     <button
                       type="button"
                       className="sgp-goto-meter-btn"
                       onClick={() => onNavigateToMeter(m.id)}
+                      title="Định vị công tơ trên bản đồ vận hành"
                     >
                       <span>Đi tới</span>
                       <ArrowRight size={14} />

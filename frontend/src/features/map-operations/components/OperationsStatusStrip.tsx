@@ -9,7 +9,13 @@ interface OperationsStatusStripProps {
   overdueCount: number;
   dueCount: number;
   pendingCount: number;
-  onOpenExceptions?: () => void;
+  onFilterProgress?: () => void;
+  onFilterConfirmed?: () => void;
+  onFilterReview?: () => void;
+  onFilterOverdue?: () => void;
+  onFilterDue?: () => void;
+  activeStatusFilter?: string;
+  activeLayer?: string;
 }
 
 export const OperationsStatusStrip: React.FC<OperationsStatusStripProps> = ({
@@ -20,12 +26,26 @@ export const OperationsStatusStrip: React.FC<OperationsStatusStripProps> = ({
   overdueCount,
   dueCount,
   pendingCount,
-  onOpenExceptions,
+  onFilterProgress,
+  onFilterConfirmed,
+  onFilterReview,
+  onFilterOverdue,
+  onFilterDue,
+  activeStatusFilter,
+  activeLayer,
 }) => {
   return (
-    <div className="sgp-status-strip">
+    <div className="sgp-status-strip" role="toolbar" aria-label="Thanh chỉ số vận hành">
       {/* 1. Overall Progress */}
-      <div className="sgp-strip-card progress-card">
+      <div
+        className={`sgp-strip-card progress-card interactive ${
+          activeLayer === 'PROGRESS' ? 'active-filter' : ''
+        }`}
+        onClick={onFilterProgress}
+        title="Bấm để kích hoạt lớp Tiến độ khu vực"
+        role="button"
+        tabIndex={0}
+      >
         <div className="sgp-strip-label">Tiến độ ca trực</div>
         <div className="sgp-strip-value-row">
           <span className="sgp-strip-value font-tabular">{completionPercent}%</span>
@@ -40,7 +60,15 @@ export const OperationsStatusStrip: React.FC<OperationsStatusStripProps> = ({
       </div>
 
       {/* 2. Confirmed Stat */}
-      <div className="sgp-strip-card stat-card confirmed">
+      <div
+        className={`sgp-strip-card stat-card confirmed interactive ${
+          activeStatusFilter === 'CONFIRMED' ? 'active-filter' : ''
+        }`}
+        onClick={onFilterConfirmed}
+        title="Bấm để lọc các công tơ đã hoàn thành"
+        role="button"
+        tabIndex={0}
+      >
         <div className="sgp-strip-icon-wrapper confirmed">
           <CheckCircle2 size={16} />
         </div>
@@ -52,11 +80,13 @@ export const OperationsStatusStrip: React.FC<OperationsStatusStripProps> = ({
 
       {/* 3. Review Stat */}
       <div
-        className={`sgp-strip-card stat-card review ${onOpenExceptions ? 'interactive' : ''}`}
-        onClick={onOpenExceptions}
-        title={onOpenExceptions ? 'Bấm để xem danh sách cần kiểm tra' : undefined}
-        role={onOpenExceptions ? 'button' : undefined}
-        tabIndex={onOpenExceptions ? 0 : undefined}
+        className={`sgp-strip-card stat-card review interactive ${
+          activeStatusFilter === 'REVIEW' ? 'active-filter' : ''
+        }`}
+        onClick={onFilterReview}
+        title="Bấm để lọc các công tơ cần kiểm tra lại"
+        role="button"
+        tabIndex={0}
       >
         <div className="sgp-strip-icon-wrapper review">
           <AlertTriangle size={16} />
@@ -69,11 +99,13 @@ export const OperationsStatusStrip: React.FC<OperationsStatusStripProps> = ({
 
       {/* 4. Overdue Stat */}
       <div
-        className={`sgp-strip-card stat-card overdue ${onOpenExceptions ? 'interactive' : ''}`}
-        onClick={onOpenExceptions}
-        title={onOpenExceptions ? 'Bấm để xem danh sách quá hạn' : undefined}
-        role={onOpenExceptions ? 'button' : undefined}
-        tabIndex={onOpenExceptions ? 0 : undefined}
+        className={`sgp-strip-card stat-card overdue interactive ${
+          activeStatusFilter === 'OVERDUE' ? 'active-filter' : ''
+        }`}
+        onClick={onFilterOverdue}
+        title="Bấm để lọc công tơ quá hạn và mở lớp ngoại lệ"
+        role="button"
+        tabIndex={0}
       >
         <div className="sgp-strip-icon-wrapper overdue">
           <ShieldAlert size={16} />
@@ -85,7 +117,15 @@ export const OperationsStatusStrip: React.FC<OperationsStatusStripProps> = ({
       </div>
 
       {/* 5. In-Round Due / Pending */}
-      <div className="sgp-strip-card stat-card due">
+      <div
+        className={`sgp-strip-card stat-card due interactive ${
+          activeStatusFilter === 'DUE' ? 'active-filter' : ''
+        }`}
+        onClick={onFilterDue}
+        title="Bấm để lọc các công tơ đến hạn ghi ca"
+        role="button"
+        tabIndex={0}
+      >
         <div className="sgp-strip-icon-wrapper due">
           <Clock size={16} />
         </div>

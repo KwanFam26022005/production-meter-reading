@@ -90,9 +90,11 @@ export interface MapFilterOptions {
   searchQuery: string;
   zoneId: string; // 'ALL' | zoneId
   status: string; // 'ALL' | MeterSemanticState
+  statuses?: MeterSemanticState[];
   meterType: string; // 'ALL' | 'LCD' | 'MECHANICAL'
+  operatorId?: string; // 'ALL' | userId
   exceptionsOnly: boolean;
-  selectedRoundId?: string; // specific round or undefined for current/day summary
+  selectedRoundId?: string;
 }
 
 export interface MapSelectionState {

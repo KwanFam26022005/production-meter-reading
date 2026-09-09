@@ -1,10 +1,14 @@
 import React from 'react';
 import { Search, X } from 'lucide-react';
 import { MapFilterOptions, MapOperationalZone } from '../types';
+import { User } from '../../../types';
 
 interface OperationsFiltersProps {
   filters: MapFilterOptions;
   zones: MapOperationalZone[];
+  operators?: User[];
+  selectedOperatorId?: string;
+  onOperatorChange?: (operatorId: string) => void;
   onFilterChange: (nextFilters: MapFilterOptions) => void;
   filteredCount: number;
   totalCount: number;
@@ -13,6 +17,9 @@ interface OperationsFiltersProps {
 export const OperationsFilters: React.FC<OperationsFiltersProps> = ({
   filters,
   zones,
+  operators = [],
+  selectedOperatorId = 'ALL',
+  onOperatorChange,
   onFilterChange,
   filteredCount,
   totalCount,
@@ -61,7 +68,27 @@ export const OperationsFilters: React.FC<OperationsFiltersProps> = ({
         </select>
       </div>
 
-      {/* 3. Status Filter Dropdown */}
+      {/* 3. Operator Filter Dropdown */}
+      {operators.length > 0 && onOperatorChange && (
+        <div className="sgp-filter-select-group">
+          <label htmlFor="filter-operator-select" className="sgp-filter-label">Phụ trách:</label>
+          <select
+            id="filter-operator-select"
+            value={selectedOperatorId}
+            onChange={(e) => onOperatorChange(e.target.value)}
+            className="sgp-filter-select"
+          >
+            <option value="ALL">Tất cả nhân sự ({operators.length})</option>
+            {operators.map((u) => (
+              <option key={u.id} value={u.id}>
+                {u.full_name} ({u.employee_code || u.role})
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {/* 4. Status Filter Dropdown */}
       <div className="sgp-filter-select-group">
         <label htmlFor="filter-status-select" className="sgp-filter-label">Trạng thái:</label>
         <select
@@ -80,7 +107,7 @@ export const OperationsFilters: React.FC<OperationsFiltersProps> = ({
         </select>
       </div>
 
-      {/* 4. Meter Type Filter */}
+      {/* 5. Meter Type Filter */}
       <div className="sgp-filter-select-group">
         <label htmlFor="filter-type-select" className="sgp-filter-label">Loại:</label>
         <select

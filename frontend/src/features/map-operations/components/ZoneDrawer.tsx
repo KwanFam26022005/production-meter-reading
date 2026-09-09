@@ -6,6 +6,7 @@ import {
   Check,
   AlertCircle,
   Loader2,
+  Box,
 } from 'lucide-react';
 import { MapOperationalZone } from '../types';
 import { SEMANTIC_STATE_CONFIG } from '../utils/mapStatus';
@@ -18,6 +19,7 @@ interface ZoneDrawerProps {
   onSelectMeter: (meterId: string) => void;
   onRequestReassign?: () => void;
   onReassignOperator?: (zoneId: string, userId: string, note?: string) => Promise<void>;
+  onViewIn3D?: () => void;
 }
 
 export const ZoneDrawer: React.FC<ZoneDrawerProps> = ({
@@ -27,6 +29,7 @@ export const ZoneDrawer: React.FC<ZoneDrawerProps> = ({
   onSelectMeter,
   onRequestReassign,
   onReassignOperator,
+  onViewIn3D,
 }) => {
   const [isReassigning, setIsReassigning] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState(zone.assignedUser?.id || '');
@@ -82,14 +85,27 @@ export const ZoneDrawer: React.FC<ZoneDrawerProps> = ({
           <span className="sgp-drawer-tag">{zone.code}</span>
           <h2 className="sgp-drawer-title">{zone.name}</h2>
         </div>
-        <button
-          type="button"
-          className="sgp-drawer-close-btn"
-          onClick={onClose}
-          aria-label="Đóng bảng thông tin"
-        >
-          <X size={18} />
-        </button>
+        <div className="sgp-drawer-actions">
+          {onViewIn3D && (
+            <button
+              type="button"
+              className="sgp-drawer-3d-btn"
+              onClick={onViewIn3D}
+              title="Xem không gian 3D của phân khu này"
+            >
+              <Box size={13} />
+              <span>Xem 3D</span>
+            </button>
+          )}
+          <button
+            type="button"
+            className="sgp-drawer-close-btn"
+            onClick={onClose}
+            aria-label="Đóng bảng thông tin"
+          >
+            <X size={18} />
+          </button>
+        </div>
       </div>
 
       {/* Content Body */}

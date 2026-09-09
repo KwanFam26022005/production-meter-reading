@@ -20,7 +20,11 @@ export function filterMeters(
     }
 
     // 3. Status filter
-    if (filters.status && filters.status !== 'ALL') {
+    if (filters.statuses && filters.statuses.length > 0) {
+      if (!filters.statuses.includes(m.semanticState)) {
+        return false;
+      }
+    } else if (filters.status && filters.status !== 'ALL') {
       if (m.semanticState !== filters.status) {
         return false;
       }
