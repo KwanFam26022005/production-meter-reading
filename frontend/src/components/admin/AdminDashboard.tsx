@@ -8,6 +8,8 @@ import {
   Sparkles,
   ChevronRight,
   ChevronUp,
+  Map,
+  List,
 } from 'lucide-react';
 import { AdminDashboardResponse } from '../../types';
 import { getAdminDashboard } from '../../services/api';
@@ -15,6 +17,7 @@ import { LoadingState } from '../ui/LoadingState';
 import { ErrorState } from '../ui/ErrorState';
 import { EmptyState } from '../ui/EmptyState';
 import { VnDatePicker } from '../ui/VnDatePicker';
+import { MapOperationsPage } from '../../features/map-operations/MapOperationsPage';
 
 export const formatDisplayDateVN = (isoDate: string): string => {
   try {
@@ -31,6 +34,21 @@ export interface AdminDashboardProps {
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onInspectReading }) => {
+  const [viewMode, setViewMode] = useState<'map' | 'legacy'>(() => {
+    try {
+      const saved = localStorage.getItem('csg_admin_dashboard_view_mode');
+      if (saved === 'legacy' || saved === 'map') return saved;
+    } catch {}
+    return (import.meta as any).env?.VITE_ENABLE_MAP_OPERATIONS === 'false' ? 'legacy' : 'map';
+  });
+
+  const handleSetViewMode = (mode: 'map' | 'legacy') => {
+    setViewMode(mode);
+    try {
+      localStorage.setItem('csg_admin_dashboard_view_mode', mode);
+    } catch {}
+  };
+
   const getTodayLocal = () => {
     return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date());
   };
@@ -89,6 +107,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onInspectReading
 
   const isFutureSchedule = dashboardData?.kpis.current_round_status === 'Lịch dự kiến';
 
+  if (viewMode === 'map') {
+    return (
+      <MapOperationsPage
+        onInspectReading={onInspectReading}
+        onSwitchToLegacy={() => handleSetViewMode('legacy')}
+      />
+    );
+  }
+
   return (
     <div className="admin-page-container">
       {/* 1. PAGE HEADER */}
@@ -100,6 +127,26 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onInspectReading
 
         {/* TOP FILTER TOOLBAR */}
         <div className="admin-header-controls" role="toolbar" aria-label="Bộ lọc tổng quan">
+          {/* VIEW MODE TOGGLE [Bản đồ] [Danh sách] */}
+          <div className="sgp-view-mode-toggle" role="group" aria-label="Chế độ hiển thị">
+            <button
+              type="button"
+              className="sgp-mode-btn"
+              onClick={() => handleSetViewMode('map')}
+            >
+              <Map size={15} />
+              <span>Bản đồ</span>
+            </button>
+            <button
+              type="button"
+              className="sgp-mode-btn active"
+              onClick={() => handleSetViewMode('legacy')}
+            >
+              <List size={15} />
+              <span>Danh sách</span>
+            </button>
+          </div>
+
           <div className="admin-filter-group">
             {/* Date Filter Input */}
             <VnDatePicker

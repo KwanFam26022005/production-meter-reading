@@ -11,6 +11,8 @@ import {
   Lock,
   MoreVertical,
   Layers,
+  Map,
+  List,
 } from 'lucide-react';
 import { AdminMeterItem, AdminMeterListResponse } from '../../types';
 import {
@@ -23,6 +25,7 @@ import {
 } from '../../services/api';
 import { LoadingState } from '../ui/LoadingState';
 import { ErrorState } from '../ui/ErrorState';
+import { MapOperationsPage } from '../../features/map-operations/MapOperationsPage';
 
 export const formatLatestReadingTime = (timeStr?: string | null): string | null => {
   if (!timeStr) return null;
@@ -215,6 +218,17 @@ export const AdminMeters: React.FC<AdminMetersProps> = ({ onInspectReading }) =>
   const isSearchOrFilterActive =
     searchQuery.trim() !== '' || statusFilter !== 'ALL' || typeFilter !== 'ALL';
 
+  const [viewMode, setViewMode] = useState<'map' | 'legacy'>('legacy');
+
+  if (viewMode === 'map') {
+    return (
+      <MapOperationsPage
+        onInspectReading={onInspectReading}
+        onSwitchToLegacy={() => setViewMode('legacy')}
+      />
+    );
+  }
+
   return (
     <div className="admin-page-container">
       {/* 1. PAGE HEADER */}
@@ -224,15 +238,36 @@ export const AdminMeters: React.FC<AdminMetersProps> = ({ onInspectReading }) =>
           <p className="admin-page-subtitle">Quản lý thông tin và trạng thái công tơ</p>
         </div>
 
-        <button
-          type="button"
-          className="admin-btn-primary"
-          onClick={handleOpenAdd}
-          aria-label="Thêm công tơ mới"
-        >
-          <Plus size={16} strokeWidth={2.2} aria-hidden="true" />
-          <span>Thêm công tơ</span>
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div className="sgp-view-mode-toggle" role="group" aria-label="Chế độ hiển thị">
+            <button
+              type="button"
+              className="sgp-mode-btn"
+              onClick={() => setViewMode('map')}
+            >
+              <Map size={15} />
+              <span>Bản đồ</span>
+            </button>
+            <button
+              type="button"
+              className="sgp-mode-btn active"
+              onClick={() => setViewMode('legacy')}
+            >
+              <List size={15} />
+              <span>Danh sách</span>
+            </button>
+          </div>
+
+          <button
+            type="button"
+            className="admin-btn-primary"
+            onClick={handleOpenAdd}
+            aria-label="Thêm công tơ mới"
+          >
+            <Plus size={16} strokeWidth={2.2} aria-hidden="true" />
+            <span>Thêm công tơ</span>
+          </button>
+        </div>
       </div>
 
       {/* 2. FILTER TOOLBAR */}
