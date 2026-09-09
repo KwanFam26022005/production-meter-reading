@@ -43,17 +43,17 @@ export const CurrentRoundControl: React.FC<CurrentRoundControlProps> = ({
   if (!rounds || rounds.length === 0) {
     return (
       <div className="sgp-current-round-card empty">
-        <div className="sgp-crc-header">
-          <Clock size={13} color="#0B4F75" />
-          <span className="sgp-crc-label">Lượt hiện tại</span>
+        <div className="sgp-crc-top-row">
+          <span className="sgp-crc-title">LƯỢT HIỆN TẠI</span>
+          {currentRoundStatus && (
+            <span className="sgp-crc-status-tag">{currentRoundStatus}</span>
+          )}
         </div>
-        <div className="sgp-crc-main">
-          <span className="sgp-crc-time">
+        <div className="sgp-crc-empty-body">
+          <Clock size={15} className="sgp-crc-empty-icon" />
+          <span className="sgp-crc-empty-text">
             {currentRoundTime ? `Ca ${currentRoundTime}` : 'Đang theo dõi'}
           </span>
-          {currentRoundStatus && (
-            <span className="sgp-crc-tag">{currentRoundStatus}</span>
-          )}
         </div>
       </div>
     );
@@ -84,8 +84,10 @@ export const CurrentRoundControl: React.FC<CurrentRoundControlProps> = ({
     <div className="sgp-current-round-card" ref={popoverRef}>
       <div className="sgp-crc-top-row">
         <span className="sgp-crc-title">LƯỢT HIỆN TẠI</span>
-        {activeRound.timing_state === 'CURRENT' && currentRoundStatus && (
-          <span className="sgp-crc-status-tag">{currentRoundStatus}</span>
+        {activeRound.timing_state === 'CURRENT' && (
+          <span className="sgp-crc-status-tag">
+            {currentRoundStatus || 'Đang mở'}
+          </span>
         )}
       </div>
 
@@ -130,11 +132,13 @@ export const CurrentRoundControl: React.FC<CurrentRoundControlProps> = ({
         </button>
       </div>
 
-      {/* Sub-summary */}
+      {/* Sub-summary: e.g. "10/12 hoàn tất" on separate line */}
       <div className="sgp-crc-sub-row font-tabular">
-        <span>{activeRound.confirmed}/{activeRound.total_meters} hoàn tất</span>
+        <span className="sgp-crc-sub-main">
+          {activeRound.confirmed}/{activeRound.total_meters} hoàn tất
+        </span>
         {activeRound.review > 0 && (
-          <span className="sgp-crc-sub-alert">· {activeRound.review} cần duyệt</span>
+          <span className="sgp-crc-sub-alert"> · {activeRound.review} cần duyệt</span>
         )}
       </div>
 

@@ -5,7 +5,7 @@ import {
   MapViewportState,
   OperationalLayerType,
 } from '../types';
-import { PHYSICAL_VIEWBOX } from '../geometry/physicalScene';
+import { FIT_VIEWBOX } from '../geometry/physicalScene';
 import { PortFootprint } from './PortFootprint';
 import { ZoneOperationalLayer } from './ZoneOperationalLayer';
 import { MeterPointLayer } from './MeterPointLayer';
@@ -75,11 +75,11 @@ export const OperationalMap: React.FC<OperationalMapProps> = ({
     setIsDragging(false);
   };
 
-  // Wheel Zoom
+  // Wheel Zoom — centered on cursor position for better UX
   const handleWheel = (e: React.WheelEvent) => {
     e.preventDefault();
-    const delta = e.deltaY < 0 ? 0.08 : -0.08;
-    const nextZoom = Math.min(Math.max(viewport.zoom + delta, 0.75), 2.5);
+    const delta = e.deltaY < 0 ? 0.1 : -0.1;
+    const nextZoom = Math.min(Math.max(viewport.zoom + delta, 0.6), 3.0);
     onViewportChange({
       ...viewport,
       zoom: Number(nextZoom.toFixed(2)),
@@ -87,12 +87,12 @@ export const OperationalMap: React.FC<OperationalMapProps> = ({
   };
 
   const handleZoomIn = useCallback(() => {
-    const nextZoom = Math.min(viewport.zoom + 0.15, 2.5);
+    const nextZoom = Math.min(viewport.zoom + 0.15, 3.0);
     onViewportChange({ ...viewport, zoom: Number(nextZoom.toFixed(2)) });
   }, [viewport, onViewportChange]);
 
   const handleZoomOut = useCallback(() => {
-    const nextZoom = Math.max(viewport.zoom - 0.15, 0.75);
+    const nextZoom = Math.max(viewport.zoom - 0.15, 0.6);
     onViewportChange({ ...viewport, zoom: Number(nextZoom.toFixed(2)) });
   }, [viewport, onViewportChange]);
 
@@ -109,7 +109,7 @@ export const OperationalMap: React.FC<OperationalMapProps> = ({
         width: '100%',
         height: '100%',
         overflow: 'hidden',
-        backgroundColor: '#EFF5F8',
+        backgroundColor: '#E8F0F5',
         userSelect: 'none',
       }}
       onMouseDown={handleMouseDown}
@@ -118,10 +118,16 @@ export const OperationalMap: React.FC<OperationalMapProps> = ({
       onMouseLeave={handleMouseUp}
       onWheel={handleWheel}
     >
-      {/* MASTER SVG VIEWPORT */}
+      {/* MASTER SVG VIEWPORT
+          viewBox is derived from getOperationalMapBounds() — geometry-fit, not hard-coded pixels.
+          preserveAspectRatio="xMidYMid meet" ensures the port is centered vertically
+          inside whatever container height is available.
+          User pan/zoom is applied as a transform on the inner <g> group.
+      */}
       <svg
-        viewBox={`0 0 ${PHYSICAL_VIEWBOX.width} ${PHYSICAL_VIEWBOX.height}`}
+        viewBox={FIT_VIEWBOX}
         className="sgp-operational-svg"
+        preserveAspectRatio="xMidYMid meet"
         style={{
           width: '100%',
           height: '100%',
@@ -168,7 +174,7 @@ export const OperationalMap: React.FC<OperationalMapProps> = ({
         </g>
       </svg>
 
-      {/* Floating Viewport Navigation Controls */}
+      {/* Floating Viewport Navigation Controls — positioned inside map, bottom-right */}
       <MapViewportControls
         zoom={viewport.zoom}
         onZoomIn={handleZoomIn}
@@ -176,7 +182,7 @@ export const OperationalMap: React.FC<OperationalMapProps> = ({
         onResetView={handleResetView}
       />
 
-      {/* Dynamic Layer Legend */}
+      {/* Collapsed ⓘ Chú giải legend — bottom-right, above controls */}
       <OperationalMapLegend activeLayer={activeLayer} />
     </div>
   );

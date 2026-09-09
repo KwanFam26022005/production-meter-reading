@@ -6,6 +6,7 @@ import { MapHeader } from './components/MapHeader';
 import { CompactStatusStrip } from './components/CompactStatusStrip';
 import { UnifiedOperationsPanel } from './components/UnifiedOperationsPanel';
 import { OperationalMap } from './operational-map/OperationalMap';
+import { OPERATIONAL_METER_COORDINATES } from './geometry/operationalGeometry';
 import { LoadingState } from '../../components/ui/LoadingState';
 import { ErrorState } from '../../components/ui/ErrorState';
 
@@ -63,11 +64,12 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
         if (m.zoneId && selection.selectedZoneId !== m.zoneId) {
           selectZone(m.zoneId);
         }
-        // Smoothly center the map on the selected meter
+        // Smoothly center the map on the selected meter using operational coords
+        const coord = OPERATIONAL_METER_COORDINATES[m.meterCode] || m.coordinates;
         setViewport({
           zoom: 1.45,
-          panX: -(m.coordinates.x * 1300 * 1.45 - 650),
-          panY: -(m.coordinates.y * 520 * 1.45 - 260),
+          panX: -(coord.x * 1300 * 1.45 - 650),
+          panY: -(coord.y * 520 * 1.45 - 260),
         });
       }
     },

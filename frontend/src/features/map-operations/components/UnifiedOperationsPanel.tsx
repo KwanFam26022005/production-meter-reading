@@ -446,30 +446,42 @@ export const UnifiedOperationsPanel: React.FC<UnifiedOperationsPanelProps> = ({
               >
                 <div className="sgp-up-zr-top">
                   <span className="sgp-up-zr-name font-bold">{z.shortName || z.name}</span>
+                  {/* Exception badge — only show when there IS a problem */}
                   {opState.health === 'CRITICAL' && (
                     <span className="sgp-up-health-pill critical">⚠ {opState.overdue} quá hạn</span>
                   )}
                   {opState.health === 'ATTENTION' && (
                     <span className="sgp-up-health-pill attention">⚠ {opState.review} cần duyệt</span>
                   )}
+                  {/* HEALTHY: just show fraction inline, no badge */}
                   {opState.health === 'HEALTHY' && (
-                    <span className="sgp-up-health-pill healthy">✓ Bình thường</span>
+                    <span className="sgp-up-zr-frac font-tabular">
+                      {opState.completed}/{opState.totalMeters}
+                    </span>
                   )}
                 </div>
 
-                {/* Progress bar + fraction */}
+                {/* Progress bar + pct only for non-healthy, for healthy keep it compact */}
                 <div className="sgp-up-zr-bottom">
                   <div className="sgp-up-zr-track">
                     <div
                       className="sgp-up-zr-fill"
                       style={{
                         width: `${opState.progressPct}%`,
-                        backgroundColor: opState.progressPct === 100 ? '#10B981' : '#0B4F75',
+                        backgroundColor:
+                          opState.health === 'CRITICAL'
+                            ? '#EF4444'
+                            : opState.health === 'ATTENTION'
+                            ? '#F59E0B'
+                            : opState.progressPct === 100
+                            ? '#10B981'
+                            : '#0B4F75',
                       }}
                     />
                   </div>
                   <span className="sgp-up-zr-stats font-tabular">
-                    <strong>{opState.progressPct}%</strong> · {opState.completed}/{opState.totalMeters}
+                    <strong>{opState.progressPct}%</strong>
+                    {opState.health !== 'HEALTHY' && ` · ${opState.completed}/${opState.totalMeters}`}
                   </span>
                 </div>
               </button>

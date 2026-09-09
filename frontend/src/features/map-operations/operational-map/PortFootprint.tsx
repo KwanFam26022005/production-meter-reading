@@ -21,6 +21,8 @@ import {
  *
  * All fills and strokes use calm, low-saturation tones so operational
  * status information visually dominates.
+ * Phase 6A: Adjusted contrast slightly for crisp spatial orientation,
+ * with river taking ~14% height and port ~80%.
  */
 export const PortFootprint: React.FC = () => {
   const landPointsStr = PHYSICAL_PORT_LAND.points
@@ -34,7 +36,7 @@ export const PortFootprint: React.FC = () => {
         d={PHYSICAL_RIVER.path}
         fill={PHYSICAL_RIVER.color}
         stroke={PHYSICAL_RIVER.edgeColor}
-        strokeWidth={1.5}
+        strokeWidth={1.8}
       />
       {PHYSICAL_RIVER.ripples.map((rip, idx) => (
         <path
@@ -49,13 +51,13 @@ export const PortFootprint: React.FC = () => {
       ))}
       <text
         x={650}
-        y={45}
-        fill="#5A7D94"
-        fontSize={14}
+        y={32}
+        fill="#4A6F87"
+        fontSize={13}
         fontWeight={700}
         letterSpacing={4}
         textAnchor="middle"
-        opacity={0.8}
+        opacity={0.85}
       >
         {PHYSICAL_RIVER.label}
       </text>
@@ -75,15 +77,15 @@ export const PortFootprint: React.FC = () => {
         width={PHYSICAL_QUAY.rect.width}
         height={PHYSICAL_QUAY.rect.height}
         fill={PHYSICAL_QUAY.concreteFill}
-        stroke="#BDCBD4"
-        strokeWidth={1}
+        stroke="#8EABC0"
+        strokeWidth={1.2}
       />
       {/* Crane rails line */}
       <line
         x1={PHYSICAL_QUAY.rect.x}
-        y1={PHYSICAL_QUAY.rect.y + 12}
+        y1={PHYSICAL_QUAY.rect.y + 11}
         x2={PHYSICAL_QUAY.rect.x + PHYSICAL_QUAY.rect.width}
-        y2={PHYSICAL_QUAY.rect.y + 12}
+        y2={PHYSICAL_QUAY.rect.y + 11}
         stroke={PHYSICAL_QUAY.railStroke}
         strokeWidth={1.5}
         strokeDasharray="4 4"
@@ -95,7 +97,7 @@ export const PortFootprint: React.FC = () => {
           cx={b.x}
           cy={b.y}
           r={2.5}
-          fill="#475569"
+          fill="#334155"
         />
       ))}
       {/* Berth Labels */}
@@ -104,12 +106,12 @@ export const PortFootprint: React.FC = () => {
           key={berth.id}
           x={berth.x}
           y={berth.y}
-          fill="#475569"
-          fontSize={11}
+          fill="#334155"
+          fontSize={10.5}
           fontWeight={700}
           letterSpacing={1.5}
           textAnchor="middle"
-          opacity={0.7}
+          opacity={0.8}
         >
           {berth.name}
         </text>
@@ -130,13 +132,13 @@ export const PortFootprint: React.FC = () => {
       />
       <text
         x={835}
-        y={108}
+        y={64}
         fill="#FFFFFF"
-        fontSize={9}
+        fontSize={8.5}
         fontWeight={700}
         letterSpacing={1}
         textAnchor="middle"
-        opacity={0.9}
+        opacity={0.95}
       >
         {PHYSICAL_QUAY.mooredShip.label}
       </text>
@@ -147,7 +149,7 @@ export const PortFootprint: React.FC = () => {
           key={road.id}
           d={road.d}
           fill="none"
-          stroke="#E2E8ED"
+          stroke="#D8E2E8"
           strokeWidth={road.strokeWidth}
           strokeLinecap="round"
         />
@@ -158,7 +160,7 @@ export const PortFootprint: React.FC = () => {
           key={`sub-${road.id}`}
           d={road.d}
           fill="none"
-          stroke="#D2DCE3"
+          stroke="#B8C8D2"
           strokeWidth={1}
           strokeDasharray="8 8"
         />
@@ -166,15 +168,15 @@ export const PortFootprint: React.FC = () => {
 
       {/* 5. WAREHOUSES (WEST SECTOR) */}
       {PHYSICAL_WAREHOUSES.map((wh) => (
-        <g key={wh.id} opacity={0.85}>
+        <g key={wh.id} opacity={0.9}>
           <rect
             x={wh.rect.x}
             y={wh.rect.y}
             width={wh.rect.width}
             height={wh.rect.height}
-            fill="#EAF0F4"
-            stroke="#BDCBD4"
-            strokeWidth={1.2}
+            fill="#E5EDF2"
+            stroke="#94A3B8"
+            strokeWidth={1.3}
             rx={3}
           />
           {/* Subtle loading bay doors */}
@@ -183,14 +185,14 @@ export const PortFootprint: React.FC = () => {
             y1={wh.rect.y + wh.rect.height}
             x2={wh.rect.x + wh.rect.width - 10}
             y2={wh.rect.y + wh.rect.height}
-            stroke="#94A3B8"
-            strokeWidth={3}
+            stroke="#64748B"
+            strokeWidth={2.5}
           />
           <text
             x={wh.rect.x + wh.rect.width / 2}
             y={wh.rect.y + 22}
-            fill="#334155"
-            fontSize={12}
+            fill="#1E293B"
+            fontSize={11.5}
             fontWeight={700}
             textAnchor="middle"
           >
@@ -199,7 +201,7 @@ export const PortFootprint: React.FC = () => {
           <text
             x={wh.rect.x + wh.rect.width / 2}
             y={wh.rect.y + 38}
-            fill="#64748B"
+            fill="#475569"
             fontSize={9.5}
             textAnchor="middle"
           >
@@ -210,15 +212,15 @@ export const PortFootprint: React.FC = () => {
 
       {/* 6. CONTAINER YARDS (EAST SECTOR) */}
       {PHYSICAL_CONTAINER_YARDS.map((cy) => (
-        <g key={cy.id} opacity={0.85}>
+        <g key={cy.id} opacity={0.9}>
           <rect
             x={cy.rect.x}
             y={cy.rect.y}
             width={cy.rect.width}
             height={cy.rect.height}
-            fill="#EDF2F6"
-            stroke="#CBD5E1"
-            strokeWidth={1.2}
+            fill="#E9F0F4"
+            stroke="#94A3B8"
+            strokeWidth={1.3}
             rx={3}
           />
           {/* Grid lines representing container slots */}
@@ -231,7 +233,7 @@ export const PortFootprint: React.FC = () => {
                 y1={yPos}
                 x2={cy.rect.x + cy.rect.width - 4}
                 y2={yPos}
-                stroke="#D8E2E8"
+                stroke="#CBD5E1"
                 strokeWidth={1}
               />
             );
@@ -245,7 +247,7 @@ export const PortFootprint: React.FC = () => {
                 y1={cy.rect.y + 4}
                 x2={xPos}
                 y2={cy.rect.y + cy.rect.height - 4}
-                stroke="#D8E2E8"
+                stroke="#CBD5E1"
                 strokeWidth={1}
               />
             );
@@ -253,7 +255,7 @@ export const PortFootprint: React.FC = () => {
           <text
             x={cy.rect.x + 12}
             y={cy.rect.y + 16}
-            fill="#475569"
+            fill="#334155"
             fontSize={10}
             fontWeight={700}
           >
@@ -264,21 +266,21 @@ export const PortFootprint: React.FC = () => {
 
       {/* 7. TECHNICAL AREA STRUCTURES */}
       {PHYSICAL_TECHNICAL_STRUCTURES.map((tech) => (
-        <g key={tech.id} opacity={0.85}>
+        <g key={tech.id} opacity={0.9}>
           <rect
             x={tech.rect.x}
             y={tech.rect.y}
             width={tech.rect.width}
             height={tech.rect.height}
-            fill="#E2E8F0"
-            stroke="#94A3B8"
-            strokeWidth={1}
+            fill="#DEE6ED"
+            stroke="#64748B"
+            strokeWidth={1.2}
             rx={2}
           />
           <text
             x={tech.rect.x + tech.rect.width / 2}
             y={tech.rect.y + tech.rect.height / 2 + 3}
-            fill="#475569"
+            fill="#334155"
             fontSize={8.5}
             fontWeight={700}
             textAnchor="middle"

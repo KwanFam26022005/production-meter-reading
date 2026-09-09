@@ -52,59 +52,61 @@ export const MapHeader: React.FC<MapHeaderProps> = ({
 
   return (
     <header className="sgp-map-header" role="banner" aria-label="Đầu trang bản đồ công tơ">
-      {/* Title & Port Label */}
-      <div className="sgp-map-header-left">
-        <h1 className="sgp-map-header-title">Bản đồ công tơ</h1>
-        <span className="sgp-map-header-sub">Cảng Tân Thuận</span>
+      {/* LEFT: Title + Port name — flex: 1 fr, never shrinks */}
+      <div className="sgp-mh-title-wrap">
+        <div>
+          <h1 className="sgp-mh-title">Bản đồ công tơ</h1>
+          <span className="sgp-mh-subtitle">Cảng Tân Thuận</span>
+        </div>
       </div>
 
-      {/* Center Date Picker */}
-      <div className="sgp-map-header-center">
+      {/* CENTER: Date picker — auto width */}
+      <div className="sgp-mh-date-picker-wrap">
         <VnDatePicker value={selectedDate} onChange={onDateChange} />
       </div>
 
-      {/* Right Controls: [Bản đồ] [Danh sách] + Overflow Menu */}
-      <div className="sgp-map-header-right">
-        {/* Simplified View Switcher: ONLY [Bản đồ] [Danh sách] */}
-        <div className="sgp-view-mode-toggle" role="group" aria-label="Chế độ hiển thị">
+      {/* RIGHT: View toggle + overflow — auto width, never wraps */}
+      <div className="sgp-mh-right-cluster">
+        {/* [Bản đồ] [Danh sách] segmented toggle */}
+        <div className="sgp-mh-view-toggle" role="group" aria-label="Chế độ hiển thị">
           <button
             type="button"
-            className={`sgp-mode-btn ${viewMode === 'map' ? 'active' : ''}`}
+            className={`sgp-mh-view-btn ${viewMode === 'map' ? 'active' : ''}`}
             onClick={() => onViewModeChange('map')}
             title="Chế độ bản đồ trực quan"
           >
-            <Map size={14} />
+            <Map size={13} />
             <span>Bản đồ</span>
           </button>
           <button
             type="button"
-            className={`sgp-mode-btn ${viewMode === 'legacy' ? 'active' : ''}`}
+            className={`sgp-mh-view-btn ${viewMode === 'legacy' ? 'active' : ''}`}
             onClick={() => onViewModeChange('legacy')}
             title="Chế độ danh mục quản trị"
           >
-            <List size={14} />
+            <List size={13} />
             <span>Danh sách</span>
           </button>
         </div>
 
-        {/* Overflow Menu [⋯] */}
-        <div className="sgp-overflow-wrapper" ref={menuRef}>
+        {/* ⋮ Overflow — inline with toggle */}
+        <div className="sgp-mh-menu-wrap" ref={menuRef}>
           <button
             type="button"
-            className="sgp-overflow-btn"
+            className="sgp-mh-menu-btn"
             onClick={() => setIsMenuOpen((prev) => !prev)}
             title="Thao tác khác"
             aria-label="Menu thao tác khác"
             aria-expanded={isMenuOpen}
           >
-            <MoreVertical size={16} />
+            <MoreVertical size={15} />
           </button>
 
           {isMenuOpen && (
-            <div className="sgp-overflow-menu" role="menu">
+            <div className="sgp-mh-menu-dropdown" role="menu">
               <button
                 type="button"
-                className="sgp-overflow-item"
+                className="sgp-mh-menu-item"
                 onClick={() => {
                   setIsMenuOpen(false);
                   onRefresh();
@@ -112,21 +114,21 @@ export const MapHeader: React.FC<MapHeaderProps> = ({
                 disabled={isLoading}
                 role="menuitem"
               >
-                <RefreshCw size={14} className={isLoading ? 'sgp-spin' : ''} />
+                <RefreshCw size={13} className={isLoading ? 'sgp-spin' : ''} />
                 <span>Làm mới dữ liệu</span>
               </button>
 
               {onExportCsv && (
                 <button
                   type="button"
-                  className="sgp-overflow-item"
+                  className="sgp-mh-menu-item"
                   onClick={() => {
                     setIsMenuOpen(false);
                     onExportCsv();
                   }}
                   role="menuitem"
                 >
-                  <Download size={14} />
+                  <Download size={13} />
                   <span>Xuất báo cáo CSV</span>
                 </button>
               )}
