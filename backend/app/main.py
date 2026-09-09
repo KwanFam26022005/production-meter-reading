@@ -1198,3 +1198,77 @@ def export_admin_roster_csv_endpoint(
     )
 
 
+# ==============================================================================
+# MAP OPERATIONS ENDPOINTS (PHASE 2)
+# ==============================================================================
+from .map_operations import (
+    get_map_operators,
+    get_map_overview,
+    get_map_zones,
+    reassign_zone_operator,
+)
+from .schemas import (
+    MapMeterOut,
+    MapOverviewResponse,
+    OperationalZoneOut,
+    UserOut,
+    ZoneReassignRequest,
+    ZoneReassignResponse,
+)
+
+
+@app.get("/api/v1/map/overview", response_model=MapOverviewResponse)
+def get_map_overview_endpoint(
+    date: Optional[str] = None,
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> MapOverviewResponse:
+    return get_map_overview(db, date_str=date)
+
+
+@app.get("/api/v1/map/zones", response_model=list[OperationalZoneOut])
+def get_map_zones_endpoint(
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> list[OperationalZoneOut]:
+    return get_map_zones(db)
+
+
+@app.get("/api/v1/map/operators", response_model=list[UserOut])
+def get_map_operators_endpoint(
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> list[UserOut]:
+    return get_map_operators(db)
+
+
+
+@app.get("/api/v1/map/meters", response_model=list[MapMeterOut])
+def get_map_meters_endpoint(
+    date: Optional[str] = None,
+    zone_id: Optional[str] = None,
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> list[MapMeterOut]:
+    overview = get_map_overview(db, date_str=date)
+    meters = overview.meters
+    if zone_id and zone_id != "ALL":
+        meters = [m for m in meters if m.zone_id == zone_id]
+    return meters
+
+
+@app.post(
+    "/api/v1/map/zones/{zone_id}/assign",
+    response_model=ZoneReassignResponse,
+    dependencies=[Depends(enforce_csrf)],
+)
+def reassign_zone_operator_endpoint(
+    zone_id: str,
+    payload: ZoneReassignRequest,
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> ZoneReassignResponse:
+    return reassign_zone_operator(db, actor=admin_user, zone_id=zone_id, payload=payload)
+
+
+

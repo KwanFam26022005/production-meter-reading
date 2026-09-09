@@ -77,6 +77,39 @@ class AttendanceEvent(Base):
     )
 
 
+class OperationalZone(Base):
+    __tablename__ = "operational_zones"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    code = Column(String(50), unique=True, index=True, nullable=False)
+    name = Column(String(200), nullable=False)
+    description = Column(Text, nullable=True)
+    map_polygon = Column(Text, nullable=False)  # JSON string of normalized points
+    is_active = Column(Boolean, nullable=False, default=True, index=True)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=get_utc_now)
+    updated_at = Column(DateTime(timezone=True), nullable=False, default=get_utc_now, onupdate=get_utc_now)
+
+    meters = relationship("Meter", back_populates="zone")
+    assignments = relationship("ZoneAssignment", back_populates="zone", cascade="all, delete-orphan")
+
+
+class ZoneAssignment(Base):
+    __tablename__ = "zone_assignments"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    zone_id = Column(String(36), ForeignKey("operational_zones.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    assignment_role = Column(String(50), nullable=False, default="PRIMARY")
+    effective_from = Column(DateTime(timezone=True), nullable=False, default=get_utc_now)
+    effective_to = Column(DateTime(timezone=True), nullable=True)
+    is_active = Column(Boolean, nullable=False, default=True, index=True)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=get_utc_now)
+    updated_at = Column(DateTime(timezone=True), nullable=False, default=get_utc_now, onupdate=get_utc_now)
+
+    zone = relationship("OperationalZone", back_populates="assignments")
+    user = relationship("User")
+
+
 class Meter(Base):
     __tablename__ = "meters"
 
@@ -85,11 +118,15 @@ class Meter(Base):
     name = Column(String(200), nullable=False)
     location = Column(String(200), nullable=True)
     meter_type = Column(String(50), nullable=False, default="UNKNOWN")  # "LCD" | "MECHANICAL" | "UNKNOWN"
+    zone_id = Column(String(36), ForeignKey("operational_zones.id", ondelete="SET NULL"), nullable=True, index=True)
+    map_x = Column(Float, nullable=True)
+    map_y = Column(Float, nullable=True)
     is_active = Column(Boolean, nullable=False, default=True, index=True)
     created_at = Column(DateTime(timezone=True), nullable=False, default=get_utc_now)
     updated_at = Column(DateTime(timezone=True), nullable=False, default=get_utc_now, onupdate=get_utc_now)
 
     readings = relationship("MeterReading", back_populates="meter", cascade="all, delete-orphan")
+    zone = relationship("OperationalZone", back_populates="meters")
 
 
 class ReadingBatch(Base):

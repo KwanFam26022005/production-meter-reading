@@ -964,3 +964,76 @@ class AdminAutoPatternPreviewResponse(BaseModel):
     insufficient_rest_count: int
     understaffed_shifts_count: int
     sample_changes: list[dict[str, Any]] = []
+
+
+# ==============================================================================
+# MAP OPERATIONS SCHEMAS (PHASE 2)
+# ==============================================================================
+class OperationalZoneOut(BaseModel):
+    id: str
+    code: str
+    name: str
+    description: Optional[str] = None
+    map_polygon: str
+    is_active: bool
+    assigned_user: Optional[UserOut] = None
+    total_meters: int = 0
+    confirmed_count: int = 0
+    review_count: int = 0
+    overdue_count: int = 0
+    due_count: int = 0
+    pending_count: int = 0
+    completion_percent: float = 0.0
+
+
+class MapMeterOut(BaseModel):
+    id: str
+    meter_code: str
+    name: str
+    location: Optional[str] = None
+    meter_type: str
+    zone_id: Optional[str] = None
+    zone_code: Optional[str] = None
+    zone_name: Optional[str] = None
+    map_x: Optional[float] = None
+    map_y: Optional[float] = None
+    is_active: bool
+    semantic_state: str
+    latest_reading_value: Optional[str] = None
+    latest_reading_time: Optional[str] = None
+    exception_state: Optional[str] = None
+    exception_label: Optional[str] = None
+    reading_id: Optional[str] = None
+
+
+class MapOverviewResponse(BaseModel):
+    target_date: str
+    target_date_vn: str
+    current_round_time: Optional[str] = None
+    current_round_status: Optional[str] = None
+    total_meters: int
+    confirmed_count: int
+    review_count: int
+    overdue_count: int
+    due_count: int
+    pending_count: int
+    completion_percent: float
+    zones: list[OperationalZoneOut]
+    meters: list[MapMeterOut]
+    exceptions_count: int
+
+
+class ZoneReassignRequest(BaseModel):
+    user_id: str
+    assignment_role: str = "PRIMARY"
+    effective_from: Optional[str] = None
+    note: Optional[str] = None
+
+
+class ZoneReassignResponse(BaseModel):
+    status: str = "success"
+    message: str
+    zone_id: str
+    user_id: str
+    user_name: str
+

@@ -941,3 +941,81 @@ export interface AdminAutoPatternPreviewResponse {
   understaffed_shifts_count: number;
   sample_changes: AutoPatternSampleChange[];
 }
+
+// --- Map Operations Interfaces (Phase 2 & Phase 3) ---
+
+export interface OperationalZoneOut {
+  id: string;
+  code: string;
+  name: string;
+  description?: string | null;
+  map_polygon: string;
+  is_active: boolean;
+  assigned_user?: {
+    id: string;
+    employee_code: string;
+    full_name: string;
+    role: string;
+    is_active: boolean;
+    created_at: string;
+  } | null;
+  total_meters: number;
+  confirmed_count?: number;
+  review_count?: number;
+  overdue_count?: number;
+  due_count?: number;
+  pending_count?: number;
+  completion_percent?: number;
+}
+
+export interface MapMeterOut {
+  id: string;
+  meter_code: string;
+  name: string;
+  location?: string | null;
+  meter_type: string;
+  zone_id?: string | null;
+  zone_code?: string | null;
+  zone_name?: string | null;
+  map_x?: number | null;
+  map_y?: number | null;
+  is_active: boolean;
+  semantic_state: 'CONFIRMED' | 'PENDING' | 'DUE' | 'OVERDUE' | 'REVIEW' | 'INACTIVE';
+  latest_reading_value?: string | null;
+  latest_reading_time?: string | null;
+  exception_state?: string | null;
+  exception_label?: string | null;
+  reading_id?: string | null;
+}
+
+export interface MapOverviewResponse {
+  target_date: string;
+  target_date_vn: string;
+  current_round_time?: string | null;
+  current_round_status?: string | null;
+  total_meters: number;
+  confirmed_count: number;
+  review_count: number;
+  overdue_count: number;
+  due_count: number;
+  pending_count: number;
+  completion_percent: number;
+  zones: OperationalZoneOut[];
+  meters: MapMeterOut[];
+  exceptions_count: number;
+}
+
+export interface ZoneReassignRequest {
+  user_id: string;
+  assignment_role?: string;
+  effective_from?: string;
+  note?: string;
+}
+
+export interface ZoneReassignResponse {
+  status: string;
+  message: string;
+  zone_id: string;
+  user_id: string;
+  user_name: string;
+}

@@ -36,6 +36,11 @@ import {
   LeaveRequestCreatePayload,
   LeaveRequestItem,
   UserMonthlyScheduleResponse,
+  MapOverviewResponse,
+  OperationalZoneOut,
+  MapMeterOut,
+  ZoneReassignRequest,
+  ZoneReassignResponse,
 } from '../types';
 
 
@@ -1188,6 +1193,91 @@ export async function reviewAdminLeaveRequest(
 export function getAdminRosterExportUrl(month?: string): string {
   const query = month ? `?month=${encodeURIComponent(month)}` : '';
   return `/api/v1/admin/roster/export.csv${query}`;
+}
+
+// ==============================================================================
+// MAP OPERATIONS APIS (PHASE 2 & PHASE 3)
+// ==============================================================================
+
+export async function getMapOverview(date?: string): Promise<MapOverviewResponse> {
+  const query = date ? `?date=${encodeURIComponent(date)}` : '';
+  const res = await apiFetch(`/api/v1/map/overview${query}`);
+  if (!res.ok) {
+    let detail = 'Không thể tải tổng quan bản đồ tác nghiệp.';
+    try {
+      const err = await res.json();
+      if (err.detail) detail = err.detail;
+    } catch {}
+    throw new ApiError(res.status, detail);
+  }
+  return res.json();
+}
+
+export async function getMapZones(): Promise<OperationalZoneOut[]> {
+  const res = await apiFetch('/api/v1/map/zones');
+  if (!res.ok) {
+    let detail = 'Không thể tải danh sách khu vực tác nghiệp.';
+    try {
+      const err = await res.json();
+      if (err.detail) detail = err.detail;
+    } catch {}
+    throw new ApiError(res.status, detail);
+  }
+  return res.json();
+}
+
+export async function getMapOperators(): Promise<User[]> {
+  const res = await apiFetch('/api/v1/map/operators');
+  if (!res.ok) {
+    let detail = 'Không thể tải danh sách nhân sự tác nghiệp.';
+    try {
+      const err = await res.json();
+      if (err.detail) detail = err.detail;
+    } catch {}
+    throw new ApiError(res.status, detail);
+  }
+  return res.json();
+}
+
+export async function getMapMeters(zoneId?: string, date?: string): Promise<MapMeterOut[]> {
+  const params = new URLSearchParams();
+  if (zoneId && zoneId !== 'ALL') params.append('zone_id', zoneId);
+  if (date) params.append('date', date);
+  const query = params.toString() ? `?${params.toString()}` : '';
+  const res = await apiFetch(`/api/v1/map/meters${query}`);
+  if (!res.ok) {
+    let detail = 'Không thể tải danh sách công tơ bản đồ.';
+    try {
+      const err = await res.json();
+      if (err.detail) detail = err.detail;
+    } catch {}
+    throw new ApiError(res.status, detail);
+  }
+  return res.json();
+}
+
+export async function reassignZoneOperator(
+  zoneId: string,
+  payload: ZoneReassignRequest
+): Promise<ZoneReassignResponse> {
+  const csrfToken = await getCsrfToken();
+  const res = await apiFetch(`/api/v1/map/zones/${zoneId}/assign`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRF-Token': csrfToken,
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    let detail = 'Không thể phân công phụ trách khu vực.';
+    try {
+      const err = await res.json();
+      if (err.detail) detail = err.detail;
+    } catch {}
+    throw new ApiError(res.status, detail);
+  }
+  return res.json();
 }
 
 

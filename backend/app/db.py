@@ -352,10 +352,172 @@ def migrate_db(db_engine=None) -> None:
                     FOREIGN KEY(reviewer_id) REFERENCES users (id) ON DELETE SET NULL
                 )
                 """)
-                cursor.execute("CREATE INDEX IF NOT EXISTS ix_leave_requests_user_id ON leave_requests (user_id)")
-                cursor.execute("CREATE INDEX IF NOT EXISTS ix_leave_requests_status ON leave_requests (status)")
-                cursor.execute("CREATE INDEX IF NOT EXISTS ix_leave_requests_user_status ON leave_requests (user_id, status)")
-                cursor.execute("CREATE INDEX IF NOT EXISTS ix_leave_requests_dates ON leave_requests (start_date, end_date)")
+            # 8. Ensure operational_zones table exists
+            cursor.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='operational_zones'"
+            )
+            if not cursor.fetchone():
+                cursor.execute("""
+                CREATE TABLE operational_zones (
+                    id VARCHAR(36) NOT NULL,
+                    code VARCHAR(50) NOT NULL UNIQUE,
+                    name VARCHAR(200) NOT NULL,
+                    description TEXT,
+                    map_polygon TEXT NOT NULL,
+                    is_active BOOLEAN NOT NULL DEFAULT 1,
+                    created_at DATETIME NOT NULL,
+                    updated_at DATETIME NOT NULL,
+                    PRIMARY KEY (id)
+                )
+                """)
+                cursor.execute("CREATE INDEX IF NOT EXISTS ix_operational_zones_code ON operational_zones (code)")
+                cursor.execute("CREATE INDEX IF NOT EXISTS ix_operational_zones_is_active ON operational_zones (is_active)")
+
+            # 9. Ensure meters table has zone_id, map_x, map_y
+            cursor.execute("PRAGMA table_info(meters)")
+            m_cols = [row[1] for row in cursor.fetchall()]
+            if "zone_id" not in m_cols:
+                cursor.execute("ALTER TABLE meters ADD COLUMN zone_id VARCHAR(36) REFERENCES operational_zones(id) ON DELETE SET NULL")
+                cursor.execute("CREATE INDEX IF NOT EXISTS ix_meters_zone_id ON meters (zone_id)")
+            if "map_x" not in m_cols:
+                cursor.execute("ALTER TABLE meters ADD COLUMN map_x REAL")
+            if "map_y" not in m_cols:
+                cursor.execute("ALTER TABLE meters ADD COLUMN map_y REAL")
+
+            # 10. Ensure zone_assignments table exists
+            cursor.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='zone_assignments'"
+            )
+            if not cursor.fetchone():
+                cursor.execute("""
+                CREATE TABLE zone_assignments (
+                    id VARCHAR(36) NOT NULL,
+                    zone_id VARCHAR(36) NOT NULL,
+                    user_id VARCHAR(36) NOT NULL,
+                    assignment_role VARCHAR(50) NOT NULL DEFAULT 'PRIMARY',
+                    effective_from DATETIME NOT NULL,
+                    effective_to DATETIME,
+                    is_active BOOLEAN NOT NULL DEFAULT 1,
+                    created_at DATETIME NOT NULL,
+                    updated_at DATETIME NOT NULL,
+                    PRIMARY KEY (id),
+                    FOREIGN KEY(zone_id) REFERENCES operational_zones (id) ON DELETE CASCADE,
+                    FOREIGN KEY(user_id) REFERENCES users (id) ON DELETE CASCADE
+                )
+                """)
+                cursor.execute("CREATE INDEX IF NOT EXISTS ix_zone_assignments_zone_id ON zone_assignments (zone_id)")
+                cursor.execute("CREATE INDEX IF NOT EXISTS ix_zone_assignments_user_id ON zone_assignments (user_id)")
+                cursor.execute("CREATE INDEX IF NOT EXISTS ix_zone_assignments_is_active ON zone_assignments (is_active)")
+
+            # 11. Seed operational zones if empty
+            cursor.execute("SELECT count(*) FROM operational_zones")
+            if cursor.fetchone()[0] == 0:
+                import json
+                from datetime import datetime, timezone
+
+                now_utc = datetime.now(timezone.utc).isoformat()
+                zones_data = [
+                    (
+                        "zone-berth",
+                        "ZONE-BERTH",
+                        "Khu vực Cầu cảng (Berths 1 - 3)",
+                        "Tuyến bến cầu tàu tiếp nhận tàu hàng tổng hợp và container dọc sông Sài Gòn.",
+                        json.dumps([
+                            {"x": 0.62, "y": 0.10},
+                            {"x": 0.82, "y": 0.10},
+                            {"x": 0.84, "y": 0.92},
+                            {"x": 0.64, "y": 0.92},
+                            {"x": 0.62, "y": 0.58},
+                        ]),
+                        1, now_utc, now_utc,
+                    ),
+                    (
+                        "zone-container",
+                        "ZONE-CONTAINER",
+                        "Khu vực Bãi Container (CY)",
+                        "Bãi tập kết, bốc dỡ container tiền phương và hậu phương phục vụ tàu cập cảng.",
+                        json.dumps([
+                            {"x": 0.35, "y": 0.32},
+                            {"x": 0.60, "y": 0.32},
+                            {"x": 0.61, "y": 0.75},
+                            {"x": 0.34, "y": 0.75},
+                        ]),
+                        1, now_utc, now_utc,
+                    ),
+                    (
+                        "zone-warehouse",
+                        "ZONE-WAREHOUSE",
+                        "Khu vực Kho hàng Tổng hợp (B, C, D)",
+                        "Hệ thống kho hàng tổng hợp kín và bãi đệm bốc xếp hàng rời, bao kiện.",
+                        json.dumps([
+                            {"x": 0.10, "y": 0.12},
+                            {"x": 0.32, "y": 0.12},
+                            {"x": 0.32, "y": 0.60},
+                            {"x": 0.08, "y": 0.60},
+                        ]),
+                        1, now_utc, now_utc,
+                    ),
+                    (
+                        "zone-technical",
+                        "ZONE-TECHNICAL",
+                        "Khu Kỹ thuật & Trạm Phụ trợ Điện",
+                        "Trạm biến áp trung/hạ thế, xưởng sửa chữa cơ giới và trung tâm kỹ thuật năng lượng.",
+                        json.dumps([
+                            {"x": 0.08, "y": 0.64},
+                            {"x": 0.60, "y": 0.78},
+                            {"x": 0.60, "y": 0.94},
+                            {"x": 0.08, "y": 0.94},
+                        ]),
+                        1, now_utc, now_utc,
+                    ),
+                ]
+                cursor.executemany("""
+                    INSERT INTO operational_zones (id, code, name, description, map_polygon, is_active, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """, zones_data)
+
+            # 12. Update meter coordinates and zone references if not set
+            meter_coords = {
+                'CT-001': ('zone-technical', 0.18, 0.74),
+                'CT-002': ('zone-warehouse', 0.20, 0.24),
+                'CT-003': ('zone-berth', 0.72, 0.24),
+                'CT-004': ('zone-berth', 0.73, 0.50),
+                'CT-005': ('zone-warehouse', 0.21, 0.38),
+                'CT-006': ('zone-warehouse', 0.22, 0.52),
+                'CT-007': ('zone-technical', 0.36, 0.84),
+                'CT-008': ('zone-berth', 0.74, 0.78),
+                'CT-009': ('zone-technical', 0.40, 0.20),
+                'CT-010': ('zone-technical', 0.52, 0.20),
+                'CT-011': ('zone-container', 0.44, 0.46),
+                'CT-012': ('zone-container', 0.49, 0.62),
+            }
+            for code, (zid, mx, my) in meter_coords.items():
+                cursor.execute("""
+                    UPDATE meters
+                    SET zone_id = ?, map_x = ?, map_y = ?
+                    WHERE meter_code = ? AND (zone_id IS NULL OR map_x IS NULL)
+                """, (zid, mx, my, code))
+
+            # 13. Seed initial primary zone assignments if empty
+            cursor.execute("SELECT count(*) FROM zone_assignments")
+            if cursor.fetchone()[0] == 0:
+                from datetime import datetime, timezone
+                import uuid
+                now_utc = datetime.now(timezone.utc).isoformat()
+                cursor.execute("SELECT id FROM users WHERE role != 'ADMIN' AND is_active = 1 ORDER BY employee_code ASC")
+                user_rows = cursor.fetchall()
+                if not user_rows:
+                    cursor.execute("SELECT id FROM users ORDER BY employee_code ASC")
+                    user_rows = cursor.fetchall()
+
+                zone_ids = ["zone-berth", "zone-container", "zone-warehouse", "zone-technical"]
+                for i, zid in enumerate(zone_ids):
+                    uid = user_rows[i % len(user_rows)][0] if user_rows else None
+                    if uid:
+                        cursor.execute("""
+                            INSERT INTO zone_assignments (id, zone_id, user_id, assignment_role, effective_from, is_active, created_at, updated_at)
+                            VALUES (?, ?, ?, 'PRIMARY', ?, 1, ?, ?)
+                        """, (str(uuid.uuid4()), zid, uid, now_utc, now_utc, now_utc))
 
             conn.connection.commit()
         finally:
