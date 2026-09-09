@@ -19,7 +19,9 @@ from backend.app.work_schedule import (
     get_admin_roster_matrix,
     assign_admin_shifts,
     review_admin_leave_request,
+    preview_auto_pattern_roster,
 )
+
 
 
 @pytest.fixture
@@ -128,3 +130,19 @@ def test_work_schedule_and_leave_workflow(db):
     user_row = next((u for u in roster["users"] if u["user_id"] == test_emp.id), None)
     assert user_row is not None
     assert user_row["shifts"]["2026-09-15"] == "LEAVE"
+
+
+def test_auto_pattern_preview(db):
+    preview = preview_auto_pattern_roster(
+        db,
+        month_str="2026-09",
+        pattern_type="THREE_SHIFT_FOUR_TEAM",
+    )
+    assert preview["month"] == "2026-09"
+    assert preview["pattern_type"] == "THREE_SHIFT_FOUR_TEAM"
+    assert preview["total_assignments"] > 0
+    assert "changed_count" in preview
+    assert "unchanged_count" in preview
+    assert "leave_conflicts_count" in preview
+    assert "insufficient_rest_count" in preview
+    assert "understaffed_shifts_count" in preview

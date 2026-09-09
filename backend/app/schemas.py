@@ -1,5 +1,6 @@
-from typing import Literal, Optional
+from typing import Any, Literal, Optional
 from pydantic import BaseModel
+
 
 
 class HealthResponse(BaseModel):
@@ -953,4 +954,13 @@ class AdminAutoPatternRequest(BaseModel):
     pattern_type: str = "THREE_SHIFT_FOUR_TEAM"  # "THREE_SHIFT_FOUR_TEAM" | "STANDARD_WEEKDAY"
 
 
-
+class AdminAutoPatternPreviewResponse(BaseModel):
+    month: str
+    pattern_type: str
+    total_assignments: int
+    changed_count: int
+    unchanged_count: int
+    leave_conflicts_count: int
+    insufficient_rest_count: int
+    understaffed_shifts_count: int
+    sample_changes: list[dict[str, Any]] = []

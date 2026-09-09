@@ -921,6 +921,23 @@ export interface AdminShiftAssignItem {
   notes?: string | null;
 }
 
+export interface AutoPatternSampleChange {
+  user_id: string;
+  full_name: string;
+  employee_code: string;
+  work_date: string;
+  old_shift: string;
+  new_shift: string;
+}
 
-
-
+export interface AdminAutoPatternPreviewResponse {
+  month: string;
+  pattern_type: string;
+  total_assignments: number;
+  changed_count: number;
+  unchanged_count: number;
+  leave_conflicts_count: number;
+  insufficient_rest_count: number;
+  understaffed_shifts_count: number;
+  sample_changes: AutoPatternSampleChange[];
+}

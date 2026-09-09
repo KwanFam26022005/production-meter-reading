@@ -484,6 +484,149 @@ def auto_pattern_admin_roster(
     return updated_count
 
 
+def preview_auto_pattern_roster(
+    db: Session,
+    month_str: str,
+    user_ids: List[str] = None,
+    pattern_type: str = "THREE_SHIFT_FOUR_TEAM",
+) -> Dict[str, Any]:
+    """
+    Simulates applying a shift pattern without any database modification.
+    Returns impact statistics: total, changed, unchanged, leave conflicts, rest warnings, and understaffed shifts.
+    """
+    year, month = parse_year_month(month_str)
+    start_date, end_date, num_days = get_month_date_range(year, month)
+
+    pattern_3_4 = ["CA1", "CA2", "CA3", "OFF"]
+
+    target_users_query = db.query(User).filter(User.is_active == True)
+    if user_ids:
+        target_users_query = target_users_query.filter(User.id.in_(user_ids))
+    users_list = target_users_query.order_by(User.employee_code.asc()).all()
+
+    # Query current schedules
+    user_id_set = [u.id for u in users_list]
+    existing_scheds = (
+        db.query(WorkSchedule)
+        .filter(
+            WorkSchedule.user_id.in_(user_id_set),
+            WorkSchedule.work_date >= start_date,
+            WorkSchedule.work_date <= end_date,
+        )
+        .all()
+    )
+    existing_map: Dict[str, Dict[str, str]] = {}
+    for s in existing_scheds:
+        if s.user_id not in existing_map:
+            existing_map[s.user_id] = {}
+        existing_map[s.user_id][s.work_date] = s.shift_code
+
+    # Query approved leaves for these users
+    approved_leaves = (
+        db.query(LeaveRequest)
+        .filter(
+            LeaveRequest.user_id.in_(user_id_set),
+            LeaveRequest.start_date <= end_date,
+            LeaveRequest.end_date >= start_date,
+            LeaveRequest.status == "APPROVED",
+        )
+        .all()
+    )
+    leave_set = set()
+    for l in approved_leaves:
+        s_dt = datetime.strptime(max(l.start_date, start_date), "%Y-%m-%d").date()
+        e_dt = datetime.strptime(min(l.end_date, end_date), "%Y-%m-%d").date()
+        cur = s_dt
+        while cur <= e_dt:
+            leave_set.add((l.user_id, cur.strftime("%Y-%m-%d")))
+            cur += timedelta(days=1)
+
+    total_assignments = 0
+    changed_count = 0
+    unchanged_count = 0
+    leave_conflicts_count = 0
+    insufficient_rest_count = 0
+    sample_changes: List[Dict[str, Any]] = []
+
+    # Map to track simulated shifts for coverage & rest checks: (user_id, day) -> shift
+    simulated_user_day: Dict[str, Dict[int, str]] = {}
+    daily_shift_counts: Dict[str, Dict[str, int]] = {}
+    for d in range(1, num_days + 1):
+        w_date = f"{year:04d}-{month:02d}-{d:02d}"
+        daily_shift_counts[w_date] = {"CA1": 0, "CA2": 0, "CA3": 0, "HC": 0, "OFF": 0}
+
+    for idx, u in enumerate(users_list):
+        offset = idx % len(pattern_3_4)
+        simulated_user_day[u.id] = {}
+        u_map = existing_map.get(u.id, {})
+
+        for d in range(1, num_days + 1):
+            w_date = f"{year:04d}-{month:02d}-{d:02d}"
+            dt = date(year, month, d)
+
+            if pattern_type == "STANDARD_WEEKDAY":
+                s_code = "OFF" if dt.weekday() >= 5 else "HC"
+            else:
+                pat_idx = (d - 1 + offset) % len(pattern_3_4)
+                s_code = pattern_3_4[pat_idx]
+
+            simulated_user_day[u.id][d] = s_code
+            if s_code in daily_shift_counts[w_date]:
+                daily_shift_counts[w_date][s_code] += 1
+
+            # Default shift if not previously assigned
+            default_shift = "OFF" if dt.weekday() == 6 else "CA1"
+            curr_shift = u_map.get(w_date, default_shift)
+
+            total_assignments += 1
+            if s_code != curr_shift:
+                changed_count += 1
+                if len(sample_changes) < 8:
+                    sample_changes.append({
+                        "user_id": u.id,
+                        "full_name": u.full_name,
+                        "employee_code": u.employee_code,
+                        "work_date": w_date,
+                        "old_shift": curr_shift,
+                        "new_shift": s_code,
+                    })
+            else:
+                unchanged_count += 1
+
+            # Check approved leave conflict
+            if (u.id, w_date) in leave_set and s_code in ["CA1", "CA2", "CA3", "HC"]:
+                leave_conflicts_count += 1
+
+        # Check rest warnings (CA3 followed immediately by CA1 next day)
+        for d in range(1, num_days):
+            if simulated_user_day[u.id].get(d) == "CA3" and simulated_user_day[u.id].get(d + 1) == "CA1":
+                insufficient_rest_count += 1
+
+    # Check understaffed shifts
+    understaffed_shifts_count = 0
+    for w_date, counts in daily_shift_counts.items():
+        if pattern_type != "STANDARD_WEEKDAY":
+            if counts["CA1"] < 1:
+                understaffed_shifts_count += 1
+            if counts["CA2"] < 1:
+                understaffed_shifts_count += 1
+            if counts["CA3"] < 1:
+                understaffed_shifts_count += 1
+
+    return {
+        "month": f"{year:04d}-{month:02d}",
+        "pattern_type": pattern_type,
+        "total_assignments": total_assignments,
+        "changed_count": changed_count,
+        "unchanged_count": unchanged_count,
+        "leave_conflicts_count": leave_conflicts_count,
+        "insufficient_rest_count": insufficient_rest_count,
+        "understaffed_shifts_count": understaffed_shifts_count,
+        "sample_changes": sample_changes,
+    }
+
+
+
 def get_admin_leave_requests(db: Session, status_filter: Optional[str] = None) -> List[Dict[str, Any]]:
     query = db.query(LeaveRequest).order_by(LeaveRequest.created_at.desc())
     if status_filter and status_filter.upper() != "ALL":

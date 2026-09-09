@@ -1038,6 +1038,7 @@ from .work_schedule import (
     get_admin_roster_matrix,
     assign_admin_shifts,
     auto_pattern_admin_roster,
+    preview_auto_pattern_roster,
     get_admin_leave_requests,
     review_admin_leave_request,
     export_roster_csv,
@@ -1050,7 +1051,9 @@ from .schemas import (
     AdminRosterResponse,
     AdminShiftAssignRequest,
     AdminAutoPatternRequest,
+    AdminAutoPatternPreviewResponse,
 )
+
 
 
 @app.get("/api/v1/schedule/my-month", response_model=UserMonthlyScheduleResponse)
@@ -1136,6 +1139,22 @@ def auto_pattern_admin_roster_endpoint(
         admin_user_id=admin_user.id,
     )
     return {"status": "success", "updated_count": count, "message": f"Đã áp dụng chu kỳ ca cho {count} lượt."}
+
+
+@app.post("/api/v1/admin/roster/auto-pattern/preview", response_model=AdminAutoPatternPreviewResponse)
+def preview_auto_pattern_admin_roster_endpoint(
+    payload: AdminAutoPatternRequest,
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> AdminAutoPatternPreviewResponse:
+    data = preview_auto_pattern_roster(
+        db,
+        month_str=payload.month,
+        user_ids=payload.user_ids,
+        pattern_type=payload.pattern_type,
+    )
+    return AdminAutoPatternPreviewResponse(**data)
+
 
 
 @app.get("/api/v1/admin/leave-requests", response_model=list[LeaveRequestItem])

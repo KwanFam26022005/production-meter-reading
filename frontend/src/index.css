@@ -9656,10 +9656,11 @@ body:has(.admin-portal-root) {
 }
 
 .shift-tag-ca3 {
-  background-color: #EDE9FE;
-  color: #6D28D9;
-  border: 1px solid #DDD6FE;
+  background-color: #E0E7FF;
+  color: #3730A3;
+  border: 1px solid #C7D2FE;
 }
+
 
 .shift-tag-hc {
   background-color: #F1F5F9;
@@ -9800,10 +9801,10 @@ body:has(.admin-portal-root) {
   font-weight: 700;
 }
 
-/* Roster Matrix Table */
+/* Roster Matrix Table - P2.1: Single primary vertical scroll on viewport, horizontal scroll only on table */
 .admin-roster-table-wrap {
-  overflow: auto;
-  max-height: 65vh;
+  overflow-x: auto;
+  overflow-y: visible;
   border-radius: 0 0 var(--radius-md) var(--radius-md);
 }
 
@@ -9858,27 +9859,660 @@ body:has(.admin-portal-root) {
   cursor: pointer;
   transition: all 0.12s ease;
   user-select: none;
+  position: relative;
+  padding: 3px 4px !important;
+  vertical-align: middle;
+  min-height: 40px;
 }
 
-.admin-roster-cell:hover {
-  background: #F0F9FF !important;
-  transform: scale(1.05);
-  box-shadow: inset 0 0 0 1px var(--sgp-brand-600);
+.admin-roster-cell:hover,
+.admin-roster-cell.crosshair-active {
+  background: #F0F7FA !important;
+}
+
+.admin-roster-cell:focus-visible,
+.admin-roster-cell.is-selected {
+  outline: 2px solid var(--sgp-brand-600) !important;
+  outline-offset: -2px;
 }
 
 .admin-roster-cell.is-modified {
-  background: #FFFBEB !important;
-  box-shadow: inset 0 0 0 2px #F59E0B;
+  background: #FFFDF5 !important;
+}
+
+.admin-roster-cell.is-modified::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #D97706;
+}
+
+.admin-roster-cell.has-conflict {
+  background: #FEF2F2 !important;
+  box-shadow: inset 0 0 0 1.5px #EF4444;
+}
+
+.admin-roster-cell.is-leave {
+  background: #FFF5F7 !important;
+}
+
+/* P2.4: Shift Muted state for visual focus mode */
+.admin-roster-cell.is-shift-muted {
+  opacity: 0.35;
+  filter: grayscale(40%);
+}
+
+/* P2.6: Go to conflict target pulse */
+.admin-roster-cell.target-cell-pulse {
+  animation: cellTargetPulse 0.55s ease-out;
+}
+
+@keyframes cellTargetPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7);
+    background-color: #FEE2E2 !important;
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.5);
+    background-color: #FEF2F2 !important;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
 }
 
 .admin-roster-cell-pill {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
   padding: 3px 6px;
   border-radius: 4px;
+  font-size: 10.5px;
+  font-weight: 750;
+  white-space: nowrap;
+  letter-spacing: -0.01em;
+  width: 100%;
+  min-height: 26px;
+  box-sizing: border-box;
+}
+
+/* Roster Row/Col Crosshair Highlight */
+.admin-roster-table tbody tr.row-active > td {
+  background-color: #F7FAFC;
+}
+
+.admin-roster-table tbody tr.row-active > td.col-employee {
+  background-color: #EDF4F8;
+  border-right: 2px solid var(--sgp-brand-600);
+}
+
+.admin-roster-table th.col-active {
+  background-color: #E2ECF2 !important;
+  color: var(--sgp-brand-800);
+}
+
+.admin-roster-table td.col-active {
+  background-color: #F8FBFC;
+}
+
+/* Status Strip */
+.roster-status-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 14px;
+  background: #F8FAFC;
+  border: 1px solid var(--sgp-border);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.roster-status-items {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.roster-status-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--sgp-ink);
+}
+
+.roster-status-item strong {
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+}
+
+.roster-status-item.status-ok {
+  color: #15803D;
+}
+
+.roster-status-item.status-warning {
+  color: #B45309;
+}
+
+.roster-status-item.status-danger {
+  color: #DC2626;
+}
+
+.roster-status-btn-conflict {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: 1px solid transparent;
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  transition: all 0.12s ease;
+}
+
+.roster-status-btn-conflict.has-issues {
+  color: #B91C1C;
+  background: #FEE2E2;
+  border-color: #FCA5A5;
+}
+
+.roster-status-btn-conflict.clean {
+  color: #15803D;
+  background: #DCFCE7;
+  border-color: #BBF7D0;
+}
+
+.roster-status-btn-clean {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 3px 6px;
+  border-radius: 4px;
+}
+
+.conflict-tag-badge {
   font-size: 10px;
   font-weight: 800;
+  background: #DC2626;
+  color: #FFFFFF;
+  padding: 1px 6px;
+  border-radius: 10px;
+}
+
+.roster-system-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 650;
+  color: #166534;
+  background: #DCFCE7;
+  padding: 3px 9px;
+  border-radius: 12px;
+  cursor: help;
+  user-select: none;
+  border: 1px solid #BBF7D0;
+}
+
+/* View Mode Selector Tabs */
+.roster-view-mode-group {
+  display: inline-flex;
+  align-items: center;
+  background: #E8F0F4;
+  padding: 2px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--sgp-border);
+}
+
+.roster-view-mode-btn {
+  border: none;
+  background: transparent;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--sgp-ink-secondary);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
   white-space: nowrap;
 }
+
+.roster-view-mode-btn:hover {
+  color: var(--sgp-ink);
+}
+
+.roster-view-mode-btn.active {
+  background: #FFFFFF;
+  color: var(--sgp-brand-800);
+  font-weight: 750;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+/* Roster Filters Bar */
+.roster-filters-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 8px 12px;
+  background: #FFFFFF;
+  border-bottom: 1px solid var(--sgp-border);
+}
+
+.roster-search-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--sgp-canvas);
+  border: 1px solid var(--sgp-border);
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  min-width: 220px;
+}
+
+.roster-search-input {
+  border: none;
+  background: transparent;
+  font-size: 12px;
+  color: var(--sgp-ink);
+  outline: none;
+  width: 100%;
+}
+
+.roster-filter-select {
+  border: 1px solid var(--sgp-border);
+  background: var(--sgp-canvas);
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--sgp-ink);
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  outline: none;
+  cursor: pointer;
+}
+
+/* Coverage Footer Diagnostic Rows - P2.10: Muted visual hierarchy */
+.roster-coverage-diagnostic-row {
+  background: #F8FAFC;
+  font-size: 11px;
+  border-top: 1px solid var(--sgp-border);
+}
+
+.roster-coverage-diagnostic-row td {
+  padding: 4px 6px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 550;
+  text-align: center;
+  border: 1px solid var(--sgp-border);
+}
+
+.coverage-diag-label {
+  text-align: left !important;
+  font-weight: 650 !important;
+  font-size: 11px !important;
+  color: var(--sgp-ink) !important;
+  position: sticky;
+  left: 0;
+  z-index: 5;
+  background: #F8FAFC !important;
+}
+
+.coverage-diag-label.accent-ca1 {
+  border-left: 3px solid #0284C7;
+}
+
+.coverage-diag-label.accent-ca2 {
+  border-left: 3px solid #D97706;
+}
+
+.coverage-diag-label.accent-ca3 {
+  border-left: 3px solid #3730A3;
+}
+
+.coverage-shift-bullet {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-right: 6px;
+}
+
+.accent-ca1 .coverage-shift-bullet {
+  background: #0284C7;
+}
+
+.accent-ca2 .coverage-shift-bullet {
+  background: #D97706;
+}
+
+.accent-ca3 .coverage-shift-bullet {
+  background: #3730A3;
+}
+
+/* P2.3: 3 Health Tiers */
+.roster-coverage-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 700;
+  font-size: 10px;
+}
+
+.roster-coverage-badge.coverage-badge-healthy {
+  background: #DCFCE7;
+  color: #15803D;
+  border: 1px solid #BBF7D0;
+}
+
+.roster-coverage-badge.coverage-badge-minimum {
+  background: #FEF3C7;
+  color: #B45309;
+  border: 1px solid #FDE68A;
+}
+
+.roster-coverage-badge.coverage-badge-understaffed {
+  background: #FEE2E2;
+  color: #B91C1C;
+  border: 1px solid #FCA5A5;
+}
+
+/* Conflict Action Drawer - P2.5 */
+.roster-conflict-drawer {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 130;
+  width: 90%;
+  max-width: 500px;
+  max-height: 80vh;
+  background: #FFFFFF;
+  border-radius: var(--radius-md);
+  box-shadow: 0 16px 40px rgba(10, 24, 34, 0.25);
+  border: 1px solid var(--sgp-border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: fadeInPopover 0.15s ease-out;
+}
+
+.roster-conflict-drawer-header {
+  padding: 12px 16px;
+  background: var(--sgp-brand-800);
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.roster-conflict-drawer-body {
+  padding: 14px 16px;
+  overflow-y: auto;
+  max-height: calc(80vh - 60px);
+}
+
+.roster-conflict-item {
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--sgp-border);
+  background: #F8FAFC;
+}
+
+.roster-conflict-item.conflict-error {
+  background: #FEF2F2;
+  border-color: #FECACA;
+}
+
+.roster-conflict-item.conflict-warning {
+  background: #FFFBEB;
+  border-color: #FDE68A;
+}
+
+.roster-conflict-goto-btn {
+  background: #FFFFFF;
+  border: 1px solid var(--sgp-border-strong);
+  color: var(--sgp-brand-800);
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.12s ease;
+}
+
+.roster-conflict-goto-btn:hover {
+  background: var(--sgp-brand-800);
+  color: #FFFFFF;
+  border-color: var(--sgp-brand-800);
+}
+
+
+/* Persistent Draft Action Bar */
+.roster-draft-bar {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  background: #0B314B;
+  color: #FFFFFF;
+  border-radius: 40px;
+  padding: 8px 16px 8px 20px;
+  box-shadow: 0 8px 24px rgba(7, 43, 68, 0.28), 0 2px 6px rgba(0, 0, 0, 0.12);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  animation: slideUpDraft 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+@keyframes slideUpDraft {
+  from {
+    transform: translate(-50%, 20px);
+    opacity: 0;
+  }
+  to {
+    transform: translate(-50%, 0);
+    opacity: 1;
+  }
+}
+
+.roster-draft-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.roster-draft-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #F59E0B;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.3);
+}
+
+.roster-draft-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.roster-draft-btn-undo {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #FFFFFF;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.roster-draft-btn-undo:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.roster-draft-btn-save {
+  background: #16A34A;
+  border: none;
+  color: #FFFFFF;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 2px 8px rgba(22, 163, 74, 0.35);
+  transition: all 0.15s ease;
+}
+
+.roster-draft-btn-save:hover {
+  background: #15803D;
+}
+
+/* Contextual Cell Popover */
+.roster-popover-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  background: rgba(10, 24, 34, 0.2);
+}
+
+.roster-popover-card {
+  position: fixed;
+  z-index: 125;
+  width: 320px;
+  background: #FFFFFF;
+  border-radius: var(--radius-md);
+  box-shadow: 0 10px 30px rgba(18, 42, 60, 0.18), 0 2px 8px rgba(0,0,0,0.06);
+  border: 1px solid var(--sgp-border);
+  overflow: hidden;
+  animation: fadeInPopover 0.15s ease-out;
+}
+
+@keyframes fadeInPopover {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.roster-popover-header {
+  padding: 10px 14px;
+  background: var(--sgp-brand-800);
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.roster-popover-title {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.roster-popover-sub {
+  font-size: 11px;
+  color: #B2D1E0;
+}
+
+.roster-popover-options {
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.roster-popover-option-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: #F8FAFC;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 650;
+  transition: all 0.12s ease;
+  text-align: left;
+}
+
+.roster-popover-option-btn:hover {
+  background: #EFF6FF;
+  border-color: #BFDBFE;
+}
+
+.roster-popover-option-btn.selected {
+  outline: 2px solid var(--sgp-brand-600);
+  outline-offset: 1px;
+}
+
+.roster-popover-leave-warning {
+  margin: 8px 10px 10px;
+  padding: 8px 10px;
+  background: #FEF2F2;
+  border: 1px solid #FECACA;
+  border-radius: 6px;
+  color: #991B1B;
+  font-size: 11.5px;
+  line-height: 1.35;
+}
+
+/* Mobile Responsive List Fallback */
+.roster-mobile-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+}
+
+.roster-mobile-employee-card {
+  background: #FFFFFF;
+  border: 1px solid var(--sgp-border);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+}
+
+.roster-mobile-days-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  margin-top: 8px;
+}
+
 
 .admin-roster-footer-row {
   background: var(--sgp-canvas);

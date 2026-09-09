@@ -32,10 +32,12 @@ import {
   User,
   AdminRosterResponse,
   AdminShiftAssignItem,
+  AdminAutoPatternPreviewResponse,
   LeaveRequestCreatePayload,
   LeaveRequestItem,
   UserMonthlyScheduleResponse,
 } from '../types';
+
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL?.trim() || '';
@@ -1108,6 +1110,36 @@ export async function autoPatternAdminRoster(
   }
   return res.json();
 }
+
+export async function previewAutoPatternAdminRoster(
+  month: string,
+  userIds: string[],
+  patternType: string = 'THREE_SHIFT_FOUR_TEAM'
+): Promise<AdminAutoPatternPreviewResponse> {
+  const csrfToken = await getCsrfToken();
+  const res = await apiFetch('/api/v1/admin/roster/auto-pattern/preview', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRF-Token': csrfToken,
+    },
+    body: JSON.stringify({
+      month,
+      user_ids: userIds,
+      pattern_type: patternType,
+    }),
+  });
+  if (!res.ok) {
+    let detail = 'Không thể xem trước tác động của chu kỳ ca.';
+    try {
+      const err = await res.json();
+      if (err.detail) detail = err.detail;
+    } catch {}
+    throw new ApiError(res.status, detail);
+  }
+  return res.json();
+}
+
 
 export async function getAdminLeaveRequests(
   statusFilter?: string
