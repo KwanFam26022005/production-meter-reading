@@ -30,6 +30,7 @@ interface OperationalMapProps {
   onHoverMeter: (meterId: string | null) => void;
   onClearSelection: () => void;
   onViewportChange: (viewport: MapViewportState) => void;
+  exceptionFocus?: boolean;
 }
 
 export const OperationalMap: React.FC<OperationalMapProps> = ({
@@ -50,6 +51,7 @@ export const OperationalMap: React.FC<OperationalMapProps> = ({
   onHoverMeter,
   onClearSelection,
   onViewportChange,
+  exceptionFocus = false,
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [isDragging, setIsDragging] = useState<boolean>(false);
@@ -155,6 +157,7 @@ export const OperationalMap: React.FC<OperationalMapProps> = ({
             hoveredZoneId={hoveredZoneId}
             activeLayer={activeLayer}
             exceptionsOnly={exceptionsOnly}
+            exceptionFocus={exceptionFocus}
             selectedOperatorId={selectedOperatorId}
             onSelectZone={onSelectZone}
             onHoverZone={onHoverZone}
@@ -170,6 +173,7 @@ export const OperationalMap: React.FC<OperationalMapProps> = ({
             isAssetMode={isAssetMode}
             onSelectMeter={onSelectMeter}
             onHoverMeter={onHoverMeter}
+            exceptionFocus={exceptionFocus}
           />
         </g>
       </svg>

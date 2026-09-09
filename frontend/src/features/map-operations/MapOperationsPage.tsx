@@ -1,231 +1,61 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Search, AlertTriangle, CheckCircle2, X } from 'lucide-react';
 import { useMapOperations } from './hooks/useMapOperations';
 import { useMapSelection } from './hooks/useMapSelection';
 import { filterMeters } from './utils/mapFilters';
 import { MapHeader } from './components/MapHeader';
-import { CompactStatusStrip } from './components/CompactStatusStrip';
-import { UnifiedOperationsPanel } from './components/UnifiedOperationsPanel';
+import { FilterPopover } from './components/FilterPopover';
+import { CurrentRoundControl } from './components/CurrentRoundControl';
+import { ZoneDrawer } from './components/ZoneDrawer';
+import { MeterDrawer } from './components/MeterDrawer';
+import { MeterQuickPopup } from './components/MeterQuickPopup';
 import { OperationalMap } from './operational-map/OperationalMap';
-import { OPERATIONAL_METER_COORDINATES } from './geometry/operationalGeometry';
 import { LoadingState } from '../../components/ui/LoadingState';
 import { ErrorState } from '../../components/ui/ErrorState';
+import { OPERATIONAL_METER_COORDINATES } from './geometry/operationalGeometry';
 
-interface MapOperationsPageProps {
-  onInspectReading?: (readingId: string) => void;
-  onSwitchToLegacy?: () => void;
-}
+interface MapOperationsPageProps { onInspectReading?: (readingId: string) => void; onSwitchToLegacy?: () => void; }
 
-export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
-  onInspectReading,
-  onSwitchToLegacy,
-}) => {
-  const {
-    selectedDate,
-    setSelectedDate,
-    dashboardData,
-    mapMeters,
-    mapZones,
-    overallKpis,
-    availableOperators,
-    loading,
-    error,
-    refresh,
-    reassignOperator,
-  } = useMapOperations();
-
-  const {
-    selection,
-    filters,
-    setFilters,
-    viewport,
-    setViewport,
-    selectZone,
-    selectMeter,
-    setHoveredZone,
-    setHoveredMeter,
-  } = useMapSelection();
-
-  const [selectedRoundId, setSelectedRoundId] = useState<string | undefined>(undefined);
-
-  // Filtered meters based on multi-select / search / zone / operator
-  const filteredMeters = useMemo(() => {
-    return filterMeters(mapMeters, filters);
-  }, [mapMeters, filters]);
-
-  // Handle focus / select meter
-  const handleSelectMeter = useCallback(
-    (meterId: string | null) => {
-      selectMeter(meterId);
-      if (!meterId) return;
-
-      const m = mapMeters.find((item) => item.id === meterId);
-      if (m) {
-        // If the meter has a zone, ensure zone is also selected
-        if (m.zoneId && selection.selectedZoneId !== m.zoneId) {
-          selectZone(m.zoneId);
-        }
-        // Smoothly center the map on the selected meter using operational coords
-        const coord = OPERATIONAL_METER_COORDINATES[m.meterCode] || m.coordinates;
-        setViewport({
-          zoom: 1.45,
-          panX: -(coord.x * 1300 * 1.45 - 650),
-          panY: -(coord.y * 520 * 1.45 - 260),
-        });
-      }
-    },
-    [mapMeters, selection.selectedZoneId, selectMeter, selectZone, setViewport]
-  );
-
-  // Handle focus / select zone
-  const handleSelectZone = useCallback(
-    (zoneId: string | null) => {
-      selectZone(zoneId);
-      if (!zoneId) {
-        selectMeter(null);
-      }
-    },
-    [selectZone, selectMeter]
-  );
-
-  // Handle clearing selections when user clicks on empty SVG background
-  const handleClearSelection = useCallback(() => {
-    selectZone(null);
-    selectMeter(null);
-  }, [selectZone, selectMeter]);
-
-  // CSV Export for administrative reporting
-  const handleExportCsv = useCallback(() => {
-    if (filteredMeters.length === 0) return;
-
-    const headers = [
-      'Mã công tơ',
-      'Tên thiết bị',
-      'Khu vực',
-      'Vị trí',
-      'Loại công tơ',
-      'Trạng thái',
-      'Chỉ số gần nhất (kWh)',
-      'Thời điểm ghi',
-      'Người ghi',
-    ];
-
-    const rows = filteredMeters.map((m) => [
-      m.meterCode,
-      `"${m.name.replace(/"/g, '""')}"`,
-      `"${m.zoneName.replace(/"/g, '""')}"`,
-      `"${m.location.replace(/"/g, '""')}"`,
-      m.meterType === 'LCD' ? 'Điện tử (LCD)' : 'Cơ khí',
-      m.stateLabel,
-      m.latestReading?.readingValue ?? '',
-      m.latestReading?.serverTimestamp ?? '',
-      m.latestReading?.recordedBy ?? '',
-    ]);
-
-    const csvContent = '\uFEFF' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\r\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', `Bao_cao_cong_to_Tan_Thuan_${selectedDate}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  }, [filteredMeters, selectedDate]);
-
-  if (loading && !dashboardData && mapMeters.length === 0) {
-    return (
-      <div className="sgp-map-loading-container">
-        <LoadingState message="Đang kết nối sơ đồ vận hành Cảng Tân Thuận..." />
-      </div>
-    );
-  }
-
-  if (error && mapMeters.length === 0) {
-    return (
-      <div className="sgp-map-error-container">
-        <ErrorState message={error} onRetry={refresh} />
-      </div>
-    );
-  }
-
-  return (
-    <div className="sgp-unified-console-root">
-      {/* 1. COMPACT UNIFIED HEADER */}
-      <MapHeader
-        selectedDate={selectedDate}
-        onDateChange={setSelectedDate}
-        viewMode="map"
-        onViewModeChange={(mode) => {
-          if (mode === 'legacy' && onSwitchToLegacy) {
-            onSwitchToLegacy();
-          }
-        }}
-        onRefresh={refresh}
-        isLoading={loading}
-        onExportCsv={handleExportCsv}
-      />
-
-      {/* 2. COMPACT LINEAR STATUS STRIP */}
-      <CompactStatusStrip
-        totalMeters={overallKpis.total}
-        confirmedCount={overallKpis.confirmed}
-        completionPercent={overallKpis.percent}
-        reviewCount={overallKpis.review}
-        overdueCount={overallKpis.overdue}
-        dueCount={overallKpis.due}
-        pendingCount={overallKpis.pending}
-        activeStatusFilter={filters.status}
-        onSelectStatusFilter={(status) => setFilters({ ...filters, status })}
-      />
-
-      {/* 3. MAIN CONSOLE LAYOUT: Left Operations Panel (280px) + Right Map Canvas (dominant) */}
-      <div className="sgp-unified-console-body">
-        {/* LEFT COLUMN: 280px UNIFIED OPERATIONS PANEL */}
-        <UnifiedOperationsPanel
-          zones={mapZones}
-          meters={mapMeters}
-          filteredMeters={filteredMeters}
-          selectedZoneId={selection.selectedZoneId}
-          selectedMeterId={selection.selectedMeterId}
-          filters={filters}
-          operators={availableOperators}
-          rounds={dashboardData?.round_progress || []}
-          currentRoundTime={overallKpis.currentRoundTime}
-          currentRoundStatus={overallKpis.currentRoundStatus}
-          selectedRoundId={selectedRoundId}
-          onSelectZone={handleSelectZone}
-          onSelectMeter={handleSelectMeter}
-          onFilterChange={setFilters}
-          onSelectRound={setSelectedRoundId}
-          onInspectReading={onInspectReading}
-          onReassignOperator={async (zoneId, userId, note) => {
-            await reassignOperator(zoneId, userId, note);
-          }}
-        />
-
-        {/* RIGHT COLUMN: DOMINANT OPERATIONAL MAP CANVAS */}
-        <div className="sgp-unified-map-area">
-          <OperationalMap
-            zones={mapZones}
-            meters={filteredMeters}
-            selectedZoneId={selection.selectedZoneId}
-            selectedMeterId={selection.selectedMeterId}
-            hoveredZoneId={selection.hoveredZoneId}
-            hoveredMeterId={selection.hoveredMeterId}
-            activeLayer="STATUS"
-            exceptionsOnly={filters.exceptionsOnly}
-            selectedOperatorId={filters.operatorId === 'ALL' ? undefined : filters.operatorId}
-            viewport={viewport}
-            onSelectZone={handleSelectZone}
-            onSelectMeter={handleSelectMeter}
-            onHoverZone={setHoveredZone}
-            onHoverMeter={setHoveredMeter}
-            onClearSelection={handleClearSelection}
-            onViewportChange={setViewport}
-          />
+export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({ onInspectReading, onSwitchToLegacy }) => {
+  const { selectedDate, setSelectedDate, dashboardData, mapMeters, mapZones, overallKpis, availableOperators, loading, error, refresh, reassignOperator } = useMapOperations();
+  const { selection, filters, setFilters, viewport, setViewport, selectZone, selectMeter, setHoveredZone, setHoveredMeter } = useMapSelection();
+  const [exceptionFocus, setExceptionFocus] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [detailOpen, setDetailOpen] = useState(false);
+  const filteredMeters = useMemo(() => filterMeters(mapMeters, filters), [mapMeters, filters]);
+  const selectedMeter = mapMeters.find((m) => m.id === selection.selectedMeterId);
+  const selectedZone = mapZones.find((z) => z.id === selection.selectedZoneId);
+  const searchResults = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase(); if (!q) return [];
+    return [...mapMeters.filter((m) => [m.meterCode, m.name, m.location].some((v) => v.toLowerCase().includes(q))).slice(0, 5), ...mapZones.filter((z) => [z.name, z.shortName, z.code].some((v) => v.toLowerCase().includes(q))).slice(0, 4)];
+  }, [mapMeters, mapZones, searchQuery]);
+  const clearSelection = useCallback(() => { selectMeter(null); selectZone(null); setDetailOpen(false); setSearchOpen(false); }, [selectMeter, selectZone]);
+  useEffect(() => { const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') clearSelection(); }; window.addEventListener('keydown', esc); return () => window.removeEventListener('keydown', esc); }, [clearSelection]);
+  const focusMeter = useCallback((id: string) => { const meter = mapMeters.find((m) => m.id === id); if (!meter) return; selectZone(meter.zoneId); selectMeter(id); setDetailOpen(false); setSearchOpen(false); const c = OPERATIONAL_METER_COORDINATES[meter.meterCode] || meter.coordinates; setViewport({ zoom: 1.45, panX: -(c.x * 1300 * 1.45 - 650), panY: -(c.y * 520 * 1.45 - 260) }); }, [mapMeters, selectMeter, selectZone, setViewport]);
+  const focusZone = useCallback((id: string) => { selectMeter(null); selectZone(id); setSearchOpen(false); }, [selectMeter, selectZone]);
+  const exportCsv = useCallback(() => { const rows = filteredMeters.map((m) => [m.meterCode, m.name, m.zoneName, m.stateLabel, m.latestReading?.readingValue || ''].join(',')); const blob = new Blob(['Mã công tơ,Tên,Khu vực,Trạng thái,Chỉ số\n' + rows.join('\n')], { type: 'text/csv;charset=utf-8' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `cong-to-${selectedDate}.csv`; a.click(); URL.revokeObjectURL(url); }, [filteredMeters, selectedDate]);
+  if (loading && !dashboardData && mapMeters.length === 0) return <div className="sgp-map-loading-container"><LoadingState message="Đang kết nối sơ đồ vận hành Cảng Tân Thuận..." /></div>;
+  if (error && mapMeters.length === 0) return <div className="sgp-map-error-container"><ErrorState message={error} onRetry={refresh} /></div>;
+  const issueCount = overallKpis.overdue + overallKpis.review;
+  return <div className="sgp-map-first-root">
+    <MapHeader selectedDate={selectedDate} onDateChange={setSelectedDate} viewMode="map" onViewModeChange={(mode) => mode === 'legacy' && onSwitchToLegacy?.()} onRefresh={refresh} isLoading={loading} onExportCsv={exportCsv} />
+    <main className="sgp-map-first-workspace">
+      <OperationalMap zones={mapZones} meters={filteredMeters} selectedZoneId={selection.selectedZoneId} selectedMeterId={selection.selectedMeterId} hoveredZoneId={selection.hoveredZoneId} hoveredMeterId={selection.hoveredMeterId} activeLayer="STATUS" exceptionsOnly={false} exceptionFocus={exceptionFocus} selectedOperatorId={filters.operatorId === 'ALL' ? undefined : filters.operatorId} viewport={viewport} onSelectZone={focusZone} onSelectMeter={focusMeter} onHoverZone={setHoveredZone} onHoverMeter={setHoveredMeter} onClearSelection={clearSelection} onViewportChange={setViewport} />
+      <div className="sgp-map-top-hud">
+        <div className="sgp-map-action-cluster">
+          <div className="sgp-search-wrap"><button type="button" className="sgp-map-icon-btn" aria-label="Tìm công tơ hoặc khu vực" aria-expanded={searchOpen} onClick={() => setSearchOpen((v) => !v)}><Search size={17} /></button>
+            {searchOpen && <div className="sgp-search-popover"><div className="sgp-search-input-wrap"><Search size={15} /><input autoFocus value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Tìm công tơ hoặc khu vực..." /><button onClick={() => setSearchOpen(false)} aria-label="Đóng tìm kiếm"><X size={14} /></button></div><div className="sgp-search-results">{searchResults.map((item) => 'meterCode' in item ? <button key={item.id} onClick={() => focusMeter(item.id)}><strong>{item.meterCode}</strong><span>{item.name}</span></button> : <button key={item.id} onClick={() => focusZone(item.id)}><strong>{item.name}</strong><span>{item.metrics.totalMeters} công tơ</span></button>)}{searchQuery && searchResults.length === 0 && <span className="sgp-search-empty">Không tìm thấy kết quả</span>}</div></div>}
+          </div>
+          <FilterPopover filters={filters} zones={mapZones} operators={availableOperators} onApplyFilters={setFilters} />
         </div>
+        <button type="button" className={`sgp-exception-hud ${exceptionFocus ? 'active' : ''}`} onClick={() => setExceptionFocus((v) => !v)}>{issueCount > 0 ? <><AlertTriangle size={15} /> {issueCount} vấn đề</> : <><CheckCircle2 size={15} /> Không có ngoại lệ</>}</button>
       </div>
-    </div>
-  );
+      {exceptionFocus && issueCount > 0 && <div className="sgp-exception-focus-bar"><strong>{issueCount} vấn đề đang hiển thị</strong><span>Quá hạn {overallKpis.overdue}</span><span>Cần kiểm tra {overallKpis.review}</span><button onClick={() => setExceptionFocus(false)}>Xóa lọc</button></div>}
+      {selectedMeter && !detailOpen && <MeterQuickPopup meter={selectedMeter} onDetails={() => setDetailOpen(true)} onClose={clearSelection} />}
+      <CurrentRoundControl rounds={dashboardData?.round_progress || []} currentRoundTime={overallKpis.currentRoundTime} currentRoundStatus={overallKpis.currentRoundStatus} onSelectRound={(roundId) => setFilters({ ...filters, selectedRoundId: roundId })} />
+      {selectedZone && !selectedMeter && <ZoneDrawer zone={selectedZone} availableOperators={availableOperators} onClose={clearSelection} onSelectMeter={focusMeter} onReassignOperator={reassignOperator} />}
+      {selectedMeter && detailOpen && <MeterDrawer meter={selectedMeter} onClose={clearSelection} onInspectReading={onInspectReading} />}
+    </main>
+  </div>;
 };

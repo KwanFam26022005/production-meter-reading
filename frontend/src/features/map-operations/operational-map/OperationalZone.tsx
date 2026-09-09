@@ -75,7 +75,7 @@ export const OperationalZone: React.FC<OperationalZoneProps> = ({
   onSelect,
   onHover,
 }) => {
-  const { progressPct, completed, totalMeters, health, overdue, review, operator } =
+  const { progressPct, totalMeters, health, overdue, review, operator } =
     operationalState;
 
   const vis = getHealthVisual(health, overdue, review);
@@ -98,11 +98,11 @@ export const OperationalZone: React.FC<OperationalZoneProps> = ({
   // Format: "CẦU CẢNG\n100% · 3/3"
   // Width ~130px, minimal chrome
   const labelLine1 = geometry.shortName.toUpperCase();
-  const labelLine2 = `${progressPct}% · ${completed}/${totalMeters}`;
+  const labelLine2 = overdue > 0 ? `⚠${overdue}` : '';
 
   // Card dimensions for problem states
   const CARD_W = 140;
-  const CARD_H = vis.showCard ? 58 : 38;
+  const CARD_H = isHovered || isSelected || overdue > 0 ? 28 : 18;
 
   return (
     <g
@@ -111,6 +111,10 @@ export const OperationalZone: React.FC<OperationalZoneProps> = ({
       }`}
       opacity={isDimmed ? 0.18 : 1}
       style={{ transition: 'opacity 0.25s ease' }}
+      tabIndex={0}
+      role="button"
+      aria-label={`Khu ${geometry.shortName}, ${totalMeters} công tơ, ${overdue} quá hạn`}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(geometry.id); } }}
     >
       {/* 1. ZONE BOUNDARY POLYGON */}
       <path
@@ -135,13 +139,13 @@ export const OperationalZone: React.FC<OperationalZoneProps> = ({
         onMouseLeave={() => onHover(null)}
       >
         {/* Label background — only add white card for problem states or selected */}
-        {(vis.showCard || isSelected || isHovered) && (
+        {(isSelected || isHovered || overdue > 0) && (
           <rect
             width={CARD_W}
             height={CARD_H}
             rx={6}
-            fill={isSelected ? '#FFFFFF' : vis.showCard ? vis.cardBg : 'rgba(255,255,255,0.82)'}
-            stroke={isSelected ? '#073B5C' : vis.showCard ? vis.cardBorder : 'rgba(203,213,225,0.7)'}
+            fill={isSelected ? '#FFFFFF' : overdue > 0 ? '#FFF7F7' : 'rgba(255,255,255,0.92)'}
+            stroke={isSelected ? '#073B5C' : overdue > 0 ? '#FCA5A5' : 'rgba(203,213,225,0.7)'}
             strokeWidth={isSelected ? 2 : 1}
             filter={vis.showCard || isSelected ? 'drop-shadow(0 2px 6px rgba(7,59,92,0.10))' : undefined}
           />
@@ -150,7 +154,7 @@ export const OperationalZone: React.FC<OperationalZoneProps> = ({
         {/* Zone short name */}
         <text
           x={CARD_W / 2}
-          y={vis.showCard || isSelected || isHovered ? 16 : 10}
+          y={isSelected || isHovered || overdue > 0 ? 13 : 11}
           fill={isSelected ? '#073B5C' : health === 'HEALTHY' ? '#334155' : '#0F172A'}
           fontSize={10}
           fontWeight={700}
@@ -163,8 +167,8 @@ export const OperationalZone: React.FC<OperationalZoneProps> = ({
         {/* Progress & fraction — on same or next line */}
         <text
           x={CARD_W / 2}
-          y={vis.showCard || isSelected || isHovered ? 31 : 24}
-          fill={progressPct === 100 ? '#065F46' : '#475569'}
+          y={isSelected || isHovered || overdue > 0 ? 24 : 18}
+          fill={overdue > 0 ? '#B42318' : '#475569'}
           fontSize={9.5}
           fontWeight={progressPct === 100 ? 600 : 500}
           className="font-tabular"
@@ -174,7 +178,7 @@ export const OperationalZone: React.FC<OperationalZoneProps> = ({
         </text>
 
         {/* Alert text — only for ATTENTION / CRITICAL */}
-        {vis.showCard && (
+        {false && (
           <text
             x={CARD_W / 2}
             y={47}

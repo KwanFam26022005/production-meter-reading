@@ -35,13 +35,8 @@ export function useMapSelection() {
     setSelection((prev) => ({
       ...prev,
       selectedZoneId: zoneId,
-      selectedMeterId: null,
       drawerType: zoneId ? 'zone' : 'none',
     }));
-    // If selecting a zone, filter meters to this zone
-    if (zoneId) {
-      setFilters((prev) => ({ ...prev, zoneId }));
-    }
   }, []);
 
   const selectMeter = useCallback((meterId: string | null) => {

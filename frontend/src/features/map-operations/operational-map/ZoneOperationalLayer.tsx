@@ -11,6 +11,7 @@ interface ZoneOperationalLayerProps {
   hoveredZoneId: string | null;
   activeLayer: OperationalLayerType;
   exceptionsOnly: boolean;
+  exceptionFocus?: boolean;
   selectedOperatorId?: string;
   onSelectZone: (zoneId: string) => void;
   onHoverZone: (zoneId: string | null) => void;
@@ -23,6 +24,7 @@ export const ZoneOperationalLayer: React.FC<ZoneOperationalLayerProps> = ({
   hoveredZoneId,
   activeLayer,
   exceptionsOnly,
+  exceptionFocus = false,
   selectedOperatorId,
   onSelectZone,
   onHoverZone,
@@ -44,10 +46,10 @@ export const ZoneOperationalLayer: React.FC<ZoneOperationalLayerProps> = ({
         // Dim logic:
         // 1. If an operator is selected and this zone is not assigned to that operator
         // 2. If exceptionsOnly is active and this zone has 0 exceptions (health === 'HEALTHY')
-        let isDimmed = false;
+        let isDimmed = Boolean(selectedZoneId && selectedZoneId !== geom.id);
         if (selectedOperatorId && opState.operator?.id !== selectedOperatorId) {
           isDimmed = true;
-        } else if (exceptionsOnly && opState.health === 'HEALTHY') {
+        } else if ((exceptionsOnly || exceptionFocus) && opState.health === 'HEALTHY') {
           isDimmed = true;
         }
 

@@ -15,6 +15,7 @@ interface MeterPointLayerProps {
   isAssetMode: boolean;
   onSelectMeter: (meterId: string) => void;
   onHoverMeter: (meterId: string | null) => void;
+  exceptionFocus?: boolean;
 }
 
 /**
@@ -36,6 +37,7 @@ export const MeterPointLayer: React.FC<MeterPointLayerProps> = ({
   isAssetMode: _isAssetMode,
   onSelectMeter,
   onHoverMeter,
+  exceptionFocus = false,
 }) => {
   return (
     <g className="sgp-meter-points-layer">
@@ -59,7 +61,7 @@ export const MeterPointLayer: React.FC<MeterPointLayerProps> = ({
 
         // Decluttering logic:
         // Show meter code ONLY when hovered, selected, or in exception state
-        const showLabel = isHovered || isSelected || isException;
+        const showLabel = isHovered || isSelected || (isException && exceptionFocus);
 
         // Visual radius & styling based on state
         let r = 3.5;
@@ -98,6 +100,11 @@ export const MeterPointLayer: React.FC<MeterPointLayerProps> = ({
             }}
             onMouseEnter={() => onHoverMeter(m.id)}
             onMouseLeave={() => onHoverMeter(null)}
+            tabIndex={0}
+            role="button"
+            aria-label={`${m.meterCode}, ${m.name}, ${m.stateLabel}`}
+            opacity={exceptionFocus && !isException && !isSelected ? 0.28 : 1}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelectMeter(m.id); } }}
           >
             {/* 1. Selection / Exception Pulse Halo */}
             {isException && (
