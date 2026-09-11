@@ -1,14 +1,17 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Search, AlertTriangle, CheckCircle2, X } from 'lucide-react';
+import { AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { useMapOperations } from './hooks/useMapOperations';
 import { useMapSelection } from './hooks/useMapSelection';
 import { filterMeters } from './utils/mapFilters';
 import { MapHeader } from './components/MapHeader';
-import { FilterPopover } from './components/FilterPopover';
-import { ZoneDrawer } from './map-ui/ZoneDrawer';
-import { MeterQuickPopup } from './map-ui/MeterQuickPopup';
-import { MeterDetailDrawer } from './map-ui/MeterDetailDrawer';
-import { OperatorShiftPopover } from './map-ui/OperatorShiftPopover';
+import {
+  ZoneDrawer,
+  MeterQuickPopup,
+  MeterDetailDrawer,
+  OperatorShiftPopover,
+  SceneSearch,
+  SceneFilter,
+} from './map-ui';
 import { OperationalMap } from './operational-map/OperationalMap';
 import { LoadingState } from '../../components/ui/LoadingState';
 import { ErrorState } from '../../components/ui/ErrorState';
@@ -54,9 +57,6 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
 
   const [exceptionFocus, setExceptionFocus] = useState(false);
   const [utilitySurface, setUtilitySurface] = useState<'search' | 'filter' | null>(null);
-  const searchOpen = utilitySurface === 'search';
-  const filterOpen = utilitySurface === 'filter';
-  const [searchQuery, setSearchQuery] = useState('');
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedOperatorShiftId, setSelectedOperatorShiftId] = useState<string | null>(null);
 
@@ -64,7 +64,7 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
   useEffect(() => {
     if (typeof window !== 'undefined') {
       (window as any).__MAP_UI_BUILD__ = {
-        phase: '6D',
+        phase: 'Hightopo-Spatial-Console',
         renderer: 'OperationalMap',
         geometryVersion: 'tan-thuan-operational-v2',
         zones: mapZones.length,
@@ -99,19 +99,6 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
       overallKpis.currentRoundTime || undefined
     );
   }, [selectedOperatorShiftId, mapZones, mapMeters, availableOperators, overallKpis.currentRoundTime]);
-
-  const searchResults = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
-    if (!q) return [];
-    return [
-      ...mapMeters
-        .filter((m) => [m.meterCode, m.name, m.location].some((v) => v.toLowerCase().includes(q)))
-        .slice(0, 5),
-      ...mapZones
-        .filter((z) => [z.name, z.shortName, z.code].some((v) => v.toLowerCase().includes(q)))
-        .slice(0, 4),
-    ];
-  }, [mapMeters, mapZones, searchQuery]);
 
   const clearSelection = useCallback(() => {
     setSelectedOperatorShiftId(null);
@@ -294,59 +281,23 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
         {/* Top HUD: Search, Filter, and Compact Exception HUD */}
         <div className="sgp-map-top-hud">
           <div className="sgp-map-action-cluster">
-            <div className="sgp-search-wrap">
-              <button
-                type="button"
-                className="sgp-map-icon-btn"
-                aria-label="Tìm công tơ hoặc khu vực"
-                aria-expanded={searchOpen}
-                onClick={() => setUtilitySurface((v) => (v === 'search' ? null : 'search'))}
-              >
-                <Search size={17} />
-              </button>
+            <SceneSearch
+              meters={mapMeters}
+              zones={mapZones}
+              operators={availableOperators}
+              isOpen={utilitySurface === 'search'}
+              onToggle={(open) => setUtilitySurface(open ? 'search' : null)}
+              onSelectMeter={focusMeter}
+              onSelectZone={focusZone}
+              onSelectOperator={handleSelectOperator}
+            />
 
-              {searchOpen && (
-                <div className="sgp-search-popover" role="dialog" aria-label="Tìm kiếm">
-                  <div className="sgp-search-input-wrap">
-                    <Search size={15} />
-                    <input
-                      autoFocus
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Tìm công tơ hoặc khu vực..."
-                    />
-                    <button onClick={() => setUtilitySurface(null)} aria-label="Đóng tìm kiếm">
-                      <X size={14} />
-                    </button>
-                  </div>
-                  <div className="sgp-search-results">
-                    {searchResults.map((item) =>
-                      'meterCode' in item ? (
-                        <button key={item.id} onClick={() => focusMeter(item.id)}>
-                          <strong>{item.meterCode}</strong>
-                          <span>{item.name}</span>
-                        </button>
-                      ) : (
-                        <button key={item.id} onClick={() => focusZone(item.id)}>
-                          <strong>{item.name}</strong>
-                          <span>{item.metrics.totalMeters} công tơ</span>
-                        </button>
-                      )
-                    )}
-                    {searchQuery && searchResults.length === 0 && (
-                      <span className="sgp-search-empty">Không tìm thấy kết quả</span>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <FilterPopover
+            <SceneFilter
               filters={filters}
               zones={mapZones}
               operators={availableOperators}
               onApplyFilters={setFilters}
-              isOpen={filterOpen}
+              isOpen={utilitySurface === 'filter'}
               onToggle={(open) => setUtilitySurface(open ? 'filter' : null)}
             />
           </div>
@@ -372,13 +323,23 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
           </button>
         </div>
 
-        {/* Exception Focus Bar */}
-        {exceptionFocus && issueCount > 0 && (
+        {/* Exception Focus Bar — Level 1 operational exception HUD */}
+        {exceptionFocus && (
           <div className="sgp-exception-focus-bar" role="status">
-            <strong>{issueCount} vấn đề đang hiển thị</strong>
-            <span>Quá hạn: {overallKpis.overdue}</span>
-            <span>Cần kiểm tra: {overallKpis.review}</span>
-            <button onClick={() => setExceptionFocus(false)}>Xóa lọc ngoại lệ</button>
+            <strong className="sgp-ef-badge">{issueCount} vấn đề</strong>
+            <span>{overallKpis.overdue} quá hạn</span>
+            <span>{overallKpis.review} cần kiểm tra</span>
+            {overallKpis.pending > 0 && (
+              <span>{overallKpis.pending} chưa ghi</span>
+            )}
+            <button
+              type="button"
+              className="sgp-ef-clear-btn"
+              onClick={() => setExceptionFocus(false)}
+              aria-label="Xóa lọc ngoại lệ"
+            >
+              Xóa focus
+            </button>
           </div>
         )}
 

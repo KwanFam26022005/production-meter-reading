@@ -4,3 +4,5 @@ export { OperatorShiftPopover } from './OperatorShiftPopover';
 export { ZoneDrawer } from './ZoneDrawer';
 export { MeterQuickPopup } from './MeterQuickPopup';
 export { MeterDetailDrawer, MeterDrawer } from './MeterDetailDrawer';
+export { SceneSearch } from './SceneSearch';
+export { SceneFilter } from './SceneFilter';
