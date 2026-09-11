@@ -84,7 +84,7 @@ export const OperatorMapMarker: React.FC<OperatorMapMarkerProps> = ({
           cy={0}
           r={25}
           fill="none"
-          stroke="#0284C7"
+          stroke="var(--ops-accent, #0E7490)"
           strokeWidth={2.5}
           strokeOpacity={0.45}
           className="sgp-op-marker-halo"
@@ -109,13 +109,13 @@ export const OperatorMapMarker: React.FC<OperatorMapMarkerProps> = ({
         cy={0}
         r={ringRadius}
         fill="none"
-        stroke={isSelected ? '#0284C7' : '#0E7490'}
+        stroke={isSelected ? 'var(--ops-accent, #0E7490)' : '#0E7490'}
         strokeWidth={3.2}
         strokeLinecap="round"
         strokeDasharray={ringCircumference}
         strokeDashoffset={strokeOffset}
         transform="rotate(-90)"
-        style={{ transition: 'stroke-dashoffset 0.35s ease-out' }}
+        style={{ transition: 'stroke-dashoffset 340ms cubic-bezier(0.16, 1, 0.3, 1)' }}
         role="progressbar"
         aria-valuenow={clampedProgress}
         aria-valuemin={0}
@@ -128,7 +128,7 @@ export const OperatorMapMarker: React.FC<OperatorMapMarkerProps> = ({
         cx={0}
         cy={0}
         r={14.5}
-        fill={isSelected ? '#0284C7' : '#073B5C'}
+        fill={isSelected ? 'var(--ops-accent, #0E7490)' : 'var(--ops-brand, #073B5C)'}
         stroke="#FFFFFF"
         strokeWidth={1.5}
       />
@@ -218,4 +218,4 @@ export const OperatorMapMarker: React.FC<OperatorMapMarkerProps> = ({
     </g>
   );
 };
-
+

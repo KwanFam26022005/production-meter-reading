@@ -34,15 +34,35 @@ export const OperationalZone: React.FC<OperationalZoneProps> = ({
 }) => {
   const { totalMeters, overdue, review } = operationalState;
   const issueCount = overdue + review;
+  const health = operationalState.health; // 'HEALTHY' | 'ATTENTION' | 'CRITICAL'
 
-  // Selected state: soft blue tint and clean border
-  const strokeColor = isSelected ? '#0E7490' : isHovered ? '#38BDF8' : 'transparent';
-  const strokeWidth = isSelected ? 2.5 : isHovered ? 1.5 : 0;
-  const fillColor = isSelected
-    ? 'rgba(14, 116, 144, 0.08)'
-    : isHovered
-    ? 'rgba(56, 189, 248, 0.04)'
-    : 'transparent';
+  // Zone Visual States per Industrial Spatial System:
+  // DEFAULT: quiet boundary, subtle fill
+  // HOVER: slightly stronger edge, slight fill elevation
+  // SELECTED: selected zone at full emphasis (accent border, soft tint)
+  // ATTENTION: amber edge, subtle warning affordance
+  // CRITICAL: red edge, semantic alert emphasis (do NOT fill entire zone bright red)
+  let strokeColor = 'rgba(11, 79, 117, 0.18)';
+  let strokeWidth = 1;
+  let fillColor = 'rgba(11, 79, 117, 0.015)';
+
+  if (isSelected) {
+    strokeColor = 'var(--ops-accent, #0E7490)';
+    strokeWidth = 2.5;
+    fillColor = 'rgba(14, 116, 144, 0.08)';
+  } else if (isHovered) {
+    strokeColor = 'var(--ops-accent, #0E7490)';
+    strokeWidth = 1.8;
+    fillColor = 'rgba(14, 116, 144, 0.04)';
+  } else if (health === 'CRITICAL') {
+    strokeColor = 'var(--status-overdue, #DC2626)';
+    strokeWidth = 1.5;
+    fillColor = 'rgba(220, 38, 38, 0.035)';
+  } else if (health === 'ATTENTION') {
+    strokeColor = 'var(--status-review, #F59E0B)';
+    strokeWidth = 1.3;
+    fillColor = 'rgba(245, 158, 11, 0.025)';
+  }
 
   const badgeX = geometry.exceptionBadgeSvg.x;
   const badgeY = geometry.exceptionBadgeSvg.y;
@@ -51,9 +71,9 @@ export const OperationalZone: React.FC<OperationalZoneProps> = ({
     <g
       className={`sgp-operational-zone ${isSelected ? 'selected' : ''} ${
         isHovered ? 'hovered' : ''
-      }`}
-      opacity={isDimmed ? 0.35 : 1}
-      style={{ transition: 'opacity 0.25s ease' }}
+      } ${health.toLowerCase()}`}
+      opacity={isDimmed ? 0.30 : 1}
+      style={{ transition: 'opacity 340ms cubic-bezier(0.16, 1, 0.3, 1)' }}
       tabIndex={0}
       role="button"
       aria-label={`Khu ${geometry.shortName}, ${totalMeters} công tơ, ${issueCount} vấn đề`}

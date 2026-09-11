@@ -11,18 +11,19 @@ import {
 /**
  * PortFootprint — SVG Physical Backdrop for Tan Thuan Port
  *
- * Implements the exact aesthetic from authoritative Figma frames 2:2 & 2:104:
- * - Saigon River banner with mooring lines and two-tone "TÀU HÀNG" moored vessel
- * - Quayside apron with Cầu 1, Cầu 2, Cầu 3 berth markings
- * - Arterial roads with dashed divider and Luu Trong Lu access label
- * - 4 zone container frames (CẦU CẢNG, KHO / CFS, BÃI CONTAINER, BÃI HÀNG TỔNG HỢP)
- * - 10 physical sub-blocks (Kho B, C, D, Bãi A, A2, B1, B2, Hàng Tổng Hợp, Trạm Điện, Xưởng)
+ * Industrial Spatial Minimalism (Hightopo Language):
+ * - Physical layer at 35–60% opacity — recedes behind operational elements
+ * - Saigon River with subtle horizontal texture lines
+ * - Stronger quay structural edge with berth markings
+ * - Sub-blocks with low-contrast fill and subtle inner stroke
+ * - Roads slightly darker than ground
+ * - Zone container frames as thin structural geometry
  */
-export const PortFootprint: React.FC = () => {
+export const PortFootprint: React.FC = React.memo(() => {
   const ship = PHYSICAL_RIVER.mooredShip;
 
   return (
-    <g className="sgp-physical-backdrop" pointerEvents="none">
+    <g className="sgp-physical-backdrop" pointerEvents="none" opacity={0.88}>
       {/* 1. SAIGON RIVER (NORTH BANNER) */}
       <path
         d={PHYSICAL_RIVER.path}
@@ -30,6 +31,20 @@ export const PortFootprint: React.FC = () => {
         stroke={PHYSICAL_RIVER.edgeColor}
         strokeWidth={1.5}
       />
+
+      {/* Subtle horizontal water texture lines */}
+      {[28, 52, 76, 98].map((y) => (
+        <line
+          key={`water-tex-${y}`}
+          x1={40}
+          y1={y}
+          x2={1260}
+          y2={y}
+          stroke="#B5C8D6"
+          strokeWidth={0.6}
+          opacity={0.3}
+        />
+      ))}
 
       {/* Mooring Guidelines in River */}
       {PHYSICAL_RIVER.guidelines.map((gl, idx) => (
@@ -39,9 +54,9 @@ export const PortFootprint: React.FC = () => {
           y1={gl.y1}
           x2={gl.x2}
           y2={gl.y2}
-          stroke="#B5CDDE"
+          stroke="#A8BCCA"
           strokeWidth={1}
-          opacity={0.8}
+          opacity={0.6}
         />
       ))}
       {PHYSICAL_RIVER.mooringLines.map((ml, idx) => (
@@ -51,10 +66,10 @@ export const PortFootprint: React.FC = () => {
           y1={ml.y1}
           x2={ml.x}
           y2={ml.y2}
-          stroke="#ADC5D4"
+          stroke="#9CB4C4"
           strokeWidth={1.2}
           strokeDasharray="4 4"
-          opacity={0.7}
+          opacity={0.55}
         />
       ))}
 
@@ -62,19 +77,19 @@ export const PortFootprint: React.FC = () => {
       <text
         x={650}
         y={PHYSICAL_RIVER.labelY}
-        fill="#3C5A6E"
-        fontSize={14}
+        fill="#4A6A7D"
+        fontSize={13}
         fontWeight={700}
         letterSpacing={4}
         textAnchor="middle"
-        opacity={0.9}
+        opacity={0.7}
         fontFamily="system-ui, -apple-system, sans-serif"
       >
         {PHYSICAL_RIVER.label}
       </text>
 
       {/* Moored Cargo Ship (Two-tone Stadium Pill) */}
-      <g className="sgp-moored-ship">
+      <g className="sgp-moored-ship" opacity={0.65}>
         {/* Shadow / Base */}
         <rect
           x={ship.x}
@@ -99,7 +114,7 @@ export const PortFootprint: React.FC = () => {
           x={ship.x + ship.width / 2 + 10}
           y={ship.y + 15}
           fill="#FFFFFF"
-          fontSize={9.5}
+          fontSize={9}
           fontWeight={700}
           letterSpacing={1}
           textAnchor="middle"
@@ -117,7 +132,7 @@ export const PortFootprint: React.FC = () => {
         strokeWidth={1.5}
       />
 
-      {/* 3. QUAYSIDE APRON (CẦU CẢNG) */}
+      {/* 3. QUAYSIDE APRON (CẦU CẢNG) — stronger structural edge */}
       <rect
         x={PHYSICAL_QUAY.rect.x}
         y={PHYSICAL_QUAY.rect.y}
@@ -125,28 +140,44 @@ export const PortFootprint: React.FC = () => {
         height={PHYSICAL_QUAY.rect.height}
         fill={PHYSICAL_QUAY.fill}
         stroke={PHYSICAL_QUAY.stroke}
-        strokeWidth={1.5}
+        strokeWidth={1.8}
         rx={2}
       />
-      {/* Vertical divider on quay */}
-      <line
-        x1={PHYSICAL_QUAY.dividerX}
-        y1={PHYSICAL_QUAY.rect.y}
-        x2={PHYSICAL_QUAY.dividerX}
-        y2={PHYSICAL_QUAY.rect.y + PHYSICAL_QUAY.rect.height}
-        stroke="#CAD7E2"
-        strokeWidth={1}
-        strokeDasharray="4 4"
-      />
+      {/* Berth subdivision lines */}
+      {[PHYSICAL_QUAY.dividerX, 810].map((dx, i) => (
+        <line
+          key={`berth-div-${i}`}
+          x1={dx}
+          y1={PHYSICAL_QUAY.rect.y}
+          x2={dx}
+          y2={PHYSICAL_QUAY.rect.y + PHYSICAL_QUAY.rect.height}
+          stroke="#B0C4D1"
+          strokeWidth={1}
+          strokeDasharray="4 4"
+          opacity={0.6}
+        />
+      ))}
+      {/* Bollard reference marks along quay edge */}
+      {[200, 350, 500, 650, 800, 950, 1100].map((bx) => (
+        <circle
+          key={`bollard-${bx}`}
+          cx={bx}
+          cy={PHYSICAL_QUAY.rect.y + PHYSICAL_QUAY.rect.height}
+          r={2}
+          fill="#94AEBB"
+          opacity={0.4}
+        />
+      ))}
       {/* Quayside Title */}
       <text
         x={PHYSICAL_QUAY.labelPosition.x}
         y={PHYSICAL_QUAY.labelPosition.y}
         fill="#1E3A4C"
-        fontSize={12}
+        fontSize={11}
         fontWeight={700}
         letterSpacing={1}
         textAnchor="middle"
+        opacity={0.75}
         fontFamily="system-ui, sans-serif"
       >
         {PHYSICAL_QUAY.label}
@@ -157,10 +188,11 @@ export const PortFootprint: React.FC = () => {
           key={b.id}
           x={b.x}
           y={b.y}
-          fill="#475569"
-          fontSize={10}
+          fill="#5A7382"
+          fontSize={9}
           fontWeight={600}
           textAnchor="middle"
+          opacity={0.7}
           fontFamily="system-ui, sans-serif"
         >
           {b.name}
@@ -175,6 +207,7 @@ export const PortFootprint: React.FC = () => {
         width={PHYSICAL_ROADS.centralAvenue.width}
         height={PHYSICAL_ROADS.centralAvenue.height}
         fill={PHYSICAL_ROADS.centralAvenue.fill}
+        opacity={0.7}
       />
       {/* Horizontal Crossroad */}
       <rect
@@ -183,6 +216,7 @@ export const PortFootprint: React.FC = () => {
         width={PHYSICAL_ROADS.crossroad.width}
         height={PHYSICAL_ROADS.crossroad.height}
         fill={PHYSICAL_ROADS.crossroad.fill}
+        opacity={0.7}
       />
       {/* Crossroad Center Divider */}
       <line
@@ -193,22 +227,24 @@ export const PortFootprint: React.FC = () => {
         stroke={PHYSICAL_ROADS.centerline.stroke}
         strokeWidth={PHYSICAL_ROADS.centerline.strokeWidth}
         strokeDasharray={PHYSICAL_ROADS.centerline.strokeDasharray}
+        opacity={0.5}
       />
       {/* Luu Trong Lu Access Axis Label */}
       <text
         x={PHYSICAL_ROADS.axisLabelPosition.x}
         y={PHYSICAL_ROADS.axisLabelPosition.y}
-        fill="#5A7382"
-        fontSize={9.5}
+        fill="#6B8290"
+        fontSize={8.5}
         fontWeight={700}
         letterSpacing={0.5}
         textAnchor="middle"
+        opacity={0.6}
         fontFamily="system-ui, sans-serif"
       >
         {PHYSICAL_ROADS.axisLabel}
       </text>
 
-      {/* 5. ZONE CONTAINER FRAMES */}
+      {/* 5. ZONE CONTAINER FRAMES — thin structural geometry */}
       {PHYSICAL_ZONE_FRAMES.map((zf) => (
         <g key={zf.id} className="sgp-zone-container-frame">
           {zf.rect ? (
@@ -220,24 +256,27 @@ export const PortFootprint: React.FC = () => {
               rx={zf.rect.rx}
               fill="transparent"
               stroke="#B0C4D1"
-              strokeWidth={1.2}
+              strokeWidth={1}
+              opacity={0.5}
             />
           ) : zf.polygon ? (
             <path
               d={zf.polygon}
               fill="transparent"
               stroke="#B0C4D1"
-              strokeWidth={1.2}
+              strokeWidth={1}
+              opacity={0.5}
             />
           ) : null}
           <text
             x={zf.titlePosition.x}
             y={zf.titlePosition.y}
-            fill="#1E3A4C"
-            fontSize={11}
+            fill="#2E4F62"
+            fontSize={10}
             fontWeight={700}
             letterSpacing={0.8}
             textAnchor="middle"
+            opacity={0.6}
             fontFamily="system-ui, sans-serif"
           >
             {zf.title}
@@ -245,25 +284,48 @@ export const PortFootprint: React.FC = () => {
         </g>
       ))}
 
-      {/* 6. PHYSICAL SUB-BLOCKS (10 UNITS) */}
+      {/* 6. PHYSICAL SUB-BLOCKS (10 UNITS) — low contrast, subtle depth */}
       {PHYSICAL_SUB_BLOCKS.map((blk) => (
         <g key={blk.id} className="sgp-sub-block">
+          {/* Subtle depth shadow */}
+          <rect
+            x={blk.rect.x + 1}
+            y={blk.rect.y + 1}
+            width={blk.rect.width}
+            height={blk.rect.height}
+            rx={blk.rect.rx}
+            fill="rgba(7, 59, 92, 0.03)"
+          />
+          {/* Block fill */}
           <rect
             x={blk.rect.x}
             y={blk.rect.y}
             width={blk.rect.width}
             height={blk.rect.height}
             rx={blk.rect.rx}
-            fill="#F6F9FA"
-            stroke="#CBD9E2"
-            strokeWidth={1}
+            fill="#ECF1F4"
+            stroke="#BCC9D4"
+            strokeWidth={0.8}
+            opacity={0.55}
+          />
+          {/* Inner highlight */}
+          <rect
+            x={blk.rect.x + 1.5}
+            y={blk.rect.y + 1.5}
+            width={blk.rect.width - 3}
+            height={blk.rect.height - 3}
+            rx={Math.max(0, blk.rect.rx - 1.5)}
+            fill="none"
+            stroke="rgba(255, 255, 255, 0.4)"
+            strokeWidth={0.5}
           />
           <text
             x={blk.rect.x + 8}
             y={blk.rect.y + 14}
-            fill="#475569"
-            fontSize={9.5}
+            fill="#5A7382"
+            fontSize={8.5}
             fontWeight={700}
+            opacity={0.6}
             fontFamily="system-ui, sans-serif"
           >
             {blk.name}
@@ -272,4 +334,6 @@ export const PortFootprint: React.FC = () => {
       ))}
     </g>
   );
-};
+});
+
+PortFootprint.displayName = 'PortFootprint';

@@ -51,6 +51,42 @@
   --z-nav-backdrop: 80;
   --z-nav-drawer: 90;
   --z-modal-overlay: 100;
+
+  /* ── Industrial Spatial Scene Tokens (Hightopo Language) ── */
+  --scene-bg: #EDF2F6;
+  --scene-ground: #F0F4F7;
+  --scene-water: #C8D8E4;
+  --scene-water-edge: #A8BCC9;
+  --scene-road: #D6E0E8;
+  --scene-structure: #E8EEF2;
+  --scene-structure-stroke: #BCC9D4;
+
+  /* ── Operational Brand ── */
+  --ops-brand: #073B5C;
+  --ops-accent: #0E7490;
+  --ops-accent-light: rgba(14, 116, 144, 0.08);
+
+  /* ── Status Semantics ── */
+  --status-confirmed: #10B981;
+  --status-due: #94A3B8;
+  --status-review: #F59E0B;
+  --status-overdue: #DC2626;
+  --status-pending: #CBD5E1;
+  --status-inactive: #E2E8F0;
+
+  /* ── Surfaces ── */
+  --surface-hud: rgba(255, 255, 255, 0.92);
+  --surface-popover: rgba(255, 255, 255, 0.96);
+  --surface-drawer: rgba(247, 250, 252, 0.98);
+  --surface-border: rgba(11, 79, 117, 0.12);
+
+  /* ── Motion Tokens ── */
+  --motion-fast: 120ms;
+  --motion-normal: 220ms;
+  --motion-focus: 340ms;
+  --motion-scene: 480ms;
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 * {
@@ -8533,7 +8569,7 @@ body:has(.admin-portal-root) {
   min-height: calc(100vh - 60px);
   display: flex;
   flex-direction: column;
-  background: #eef4f6;
+  background: var(--scene-bg, #eef4f6);
   flex: 1;
 }
 .sgp-map-first-workspace {
@@ -8873,10 +8909,77 @@ body:has(.admin-portal-root) {
   outline-offset: 2px;
 }
 .sgp-map-first-workspace .sgp-current-round-card { position: absolute; z-index: var(--z-map-controls, 30); left: 16px; bottom: 16px; width: 178px; margin: 0; box-shadow: 0 4px 14px rgba(22,45,58,.12); }
-.sgp-map-first-workspace .sgp-side-drawer { position: absolute; z-index: var(--z-map-drawers, 60); top: 0; right: 0; height: 100%; width: min(340px, 92vw); box-shadow: -12px 0 30px rgba(22,45,58,.16); }
+.sgp-map-first-workspace .sgp-side-drawer {
+  position: absolute;
+  z-index: var(--z-map-drawers, 60);
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: min(340px, 92vw);
+  background: var(--surface-drawer, rgba(247, 250, 252, 0.98));
+  border-left: 1px solid var(--surface-border, rgba(11, 79, 117, 0.14));
+  box-shadow: -8px 0 24px rgba(7, 59, 92, 0.08);
+  animation: sgp-drawer-enter var(--motion-normal, 220ms) var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1));
+}
 .sgp-map-first-workspace .sgp-viewport-controls { right: 16px; bottom: 16px; }
 .sgp-map-first-workspace .sgp-map-legend-wrapper { right: 16px; bottom: 148px; }
 .sgp-operational-zone:focus-visible, .sgp-meter-point:focus-visible { outline: 3px solid #087eaa; outline-offset: 4px; }
+
+/* ==========================================================================
+   INDUSTRIAL SPATIAL SCENE — Animation & Motion System (Hightopo Language)
+   ========================================================================== */
+
+/* Meter marker pulse ring — overdue (red) */
+@keyframes sgp-pulse-ring {
+  0%, 100% { stroke-opacity: 1; }
+  50% { stroke-opacity: 0.35; }
+}
+.sgp-pulse-ring { animation: sgp-pulse-ring 2.4s ease-in-out infinite; }
+
+/* Meter marker pulse ring — review (amber) */
+.sgp-pulse-ring-amber { animation: sgp-pulse-ring 2.8s ease-in-out infinite; }
+
+/* Popup entry animation */
+@keyframes sgp-popup-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.sgp-meter-quick-popup-anim { animation: sgp-popup-enter var(--motion-normal, 220ms) var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1)); }
+
+/* Drawer slide-in animation */
+@keyframes sgp-drawer-enter {
+  from { opacity: 0; transform: translateX(20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* Exception focus bar enter */
+@keyframes sgp-focus-bar-enter {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+
+.sgp-exception-focus-bar {
+  animation: sgp-focus-bar-enter var(--motion-normal, 220ms) var(--ease-out-expo);
+}
+
+/* Respect prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  .sgp-pulse-ring,
+  .sgp-pulse-ring-amber {
+    animation: none !important;
+  }
+  .sgp-meter-quick-popup-anim,
+  .sgp-map-first-workspace .sgp-side-drawer,
+  .sgp-exception-focus-bar {
+    animation: none !important;
+  }
+  .sgp-operational-zone,
+  .sgp-meter-point,
+  .sgp-operator-map-marker {
+    transition-duration: 0.01ms !important;
+  }
+}
 
 /* ==========================================================================
    PHASE 6D: SPATIAL OPERATOR MARKER & SHIFT PROGRESS POPOVER
@@ -8912,16 +9015,17 @@ body:has(.admin-portal-root) {
   right: 18px;
   width: 285px;
   max-width: calc(100vw - 36px);
-  padding: 16px;
-  border: 1px solid #d5e0e5;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.98);
-  backdrop-filter: blur(8px);
-  box-shadow: 0 14px 36px rgba(22, 45, 58, 0.2);
+  padding: 14px 16px;
+  border: 1px solid var(--surface-border, rgba(11, 79, 117, 0.14));
+  border-top: 3px solid var(--ops-accent, #0e7490);
+  border-radius: 10px;
+  background: var(--surface-popover, rgba(255, 255, 255, 0.97));
+  backdrop-filter: blur(2px);
+  box-shadow: 0 8px 24px rgba(7, 59, 92, 0.12);
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  animation: sgpPopoverFadeIn 0.15s ease-out;
+  gap: 10px;
+  animation: sgp-popup-enter var(--motion-normal, 220ms) var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1));
 }
 
 .sgp-shift-popover-header {
@@ -9654,15 +9758,16 @@ body:has(.admin-portal-root) {
   position: absolute;
   z-index: var(--z-map-popovers, 50);
   width: 250px;
-  padding: 16px;
-  border: 1px solid #d5e0e5;
-  border-radius: 12px;
-  background: #ffffff;
-  box-shadow: 0 14px 36px rgba(22, 45, 58, 0.22);
+  padding: 14px 16px;
+  border: 1px solid var(--surface-border, rgba(11, 79, 117, 0.14));
+  border-top: 3px solid var(--ops-brand, #073b5c);
+  border-radius: 10px;
+  background: var(--surface-popover, rgba(255, 255, 255, 0.97));
+  box-shadow: 0 8px 24px rgba(7, 59, 92, 0.12);
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  animation: sgpPopoverFadeIn 0.15s ease-out;
+  gap: 8px;
+  animation: sgp-popup-enter var(--motion-normal, 220ms) var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1));
 }
 
 .sgp-qp-header {
@@ -9756,8 +9861,8 @@ body:has(.admin-portal-root) {
   height: 0;
   border-left: 8px solid transparent;
   border-right: 8px solid transparent;
-  border-top: 8px solid #ffffff;
-  filter: drop-shadow(0 2px 2px rgba(22, 45, 58, 0.08));
+  border-top: 8px solid var(--surface-popover, #ffffff);
+  filter: drop-shadow(0 2px 2px rgba(7, 59, 92, 0.08));
 }
 
 @media (max-width: 700px) {

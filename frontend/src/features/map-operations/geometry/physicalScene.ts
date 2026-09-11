@@ -27,8 +27,8 @@ export const FIT_VIEWBOX = '0 0 1300 520';
  */
 export const PHYSICAL_RIVER = {
   path: 'M 0,0 L 1300,0 L 1300,115 L 0,115 Z',
-  color: '#D4E3ED',
-  edgeColor: '#B6CDDC',
+  color: '#C8D8E4',       // --scene-water: muted Saigon River blue-gray
+  edgeColor: '#A8BCC9',   // --scene-water-edge: subtle edge
   label: 'SÔNG SÀI GÒN',
   labelY: 48,
   mooringLines: [
@@ -59,8 +59,8 @@ export const PHYSICAL_RIVER = {
  */
 export const PHYSICAL_PORT_LAND = {
   path: 'M 90,115 L 1220,115 L 1220,430 L 1030,488 L 135,488 L 90,430 Z',
-  fillColor: '#F5F8FA',
-  strokeColor: '#B5C7D3',
+  fillColor: '#F0F4F7',   // --scene-ground
+  strokeColor: '#B0C4D1',
 };
 
 /**
@@ -68,8 +68,8 @@ export const PHYSICAL_PORT_LAND = {
  */
 export const PHYSICAL_QUAY = {
   rect: { x: 115, y: 115, width: 1040, height: 48 },
-  fill: '#EFF4F8',
-  stroke: '#A3BDCC',
+  fill: '#E8EEF2',     // --scene-structure
+  stroke: '#94AEBB',   // stronger structural edge
   label: 'CẦU CẢNG',
   labelPosition: { x: 650, y: 135 },
   berths: [
@@ -84,9 +84,9 @@ export const PHYSICAL_QUAY = {
  * Arterial Road Network & Avenue Labels
  */
 export const PHYSICAL_ROADS = {
-  centralAvenue: { x: 525, y: 163, width: 25, height: 325, fill: '#E1EBF0' },
-  crossroad: { x: 115, y: 335, width: 945, height: 18, fill: '#E1EBF0' },
-  centerline: { x1: 115, y1: 344, x2: 1060, y2: 344, stroke: '#CAD7E2', strokeDasharray: '6 6', strokeWidth: 1.5 },
+  centralAvenue: { x: 525, y: 163, width: 25, height: 325, fill: '#D6E0E8' },  // --scene-road
+  crossroad: { x: 115, y: 335, width: 945, height: 18, fill: '#D6E0E8' },     // --scene-road
+  centerline: { x1: 115, y1: 344, x2: 1060, y2: 344, stroke: '#BFCCDA', strokeDasharray: '6 6', strokeWidth: 1.5 },
   axisLabel: 'LƯU TRỌNG LƯ / CỔNG CHÍNH',
   axisLabelPosition: { x: 537, y: 504 },
 };

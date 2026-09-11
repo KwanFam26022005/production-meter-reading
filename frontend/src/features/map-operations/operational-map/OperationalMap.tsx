@@ -128,7 +128,7 @@ export const OperationalMap: React.FC<OperationalMapProps> = ({
         width: '100%',
         height: '100%',
         overflow: 'hidden',
-        backgroundColor: '#E8F0F5',
+        backgroundColor: 'var(--scene-bg, #EDF2F6)',
         userSelect: 'none',
       }}
       onMouseDown={handleMouseDown}
@@ -161,7 +161,7 @@ export const OperationalMap: React.FC<OperationalMapProps> = ({
       >
         <g
           transform={`translate(${viewport.panX}, ${viewport.panY}) scale(${viewport.zoom})`}
-          style={{ transition: isDragging ? 'none' : 'transform 0.15s ease-out' }}
+          style={{ transition: isDragging ? 'none' : 'transform 220ms cubic-bezier(0.16, 1, 0.3, 1)' }}
         >
           {/* 1. Physical Backdrop: River, Land, Quay, Roads, Warehouses, Container blocks */}
           <PortFootprint />
