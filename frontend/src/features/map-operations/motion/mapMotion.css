@@ -1561,3 +1561,115 @@ button.sgp-telemetry-item:hover {
     transition: none !important;
   }
 }
+
+/* ==========================================================================
+   RESPONSIVE HUD REFINEMENTS (TABLET & MOBILE VIEWPORTS)
+   ========================================================================== */
+
+@media (max-width: 1024px) {
+  .sgp-header-user-info {
+    display: none;
+  }
+  .sgp-header-sub-title {
+    display: none;
+  }
+  .sgp-hud-left-actions {
+    top: 80px;
+    left: 14px;
+  }
+  .sgp-hud-right-summary {
+    top: 124px;
+    left: 14px;
+    right: 14px;
+    max-width: calc(100% - 28px);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .sgp-hud-right-summary::-webkit-scrollbar {
+    display: none;
+  }
+  .sgp-telemetry-cluster {
+    flex-wrap: nowrap;
+    width: max-content;
+  }
+}
+
+@media (max-width: 768px) {
+  .sgp-hud-top-bar {
+    top: 8px;
+    left: 8px;
+    right: 8px;
+    height: 48px;
+    padding: 4px 10px;
+    gap: 8px;
+  }
+  .sgp-header-brand-badge {
+    display: none;
+  }
+  .sgp-header-main-title {
+    font-size: 13px;
+  }
+  .sgp-header-user-profile {
+    display: none;
+  }
+  .sgp-mh-round-trigger {
+    height: 30px;
+    padding: 0 8px;
+    font-size: 11px;
+  }
+  .sgp-segmented-btn {
+    padding: 3px 8px;
+    font-size: 11px;
+  }
+  .sgp-hud-left-actions {
+    top: 64px;
+    left: 8px;
+  }
+  .sgp-scene-action-hud .sgp-map-icon-btn,
+  .sgp-scene-action-hud .sgp-filter-trigger-btn {
+    height: 32px;
+    padding: 0 10px;
+    font-size: 12px;
+  }
+  .sgp-hud-right-summary {
+    top: 104px;
+    left: 8px;
+    right: 8px;
+    max-width: calc(100% - 16px);
+  }
+  .sgp-telemetry-item {
+    height: 32px;
+    padding: 0 10px;
+    font-size: 11.5px;
+  }
+  .sgp-hud-bottom-left {
+    bottom: 12px;
+    left: 8px;
+  }
+  .sgp-hud-bottom-right {
+    bottom: 12px;
+    right: 8px;
+  }
+}
+
+@media (max-width: 576px) {
+  .sgp-scene-header-hud {
+    display: none;
+  }
+  .sgp-hud-top-bar {
+    justify-content: flex-start;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding: 4px 8px;
+  }
+  .sgp-hud-top-bar::-webkit-scrollbar {
+    display: none;
+  }
+  .sgp-scene-top-controls {
+    width: 100%;
+    justify-content: space-between;
+    gap: 6px;
+  }
+}

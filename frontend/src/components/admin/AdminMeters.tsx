@@ -223,7 +223,7 @@ export const AdminMeters: React.FC<AdminMetersProps> = ({ onInspectReading }) =>
       const saved = sessionStorage.getItem('csg_admin_meters_view_mode');
       if (saved === 'legacy' || saved === 'map') return saved;
     } catch {}
-    return 'map';
+    return 'legacy';
   });
 
   const handleSetViewMode = (mode: 'map' | 'legacy') => {
