@@ -1,4 +1,37 @@
 :root {
+  /* Saigon Port Unified Semantic Tokens (Phase U6) */
+  --sgp-navy-900: #0B192C;
+  --sgp-navy-800: #073B5C;
+  --sgp-navy-700: #0B4F75;
+  --sgp-blue-600: #0284C7;
+  --sgp-cyan-500: #06B6D4;
+
+  --surface-page: #F1F5F9;
+  --surface-raised: #FFFFFF;
+  --surface-hud: rgba(255, 255, 255, 0.94);
+  --surface-muted: #F8FAFC;
+
+  --text-primary: #0F172A;
+  --text-secondary: #475569;
+  --text-muted: #94A3B8;
+
+  --status-success: #10B981;
+  --status-warning: #F59E0B;
+  --status-danger: #DC2626;
+  --status-info: #0284C7;
+
+  --border-subtle: #E2E8F0;
+  --border-strong: #CBD5E1;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 28px;
+  --space-8: 32px;
+
   /* Saigon Port-inspired working digital brand tokens */
   --sgp-brand-800: #073B5C;
   --sgp-brand-700: #0B4F75;
@@ -14647,12 +14680,12 @@ body:has(.admin-portal-root) {
    PHASE 6: UNIFIED MAP OPERATIONS CONSOLE STYLING
    ========================================================================== */
 
-/* 1. ROOT CONTAINER & ADMIN VIEWPORT INTEGRATION — APPROVED MARITIME RAIL */
+/* 1. ROOT CONTAINER & ADMIN VIEWPORT INTEGRATION — APPROVED MARITIME RAIL (80px) */
 .admin-shell-layout:has(.sgp-map-first-root) .admin-sidebar,
 .admin-sidebar.rail-mode {
-  width: 84px !important;
-  min-width: 84px !important;
-  max-width: 84px !important;
+  width: 80px !important;
+  min-width: 80px !important;
+  max-width: 80px !important;
   display: flex !important;
   flex-direction: column !important;
   background-color: #0B192C !important;
@@ -14665,14 +14698,24 @@ body:has(.admin-portal-root) {
   transition: width 0.18s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
-.admin-shell-layout:has(.sgp-map-first-root) .admin-sidebar-backdrop {
-  display: none !important;
+.admin-sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(11, 25, 44, 0.55);
+  backdrop-filter: blur(2px);
+  z-index: var(--z-nav-backdrop, 80);
+  animation: admin-fade-in 0.18s ease-out;
+}
+
+@keyframes admin-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 /* Brand area in rail mode */
 .admin-sidebar.rail-mode .admin-sidebar-brand,
 .admin-shell-layout:has(.sgp-map-first-root) .admin-sidebar .admin-sidebar-brand {
-  padding: 12px 8px !important;
+  padding: 14px 8px !important;
   display: flex !important;
   justify-content: center !important;
   align-items: center !important;
@@ -14691,12 +14734,21 @@ body:has(.admin-portal-root) {
   color: #E2E8F0;
   cursor: pointer;
   transition: all 0.15s ease;
+  overflow: hidden;
+  padding: 4px;
 }
 
 .admin-sidebar-rail-menu-btn:hover {
   background: rgba(255, 255, 255, 0.12);
-  color: #FFFFFF;
-  border-color: rgba(255, 255, 255, 0.20);
+  border-color: rgba(255, 255, 255, 0.22);
+  transform: scale(1.04);
+}
+
+.admin-rail-brand-icon {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  border-radius: 4px;
 }
 
 /* Nav items list in rail mode */
@@ -14708,13 +14760,14 @@ body:has(.admin-portal-root) {
   gap: 6px !important;
   align-items: center !important;
   overflow-x: hidden !important;
+  flex: 1 !important;
 }
 
 .admin-sidebar.rail-mode .admin-nav-item,
 .admin-shell-layout:has(.sgp-map-first-root) .admin-sidebar .admin-nav-item {
-  width: 66px !important;
-  min-height: 56px !important;
-  height: 56px !important;
+  width: 64px !important;
+  min-height: 54px !important;
+  height: 54px !important;
   display: flex !important;
   flex-direction: column !important;
   align-items: center !important;
@@ -14766,7 +14819,7 @@ body:has(.admin-portal-root) {
 /* Footer in rail mode */
 .admin-sidebar.rail-mode .admin-sidebar-footer,
 .admin-shell-layout:has(.sgp-map-first-root) .admin-sidebar .admin-sidebar-footer {
-  padding: 16px 4px !important;
+  padding: 12px 4px !important;
   display: flex !important;
   flex-direction: column !important;
   align-items: center !important;
@@ -14784,15 +14837,6 @@ body:has(.admin-portal-root) {
   user-select: none;
 }
 
-.admin-rail-anchor-icon {
-  color: #64748B;
-  transition: color 0.15s ease;
-}
-
-.admin-sidebar-rail-footer:hover .admin-rail-anchor-icon {
-  color: #0284C7;
-}
-
 .admin-rail-port-title {
   font-size: 8px;
   font-weight: 700;
@@ -14806,6 +14850,223 @@ body:has(.admin-portal-root) {
   font-size: 9px;
   color: #475569;
   font-family: monospace;
+}
+
+.admin-rail-user-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.admin-rail-avatar-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.admin-rail-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--sgp-blue-600, #0284C7);
+  color: #FFFFFF;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s ease;
+}
+
+.admin-rail-avatar-btn:hover .admin-rail-avatar {
+  transform: scale(1.08);
+}
+
+.admin-rail-logout-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #94A3B8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.admin-rail-logout-btn:hover {
+  background: rgba(220, 38, 38, 0.18);
+  border-color: rgba(220, 38, 38, 0.35);
+  color: #F87171;
+}
+
+/* 2. EXPANDED SIDEBAR OVERLAY DRAWER (320px) */
+.admin-sidebar-expanded-drawer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 320px;
+  max-width: 90vw;
+  background-color: #0B192C;
+  color: #FFFFFF;
+  z-index: var(--z-nav-drawer, 90);
+  display: flex;
+  flex-direction: column;
+  box-shadow: 6px 0 28px rgba(0, 0, 0, 0.45);
+  border-right: 1px solid rgba(255, 255, 255, 0.12);
+  animation: admin-drawer-slide-in 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes admin-drawer-slide-in {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.admin-drawer-brand {
+  padding: 16px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.admin-drawer-brand-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.admin-drawer-brand-logo {
+  height: 38px;
+  width: auto;
+  max-width: 44px;
+  object-fit: contain;
+}
+
+.admin-drawer-brand-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-drawer-brand-corp {
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #FFFFFF;
+}
+
+.admin-drawer-brand-sub {
+  font-size: 11px;
+  color: #94A3B8;
+  font-weight: 500;
+}
+
+.admin-drawer-close-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  color: #94A3B8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.admin-drawer-close-btn:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: #FFFFFF;
+}
+
+.admin-drawer-nav-list {
+  padding: 14px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.admin-drawer-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 11px 14px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  color: #CBD5E1;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+  position: relative;
+}
+
+.admin-drawer-nav-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #FFFFFF;
+}
+
+.admin-drawer-nav-item.active {
+  background: #0284C7;
+  color: #FFFFFF;
+  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.40);
+}
+
+.admin-drawer-nav-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.admin-drawer-nav-label {
+  flex: 1;
+}
+
+.admin-drawer-active-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #FFFFFF;
+}
+
+.admin-drawer-footer {
+  padding: 16px 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.admin-drawer-user-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.admin-drawer-version-tag {
+  font-size: 10.5px;
+  color: #64748B;
+  text-align: center;
+  padding-top: 4px;
 }
 
 .admin-shell-layout:has(.sgp-map-first-root) .admin-main-viewport,

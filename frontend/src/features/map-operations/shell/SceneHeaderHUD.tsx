@@ -1,5 +1,4 @@
 import React from 'react';
-import { Anchor } from 'lucide-react';
 
 interface SceneHeaderHUDProps {
   title?: string;
@@ -11,7 +10,7 @@ interface SceneHeaderHUDProps {
  * SceneHeaderHUD — Top-Left Maritime Title Cluster (Approved Design)
  *
  * Floating contextual header embedded cleanly into the unified top bar:
- * - Anchor icon logo in maritime teal badge
+ * - Official Saigon Port emblem badge
  * - Title: "Bản đồ công tơ"
  * - Subtitle: "Cảng Tân Thuận"
  */
@@ -21,8 +20,8 @@ export const SceneHeaderHUD: React.FC<SceneHeaderHUDProps> = ({
 }) => {
   return (
     <div className="sgp-scene-header-hud" role="region" aria-label="Tiêu đề bảng điều khiển">
-      <div className="sgp-header-anchor-badge" title="Cảng Tân Thuận" aria-hidden="true">
-        <Anchor size={22} className="sgp-header-anchor-icon" />
+      <div className="sgp-header-brand-badge" title="Cảng Sài Gòn — Cảng Tân Thuận" aria-hidden="true">
+        <img src="/icon-192.png" alt="Cảng Sài Gòn" className="sgp-header-brand-logo" />
       </div>
 
       <div className="sgp-header-title-wrap">

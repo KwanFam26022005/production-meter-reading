@@ -56,6 +56,7 @@
   height: auto;
 }
 
+.sgp-header-brand-badge,
 .sgp-header-anchor-badge {
   display: flex;
   align-items: center;
@@ -67,6 +68,14 @@
   border: 1px solid rgba(14, 116, 144, 0.20);
   color: #0E7490;
   flex-shrink: 0;
+  overflow: hidden;
+}
+
+.sgp-header-brand-logo {
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+  border-radius: 4px;
 }
 
 .sgp-header-anchor-icon {
@@ -1141,6 +1150,7 @@ button.sgp-telemetry-item:hover {
   }
 }
 
+.sgp-drawer-icon-badge,
 .sgp-drawer-anchor-badge {
   width: 32px;
   height: 32px;

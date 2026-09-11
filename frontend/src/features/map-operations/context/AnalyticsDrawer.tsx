@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Sparkles, AlertTriangle, BarChart3, ChevronRight, MapPin, Anchor } from 'lucide-react';
+import { X, Sparkles, AlertTriangle, BarChart3, ChevronRight, MapPin } from 'lucide-react';
 import type { AdminDashboardResponse } from '../../../types';
 import type { MapOperationalZone } from '../types';
 
@@ -40,8 +40,8 @@ export const AnalyticsDrawer: React.FC<AnalyticsDrawerProps> = ({
       {/* 1. DRAWER HEADER */}
       <div className="sgp-drawer-header">
         <div className="flex items-center gap-2.5">
-          <div className="sgp-drawer-anchor-badge">
-            <Anchor size={16} className="text-sky-600" />
+          <div className="sgp-drawer-icon-badge">
+            <BarChart3 size={16} className="text-sky-600" />
           </div>
           <div className="sgp-drawer-title-group">
             <span className="sgp-drawer-eyebrow">PHÂN TÍCH VẬN HÀNH</span>
