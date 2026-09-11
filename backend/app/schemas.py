@@ -1009,6 +1009,7 @@ class MapMeterOut(BaseModel):
 class MapOverviewResponse(BaseModel):
     target_date: str
     target_date_vn: str
+    selected_round_id: Optional[str] = None
     current_round_time: Optional[str] = None
     current_round_status: Optional[str] = None
     total_meters: int
@@ -1021,6 +1022,7 @@ class MapOverviewResponse(BaseModel):
     zones: list[OperationalZoneOut]
     meters: list[MapMeterOut]
     exceptions_count: int
+
 
 
 class ZoneReassignRequest(BaseModel):

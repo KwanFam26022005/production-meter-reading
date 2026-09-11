@@ -1220,10 +1220,11 @@ from .schemas import (
 @app.get("/api/v1/map/overview", response_model=MapOverviewResponse)
 def get_map_overview_endpoint(
     date: Optional[str] = None,
+    round_id: Optional[str] = None,
     admin_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ) -> MapOverviewResponse:
-    return get_map_overview(db, date_str=date)
+    return get_map_overview(db, date_str=date, round_id=round_id)
 
 
 @app.get("/api/v1/map/zones", response_model=list[OperationalZoneOut])
@@ -1246,11 +1247,12 @@ def get_map_operators_endpoint(
 @app.get("/api/v1/map/meters", response_model=list[MapMeterOut])
 def get_map_meters_endpoint(
     date: Optional[str] = None,
+    round_id: Optional[str] = None,
     zone_id: Optional[str] = None,
     admin_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ) -> list[MapMeterOut]:
-    overview = get_map_overview(db, date_str=date)
+    overview = get_map_overview(db, date_str=date, round_id=round_id)
     meters = overview.meters
     if zone_id and zone_id != "ALL":
         meters = [m for m in meters if m.zone_id == zone_id]

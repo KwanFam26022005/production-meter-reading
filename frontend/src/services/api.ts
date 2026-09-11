@@ -1199,8 +1199,11 @@ export function getAdminRosterExportUrl(month?: string): string {
 // MAP OPERATIONS APIS (PHASE 2 & PHASE 3)
 // ==============================================================================
 
-export async function getMapOverview(date?: string): Promise<MapOverviewResponse> {
-  const query = date ? `?date=${encodeURIComponent(date)}` : '';
+export async function getMapOverview(date?: string, roundId?: string): Promise<MapOverviewResponse> {
+  const params = new URLSearchParams();
+  if (date) params.set('date', date);
+  if (roundId) params.set('round_id', roundId);
+  const query = params.toString() ? `?${params.toString()}` : '';
   const res = await apiFetch(`/api/v1/map/overview${query}`);
   if (!res.ok) {
     let detail = 'Không thể tải tổng quan bản đồ tác nghiệp.';

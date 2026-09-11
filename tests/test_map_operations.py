@@ -232,3 +232,40 @@ def test_map_operators_endpoint():
         assert "employee_code" in op
         assert "full_name" in op
 
+
+def test_map_overview_round_switching():
+    token, csrf_token, _ = create_test_admin_session()
+    cookies = {get_settings().session_cookie_name: token}
+
+    # Query 2026-08-25 dashboard to get rounds
+    dash_resp = client.get("/api/v1/admin/dashboard?date=2026-08-25", cookies=cookies)
+    assert dash_resp.status_code == 200
+    dash_data = dash_resp.json()
+    rounds = dash_data["round_progress"]
+    assert len(rounds) >= 2
+
+    r1 = rounds[0]  # e.g. 08:00
+    r2 = rounds[2]  # e.g. 10:00
+
+    # Query overview for round 1
+    resp_r1 = client.get(f"/api/v1/map/overview?date=2026-08-25&round_id={r1['round_id']}", cookies=cookies)
+    assert resp_r1.status_code == 200
+    data_r1 = resp_r1.json()
+    assert data_r1["selected_round_id"] == r1["round_id"]
+    assert data_r1["current_round_time"] == r1["scheduled_time"]
+    assert data_r1["confirmed_count"] == r1["confirmed"]
+    assert data_r1["completion_percent"] == r1["completion_percent"]
+
+    # Query overview for round 2
+    resp_r2 = client.get(f"/api/v1/map/overview?date=2026-08-25&round_id={r2['round_id']}", cookies=cookies)
+    assert resp_r2.status_code == 200
+    data_r2 = resp_r2.json()
+    assert data_r2["selected_round_id"] == r2["round_id"]
+    assert data_r2["current_round_time"] == r2["scheduled_time"]
+    assert data_r2["confirmed_count"] == r2["confirmed"]
+    assert data_r2["completion_percent"] == r2["completion_percent"]
+
+    # Round 1 and Round 2 data must be distinct reflecting that round's operational state
+    assert data_r1["current_round_time"] != data_r2["current_round_time"]
+
+

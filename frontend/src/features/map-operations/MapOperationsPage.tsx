@@ -27,6 +27,8 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
   const {
     selectedDate,
     setSelectedDate,
+    selectedRoundId,
+    setSelectedRoundId,
     dashboardData,
     mapMeters,
     mapZones,
@@ -252,8 +254,11 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
         rounds={dashboardData?.round_progress || []}
         currentRoundTime={overallKpis.currentRoundTime}
         currentRoundStatus={overallKpis.currentRoundStatus}
-        selectedRoundId={filters.selectedRoundId}
-        onSelectRound={(roundId) => setFilters({ ...filters, selectedRoundId: roundId })}
+        selectedRoundId={selectedRoundId || filters.selectedRoundId}
+        onSelectRound={(roundId) => {
+          setSelectedRoundId(roundId);
+          setFilters({ ...filters, selectedRoundId: roundId });
+        }}
         viewMode="map"
         onViewModeChange={(mode) => mode === 'legacy' && onSwitchToLegacy?.()}
         onRefresh={refresh}

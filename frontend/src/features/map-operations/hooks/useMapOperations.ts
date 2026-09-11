@@ -40,6 +40,7 @@ export function useMapOperations(initialDate?: string) {
   const [dashboardData, setDashboardData] = useState<AdminDashboardResponse | null>(null);
   const [metersData, setMetersData] = useState<AdminMeterListResponse | null>(null);
   const [availableOperators, setAvailableOperators] = useState<User[]>([]);
+  const [selectedRoundId, setSelectedRoundId] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,12 +50,12 @@ export function useMapOperations(initialDate?: string) {
     } catch {}
   }, [selectedDate]);
 
-  const loadData = useCallback(async (dateStr: string) => {
+  const loadData = useCallback(async (dateStr: string, roundId?: string | null) => {
     setLoading(true);
     setError(null);
     try {
       const [overviewRes, dashRes, operatorsRes] = await Promise.all([
-        getMapOverview(dateStr).catch((err) => {
+        getMapOverview(dateStr, roundId || undefined).catch((err) => {
           console.warn('Map overview API unavailable, using fallback', err);
           return null;
         }),
@@ -65,6 +66,12 @@ export function useMapOperations(initialDate?: string) {
       setOverviewData(overviewRes);
       setDashboardData(dashRes);
       setAvailableOperators(operatorsRes);
+
+      if (overviewRes?.selected_round_id) {
+        setSelectedRoundId(overviewRes.selected_round_id);
+      } else if (roundId) {
+        setSelectedRoundId(roundId);
+      }
 
       if (!overviewRes) {
         const metersRes = await getAdminMeters();
@@ -79,8 +86,14 @@ export function useMapOperations(initialDate?: string) {
   }, []);
 
   useEffect(() => {
-    loadData(selectedDate);
+    loadData(selectedDate, null);
   }, [selectedDate, loadData]);
+
+  const handleSelectRound = useCallback((roundId: string) => {
+    setSelectedRoundId(roundId);
+    loadData(selectedDate, roundId);
+  }, [selectedDate, loadData]);
+
 
   // Derive consolidated Map Meters
   const mapMeters = useMemo<MapMeterItem[]>(() => {
@@ -311,14 +324,16 @@ export function useMapOperations(initialDate?: string) {
         assignment_role: 'PRIMARY',
         note,
       });
-      await loadData(selectedDate);
+      await loadData(selectedDate, selectedRoundId);
     },
-    [loadData, selectedDate]
+    [loadData, selectedDate, selectedRoundId]
   );
 
   return {
     selectedDate,
     setSelectedDate,
+    selectedRoundId,
+    setSelectedRoundId: handleSelectRound,
     dashboardData,
     metersData,
     overviewData,
@@ -328,7 +343,7 @@ export function useMapOperations(initialDate?: string) {
     overallKpis,
     loading,
     error,
-    refresh: () => loadData(selectedDate),
+    refresh: () => loadData(selectedDate, selectedRoundId),
     reassignOperator: handleReassignOperator,
   };
 }

@@ -15,6 +15,8 @@ from .models import (
     ZoneAssignment,
 )
 from .schemas import (
+    AdminDashboardExceptionItem,
+    AdminDashboardRoundProgress,
     MapMeterOut,
     MapOverviewResponse,
     OperationalZoneOut,
@@ -79,11 +81,12 @@ def get_map_zones(db: Session) -> list[OperationalZoneOut]:
 def get_map_overview(
     db: Session,
     date_str: Optional[str] = None,
+    round_id: Optional[str] = None,
 ) -> MapOverviewResponse:
     """
     Consolidated map operational overview projection.
-    Reuses canonical operational logic from get_admin_dashboard to guarantee
-    100% KPI consistency and zero duplicate business rules.
+    Resolves the target operational round (requested round_id or deterministic default)
+    and projects accurate meter semantic states, zone completion metrics, and operator progress.
     """
     dash = get_admin_dashboard(db, date_str=date_str)
     zones = (
@@ -110,23 +113,41 @@ def get_map_overview(
         if a.user:
             zone_user_map[a.zone_id] = a.user
 
-    # Index exceptions by meter_id and meter_code
-    exc_by_meter_id = {e.meter_id: e for e in dash.exceptions}
-    exc_by_meter_code = {e.meter_code: e for e in dash.exceptions}
+    # Resolve target round from dash.round_progress
+    target_round: Optional[AdminDashboardRoundProgress] = None
+    if dash.round_progress:
+        if round_id:
+            target_round = next((r for r in dash.round_progress if r.round_id == round_id), None)
+        if not target_round:
+            # Default priority: CURRENT (if open) -> last PAST -> first round
+            target_round = next((r for r in dash.round_progress if r.timing_state == "CURRENT"), None)
+            if not target_round:
+                past_rounds = [r for r in dash.round_progress if r.timing_state == "PAST"]
+                if past_rounds:
+                    target_round = past_rounds[-1]
+                else:
+                    target_round = dash.round_progress[0]
 
-    # Pre-fetch latest confirmed reading per meter
-    all_readings = (
-        db.query(MeterReading)
-        .order_by(MeterReading.server_timestamp.desc())
-        .all()
-    )
-    latest_readings: dict[str, MeterReading] = {}
-    for r in all_readings:
-        if r.meter_id not in latest_readings and r.status == "CONFIRMED" and r.reading:
-            latest_readings[r.meter_id] = r
+    # Pre-fetch readings and exceptions for the target round
+    readings_map: dict[str, MeterReading] = {}
+    round_exceptions: list[AdminDashboardExceptionItem] = []
+    if target_round:
+        round_readings = (
+            db.query(MeterReading)
+            .filter(MeterReading.reading_round_id == target_round.round_id)
+            .order_by(MeterReading.server_timestamp.desc())
+            .all()
+        )
+        for r in round_readings:
+            if r.meter_id not in readings_map:
+                readings_map[r.meter_id] = r
 
-    # Index locations/progress by meter code
-    meters_out: list[MapMeterOut] = []
+        round_exceptions = [e for e in dash.exceptions if e.round_id == target_round.round_id]
+
+    exc_by_meter_id = {e.meter_id: e for e in round_exceptions}
+    exc_by_meter_code = {e.meter_code: e for e in round_exceptions}
+
+    # Tracking zone metrics
     zone_metrics: dict[str, dict[str, int]] = {
         z.id: {
             "total": 0,
@@ -139,35 +160,51 @@ def get_map_overview(
         for z in zones
     }
 
-    is_current_open = (dash.kpis.current_round_status == "Đang mở")
+    meters_out: list[MapMeterOut] = []
 
     for m in all_meters:
-        latest_r = latest_readings.get(m.id)
-        has_reading = (latest_r is not None)
+        r = readings_map.get(m.id)
+        exc = exc_by_meter_id.get(m.id) or exc_by_meter_code.get(m.meter_code)
 
-        # Determine semantic state
         state = "PENDING"
         exc_state = None
         exc_label = None
-        reading_id = latest_r.id if latest_r else None
+        reading_val = None
+        reading_time = None
+        reading_id = None
 
-        exc = exc_by_meter_id.get(m.id) or exc_by_meter_code.get(m.meter_code)
         if not m.is_active:
             state = "INACTIVE"
-        elif exc:
-            if exc.exception_state == "REVIEW":
+        elif r:
+            reading_id = r.id
+            reading_time = get_local_time_str(r.server_timestamp) if r.server_timestamp else None
+            if r.status == "CONFIRMED":
+                state = "CONFIRMED"
+                reading_val = r.reading or r.ocr_reading
+            elif r.status == "REVIEW":
                 state = "REVIEW"
+                reading_val = r.ocr_reading or r.reading
                 exc_state = "REVIEW"
-                exc_label = exc.exception_label
-                reading_id = exc.reading_id
-            elif exc.exception_state == "MISSING":
+                exc_label = "Cần kiểm tra"
+            else:
+                state = "PENDING"
+                reading_val = r.reading
+        elif exc and exc.exception_state == "REVIEW":
+            state = "REVIEW"
+            exc_state = "REVIEW"
+            exc_label = exc.exception_label or "Cần kiểm tra"
+            reading_val = exc.ocr_reading
+            reading_time = exc.server_timestamp
+            reading_id = exc.reading_id
+        elif target_round:
+            if target_round.timing_state == "PAST":
                 state = "OVERDUE"
                 exc_state = "MISSING"
-                exc_label = exc.exception_label
-        elif has_reading:
-            state = "CONFIRMED"
-        elif is_current_open:
-            state = "DUE"
+                exc_label = "Chưa ghi"
+            elif target_round.timing_state == "CURRENT":
+                state = "DUE"
+            else:
+                state = "PENDING"
         else:
             state = "PENDING"
 
@@ -176,7 +213,7 @@ def get_map_overview(
         z_code = z_obj.code if z_obj else None
         z_name = z_obj.name if z_obj else None
 
-        # Track metrics
+        # Track metrics for active meters
         if m.zone_id and m.zone_id in zone_metrics and m.is_active:
             z_m = zone_metrics[m.zone_id]
             z_m["total"] += 1
@@ -205,8 +242,8 @@ def get_map_overview(
                 map_y=m.map_y,
                 is_active=m.is_active,
                 semantic_state=state,
-                latest_reading_value=latest_r.reading if latest_r else None,
-                latest_reading_time=get_local_time_str(latest_r.server_timestamp) if latest_r and latest_r.server_timestamp else None,
+                latest_reading_value=reading_val,
+                latest_reading_time=reading_time,
                 exception_state=exc_state,
                 exception_label=exc_label,
                 reading_id=reading_id,
@@ -252,22 +289,37 @@ def get_map_overview(
             )
         )
 
+    total_active = sum(1 for m in all_meters if m.is_active)
+    confirmed_tot = sum(1 for m in meters_out if m.semantic_state == "CONFIRMED")
+    review_tot = sum(1 for m in meters_out if m.semantic_state == "REVIEW")
+    overdue_tot = sum(1 for m in meters_out if m.semantic_state == "OVERDUE")
+    due_tot = sum(1 for m in meters_out if m.semantic_state == "DUE")
+    pending_tot = sum(1 for m in meters_out if m.semantic_state == "PENDING")
+    pct_tot = round((confirmed_tot / total_active * 100), 1) if total_active > 0 else 0.0
+
+    current_round_status_str = (
+        ("Đang mở" if target_round.timing_state == "CURRENT" else ("Đã kết thúc" if target_round.timing_state == "PAST" else "Lịch dự kiến"))
+        if target_round else None
+    )
+
     return MapOverviewResponse(
         target_date=dash.date,
         target_date_vn=dash.date_formatted,
-        current_round_time=dash.kpis.current_round_time,
-        current_round_status=dash.kpis.current_round_status,
-        total_meters=len(all_meters),
-        confirmed_count=dash.kpis.confirmed_slots,
-        review_count=dash.kpis.review_count,
-        overdue_count=dash.kpis.actionable_count - dash.kpis.review_count,
-        due_count=dash.kpis.due_slots - dash.kpis.confirmed_slots - dash.kpis.review_count if dash.kpis.due_slots > 0 else 0,
-        pending_count=max(0, len(all_meters) - dash.kpis.confirmed_slots - dash.kpis.review_count),
-        completion_percent=dash.kpis.completion_percent,
+        selected_round_id=target_round.round_id if target_round else None,
+        current_round_time=target_round.scheduled_time if target_round else None,
+        current_round_status=current_round_status_str,
+        total_meters=total_active,
+        confirmed_count=confirmed_tot,
+        review_count=review_tot,
+        overdue_count=overdue_tot,
+        due_count=due_tot,
+        pending_count=pending_tot,
+        completion_percent=pct_tot,
         zones=zones_out,
         meters=meters_out,
-        exceptions_count=len(dash.exceptions),
+        exceptions_count=review_tot + overdue_tot,
     )
+
 
 
 def reassign_zone_operator(

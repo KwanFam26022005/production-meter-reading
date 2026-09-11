@@ -991,8 +991,10 @@ export interface MapMeterOut {
 export interface MapOverviewResponse {
   target_date: string;
   target_date_vn: string;
+  selected_round_id?: string | null;
   current_round_time?: string | null;
   current_round_status?: string | null;
+
   total_meters: number;
   confirmed_count: number;
   review_count: number;
