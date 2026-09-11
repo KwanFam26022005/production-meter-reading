@@ -42,7 +42,7 @@ export const OPERATIONAL_ZONES_CONFIG: OperationalZoneConfig[] = OPERATIONAL_ZON
   description: g.name,
   polygon: g.normalizedPolygon,
   labelPosition: g.centroidNormalized,
-  primaryColor: g.accentColor,
+  primaryColor: g.primaryColor || g.accentColor || g.boundaryColor || '#0284C7',
   defaultAssignedUser: {
     id: `user-op-${g.id}`,
     fullName:

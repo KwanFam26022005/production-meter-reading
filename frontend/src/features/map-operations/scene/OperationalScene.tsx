@@ -6,6 +6,7 @@ import type {
   OperationalLayerType,
 } from '../types';
 import { CANONICAL_VIEWBOX } from '../geometry/canonicalScene';
+import type { SelectedEntity, MapMode } from '../state/useMapStateMachine';
 import { CanonicalBaseMap } from './CanonicalBaseMap';
 import { ZoneLayer } from '../layers/ZoneLayer';
 import { MeterLayer } from '../layers/MeterLayer';
@@ -29,6 +30,9 @@ export interface OperationalSceneProps {
   viewport: MapViewportState;
   currentRoundTime?: string;
   exceptionFocus?: boolean;
+  mode?: MapMode;
+  selectedEntity?: SelectedEntity;
+  targetPlacementZoneId?: string;
   onSelectZone: (zoneId: string) => void;
   onSelectMeter: (meterId: string) => void;
   onSelectOperator?: (operatorId: string) => void;
@@ -66,6 +70,9 @@ export const OperationalScene: React.FC<OperationalSceneProps> = ({
   viewport,
   currentRoundTime,
   exceptionFocus = false,
+  mode = 'browse',
+  selectedEntity = null,
+  targetPlacementZoneId,
   onSelectZone,
   onSelectMeter,
   onSelectOperator,
@@ -143,6 +150,9 @@ export const OperationalScene: React.FC<OperationalSceneProps> = ({
             exceptionsOnly={exceptionsOnly}
             exceptionFocus={exceptionFocus}
             selectedOperatorId={selectedOperatorId}
+            mode={mode}
+            selectedEntity={selectedEntity}
+            targetPlacementZoneId={targetPlacementZoneId}
             onSelectZone={onSelectZone}
             onHoverZone={onHoverZone}
           />
@@ -150,11 +160,15 @@ export const OperationalScene: React.FC<OperationalSceneProps> = ({
           {/* 3. Operational Meter Markers Layer */}
           <MeterLayer
             meters={meters}
+            selectedZoneId={selectedZoneId}
             selectedMeterId={selectedMeterId}
             hoveredMeterId={hoveredMeterId}
             exceptionsOnly={exceptionsOnly}
             zoomLevel={viewport.zoom}
             isAssetMode={isAssetMode}
+            mode={mode}
+            selectedEntity={selectedEntity}
+            targetPlacementZoneId={targetPlacementZoneId}
             onSelectMeter={onSelectMeter}
             onHoverMeter={onHoverMeter}
             exceptionFocus={exceptionFocus}
@@ -164,8 +178,12 @@ export const OperationalScene: React.FC<OperationalSceneProps> = ({
           <OperatorLayer
             zones={zones}
             meters={meters}
+            selectedZoneId={selectedZoneId}
             selectedOperatorId={selectedOperatorShiftId}
             currentRoundTime={currentRoundTime}
+            mode={mode}
+            selectedEntity={selectedEntity}
+            targetPlacementZoneId={targetPlacementZoneId}
             onSelectOperator={onSelectOperator || (() => {})}
           />
 

@@ -28,15 +28,268 @@ export const MAP_DIMENSIONS = {
 
 export const FIT_VIEWBOX = CANONICAL_VIEWBOX;
 
+export interface ZoneVisualTheme {
+  name: string;
+  shortName: string;
+  number: string;
+  primaryColor: string;
+  boundaryColor: string;
+  glowColor: string;
+  haloFillOpacityDefault: number;
+  haloFillOpacityHover: number;
+  haloFillOpacitySelected: number;
+  haloFillOpacityDimmed: number;
+  haloStrokeOpacityDefault: number;
+  haloStrokeOpacityHover: number;
+  haloStrokeOpacitySelected: number;
+  haloStrokeOpacityDimmed: number;
+  haloStrokeWidthDefault: number;
+  structuralBorderOpacityDefault: number;
+  structuralBorderOpacityHover: number;
+  structuralBorderOpacitySelected: number;
+  structuralBorderOpacityDimmed: number;
+  structuralBorderWidthDefault: number;
+  structuralBorderWidthHover: number;
+  structuralBorderWidthSelected: number;
+  defaultFill: string;     // 8–10%
+  hoverFill: string;       // 15–18%
+  selectedFill: string;    // 18–24%
+  badgeBg: string;
+  badgeBorder: string;
+  badgeText: string;
+  icon: 'ship' | 'container' | 'warehouse' | 'gear' | 'gate';
+}
+
+export const ZONE_VISUAL_THEMES: Record<string, ZoneVisualTheme> = {
+  'pres-berth': {
+    name: '1. Cầu cảng',
+    shortName: 'Cầu Cảng',
+    number: '1',
+    primaryColor: '#0284C7',
+    boundaryColor: '#0284C7',
+    glowColor: '#38BDF8',
+    haloFillOpacityDefault: 0.09,
+    haloFillOpacityHover: 0.16,
+    haloFillOpacitySelected: 0.22,
+    haloFillOpacityDimmed: 0.04,
+    haloStrokeOpacityDefault: 0.16,
+    haloStrokeOpacityHover: 0.22,
+    haloStrokeOpacitySelected: 0.25,
+    haloStrokeOpacityDimmed: 0.06,
+    haloStrokeWidthDefault: 7.0,
+    structuralBorderOpacityDefault: 0.82,
+    structuralBorderOpacityHover: 0.88,
+    structuralBorderOpacitySelected: 0.95,
+    structuralBorderOpacityDimmed: 0.35,
+    structuralBorderWidthDefault: 1.35,
+    structuralBorderWidthHover: 1.75,
+    structuralBorderWidthSelected: 2.15,
+    defaultFill: 'rgba(2, 132, 199, 0.09)',
+    hoverFill: 'rgba(2, 132, 199, 0.16)',
+    selectedFill: 'rgba(2, 132, 199, 0.22)',
+    badgeBg: 'rgba(7, 30, 48, 0.90)',
+    badgeBorder: '#0284C7',
+    badgeText: '#E0F2FE',
+    icon: 'ship',
+  },
+  'pres-container-west': {
+    name: '2. Bãi container phía Tây',
+    shortName: 'Bãi Tây',
+    number: '2',
+    primaryColor: '#EA580C',
+    boundaryColor: '#EA580C',
+    glowColor: '#FB923C',
+    haloFillOpacityDefault: 0.09,
+    haloFillOpacityHover: 0.16,
+    haloFillOpacitySelected: 0.22,
+    haloFillOpacityDimmed: 0.04,
+    haloStrokeOpacityDefault: 0.16,
+    haloStrokeOpacityHover: 0.22,
+    haloStrokeOpacitySelected: 0.25,
+    haloStrokeOpacityDimmed: 0.06,
+    haloStrokeWidthDefault: 7.0,
+    structuralBorderOpacityDefault: 0.82,
+    structuralBorderOpacityHover: 0.88,
+    structuralBorderOpacitySelected: 0.95,
+    structuralBorderOpacityDimmed: 0.35,
+    structuralBorderWidthDefault: 1.35,
+    structuralBorderWidthHover: 1.75,
+    structuralBorderWidthSelected: 2.15,
+    defaultFill: 'rgba(234, 88, 12, 0.09)',
+    hoverFill: 'rgba(234, 88, 12, 0.16)',
+    selectedFill: 'rgba(234, 88, 12, 0.22)',
+    badgeBg: 'rgba(45, 20, 6, 0.90)',
+    badgeBorder: '#EA580C',
+    badgeText: '#FFEDD5',
+    icon: 'container',
+  },
+  'pres-container-center': {
+    name: '3. Bãi container trung tâm',
+    shortName: 'Bãi Trung Tâm',
+    number: '3',
+    primaryColor: '#E11D48',
+    boundaryColor: '#E11D48',
+    glowColor: '#FB7185',
+    haloFillOpacityDefault: 0.09,
+    haloFillOpacityHover: 0.16,
+    haloFillOpacitySelected: 0.22,
+    haloFillOpacityDimmed: 0.04,
+    haloStrokeOpacityDefault: 0.16,
+    haloStrokeOpacityHover: 0.22,
+    haloStrokeOpacitySelected: 0.25,
+    haloStrokeOpacityDimmed: 0.06,
+    haloStrokeWidthDefault: 7.0,
+    structuralBorderOpacityDefault: 0.82,
+    structuralBorderOpacityHover: 0.88,
+    structuralBorderOpacitySelected: 0.95,
+    structuralBorderOpacityDimmed: 0.35,
+    structuralBorderWidthDefault: 1.35,
+    structuralBorderWidthHover: 1.75,
+    structuralBorderWidthSelected: 2.15,
+    defaultFill: 'rgba(225, 29, 72, 0.09)',
+    hoverFill: 'rgba(225, 29, 72, 0.16)',
+    selectedFill: 'rgba(225, 29, 72, 0.22)',
+    badgeBg: 'rgba(44, 10, 20, 0.90)',
+    badgeBorder: '#E11D48',
+    badgeText: '#FFE4E6',
+    icon: 'container',
+  },
+  'pres-cfs-east': {
+    name: '4. Kho / CFS phía Đông',
+    shortName: 'Kho Đông',
+    number: '4',
+    primaryColor: '#EAB308',
+    boundaryColor: '#EAB308',
+    glowColor: '#FDE047',
+    haloFillOpacityDefault: 0.09,
+    haloFillOpacityHover: 0.16,
+    haloFillOpacitySelected: 0.22,
+    haloFillOpacityDimmed: 0.04,
+    haloStrokeOpacityDefault: 0.16,
+    haloStrokeOpacityHover: 0.22,
+    haloStrokeOpacitySelected: 0.25,
+    haloStrokeOpacityDimmed: 0.06,
+    haloStrokeWidthDefault: 7.0,
+    structuralBorderOpacityDefault: 0.82,
+    structuralBorderOpacityHover: 0.88,
+    structuralBorderOpacitySelected: 0.95,
+    structuralBorderOpacityDimmed: 0.35,
+    structuralBorderWidthDefault: 1.35,
+    structuralBorderWidthHover: 1.75,
+    structuralBorderWidthSelected: 2.15,
+    defaultFill: 'rgba(234, 179, 8, 0.09)',
+    hoverFill: 'rgba(234, 179, 8, 0.16)',
+    selectedFill: 'rgba(234, 179, 8, 0.22)',
+    badgeBg: 'rgba(40, 32, 5, 0.90)',
+    badgeBorder: '#EAB308',
+    badgeText: '#FEF9C3',
+    icon: 'warehouse',
+  },
+  'pres-technical': {
+    name: '5. Khu kỹ thuật / Dịch vụ',
+    shortName: 'Kỹ Thuật',
+    number: '5',
+    primaryColor: '#0D9488',
+    boundaryColor: '#0D9488',
+    glowColor: '#2DD4BF',
+    haloFillOpacityDefault: 0.09,
+    haloFillOpacityHover: 0.16,
+    haloFillOpacitySelected: 0.22,
+    haloFillOpacityDimmed: 0.04,
+    haloStrokeOpacityDefault: 0.16,
+    haloStrokeOpacityHover: 0.22,
+    haloStrokeOpacitySelected: 0.25,
+    haloStrokeOpacityDimmed: 0.06,
+    haloStrokeWidthDefault: 7.0,
+    structuralBorderOpacityDefault: 0.82,
+    structuralBorderOpacityHover: 0.88,
+    structuralBorderOpacitySelected: 0.95,
+    structuralBorderOpacityDimmed: 0.35,
+    structuralBorderWidthDefault: 1.35,
+    structuralBorderWidthHover: 1.75,
+    structuralBorderWidthSelected: 2.15,
+    defaultFill: 'rgba(13, 148, 136, 0.09)',
+    hoverFill: 'rgba(13, 148, 136, 0.16)',
+    selectedFill: 'rgba(13, 148, 136, 0.22)',
+    badgeBg: 'rgba(5, 35, 32, 0.90)',
+    badgeBorder: '#0D9488',
+    badgeText: '#CCFBF1',
+    icon: 'gear',
+  },
+  'pres-gate': {
+    name: '6. Cổng chính',
+    shortName: 'Cổng Chính',
+    number: '6',
+    primaryColor: '#8B5CF6',
+    boundaryColor: '#8B5CF6',
+    glowColor: '#C084FC',
+    haloFillOpacityDefault: 0.09,
+    haloFillOpacityHover: 0.16,
+    haloFillOpacitySelected: 0.22,
+    haloFillOpacityDimmed: 0.04,
+    haloStrokeOpacityDefault: 0.16,
+    haloStrokeOpacityHover: 0.22,
+    haloStrokeOpacitySelected: 0.25,
+    haloStrokeOpacityDimmed: 0.06,
+    haloStrokeWidthDefault: 7.0,
+    structuralBorderOpacityDefault: 0.82,
+    structuralBorderOpacityHover: 0.88,
+    structuralBorderOpacitySelected: 0.95,
+    structuralBorderOpacityDimmed: 0.35,
+    structuralBorderWidthDefault: 1.35,
+    structuralBorderWidthHover: 1.75,
+    structuralBorderWidthSelected: 2.15,
+    defaultFill: 'rgba(139, 92, 246, 0.09)',
+    hoverFill: 'rgba(139, 92, 246, 0.16)',
+    selectedFill: 'rgba(139, 92, 246, 0.22)',
+    badgeBg: 'rgba(30, 15, 55, 0.90)',
+    badgeBorder: '#8B5CF6',
+    badgeText: '#EDE9FE',
+    icon: 'gate',
+  },
+};
+
 export interface SpatialZonePresentation {
   presentationId: string;
   businessZoneId: string;
   code: string;
+  // Section 12: Explicit Zone Naming Contract
+  displayIndex: number;
+  displayLabel: string;
+  shortLabel: string;
+  businessName: string;
+  // Backward compatibility fields
   name: string;
   subLabel: string;
   shortName: string;
   regionIndex: number;
-  accentColor: string;
+  primaryColor?: string;
+  accentColor?: string;
+  boundaryColor: string;
+  glowColor: string;
+  haloFillOpacityDefault?: number;
+  haloFillOpacityHover?: number;
+  haloFillOpacitySelected?: number;
+  haloFillOpacityDimmed?: number;
+  haloStrokeOpacityDefault?: number;
+  haloStrokeOpacityHover?: number;
+  haloStrokeOpacitySelected?: number;
+  haloStrokeOpacityDimmed?: number;
+  haloStrokeWidthDefault?: number;
+  structuralBorderOpacityDefault?: number;
+  structuralBorderOpacityHover?: number;
+  structuralBorderOpacitySelected?: number;
+  structuralBorderOpacityDimmed?: number;
+  structuralBorderWidthDefault?: number;
+  structuralBorderWidthHover?: number;
+  structuralBorderWidthSelected?: number;
+  defaultFill: string;
+  hoverFill: string;
+  selectedFill: string;
+  badgeBg: string;
+  badgeBorder: string;
+  badgeText: string;
+  icon: 'ship' | 'container' | 'warehouse' | 'gear' | 'gate';
   pointsSvg: { x: number; y: number }[];
   subPolygonsSvg?: { x: number; y: number }[][];
   polygonSvg: string;
@@ -125,9 +378,14 @@ function pointsToNormalized(points: { x: number; y: number }[]): NormalizedPoint
  */
 export const SPATIAL_ZONE_PRESENTATIONS: SpatialZonePresentation[] = [
   {
+    ...ZONE_VISUAL_THEMES['pres-berth'],
     presentationId: 'pres-berth',
     businessZoneId: 'zone-berth',
     code: 'ZONE-BERTH',
+    displayIndex: 1,
+    displayLabel: 'Cầu cảng',
+    shortLabel: '1. Cầu cảng',
+    businessName: 'Khu vực Cầu cảng (Berths 1–3)',
     name: '1. Cầu cảng',
     subLabel: 'BERTH / QUAY',
     shortName: 'Cầu Cảng',
@@ -183,20 +441,25 @@ export const SPATIAL_ZONE_PRESENTATIONS: SpatialZonePresentation[] = [
     ]),
     centroidSvg: { x: 920, y: 320 },
     centroidNormalized: canonicalSceneToNormalized(920, 320),
-    labelPositionSvg: { x: 920, y: 310 },
-    exceptionBadgeSvg: { x: 920, y: 350 },
-    operatorAnchorSvg: { x: 920, y: 330 },
-    operatorAnchorNormalized: canonicalSceneToNormalized(920, 330),
+    labelPositionSvg: { x: 920, y: 280 },
+    exceptionBadgeSvg: { x: 920, y: 308 },
+    operatorAnchorSvg: { x: 1060, y: 335 },
+    operatorAnchorNormalized: canonicalSceneToNormalized(1060, 335),
   },
   {
+    ...ZONE_VISUAL_THEMES['pres-container-west'],
     presentationId: 'pres-container-west',
     businessZoneId: 'zone-warehouse',
     code: 'ZONE-CONT-WEST',
+    displayIndex: 2,
+    displayLabel: 'Bãi container phía Tây',
+    shortLabel: '2. Bãi container phía Tây',
+    businessName: 'Khu vực Kho & Bãi Container Phía Tây',
     name: '2. Bãi container phía Tây',
     subLabel: 'WEST CONTAINER YARD',
     shortName: 'Bãi Tây',
     regionIndex: 2,
-    accentColor: '#D97706',
+    accentColor: '#EA580C',
     pointsSvg: [
       { x: 59, y: 319 },
       { x: 210, y: 398 },
@@ -232,20 +495,25 @@ export const SPATIAL_ZONE_PRESENTATIONS: SpatialZonePresentation[] = [
     ]),
     centroidSvg: { x: 440, y: 470 },
     centroidNormalized: canonicalSceneToNormalized(440, 470),
-    labelPositionSvg: { x: 440, y: 440 },
-    exceptionBadgeSvg: { x: 440, y: 490 },
-    operatorAnchorSvg: { x: 440, y: 480 },
-    operatorAnchorNormalized: canonicalSceneToNormalized(440, 480),
+    labelPositionSvg: { x: 320, y: 470 },
+    exceptionBadgeSvg: { x: 320, y: 500 },
+    operatorAnchorSvg: { x: 450, y: 520 },
+    operatorAnchorNormalized: canonicalSceneToNormalized(450, 520),
   },
   {
+    ...ZONE_VISUAL_THEMES['pres-container-center'],
     presentationId: 'pres-container-center',
     businessZoneId: 'zone-container',
     code: 'ZONE-CONT-CENTER',
+    displayIndex: 3,
+    displayLabel: 'Bãi container trung tâm',
+    shortLabel: '3. Bãi container trung tâm',
+    businessName: 'Khu vực Bãi Container Trung Tâm (CY)',
     name: '3. Bãi container trung tâm',
     subLabel: 'CENTRAL CONTAINER YARD',
     shortName: 'Bãi Trung Tâm',
     regionIndex: 3,
-    accentColor: '#DC2626',
+    accentColor: '#E11D48',
     pointsSvg: [
       { x: 809, y: 398 },
       { x: 1094, y: 364 },
@@ -278,20 +546,25 @@ export const SPATIAL_ZONE_PRESENTATIONS: SpatialZonePresentation[] = [
     ]),
     centroidSvg: { x: 1180, y: 430 },
     centroidNormalized: canonicalSceneToNormalized(1180, 430),
-    labelPositionSvg: { x: 1180, y: 410 },
-    exceptionBadgeSvg: { x: 1180, y: 460 },
-    operatorAnchorSvg: { x: 1280, y: 440 },
-    operatorAnchorNormalized: canonicalSceneToNormalized(1280, 440),
+    labelPositionSvg: { x: 980, y: 435 },
+    exceptionBadgeSvg: { x: 980, y: 465 },
+    operatorAnchorSvg: { x: 1280, y: 445 },
+    operatorAnchorNormalized: canonicalSceneToNormalized(1280, 445),
   },
   {
+    ...ZONE_VISUAL_THEMES['pres-cfs-east'],
     presentationId: 'pres-cfs-east',
     businessZoneId: 'zone-warehouse',
     code: 'ZONE-CFS-EAST',
+    displayIndex: 4,
+    displayLabel: 'Kho / CFS phía Đông',
+    shortLabel: '4. Kho / CFS phía Đông',
+    businessName: 'Khu vực Kho Ngoại Quan & CFS Phía Đông',
     name: '4. Kho / CFS phía Đông',
     subLabel: 'EAST WAREHOUSE / CFS',
     shortName: 'Kho Đông',
     regionIndex: 4,
-    accentColor: '#65A30D',
+    accentColor: '#EAB308',
     pointsSvg: [
       { x: 1541, y: 307 },
       { x: 1580, y: 296 },
@@ -324,15 +597,20 @@ export const SPATIAL_ZONE_PRESENTATIONS: SpatialZonePresentation[] = [
     ]),
     centroidSvg: { x: 1700, y: 390 },
     centroidNormalized: canonicalSceneToNormalized(1700, 390),
-    labelPositionSvg: { x: 1700, y: 370 },
-    exceptionBadgeSvg: { x: 1700, y: 420 },
-    operatorAnchorSvg: { x: 1720, y: 410 },
-    operatorAnchorNormalized: canonicalSceneToNormalized(1720, 410),
+    labelPositionSvg: { x: 1730, y: 310 },
+    exceptionBadgeSvg: { x: 1730, y: 338 },
+    operatorAnchorSvg: { x: 1730, y: 450 },
+    operatorAnchorNormalized: canonicalSceneToNormalized(1730, 450),
   },
   {
+    ...ZONE_VISUAL_THEMES['pres-technical'],
     presentationId: 'pres-technical',
     businessZoneId: 'zone-technical',
     code: 'ZONE-TECH',
+    displayIndex: 5,
+    displayLabel: 'Khu kỹ thuật / Dịch vụ',
+    shortLabel: '5. Khu kỹ thuật / Dịch vụ',
+    businessName: 'Khu vực Kỹ Thuật, Trạm Cân & Phụ Trợ Nam',
     name: '5. Khu kỹ thuật / Dịch vụ',
     subLabel: 'TECHNICAL / SERVICE AREA',
     shortName: 'Kỹ Thuật',
@@ -379,20 +657,25 @@ export const SPATIAL_ZONE_PRESENTATIONS: SpatialZonePresentation[] = [
     ]),
     centroidSvg: { x: 1150, y: 650 },
     centroidNormalized: canonicalSceneToNormalized(1150, 650),
-    labelPositionSvg: { x: 1150, y: 630 },
-    exceptionBadgeSvg: { x: 1150, y: 680 },
+    labelPositionSvg: { x: 1150, y: 575 },
+    exceptionBadgeSvg: { x: 1150, y: 605 },
     operatorAnchorSvg: { x: 1100, y: 770 },
     operatorAnchorNormalized: canonicalSceneToNormalized(1100, 770),
   },
   {
+    ...ZONE_VISUAL_THEMES['pres-gate'],
     presentationId: 'pres-gate',
     businessZoneId: 'zone-technical',
     code: 'ZONE-GATE',
+    displayIndex: 6,
+    displayLabel: 'Cổng chính',
+    shortLabel: '6. Cổng chính',
+    businessName: 'Khu vực Cổng Chính Cảng Tân Thuận',
     name: '6. Cổng chính',
     subLabel: 'MAIN GATE',
     shortName: 'Cổng Chính',
     regionIndex: 6,
-    accentColor: '#7C3AED',
+    accentColor: '#8B5CF6',
     pointsSvg: [
       { x: 1501, y: 482 },
       { x: 1546, y: 476 },
@@ -425,10 +708,10 @@ export const SPATIAL_ZONE_PRESENTATIONS: SpatialZonePresentation[] = [
     ]),
     centroidSvg: { x: 1660, y: 570 },
     centroidNormalized: canonicalSceneToNormalized(1660, 570),
-    labelPositionSvg: { x: 1660, y: 550 },
-    exceptionBadgeSvg: { x: 1660, y: 600 },
-    operatorAnchorSvg: { x: 1680, y: 590 },
-    operatorAnchorNormalized: canonicalSceneToNormalized(1680, 590),
+    labelPositionSvg: { x: 1765, y: 545 },
+    exceptionBadgeSvg: { x: 1765, y: 575 },
+    operatorAnchorSvg: { x: 1765, y: 615 },
+    operatorAnchorNormalized: canonicalSceneToNormalized(1765, 615),
   },
 ];
 

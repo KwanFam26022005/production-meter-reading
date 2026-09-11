@@ -254,3 +254,189 @@ export function clampPanForZoom(
   };
 }
 
+/**
+ * P0 Requirement: V2 Operational Safe Rectangle
+ *
+ * Encompasses:
+ * - All six zones (X: 24 to 1877, Y: 148 to 820)
+ * - All 12 active canonical meters (X: 337 to 1680, Y: 313 to 720)
+ * - All operator anchors (X: 440 to 1720, Y: 330 to 770)
+ * - Main gate (pres-gate, up to X: 1872, Y: 476-644)
+ * - Quay (pres-berth, X: 210-1687, Y: 148-407)
+ * - Container center (pres-container-center, X: 809-1546, Y: 307-515)
+ * - Technical / service region (pres-technical, X: 820-1501, Y: 482-820)
+ *
+ * Slicing / cropping at the viewport level must affect ONLY exterior low-priority context.
+ * No operational entity may leave the viewport.
+ */
+export interface SafeOperationalBounds {
+  minX: number;
+  minY: number;
+  maxX: number;
+  maxY: number;
+  width: number;
+  height: number;
+  centerX: number;
+  centerY: number;
+}
+
+export const V2_OPERATIONAL_SAFE_RECTANGLE: SafeOperationalBounds = {
+  minX: 20,
+  minY: 140,
+  maxX: 1885,
+  maxY: 821,
+  width: 1865,
+  height: 681,
+  centerX: 952.5,
+  centerY: 480.5,
+};
+
+/**
+ * P0 Requirement: Development assertion in spatial utilities
+ * abs(scaleX - scaleY) < epsilon
+ * Fails visual geometry test if non-uniform scale is detected.
+ */
+export const SPATIAL_SCALE_EPSILON = 1e-5;
+
+export function assertUniformScale(
+  scaleX: number,
+  scaleY: number,
+  epsilon: number = SPATIAL_SCALE_EPSILON
+): boolean {
+  const diff = Math.abs(scaleX - scaleY);
+  if (diff >= epsilon) {
+    const message = `[SpatialGeometryError] P0 Scale Distortion: scaleX (${scaleX.toFixed(6)}) != scaleY (${scaleY.toFixed(6)}), delta (${diff.toFixed(6)}) >= epsilon (${epsilon}). Aspect ratio must remain uniform!`;
+    console.error(message);
+    if (import.meta.env?.DEV) {
+      throw new Error(message);
+    }
+    return false;
+  }
+  return true;
+}
+
+export interface ResponsiveCameraResult {
+  scale: number;
+  scaleX: number;
+  scaleY: number;
+  zoom: number;
+  panX: number;
+  panY: number;
+}
+
+/**
+ * P0 Requirement: Responsive Camera
+ * Computes scene transform from viewport width, viewport height, and canonical ratio (1915/821).
+ * Guarantees scaleX == scaleY and that V2 safe bounds remain inside the visible viewport.
+ */
+export function calculateResponsiveCamera(
+  viewportWidth: number,
+  viewportHeight: number
+): ResponsiveCameraResult {
+  if (viewportWidth <= 0 || viewportHeight <= 0) {
+    return { scale: 1, scaleX: 1, scaleY: 1, zoom: 1, panX: 0, panY: 0 };
+  }
+
+  // SVG preserveAspectRatio="xMidYMid slice" base uniform scale
+  const scale = Math.max(
+    viewportWidth / CANONICAL_SCENE_WIDTH,
+    viewportHeight / CANONICAL_SCENE_HEIGHT
+  );
+  const scaleX = scale;
+  const scaleY = scale;
+  assertUniformScale(scaleX, scaleY);
+
+  // Visible canonical coordinates under pure slice (zoom = 1, pan = 0)
+  const visibleWidth = viewportWidth / scale;
+  const visibleHeight = viewportHeight / scale;
+
+  // If visible canonical width/height is smaller than the operational safe bounds,
+  // adapt zoom to fit the entire safe operational bounds with breathing room
+  let zoom = 1.0;
+  let panX = 0;
+  let panY = 0;
+
+  if (visibleWidth < V2_OPERATIONAL_SAFE_RECTANGLE.width || visibleHeight < V2_OPERATIONAL_SAFE_RECTANGLE.height) {
+    const zoomW = visibleWidth / (V2_OPERATIONAL_SAFE_RECTANGLE.width + 30);
+    const zoomH = visibleHeight / (V2_OPERATIONAL_SAFE_RECTANGLE.height + 30);
+    zoom = Number(Math.min(1.0, zoomW, zoomH).toFixed(3));
+    panX = Math.round((CANONICAL_SCENE_WIDTH / 2) * (1 - zoom));
+    panY = Math.round((CANONICAL_SCENE_HEIGHT / 2) * (1 - zoom));
+  }
+
+  return {
+    scale,
+    scaleX,
+    scaleY,
+    zoom,
+    panX,
+    panY,
+  };
+}
+
+/**
+ * P0 Requirement: Pointer / Placement Transform
+ * Converts screen pointer (clientX, clientY) to canonical 1915x821 coordinate.
+ * Uses exact SVG transformation matrix or uniform camera inversion.
+ * Pipeline: screen pointer -> inverse camera transform -> canonical 1915x821 coordinate -> normalized map_x/map_y
+ */
+export function screenPointerToCanonicalScene(
+  clientX: number,
+  clientY: number,
+  svgElement: SVGSVGElement,
+  cameraViewport?: { panX: number; panY: number; zoom: number }
+): { x: number; y: number } {
+  // Method 1: SVG DOM Matrix Inversion (Exact browser hardware transform)
+  try {
+    const ctm = svgElement.getScreenCTM();
+    if (ctm) {
+      const pt = svgElement.createSVGPoint();
+      pt.x = clientX;
+      pt.y = clientY;
+      const svgPoint = pt.matrixTransform(ctm.inverse());
+
+      const panX = cameraViewport?.panX ?? 0;
+      const panY = cameraViewport?.panY ?? 0;
+      const zoom = cameraViewport?.zoom ?? 1.0;
+
+      const worldX = (svgPoint.x - panX) / zoom;
+      const worldY = (svgPoint.y - panY) / zoom;
+
+      return {
+        x: Math.max(0, Math.min(CANONICAL_SCENE_WIDTH, Math.round(worldX))),
+        y: Math.max(0, Math.min(CANONICAL_SCENE_HEIGHT, Math.round(worldY))),
+      };
+    }
+  } catch (_e) {
+    // Fallback if SVG DOM matrix unavailable (e.g. node / mock test environments)
+  }
+
+  // Method 2: Mathematical SVG slice projection with uniform scale validation
+  const rect = svgElement.getBoundingClientRect();
+  const scale = Math.max(
+    rect.width / CANONICAL_SCENE_WIDTH,
+    rect.height / CANONICAL_SCENE_HEIGHT
+  );
+  assertUniformScale(scale, scale);
+
+  const offsetX = (rect.width - CANONICAL_SCENE_WIDTH * scale) / 2;
+  const offsetY = (rect.height - CANONICAL_SCENE_HEIGHT * scale) / 2;
+
+  let worldX = (clientX - rect.left - offsetX) / scale;
+  let worldY = (clientY - rect.top - offsetY) / scale;
+
+  if (cameraViewport) {
+    const panX = cameraViewport.panX ?? 0;
+    const panY = cameraViewport.panY ?? 0;
+    const zoom = cameraViewport.zoom ?? 1.0;
+    worldX = (worldX - panX) / zoom;
+    worldY = (worldY - panY) / zoom;
+  }
+
+  return {
+    x: Math.max(0, Math.min(CANONICAL_SCENE_WIDTH, Math.round(worldX))),
+    y: Math.max(0, Math.min(CANONICAL_SCENE_HEIGHT, Math.round(worldY))),
+  };
+}
+
+

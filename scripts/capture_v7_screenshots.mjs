@@ -69,19 +69,22 @@ async function run() {
     console.log('10: V2 map default...');
     await captureScreenshot(page, '10_v2_map_default.png');
 
-    // 11_zone_focus_berth.png
+    // 11_zone_focus_berth.png (Zone contextual inspector)
     console.log('11: Zone focus berth...');
-    await page.evaluate(() => {
-      const z = document.querySelector('[data-zone-id="pres-berth-main"] path') ||
-                document.querySelector('[data-zone-id="pres-berth-main"]') ||
-                document.querySelector('.sgp-operational-zone path');
-      if (z) z.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-    await page.waitForTimeout(800);
+    const berthPill = (await page.$('[data-zone-id="pres-berth"] .sgp-zone-identity-pill')) || (await page.$('[data-zone-id="pres-berth"]'));
+    if (berthPill) {
+      await berthPill.click();
+      await page.waitForTimeout(1000);
+    }
     await captureScreenshot(page, '11_zone_focus_berth.png');
 
-    // 35_zone_drawer_full.png
+    // 35_zone_drawer_full.png (Opens when clicking "Xem công tơ" in contextual inspector)
     console.log('35: Zone drawer full...');
+    const viewMetersBtn = await page.$('button:has-text("Xem công tơ")');
+    if (viewMetersBtn) {
+      await viewMetersBtn.click();
+      await page.waitForTimeout(800);
+    }
     await captureScreenshot(page, '35_zone_drawer_full.png');
 
     // 20_add_meter_entry.png
@@ -90,10 +93,10 @@ async function run() {
 
     // 21_placement_mode_grid.png
     console.log('21: Placement mode grid...');
-    const addMeterBtn = await page.$('button:has-text("+ Thêm công tơ vào khu vực")');
+    const addMeterBtn = await page.$('button:has-text("Thêm công tơ"), button:has-text("Thêm")');
     if (addMeterBtn) {
       await addMeterBtn.click();
-      await page.waitForTimeout(700);
+      await page.waitForTimeout(800);
     }
     await captureScreenshot(page, '21_placement_mode_grid.png');
 
@@ -117,7 +120,7 @@ async function run() {
 
     // 25_placement_confirm_dialog.png
     console.log('25: Placement confirm dialog / card...');
-    const meterCodeInput = await page.$('.sgp-placement-input, input[placeholder="CT-xxx"]');
+    const meterCodeInput = await page.$('.sgp-placement-input, input[placeholder="CT-xxx"], input[placeholder="VD: CT-013"]');
     if (meterCodeInput) {
       await meterCodeInput.fill('CT-V7-DEMO');
     }
@@ -141,28 +144,32 @@ async function run() {
 
     // 12_zone_focus_container.png
     console.log('12: Zone focus container...');
-    await page.evaluate(() => {
-      const z = document.querySelector('[data-zone-id="pres-container-main"] path') ||
-                document.querySelector('[data-zone-id="pres-container-main"]');
-      if (z) z.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-    await page.waitForTimeout(800);
+    const containerPill = (await page.$('[data-zone-id="pres-container-center"] .sgp-zone-identity-pill')) || (await page.$('[data-zone-id="pres-container-center"]'));
+    if (containerPill) {
+      await containerPill.click();
+      await page.waitForTimeout(800);
+    }
     await captureScreenshot(page, '12_zone_focus_container.png');
     await page.keyboard.press('Escape');
     await page.waitForTimeout(400);
 
     // 13_meter_quick_popup.png
     console.log('13: Meter quick popup...');
-    await page.evaluate(() => {
-      const m = document.querySelector('.sgp-meter-point') || document.querySelector('g[cursor="pointer"]');
-      if (m) m.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-    await page.waitForTimeout(600);
+    const meterPt = (await page.$('.sgp-meter-point')) || (await page.$('circle.sgp-meter-core'));
+    if (meterPt) {
+      await meterPt.click();
+      await page.waitForTimeout(700);
+    }
     await captureScreenshot(page, '13_meter_quick_popup.png');
 
     // 27_existing_meter_relocation.png
     console.log('27: Existing meter relocation...');
-    const relocateBtn = await page.$('button:has-text("Chỉnh vị trí")');
+    const viewDetailBtn = await page.$('button:has-text("Xem chi tiết")');
+    if (viewDetailBtn) {
+      await viewDetailBtn.click();
+      await page.waitForTimeout(600);
+    }
+    const relocateBtn = await page.$('button:has-text("Di chuyển"), button:has-text("Chỉnh vị trí")');
     if (relocateBtn) {
       await relocateBtn.click();
       await page.waitForTimeout(600);
@@ -179,20 +186,19 @@ async function run() {
 
     // 14_operator_popover.png
     console.log('14: Operator popover...');
-    await page.evaluate(() => {
-      const op = document.querySelector('.sgp-operator-map-marker');
-      if (op) op.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-    await page.waitForTimeout(600);
+    const op = await page.$('.sgp-operator-map-marker');
+    if (op) {
+      await op.click({ force: true });
+      await page.waitForTimeout(600);
+    }
     await captureScreenshot(page, '14_operator_popover.png');
 
     // 15_operator_hover_route.png
     console.log('15: Operator hover route...');
-    await page.evaluate(() => {
-      const op = document.querySelector('.sgp-operator-map-marker');
-      if (op) op.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
-    });
-    await page.waitForTimeout(400);
+    if (op) {
+      await op.hover({ force: true });
+      await page.waitForTimeout(400);
+    }
     await captureScreenshot(page, '15_operator_hover_route.png');
 
     await page.keyboard.press('Escape');

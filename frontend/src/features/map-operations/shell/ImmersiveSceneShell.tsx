@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import type { AdminDashboardResponse, User } from '../../../types';
 import type {
   MapMeterItem,
@@ -7,6 +7,7 @@ import type {
   MapViewportState,
 } from '../types';
 import type { OperatorShiftSummary } from '../utils/deriveOperatorShiftSummary';
+import { projectAllZonesOperationalState } from '../state/operationalProjection';
 
 import { SceneHeaderHUD } from './SceneHeaderHUD';
 import { SceneTopControls } from './SceneTopControls';
@@ -17,13 +18,14 @@ import { SceneControlHUD } from './SceneControlHUD';
 import { OperationalListView } from './OperationalListView';
 
 import { OperationalScene } from '../scene/OperationalScene';
-import {
-  ZoneDrawer,
-  MeterQuickPopup,
-  MeterDetailDrawer,
-  OperatorShiftPopover,
-  AnalyticsDrawer,
-} from '../context';
+import { SpatialInspector, MapContextRail } from '../map-ui';
+import { AnalyticsDrawer } from '../context';
+import type {
+  MapMode,
+  SelectedEntity,
+  DetailView,
+  PlacementContext,
+} from '../state/useMapStateMachine';
 
 interface ImmersiveSceneShellProps {
   user?: User;
@@ -92,7 +94,7 @@ interface ImmersiveSceneShellProps {
   activeFocusType: 'OVERDUE' | 'REVIEW' | 'PENDING' | null;
   onFocusTypeChange: (type: 'OVERDUE' | 'REVIEW' | 'PENDING' | null) => void;
 
-  // Drawers
+  // Drawers & Surfaces
   detailOpen: boolean;
   onSetDetailOpen: (open: boolean) => void;
   analyticsOpen: boolean;
@@ -103,6 +105,20 @@ interface ImmersiveSceneShellProps {
   placementCard?: React.ReactNode;
   onAddMeterToZone?: (zoneId: string) => void;
   onRelocateMeter?: (meter: MapMeterItem) => void;
+
+  // Contextual Surface State Machine (V7.1 Architecture)
+  mapMode?: MapMode;
+  selectedEntity?: SelectedEntity;
+  detailView?: DetailView;
+  placementContext?: PlacementContext | null;
+  onOpenDetails?: (view?: DetailView) => void;
+  onBackToInspector?: () => void;
+  onUpdatePlacementContext?: (updates: Partial<PlacementContext>) => void;
+  onConfirmPlacement?: () => void;
+  onCancelPlacement?: () => void;
+  onResetPin?: () => void;
+  isSubmittingPlacement?: boolean;
+  placementError?: string | null;
 }
 
 /**
@@ -148,7 +164,7 @@ export const ImmersiveSceneShell: React.FC<ImmersiveSceneShellProps> = ({
   onHoverZone,
   onHoverMeter,
   onClearSelection,
-  onCloseOperatorPopover,
+  onCloseOperatorPopover: _onCloseOperatorPopover,
 
   viewport,
   onViewportChange,
@@ -161,19 +177,37 @@ export const ImmersiveSceneShell: React.FC<ImmersiveSceneShellProps> = ({
   activeFocusType,
   onFocusTypeChange,
 
-  detailOpen,
+  detailOpen: _detailOpen,
   onSetDetailOpen,
   analyticsOpen,
   onSetAnalyticsOpen,
   onInspectReading,
-  onReassignOperator,
+  onReassignOperator: _onReassignOperator,
   placementSvgLayer,
-  placementCard,
+  placementCard: _placementCard,
   onAddMeterToZone,
   onRelocateMeter,
+
+  mapMode = 'browse',
+  selectedEntity = null,
+  detailView = null,
+  placementContext = null,
+  onOpenDetails,
+  onBackToInspector,
+  onUpdatePlacementContext,
+  onConfirmPlacement,
+  onCancelPlacement,
+  onResetPin,
+  isSubmittingPlacement = false,
+  placementError = null,
+
 }) => {
   const issueCount = overallKpis.overdue + overallKpis.review;
   const rounds = dashboardData?.round_progress || [];
+
+  const operationalStates = useMemo(() => {
+    return projectAllZonesOperationalState(mapZones, mapMeters);
+  }, [mapZones, mapMeters]);
 
   return (
     <div className="sgp-map-first-root" role="main" aria-label="Trung tâm tác nghiệp công tơ Cảng Tân Thuận">
@@ -200,6 +234,9 @@ export const ImmersiveSceneShell: React.FC<ImmersiveSceneShellProps> = ({
             selectedOperatorShiftId={selectedOperatorShiftId}
             currentRoundTime={overallKpis.currentRoundTime || undefined}
             viewport={viewport}
+            mode={mapMode}
+            selectedEntity={selectedEntity}
+            targetPlacementZoneId={placementContext?.targetZoneId}
             onSelectZone={onSelectZone}
             onSelectMeter={onSelectMeter}
             onSelectOperator={onSelectOperator}
@@ -208,7 +245,6 @@ export const ImmersiveSceneShell: React.FC<ImmersiveSceneShellProps> = ({
             onClearSelection={onClearSelection}
             onViewportChange={onViewportChange}
             placementSvgLayer={placementSvgLayer}
-            placementCard={placementCard}
           />
         ) : (
           <OperationalListView
@@ -303,54 +339,77 @@ export const ImmersiveSceneShell: React.FC<ImmersiveSceneShellProps> = ({
         </div>
 
         {/* ============================================================ */}
-        {/* LAYER D: CONTEXTUAL DETAILS & DRAWERS                        */}
+        {/* LAYER D: CONTEXTUAL SURFACES (FAMILY B & FAMILY C)           */}
+        {/* Invariant: At most 1 contextual surface is ever visible!     */}
         {/* ============================================================ */}
 
-        {/* Level 2: Compact Anchored Meter Quick Popup */}
-        {selectedMeter && !detailOpen && viewMode === 'map' && (
-          <MeterQuickPopup
-            meter={selectedMeter}
-            viewport={viewport}
-            onDetails={() => onSetDetailOpen(true)}
-            onRelocate={onRelocateMeter ? () => onRelocateMeter(selectedMeter) : undefined}
-            onClose={onClearSelection}
-          />
+        {/* Family B: SpatialInspector (312px dark maritime frosted glass) */}
+        {!analyticsOpen && mapMode === 'inspect' && selectedEntity && viewMode === 'map' && (
+          selectedEntity.type === 'zone' && selectedZone ? (
+            <SpatialInspector
+              variant="zone"
+              zone={selectedZone}
+              zoneState={operationalStates[selectedZone.id]}
+              onClose={onClearSelection}
+              onOpenDetails={() => (onOpenDetails ? onOpenDetails('zone') : onSetDetailOpen(true))}
+              onAddMeter={onAddMeterToZone}
+            />
+          ) : selectedEntity.type === 'operator' && selectedOperatorSummary ? (
+            <SpatialInspector
+              variant="operator"
+              operator={availableOperators.find((u) => u.id === selectedOperatorSummary.operatorId)}
+              operatorSummary={selectedOperatorSummary}
+              onClose={onClearSelection}
+              onOpenDetails={() => (onOpenDetails ? onOpenDetails('operator') : onSetDetailOpen(true))}
+            />
+          ) : selectedEntity.type === 'meter' && selectedMeter ? (
+            <SpatialInspector
+              variant="meter"
+              meter={selectedMeter}
+              onClose={onClearSelection}
+              onOpenDetails={() => (onOpenDetails ? onOpenDetails('meter') : onSetDetailOpen(true))}
+              onRelocateMeter={onRelocateMeter}
+            />
+          ) : null
         )}
 
-        {/* Level 2: Spatial Operator Shift Progress Popover */}
-        {selectedOperatorSummary && !selectedMeter && !selectedZone && !detailOpen && viewMode === 'map' && (
-          <OperatorShiftPopover
-            summary={selectedOperatorSummary}
-            onClose={onCloseOperatorPopover}
-            onSelectZone={onSelectZone}
-          />
-        )}
-
-        {/* Level 2: Contextual Zone Drawer */}
-        {selectedZone && !selectedMeter && !analyticsOpen && (
-          <ZoneDrawer
+        {/* Family C: MapContextRail (360px right rail / mobile sheet) */}
+        {!analyticsOpen && (mapMode === 'details' || mapMode === 'placement') && (
+          <MapContextRail
+            variant={
+              mapMode === 'placement'
+                ? 'meter-placement'
+                : detailView === 'zone'
+                ? 'zone-detail'
+                : detailView === 'operator'
+                ? 'operator-detail'
+                : 'meter-detail'
+            }
             zone={selectedZone}
             allMeters={mapMeters}
-            currentRoundTime={overallKpis.currentRoundTime || undefined}
-            availableOperators={availableOperators}
+            zoneState={selectedZone ? operationalStates[selectedZone.id] : undefined}
+            operator={selectedOperatorSummary ? availableOperators.find((u) => u.id === selectedOperatorSummary.operatorId) : undefined}
+            operatorSummary={selectedOperatorSummary || undefined}
+            meter={selectedMeter}
+            placementContext={placementContext}
+            zones={mapZones}
+            isSubmittingPlacement={isSubmittingPlacement}
+            placementError={placementError}
+            onBack={onBackToInspector || onClearSelection}
             onClose={onClearSelection}
             onSelectMeter={onSelectMeter}
-            onReassignOperator={onReassignOperator}
-            onAddMeter={onAddMeterToZone}
-          />
-        )}
-
-        {/* Level 3: Full Detail Meter Detail Drawer */}
-        {selectedMeter && detailOpen && (
-          <MeterDetailDrawer
-            meter={selectedMeter}
-            onClose={onClearSelection}
             onInspectReading={onInspectReading}
+            onStartPlacement={onAddMeterToZone}
+            onStartRelocation={onRelocateMeter}
+            onUpdatePlacement={onUpdatePlacementContext}
+            onResetPin={onResetPin}
+            onConfirmPlacement={onConfirmPlacement}
+            onCancelPlacement={onCancelPlacement}
           />
         )}
 
-        {/* Level 3: Analytics Quality & Progress Drawer */}
-        {analyticsOpen && !detailOpen && (
+        {/* Analytics Drawer (Opened exclusively from Header / Summary telemetry) */}
+        {analyticsOpen && (
           <AnalyticsDrawer
             dashboardData={dashboardData}
             zones={mapZones}

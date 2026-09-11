@@ -4,6 +4,7 @@ import {
   CANONICAL_SCENE_WIDTH,
   CANONICAL_SCENE_HEIGHT,
   canonicalSceneToNormalized,
+  screenPointerToCanonicalScene,
 } from '../geometry/canonicalScene';
 import {
   isPointInBusinessZone,
@@ -75,14 +76,8 @@ export function useSpatialPlacement(options: UseSpatialPlacementOptions) {
     (e: React.MouseEvent<SVGSVGElement>) => {
       if (!isActive || pinnedCoords) return;
       const svgEl = e.currentTarget;
-      const rect = svgEl.getBoundingClientRect();
-      const scaleX = CANONICAL_SCENE_WIDTH / rect.width;
-      const scaleY = CANONICAL_SCENE_HEIGHT / rect.height;
-
-      const x = Math.max(0, Math.min(CANONICAL_SCENE_WIDTH, Math.round((e.clientX - rect.left) * scaleX)));
-      const y = Math.max(0, Math.min(CANONICAL_SCENE_HEIGHT, Math.round((e.clientY - rect.top) * scaleY)));
-
-      setCursorPos({ x, y });
+      const coords = screenPointerToCanonicalScene(e.clientX, e.clientY, svgEl);
+      setCursorPos(coords);
     },
     [isActive, pinnedCoords]
   );
@@ -91,12 +86,7 @@ export function useSpatialPlacement(options: UseSpatialPlacementOptions) {
     (e: React.MouseEvent<SVGSVGElement>) => {
       if (!isActive || pinnedCoords) return;
       const svgEl = e.currentTarget;
-      const rect = svgEl.getBoundingClientRect();
-      const scaleX = CANONICAL_SCENE_WIDTH / rect.width;
-      const scaleY = CANONICAL_SCENE_HEIGHT / rect.height;
-
-      const x = Math.max(0, Math.min(CANONICAL_SCENE_WIDTH, Math.round((e.clientX - rect.left) * scaleX)));
-      const y = Math.max(0, Math.min(CANONICAL_SCENE_HEIGHT, Math.round((e.clientY - rect.top) * scaleY)));
+      const { x, y } = screenPointerToCanonicalScene(e.clientX, e.clientY, svgEl);
 
       const norm = canonicalSceneToNormalized(x, y);
       setPinnedCoords({

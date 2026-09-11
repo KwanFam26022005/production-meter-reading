@@ -8,14 +8,18 @@ import { deriveOperatorShiftSummary } from './utils/deriveOperatorShiftSummary';
 import type { User } from '../../types';
 import type { MapMeterItem } from './types';
 import { ImmersiveSceneShell } from './shell/ImmersiveSceneShell';
-import { calculateZoneCameraFraming } from './geometry/operationalGeometry';
+import {
+  resolveToBusinessZoneId,
+  getZoneOperatorAnchor,
+} from './geometry/operationalGeometry';
+import { normalizedToCanonicalScene } from './geometry/canonicalScene';
 import {
   useSpatialPlacement,
   SpatialPlacementSvgLayer,
-  SpatialPlacementCard,
-  SpatialPlacementCoords,
 } from './placement/SpatialPlacementOverlay';
 import { createAdminMeter, updateAdminMeter } from '../../services/api';
+import { useMapStateMachine, DetailView } from './state/useMapStateMachine';
+import { focusEntity } from './services/mapCameraService';
 import './motion/mapMotion.css';
 
 interface MapOperationsPageProps {
@@ -25,11 +29,13 @@ interface MapOperationsPageProps {
 }
 
 /**
- * MapOperationsPage — Immersive Spatial Operations Console (Phase U0 → U4)
+ * MapOperationsPage — Immersive Spatial Operations Console (V7.1 Consistency Architecture)
  *
- * MAP IS THE PAGE:
- * Unified operational workspace merging Map + Overview into a single full-bleed scene.
- * All controls (temporal, search, telemetry, legend, zoom) live as integrated HUD overlays.
+ * Implements the centralized state machine:
+ * - SelectedEntity = { type: 'zone' | 'operator' | 'meter', id } | null
+ * - MapMode = 'browse' | 'inspect' | 'details' | 'placement'
+ * - Invariant: Max 1 selection, Max 1 contextual surface (Inspector or ContextRail)
+ * - Safe viewport padding ensures camera framing keeps entities unobstructed.
  */
 export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
   user,
@@ -53,16 +59,14 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
   } = useMapOperations();
 
   const {
-    selection,
     filters,
     setFilters,
     viewport,
     setViewport,
-    selectZone,
-    selectMeter,
-    setHoveredZone,
-    setHoveredMeter,
   } = useMapSelection();
+
+  // Centralized UI State Machine
+  const mapState = useMapStateMachine();
 
   // View mode: 'map' | 'list' (in-place animated segmented switch)
   const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
@@ -71,44 +75,75 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
   const [exceptionFocus, setExceptionFocus] = useState(false);
   const [activeFocusType, setActiveFocusType] = useState<'OVERDUE' | 'REVIEW' | 'PENDING' | null>(null);
 
-  // Drawers state
-  const [detailOpen, setDetailOpen] = useState(false);
+  // Analytics Drawer (opened only via top controls or summary telemetry)
   const [analyticsOpen, setAnalyticsOpen] = useState(false);
-  const [selectedOperatorShiftId, setSelectedOperatorShiftId] = useState<string | null>(null);
 
-  // Spatial Placement & Relocation Mode State (GATE 8)
-  const [placementState, setPlacementState] = useState<{
-    isActive: boolean;
-    isRelocating: boolean;
-    meterId?: string;
-    meterCode?: string;
-    meterName?: string;
-    meterType?: string;
-    targetZoneId: string;
-    targetZoneName: string;
-  }>({
-    isActive: false,
-    isRelocating: false,
-    targetZoneId: 'zone-container',
-    targetZoneName: 'Khu vực Bãi Container (CY)',
+  // Placement hook integration
+  const placement = useSpatialPlacement({
+    isActive: mapState.mode === 'placement',
+    targetZoneId: mapState.placementContext?.targetZoneId || 'zone-container',
+    targetZoneName: mapState.placementContext?.targetZoneName || 'Khu vực Bãi Container (CY)',
+    meterCode: mapState.placementContext?.meterCode,
+    meterName: mapState.placementContext?.meterName,
+    meterType: mapState.placementContext?.meterType,
+    isRelocating: mapState.placementContext?.isRelocating || false,
+    existingMeterId: mapState.placementContext?.meterId,
+    onConfirmPlacement: async (coords) => {
+      if (!mapState.placementContext) return;
+      const ctx = mapState.placementContext;
+      if (ctx.isRelocating && ctx.meterId) {
+        await updateAdminMeter(ctx.meterId, {
+          map_x: coords.normX,
+          map_y: coords.normY,
+          zone_id: ctx.targetZoneId,
+        });
+      } else {
+        await createAdminMeter({
+          meter_code: ctx.meterCode || 'CT-013',
+          name: ctx.meterName || 'Công tơ mới',
+          meter_type: ctx.meterType || 'LCD',
+          map_x: coords.normX,
+          map_y: coords.normY,
+          zone_id: ctx.targetZoneId,
+        });
+      }
+      mapState.resetToBrowse();
+      await refresh();
+      setViewport({ zoom: 1.0, panX: 0, panY: 0 });
+    },
+    onCancel: () => {
+      mapState.cancelPlacement();
+      setViewport({ zoom: 1.0, panX: 0, panY: 0 });
+    },
   });
+
+  const activePlacementContext = useMemo(() => {
+    if (!mapState.placementContext) return null;
+    return {
+      ...mapState.placementContext,
+      pinnedCoords: placement.pinnedCoords,
+    };
+  }, [mapState.placementContext, placement.pinnedCoords]);
 
   // Runtime source of truth verification object
   useEffect(() => {
     if (typeof window !== 'undefined') {
       (window as any).__MAP_UI_BUILD__ = {
-        phase: 'Immersive-Spatial-Console-V7',
+        phase: 'V7.1-Map-UI-Consistency',
         renderer: 'OperationalScene',
         geometryVersion: 'tan-thuan-v2',
         viewBox: '0 0 1915 821',
         zones: mapZones.length,
         meters: mapMeters.length,
         viewMode,
-        placementActive: placementState.isActive,
+        mode: mapState.mode,
+        selectedEntity: mapState.selectedEntity,
+        detailView: mapState.detailView,
+        placementActive: mapState.mode === 'placement',
         timestamp: new Date().toISOString(),
       };
     }
-  }, [mapZones, mapMeters, viewMode, placementState.isActive]);
+  }, [mapZones, mapMeters, viewMode, mapState.mode, mapState.selectedEntity, mapState.detailView]);
 
   // Filtered meters with active focus support
   const filteredMeters = useMemo(() => {
@@ -127,16 +162,29 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
     return list;
   }, [mapMeters, filters, activeFocusType, exceptionFocus]);
 
-  const selectedMeter = mapMeters.find((m) => m.id === selection.selectedMeterId);
-  const selectedZone = mapZones.find((z) => z.id === selection.selectedZoneId);
+  // Selected Entity resolutions
+  const selectedMeter = useMemo(() => {
+    if (mapState.selectedEntity?.type !== 'meter') return undefined;
+    return mapMeters.find((m) => m.id === mapState.selectedEntity?.id);
+  }, [mapMeters, mapState.selectedEntity]);
 
-  // Derive Shift Summary for selected operator marker
+  const selectedZone = useMemo(() => {
+    const zoneId =
+      mapState.selectedEntity?.type === 'zone'
+        ? mapState.selectedEntity.id
+        : mapState.placementContext?.targetZoneId;
+    if (!zoneId) return undefined;
+    const bId = resolveToBusinessZoneId(zoneId);
+    return mapZones.find((z) => z.id === zoneId || z.id === bId);
+  }, [mapZones, mapState.selectedEntity, mapState.placementContext]);
+
   const selectedOperatorSummary = useMemo(() => {
-    if (!selectedOperatorShiftId) return null;
-    const foundZone = mapZones.find((z) => z.assignedUser?.id === selectedOperatorShiftId);
+    if (mapState.selectedEntity?.type !== 'operator') return null;
+    const opId = mapState.selectedEntity.id;
+    const foundZone = mapZones.find((z) => z.assignedUser?.id === opId);
     const user =
       foundZone?.assignedUser ||
-      availableOperators.find((o) => o.id === selectedOperatorShiftId);
+      availableOperators.find((o) => o.id === opId);
     if (!user) return null;
     const opObj = {
       id: user.id,
@@ -149,84 +197,122 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
       mapMeters,
       overallKpis.currentRoundTime || undefined
     );
-  }, [selectedOperatorShiftId, mapZones, mapMeters, availableOperators, overallKpis.currentRoundTime]);
+  }, [mapState.selectedEntity, mapZones, mapMeters, availableOperators, overallKpis.currentRoundTime]);
 
   const clearSelection = useCallback(() => {
-    setSelectedOperatorShiftId(null);
-    selectMeter(null);
-    selectZone(null);
-    setDetailOpen(false);
+    mapState.resetToBrowse();
     setAnalyticsOpen(false);
     setViewport({ zoom: 1.0, panX: 0, panY: 0 });
-  }, [selectMeter, selectZone, setViewport]);
+  }, [mapState.resetToBrowse, setViewport]);
 
   const handleSelectOperator = useCallback(
     (operatorId: string) => {
-      setSelectedOperatorShiftId(operatorId);
-      selectZone(null);
-      selectMeter(null);
-      setDetailOpen(false);
+      if (mapState.mode === 'placement') return;
+      mapState.selectOperator(operatorId);
       setAnalyticsOpen(false);
-    },
-    [selectZone, selectMeter]
-  );
-
-  // Placement mode confirmation & cancellation
-  const handleConfirmPlacement = useCallback(
-    async (
-      coords: SpatialPlacementCoords,
-      details?: { meterCode: string; name: string; meterType: string }
-    ) => {
-      if (placementState.isRelocating && placementState.meterId) {
-        await updateAdminMeter(placementState.meterId, {
-          map_x: coords.normX,
-          map_y: coords.normY,
-          zone_id: placementState.targetZoneId,
-        });
-      } else {
-        await createAdminMeter({
-          meter_code: details?.meterCode || 'CT-013',
-          name: details?.name || 'Công tơ mới',
-          meter_type: details?.meterType || 'LCD',
-          map_x: coords.normX,
-          map_y: coords.normY,
-          zone_id: placementState.targetZoneId,
-        });
-      }
-      setPlacementState((prev) => ({ ...prev, isActive: false }));
-      await refresh();
-      setViewport({ zoom: 1.0, panX: 0, panY: 0 });
-    },
-    [placementState, refresh, setViewport]
-  );
-
-  const handleCancelPlacement = useCallback(() => {
-    setPlacementState((prev) => ({ ...prev, isActive: false }));
-    setViewport({ zoom: 1.0, panX: 0, panY: 0 });
-  }, [setViewport]);
-
-  const placement = useSpatialPlacement({
-    isActive: placementState.isActive,
-    targetZoneId: placementState.targetZoneId,
-    targetZoneName: placementState.targetZoneName,
-    meterCode: placementState.meterCode,
-    meterName: placementState.meterName,
-    meterType: placementState.meterType,
-    isRelocating: placementState.isRelocating,
-    existingMeterId: placementState.meterId,
-    onConfirmPlacement: handleConfirmPlacement,
-    onCancel: handleCancelPlacement,
-    onZoneChange: (newZoneId) => {
-      const z = mapZones.find((zone) => zone.id === newZoneId);
-      setPlacementState((prev) => ({
-        ...prev,
-        targetZoneId: newZoneId,
-        targetZoneName: z ? z.name : newZoneId,
-      }));
-      const framing = calculateZoneCameraFraming(newZoneId);
+      const foundZone = mapZones.find((z) => z.assignedUser?.id === operatorId);
+      const anchor = foundZone ? getZoneOperatorAnchor(foundZone.id) : undefined;
+      const framing = focusEntity({
+        entity: { type: 'operator', id: operatorId },
+        mode: 'inspect',
+        viewportWidth: typeof window !== 'undefined' ? window.innerWidth : 1440,
+        viewportHeight: typeof window !== 'undefined' ? window.innerHeight : 900,
+        entityCoords: anchor,
+      });
       setViewport(framing);
     },
-  });
+    [mapState, mapZones, setViewport]
+  );
+
+  const focusMeter = useCallback(
+    (id: string) => {
+      if (mapState.mode === 'placement') return;
+      mapState.selectMeter(id);
+      setAnalyticsOpen(false);
+      const m = mapMeters.find((meter) => meter.id === id);
+      const sceneCoord = m ? normalizedToCanonicalScene(m.coordinates) : undefined;
+      const framing = focusEntity({
+        entity: { type: 'meter', id },
+        mode: 'inspect',
+        viewportWidth: typeof window !== 'undefined' ? window.innerWidth : 1440,
+        viewportHeight: typeof window !== 'undefined' ? window.innerHeight : 900,
+        entityCoords: sceneCoord,
+      });
+      setViewport(framing);
+    },
+    [mapState, mapMeters, setViewport]
+  );
+
+  const focusZone = useCallback(
+    (id: string) => {
+      if (mapState.mode === 'placement') return;
+      mapState.selectZone(id);
+      setAnalyticsOpen(false);
+      const framing = focusEntity({
+        entity: { type: 'zone', id },
+        mode: 'inspect',
+        viewportWidth: typeof window !== 'undefined' ? window.innerWidth : 1440,
+        viewportHeight: typeof window !== 'undefined' ? window.innerHeight : 900,
+      });
+      setViewport(framing);
+    },
+    [mapState, setViewport]
+  );
+
+  const handleOpenDetails = useCallback(
+    (view?: DetailView) => {
+      mapState.openDetails(view);
+      setAnalyticsOpen(false);
+      if (mapState.selectedEntity) {
+        let entityCoords: { x: number; y: number } | undefined;
+        if (mapState.selectedEntity.type === 'meter') {
+          const m = mapMeters.find((meter) => meter.id === mapState.selectedEntity?.id);
+          if (m) entityCoords = normalizedToCanonicalScene(m.coordinates);
+        } else if (mapState.selectedEntity.type === 'operator') {
+          const foundZone = mapZones.find((z) => z.assignedUser?.id === mapState.selectedEntity?.id);
+          if (foundZone) entityCoords = getZoneOperatorAnchor(foundZone.id);
+        }
+        const framing = focusEntity({
+          entity: mapState.selectedEntity,
+          mode: 'details',
+          viewportWidth: typeof window !== 'undefined' ? window.innerWidth : 1440,
+          viewportHeight: typeof window !== 'undefined' ? window.innerHeight : 900,
+          entityCoords,
+        });
+        setViewport(framing);
+      }
+    },
+    [mapState, mapMeters, mapZones, setViewport]
+  );
+
+  const handleBackToInspector = useCallback(() => {
+    const sel = mapState.selectedEntity;
+    if (sel) {
+      let entityCoords: { x: number; y: number } | undefined;
+      if (sel.type === 'meter') {
+        const m = mapMeters.find((meter) => meter.id === sel.id);
+        if (m) entityCoords = normalizedToCanonicalScene(m.coordinates);
+        mapState.selectMeter(sel.id);
+      } else if (sel.type === 'operator') {
+        const foundZone = mapZones.find((z) => z.assignedUser?.id === sel.id);
+        if (foundZone) entityCoords = getZoneOperatorAnchor(foundZone.id);
+        mapState.selectOperator(sel.id);
+      } else if (sel.type === 'zone') {
+        mapState.selectZone(sel.id);
+      }
+      const framing = focusEntity({
+        entity: sel,
+        mode: 'inspect',
+        viewportWidth: typeof window !== 'undefined' ? window.innerWidth : 1440,
+        viewportHeight: typeof window !== 'undefined' ? window.innerHeight : 900,
+        entityCoords,
+      });
+      setViewport(framing);
+    } else {
+      mapState.resetToBrowse();
+      setViewport({ zoom: 1.0, panX: 0, panY: 0 });
+    }
+  }, [mapState, mapMeters, mapZones, setViewport]);
 
   const handleStartPlacement = useCallback(
     (zoneId?: string) => {
@@ -234,22 +320,18 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
       const targetZoneObj = mapZones.find((z) => z.id === targetId);
       const targetName = targetZoneObj ? targetZoneObj.name : 'Khu vực Bãi Container (CY)';
 
-      clearSelection();
+      setAnalyticsOpen(false);
+      mapState.startPlacement(targetId, targetName);
 
-      setPlacementState({
-        isActive: true,
-        isRelocating: false,
-        targetZoneId: targetId,
-        targetZoneName: targetName,
-        meterCode: '',
-        meterName: '',
-        meterType: 'LCD',
+      const framing = focusEntity({
+        entity: { type: 'zone', id: targetId },
+        mode: 'placement',
+        viewportWidth: typeof window !== 'undefined' ? window.innerWidth : 1440,
+        viewportHeight: typeof window !== 'undefined' ? window.innerHeight : 900,
       });
-
-      const framing = calculateZoneCameraFraming(targetId);
       setViewport(framing);
     },
-    [mapZones, clearSelection, setViewport]
+    [mapZones, mapState, setViewport]
   );
 
   const handleStartRelocation = useCallback(
@@ -258,48 +340,69 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
       const targetZoneObj = mapZones.find((z) => z.id === targetId);
       const targetName = targetZoneObj ? targetZoneObj.name : 'Khu vực Bãi Container (CY)';
 
-      clearSelection();
-
-      setPlacementState({
-        isActive: true,
-        isRelocating: true,
-        meterId: meter.id,
+      setAnalyticsOpen(false);
+      mapState.startRelocation({
+        id: meter.id,
         meterCode: meter.meterCode,
-        meterName: meter.name,
-        meterType: 'LCD',
-        targetZoneId: targetId,
+        name: meter.name,
+        zoneId: targetId,
         targetZoneName: targetName,
       });
 
-      const framing = calculateZoneCameraFraming(targetId);
+      const framing = focusEntity({
+        entity: { type: 'zone', id: targetId },
+        mode: 'placement',
+        viewportWidth: typeof window !== 'undefined' ? window.innerWidth : 1440,
+        viewportHeight: typeof window !== 'undefined' ? window.innerHeight : 900,
+      });
       setViewport(framing);
     },
-    [mapZones, clearSelection, setViewport]
+    [mapZones, mapState, setViewport]
   );
+
+  const handleConfirmPlacementFromRail = useCallback(async () => {
+    if (!placement.pinnedCoords || !mapState.placementContext) return;
+    const coords = placement.pinnedCoords;
+    const ctx = mapState.placementContext;
+    if (ctx.isRelocating && ctx.meterId) {
+      await updateAdminMeter(ctx.meterId, {
+        map_x: coords.normX,
+        map_y: coords.normY,
+        zone_id: ctx.targetZoneId,
+      });
+    } else {
+      await createAdminMeter({
+        meter_code: ctx.meterCode || 'CT-013',
+        name: ctx.meterName || 'Công tơ mới',
+        meter_type: ctx.meterType || 'LCD',
+        map_x: coords.normX,
+        map_y: coords.normY,
+        zone_id: ctx.targetZoneId,
+      });
+    }
+    mapState.resetToBrowse();
+    await refresh();
+    setViewport({ zoom: 1.0, panX: 0, panY: 0 });
+  }, [placement.pinnedCoords, mapState, refresh, setViewport]);
+
+  const handleCancelPlacement = useCallback(() => {
+    mapState.cancelPlacement();
+    setViewport({ zoom: 1.0, panX: 0, panY: 0 });
+  }, [mapState, setViewport]);
 
   // Hierarchical ESC key handling
   useEffect(() => {
     const esc = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        if (placementState.isActive) {
-          e.stopPropagation();
-          handleCancelPlacement();
-        } else if (analyticsOpen) {
+        if (analyticsOpen) {
           e.stopPropagation();
           setAnalyticsOpen(false);
-        } else if (detailOpen) {
+        } else if (mapState.mode !== 'browse') {
           e.stopPropagation();
-          setDetailOpen(false);
-        } else if (selectedOperatorShiftId) {
-          e.stopPropagation();
-          setSelectedOperatorShiftId(null);
-        } else if (selection.selectedMeterId) {
-          e.stopPropagation();
-          selectMeter(null);
-        } else if (selection.selectedZoneId) {
-          e.stopPropagation();
-          selectZone(null);
-          setViewport({ zoom: 1.0, panX: 0, panY: 0 });
+          mapState.handleEsc();
+          if (mapState.mode === 'inspect') {
+            setViewport({ zoom: 1.0, panX: 0, panY: 0 });
+          }
         } else if (activeFocusType) {
           e.stopPropagation();
           setActiveFocusType(null);
@@ -311,64 +414,21 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
     };
     window.addEventListener('keydown', esc);
     return () => window.removeEventListener('keydown', esc);
-  }, [
-    placementState.isActive,
-    handleCancelPlacement,
-    analyticsOpen,
-    detailOpen,
-    selectedOperatorShiftId,
-    selection.selectedMeterId,
-    selection.selectedZoneId,
-    activeFocusType,
-    exceptionFocus,
-    selectMeter,
-    selectZone,
-    setViewport,
-  ]);
+  }, [analyticsOpen, mapState, setViewport, activeFocusType, exceptionFocus]);
 
   // Tab Lifecycle: On unmount, ensure all selection & transient surfaces are cleanly reset
+  const clearSelectionRef = React.useRef(clearSelection);
+  clearSelectionRef.current = clearSelection;
+
   useEffect(() => {
     return () => {
-      setSelectedOperatorShiftId(null);
-      setDetailOpen(false);
       setAnalyticsOpen(false);
       setExceptionFocus(false);
       setActiveFocusType(null);
       clearSelection();
     };
-  }, [clearSelection]);
-
-  const focusMeter = useCallback(
-    (id: string) => {
-      if (placementState.isActive) return;
-      setSelectedOperatorShiftId(null);
-      const meter = mapMeters.find((m) => m.id === id);
-      if (!meter) return;
-      selectZone(meter.zoneId);
-      selectMeter(id);
-      setDetailOpen(false);
-      setAnalyticsOpen(false);
-      if (meter.zoneId) {
-        const framing = calculateZoneCameraFraming(meter.zoneId);
-        setViewport(framing);
-      }
-    },
-    [placementState.isActive, mapMeters, selectMeter, selectZone, setViewport]
-  );
-
-  const focusZone = useCallback(
-    (id: string) => {
-      if (placementState.isActive) return;
-      setSelectedOperatorShiftId(null);
-      selectMeter(null);
-      selectZone(id);
-      setDetailOpen(false);
-      setAnalyticsOpen(false);
-      const framing = calculateZoneCameraFraming(id);
-      setViewport(framing);
-    },
-    [placementState.isActive, selectMeter, selectZone, setViewport]
-  );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const exportCsv = useCallback(() => {
     const rows = filteredMeters.map((m) =>
@@ -435,19 +495,24 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
       filters={filters}
       onApplyFilters={setFilters}
 
-      selection={selection}
+      selection={{
+        selectedZoneId: mapState.selectedEntity?.type === 'zone' ? mapState.selectedEntity.id : null,
+        selectedMeterId: mapState.selectedEntity?.type === 'meter' ? mapState.selectedEntity.id : null,
+        hoveredZoneId: mapState.hoveredEntity?.type === 'zone' ? mapState.hoveredEntity.id : null,
+        hoveredMeterId: mapState.hoveredEntity?.type === 'meter' ? mapState.hoveredEntity.id : null,
+      }}
       selectedMeter={selectedMeter}
       selectedZone={selectedZone}
       selectedOperatorSummary={selectedOperatorSummary}
-      selectedOperatorShiftId={selectedOperatorShiftId}
+      selectedOperatorShiftId={mapState.selectedEntity?.type === 'operator' ? mapState.selectedEntity.id : null}
 
       onSelectZone={focusZone}
       onSelectMeter={focusMeter}
       onSelectOperator={handleSelectOperator}
-      onHoverZone={setHoveredZone}
-      onHoverMeter={setHoveredMeter}
+      onHoverZone={(zoneId) => mapState.setHoveredEntity(zoneId ? { type: 'zone', id: zoneId } : null)}
+      onHoverMeter={(meterId) => mapState.setHoveredEntity(meterId ? { type: 'meter', id: meterId } : null)}
       onClearSelection={clearSelection}
-      onCloseOperatorPopover={() => setSelectedOperatorShiftId(null)}
+      onCloseOperatorPopover={() => mapState.resetToBrowse()}
 
       viewport={viewport}
       onViewportChange={setViewport}
@@ -466,58 +531,44 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
         if (type) setExceptionFocus(false);
       }}
 
-      detailOpen={detailOpen}
-      onSetDetailOpen={setDetailOpen}
+      detailOpen={mapState.mode === 'details'}
+      onSetDetailOpen={(open) => {
+        if (open) mapState.openDetails();
+        else mapState.resetToBrowse();
+      }}
       analyticsOpen={analyticsOpen}
-      onSetAnalyticsOpen={setAnalyticsOpen}
+      onSetAnalyticsOpen={(open) => {
+        if (open) mapState.resetToBrowse();
+        setAnalyticsOpen(open);
+      }}
       onInspectReading={onInspectReading}
       onReassignOperator={reassignOperator}
 
+      // V7.1 State Machine Props
+      mapMode={mapState.mode}
+      selectedEntity={mapState.selectedEntity}
+      detailView={mapState.detailView}
+      placementContext={activePlacementContext}
+      onOpenDetails={handleOpenDetails}
+      onBackToInspector={handleBackToInspector}
+      onUpdatePlacementContext={mapState.updatePlacementContext}
+      onConfirmPlacement={handleConfirmPlacementFromRail}
+      onCancelPlacement={handleCancelPlacement}
+      onResetPin={placement.handleResetPin}
+      isSubmittingPlacement={placement.isSubmitting}
+      placementError={placement.error}
+
       placementSvgLayer={
-        placementState.isActive ? (
+        mapState.mode === 'placement' ? (
           <SpatialPlacementSvgLayer
-            isActive={placementState.isActive}
-            targetZoneId={placement.targetZoneId}
-            targetZoneName={placement.targetZoneName}
+            isActive={mapState.mode === 'placement'}
+            targetZoneId={mapState.placementContext?.targetZoneId || 'zone-container'}
+            targetZoneName={mapState.placementContext?.targetZoneName || 'Khu vực Bãi Container (CY)'}
             pinnedCoords={placement.pinnedCoords}
             activeCanonical={placement.activeCanonical}
             isCurrentInside={placement.isCurrentInside}
             onSvgMouseMove={placement.handleSvgMouseMove}
             onSvgClick={placement.handleSvgClick}
-          />
-        ) : undefined
-      }
-      placementCard={
-        placementState.isActive ? (
-          <SpatialPlacementCard
-            isActive={placementState.isActive}
-            targetZoneId={placement.targetZoneId}
-            targetZoneName={placement.targetZoneName}
-            code={placement.code}
-            name={placement.name}
-            meterType={placement.meterType}
-            isRelocating={placement.isRelocating}
-            pinnedCoords={placement.pinnedCoords}
-            activeCanonical={placement.activeCanonical}
-            isCurrentInside={placement.isCurrentInside}
-            isSubmitting={placement.isSubmitting}
-            error={placement.error}
-            setCode={placement.setCode}
-            setName={placement.setName}
-            setMeterType={placement.setMeterType}
-            onZoneChange={(newZoneId) => {
-              const z = mapZones.find((zone) => zone.id === newZoneId);
-              setPlacementState((prev) => ({
-                ...prev,
-                targetZoneId: newZoneId,
-                targetZoneName: z ? z.name : newZoneId,
-              }));
-              const framing = calculateZoneCameraFraming(newZoneId);
-              setViewport(framing);
-            }}
-            onResetPin={placement.handleResetPin}
-            onCancel={placement.onCancel}
-            onConfirm={placement.handleConfirm}
           />
         ) : undefined
       }

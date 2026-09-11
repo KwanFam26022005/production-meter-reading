@@ -122,14 +122,14 @@ export const CanonicalBaseMap: React.FC<CanonicalBaseMapProps> = ({
         </g>
       )}
 
-      {/* 2. Master Canonical Physical Map Image */}
+      {/* 2. Master Canonical Physical Map Image (1915x821 Canonical Aspect Ratio Lock) */}
       <image
         href={tanThuanMapWebp}
         x={0}
         y={0}
         width={CANONICAL_SCENE_WIDTH}
         height={CANONICAL_SCENE_HEIGHT}
-        preserveAspectRatio="none"
+        preserveAspectRatio="xMidYMid meet"
         style={{
           filter: filterStyle,
           opacity: imageLoaded ? 1 : 0,

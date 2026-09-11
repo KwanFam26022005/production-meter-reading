@@ -1,52 +1,72 @@
 import React from 'react';
 import { MapMeterItem } from '../types';
 import { normalizedToCanonicalScene } from '../geometry/canonicalScene';
+import {
+  isPointInPresentationZone,
+  resolveToBusinessZoneId,
+} from '../geometry/operationalGeometry';
+import { calculateSpatialEmphasis } from '../state/spatialVisualEmphasis';
+import type { SelectedEntity, MapMode } from '../state/useMapStateMachine';
 
 interface MeterLayerProps {
   meters: MapMeterItem[];
+  selectedZoneId?: string | null;
   selectedMeterId: string | null;
   hoveredMeterId: string | null;
   exceptionsOnly: boolean;
   zoomLevel: number;
   isAssetMode?: boolean;
+  mode?: MapMode;
+  selectedEntity?: SelectedEntity;
+  targetPlacementZoneId?: string;
   onSelectMeter: (meterId: string) => void;
   onHoverMeter: (meterId: string | null) => void;
   exceptionFocus?: boolean;
 }
 
 /**
- * MeterLayer — Restrained HighTopo Operational Meter Markers
+ * MeterLayer — V7 Visual Contract Implementation
  *
- * Visual Rules (Section 13):
- * - Small core (r=3.5) with thin ring (r=7.5)
- * - Semantic colors:
- *   * Confirmed: green (#10B981)
- *   * Due: blue (#0284C7)
- *   * Review: amber (#F59E0B)
- *   * Overdue: red (#DC2626)
- *   * Pending: slate (#94A3B8)
- *   * Inactive: gray (#CBD5E1)
- * - CT-code label pill ONLY shown on:
- *   * hover
- *   * selected
- *   * exception (overdue/review)
- *   * high zoom (> 1.4)
- * - Dimmed during exception focus if healthy.
+ * Visual Rules:
+ * - Footprint: ROUNDED HEXAGON (compact 18-22px footprint)
+ * - Center gauge dial glyph with needle
+ * - NO permanent CT-code label. Label appears ONLY on hover or when selected.
+ * - Selected state: Crisp white halo (r=15, stroke=2px) + CT-code callout pill.
+ * - Alerts: Small triangle warning badge (red overdue, amber review).
+ *   NO giant pulsing red circles wrapping meters.
+ * - Zone Selection Dimming:
+ *   Meters in selected zone: 100% opacity.
+ *   Outside meters: 25% opacity.
  */
 export const MeterLayer: React.FC<MeterLayerProps> = ({
   meters,
+  selectedZoneId,
   selectedMeterId,
   hoveredMeterId,
   exceptionsOnly,
   zoomLevel: _zoomLevel,
+  mode = 'browse',
+  selectedEntity = null,
+  targetPlacementZoneId,
   onSelectMeter,
   onHoverMeter,
   exceptionFocus = false,
 }) => {
+  const targetBusinessZoneId = resolveToBusinessZoneId(selectedZoneId);
+
+  // Active entity for emphasis resolution
+  const activeSelectedEntity = selectedEntity || (
+    selectedMeterId
+      ? { type: 'meter' as const, id: selectedMeterId }
+      : selectedZoneId
+      ? { type: 'zone' as const, id: selectedZoneId }
+      : null
+  );
+
   return (
     <g className="sgp-meter-layer" aria-label="Lớp điểm công tơ tác nghiệp">
       {meters.map((m) => {
-        const isSelected = m.id === selectedMeterId;
+        const isSelected = m.id === selectedMeterId || activeSelectedEntity?.id === m.id;
         const isHovered = m.id === hoveredMeterId;
         const isOverdue = m.semanticState === 'OVERDUE';
         const isReview = m.semanticState === 'REVIEW';
@@ -58,37 +78,58 @@ export const MeterLayer: React.FC<MeterLayerProps> = ({
         }
 
         // Coordinates resolution: explicit presentation transform
-        const { x, y } = normalizedToCanonicalScene(m.coordinates);
+        const sceneCoord = normalizedToCanonicalScene(m.coordinates);
+        const { x, y } = sceneCoord;
 
-        // Semantic Colors per V7 Spec (04_MARKER_SYSTEM.md Section 17)
+        // Zone selection dimming logic per V7 Visual Contract:
+        let isInsideSelectedZone = true;
+        const effectiveZoneId = targetPlacementZoneId || (activeSelectedEntity?.type === 'zone' ? activeSelectedEntity.id : selectedZoneId);
+        if (effectiveZoneId) {
+          if (isPointInPresentationZone(sceneCoord, effectiveZoneId)) {
+            isInsideSelectedZone = true;
+          } else if (m.zoneId === effectiveZoneId || m.zoneId === targetBusinessZoneId) {
+            isInsideSelectedZone = true;
+          } else {
+            isInsideSelectedZone = false;
+          }
+        }
+
+        // Semantic Colors per V7 Spec
         let coreFill = '#10B981'; // CONFIRMED: Emerald Green
-        let ringStroke = '#10B981';
-        let ringClass = '';
 
         if (isOverdue) {
           coreFill = '#EF4444'; // OVERDUE: Critical Red
-          ringStroke = '#EF4444';
-          ringClass = 'sgp-pulse-ring';
         } else if (isReview) {
           coreFill = '#F59E0B'; // REVIEW: Amber Warning
-          ringStroke = '#F59E0B';
-          ringClass = 'sgp-pulse-ring-amber';
         } else if (m.semanticState === 'DUE') {
           coreFill = '#0284C7'; // DUE: Operational Blue
-          ringStroke = '#38BDF8';
         } else if (m.semanticState === 'PENDING') {
           coreFill = '#64748B'; // PENDING: Neutral Slate
-          ringStroke = '#94A3B8';
         } else if (m.semanticState === 'INACTIVE') {
           coreFill = '#94A3B8'; // INACTIVE: Muted Gray
-          ringStroke = '#CBD5E1';
         }
 
         // CT-code label visibility rule: ONLY show code when selected or hovered
         const showCodePill = isSelected || isHovered;
 
-        // Dim normal markers during exception focus
-        const isDimmed = exceptionFocus && !isException && !isSelected;
+        // Calculate centralized spatial emphasis
+        let emphasis = calculateSpatialEmphasis({
+          mode,
+          selectedEntity: activeSelectedEntity,
+          targetPlacementZoneId,
+          entityType: 'meter',
+          entityId: m.id,
+          zoneId: m.zoneId,
+        });
+
+        // If inside selected zone was false and entity is zone, ensure dimmed
+        if (effectiveZoneId && !isInsideSelectedZone && activeSelectedEntity?.type === 'zone') {
+          emphasis = Math.min(emphasis, 0.25);
+        }
+
+        if (exceptionFocus && !isException && !isSelected) {
+          emphasis = Math.min(emphasis, 0.20);
+        }
 
         const accessibleLabel = `${m.meterCode}, ${m.zoneName || 'Khu vực tác nghiệp'}, ${
           m.stateLabel || m.semanticState
@@ -104,7 +145,7 @@ export const MeterLayer: React.FC<MeterLayerProps> = ({
             } ${isHovered ? 'hovered' : ''}`}
             transform={`translate(${x}, ${y})`}
             cursor="pointer"
-            opacity={isDimmed ? 0.22 : 1}
+            opacity={emphasis}
             style={{ transition: 'opacity 280ms ease, transform 180ms ease' }}
             onClick={(e) => {
               e.stopPropagation();
@@ -122,42 +163,36 @@ export const MeterLayer: React.FC<MeterLayerProps> = ({
               }
             }}
           >
-            {/* 0. 48x48 px Invisible Touch Target Area (Section 25 Accessibility) */}
-            <rect
-              x={-24}
-              y={-24}
-              width={48}
-              height={48}
-              fill="transparent"
-              pointerEvents="all"
-            />
+            {/* 0. 44x44 px Invisible Touch Target Area */}
+            <circle cx={0} cy={0} r={22} fill="transparent" pointerEvents="all" />
 
-            {/* 1. Pulsing Ring for Overdue / Review Exceptions */}
-            {isException && (
-              <circle
-                cx={0}
-                cy={0}
-                r={17}
-                fill="none"
-                stroke={ringStroke}
-                strokeWidth={isOverdue ? 2.0 : 1.8}
-                className={ringClass}
-              />
-            )}
-
-            {/* 2. Selection Focus Halo (r=22) */}
+            {/* 1. SELECTION WHITE HALO (V7 Contract: r=15, stroke=2px) */}
             {isSelected && (
               <circle
                 cx={0}
                 cy={0}
-                r={22}
+                r={15}
                 fill="none"
-                stroke="var(--ops-accent, #0E7490)"
-                strokeWidth={2.5}
-                strokeDasharray="4 3"
-                opacity={0.9}
-                className="sgp-marker-halo"
+                stroke="#FFFFFF"
+                strokeWidth={2}
+                filter="drop-shadow(0 0 6px rgba(255, 255, 255, 0.8))"
+                className="sgp-marker-selected-halo"
               />
+            )}
+
+            {/* 2. ALERT BADGE: Small Warning Triangle at Corner (NO giant pulsing circles) */}
+            {isException && (
+              <g transform="translate(7, -10)" pointerEvents="none">
+                <path
+                  d="M 0 -7 L 6 3 L -6 3 Z"
+                  fill={isOverdue ? '#EF4444' : '#F59E0B'}
+                  stroke="#FFFFFF"
+                  strokeWidth={0.8}
+                  filter="drop-shadow(0 1px 3px rgba(0,0,0,0.5))"
+                />
+                <line x1={0} y1={-3} x2={0} y2={-0.5} stroke="#FFFFFF" strokeWidth={1} strokeLinecap="round" />
+                <circle cx={0} cy={1.5} r={0.6} fill="#FFFFFF" />
+              </g>
             )}
 
             {/* 3. White Separation Outer Halo (Hexagon r=11, stroke=3.2px) */}

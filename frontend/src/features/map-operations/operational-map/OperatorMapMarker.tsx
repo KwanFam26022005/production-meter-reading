@@ -7,49 +7,59 @@ export interface OperatorMapMarkerProps {
   x: number;
   y: number;
   isSelected?: boolean;
+  isDimmed?: boolean;
+  emphasis?: number;
   onClick: (operatorId: string) => void;
 }
 
 /**
- * OperatorMapMarker — Spatial representation of a responsible operator on the operational map.
+ * OperatorMapMarker — V7 Visual Contract Implementation
  *
- * Visual hierarchy:
- * - Inner circular avatar disc with operator initial or User icon (diameter 28px, r=14)
- * - Outer SVG circular progress ring (r=19, circumference ≈ 119.38px)
- * - Progress color: Brand Teal (#0E7490) / Active Blue (#0284C7)
- * - Track color: Neutral slate (#CBD5E1)
- * - CRITICAL RULE: Progress ring represents SHIFT PROGRESS (0-100%), NOT severity/issues.
- * - Issue badge (top-right): Red (#EF4444) for overdue count, Amber (#F59E0B) for review count.
- * - Selected state: Subtle halo ring (r=25).
- * - Full accessibility: role="button", role="progressbar", keyboard Enter/Space/Escape.
+ * Rules:
+ * - CIRCLE footprint: 32-36px visual footprint (r=16, d=32px)
+ * - Initials inside dark circle (#0F172A)
+ * - Outer circular shift progress ring (0-100%)
+ * - Issue badge (top-right) ONLY when issue count > 0 (Red overdue / Amber review)
+ * - NO permanent large percentage pills (clutter-free physical scene)
+ * - Hover tooltip reveals full name and progress %
+ * - Opacity 25% when dimmed (another zone is selected)
  */
 export const OperatorMapMarker: React.FC<OperatorMapMarkerProps> = React.memo(({
   summary,
   x,
   y,
   isSelected = false,
+  isDimmed = false,
+  emphasis,
   onClick,
 }) => {
   const [isHovered, setIsHovered] = useState(false);
 
-  // SVG circular geometry
-  const ringRadius = 19;
-  const ringCircumference = 2 * Math.PI * ringRadius; // ~119.38
+  // SVG circular geometry: r=15.5 -> outer footprint ~34px
+  const ringRadius = 15.5;
+  const ringCircumference = 2 * Math.PI * ringRadius; // ~97.39px
   const clampedProgress = Math.max(0, Math.min(100, summary.progressPct));
   const strokeOffset = ringCircumference - (clampedProgress / 100) * ringCircumference;
 
-  const initial = summary.fullName?.trim()?.charAt(0)?.toUpperCase();
+  // Extract initials (e.g. "Đặng Văn B" -> "DB", "Trần Thị C" -> "TC", or single initial fallback)
+  const nameParts = summary.fullName?.trim().split(/\s+/) || [];
+  const initial =
+    nameParts.length >= 2
+      ? `${nameParts[0].charAt(0)}${nameParts[nameParts.length - 1].charAt(0)}`.toUpperCase()
+      : summary.fullName?.trim().charAt(0).toUpperCase() || 'NV';
+
   const hasOverdue = summary.overdueMeters > 0;
   const hasReview = summary.reviewMeters > 0;
+  const issueCount = summary.overdueMeters + summary.reviewMeters;
 
   // Accessible descriptive label
   const issueDesc = hasOverdue
     ? `${summary.overdueMeters} quá hạn`
     : hasReview
     ? `${summary.reviewMeters} cần kiểm tra`
-    : 'không có ngoại lệ';
+    : 'tiến độ bình thường';
 
-  const accessibleLabel = `${summary.fullName}, tiến độ ca ${summary.progressPct}%, ${issueDesc}`;
+  const accessibleLabel = `${summary.fullName} (${initial}), tiến độ ca ${summary.progressPct}%, ${issueDesc}`;
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ' ') {
@@ -61,7 +71,9 @@ export const OperatorMapMarker: React.FC<OperatorMapMarkerProps> = React.memo(({
 
   return (
     <g
-      className={`sgp-operator-map-marker ${isSelected ? 'selected' : ''} ${isHovered ? 'hovered' : ''}`}
+      className={`sgp-operator-map-marker ${isSelected ? 'selected' : ''} ${
+        isHovered ? 'hovered' : ''
+      }`}
       transform={`translate(${x}, ${y})`}
       role="button"
       tabIndex={0}
@@ -69,6 +81,8 @@ export const OperatorMapMarker: React.FC<OperatorMapMarkerProps> = React.memo(({
       aria-haspopup="dialog"
       aria-expanded={isSelected}
       cursor="pointer"
+      opacity={emphasis !== undefined ? emphasis : isDimmed ? 0.25 : 1}
+      style={{ transition: 'opacity 280ms cubic-bezier(0.16, 1, 0.3, 1)' }}
       onClick={(e) => {
         e.stopPropagation();
         onClick(summary.operatorId);
@@ -77,50 +91,42 @@ export const OperatorMapMarker: React.FC<OperatorMapMarkerProps> = React.memo(({
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {/* 0. 48x48 px Invisible Touch Target Area (Section 25 Accessibility) */}
-      <rect
-        x={-24}
-        y={-24}
-        width={48}
-        height={48}
-        fill="transparent"
-        pointerEvents="all"
-      />
+      {/* 0. 44x44 px Invisible Touch Target */}
+      <circle cx={0} cy={0} r={22} fill="transparent" pointerEvents="all" />
 
       {/* 1. SELECTION / HOVER HALO */}
       {isSelected && (
         <circle
           cx={0}
           cy={0}
-          r={25}
+          r={21}
           fill="none"
-          stroke="var(--ops-accent, #0E7490)"
-          strokeWidth={2.5}
-          strokeOpacity={0.45}
+          stroke="#00A3FF"
+          strokeWidth={2}
+          strokeOpacity={0.8}
+          filter="drop-shadow(0 0 6px rgba(0, 163, 255, 0.6))"
           className="sgp-op-marker-halo"
         />
       )}
 
-      {/* 2. PROGRESS RING (SVG CIRCLES)
-          CRITICAL: Ring color is strictly operational progress, not issue severity
-      */}
-      {/* Background track circle */}
+      {/* 2. BACKGROUND DISC & PROGRESS TRACK */}
       <circle
         cx={0}
         cy={0}
         r={ringRadius}
-        fill="#FFFFFF"
-        stroke="#E2E8F0"
-        strokeWidth={3}
+        fill="#0F172A"
+        stroke="#1E293B"
+        strokeWidth={2.6}
       />
+
       {/* Dynamic progress ring circle */}
       <circle
         cx={0}
         cy={0}
         r={ringRadius}
         fill="none"
-        stroke={isSelected ? 'var(--ops-accent, #0E7490)' : '#0E7490'}
-        strokeWidth={3.2}
+        stroke={isSelected ? '#38BDF8' : '#0284C7'}
+        strokeWidth={2.8}
         strokeLinecap="round"
         strokeDasharray={ringCircumference}
         strokeDashoffset={strokeOffset}
@@ -130,124 +136,90 @@ export const OperatorMapMarker: React.FC<OperatorMapMarkerProps> = React.memo(({
         aria-valuenow={clampedProgress}
         aria-valuemin={0}
         aria-valuemax={100}
-        aria-label="Tiến độ hoàn thành ca trực"
       />
 
-      {/* 3. INNER AVATAR DISC (r=14.5) */}
+      {/* 3. INNER AVATAR DISC (Dark Circle with Initials) */}
       <circle
         cx={0}
         cy={0}
-        r={14.5}
-        fill={isSelected ? 'var(--ops-accent, #0E7490)' : 'var(--ops-brand, #073B5C)'}
-        stroke="#FFFFFF"
-        strokeWidth={1.5}
+        r={12}
+        fill="#0B192C"
+        stroke="#1E293B"
+        strokeWidth={1}
       />
+
       {initial ? (
         <text
           x={0}
-          y={4.5}
+          y={4}
           textAnchor="middle"
           fill="#FFFFFF"
-          fontSize={11.5}
+          fontSize={10.5}
           fontWeight={700}
           fontFamily="system-ui, -apple-system, sans-serif"
           pointerEvents="none"
+          letterSpacing="0.04em"
         >
           {initial}
         </text>
       ) : (
-        <g transform="translate(-7, -7)">
-          <User size={14} color="#FFFFFF" />
+        <g transform="translate(-6, -6)">
+          <User size={12} color="#FFFFFF" />
         </g>
       )}
 
-      {/* 4. EXCEPTION BADGE (Top-Right: cx=14, cy=-14)
-          Red for Overdue, Amber for Review
-      */}
-      {hasOverdue ? (
-        <g transform="translate(13, -13)" className="sgp-op-badge-overdue">
-          <circle cx={0} cy={0} r={7.5} fill="#EF4444" stroke="#FFFFFF" strokeWidth={1.5} />
-          <text
-            x={0}
-            y={3}
-            textAnchor="middle"
-            fill="#FFFFFF"
-            fontSize={9}
-            fontWeight={800}
-            fontFamily="system-ui, sans-serif"
-            pointerEvents="none"
-          >
-            {summary.overdueMeters > 9 ? '9+' : summary.overdueMeters}
-          </text>
-        </g>
-      ) : hasReview ? (
-        <g transform="translate(13, -13)" className="sgp-op-badge-review">
-          <circle cx={0} cy={0} r={7.5} fill="#F59E0B" stroke="#FFFFFF" strokeWidth={1.5} />
-          <text
-            x={0}
-            y={3}
-            textAnchor="middle"
-            fill="#FFFFFF"
-            fontSize={9}
-            fontWeight={800}
-            fontFamily="system-ui, sans-serif"
-            pointerEvents="none"
-          >
-            {summary.reviewMeters > 9 ? '9+' : summary.reviewMeters}
-          </text>
-        </g>
-      ) : null}
-
-      {/* 5. PERMANENT PROGRESS PILL (Approved Design) */}
-      <g transform="translate(0, 24)" pointerEvents="none">
-        <rect
-          x={-18}
-          y={-7}
-          width={36}
-          height={14}
-          rx={7}
-          fill="#0B192C"
-          stroke={isSelected ? '#38BDF8' : '#0284C7'}
-          strokeWidth={1.2}
-          filter="drop-shadow(0 2px 4px rgba(0,0,0,0.35))"
-        />
-        <text
-          x={0}
-          y={3}
-          textAnchor="middle"
-          fill="#38BDF8"
-          fontSize={9}
-          fontWeight={800}
-          fontFamily="system-ui, -apple-system, sans-serif"
-        >
-          {clampedProgress}%
-        </text>
-      </g>
-
-      {/* 6. MINIMAL HOVER TOOLTIP (Figma 6D-F requirement)
-          Shows: "Nguyễn Văn A · 65% tiến độ ca"
-      */}
-      {isHovered && !isSelected && (
-        <g transform="translate(0, -32)" pointerEvents="none" className="sgp-op-hover-tooltip">
-          <rect
-            x={-90}
-            y={-12}
-            width={180}
-            height={24}
-            rx={4}
-            fill="#0F172A"
-            fillOpacity={0.92}
+      {/* 4. EXCEPTION BADGE: RENDER ONLY WHEN ISSUE COUNT > 0 */}
+      {issueCount > 0 && (
+        <g transform="translate(12, -12)" className="sgp-op-badge">
+          <circle
+            cx={0}
+            cy={0}
+            r={6.5}
+            fill={hasOverdue ? '#EF4444' : '#F59E0B'}
+            stroke="#0B192C"
+            strokeWidth={1.5}
+            filter="drop-shadow(0 1px 3px rgba(0,0,0,0.5))"
           />
           <text
             x={0}
-            y={4}
+            y={2.5}
             textAnchor="middle"
             fill="#FFFFFF"
-            fontSize={10.5}
+            fontSize={8}
+            fontWeight={800}
+            fontFamily="system-ui, sans-serif"
+            pointerEvents="none"
+          >
+            {issueCount > 9 ? '9+' : issueCount}
+          </text>
+        </g>
+      )}
+
+      {/* 5. MINIMAL HOVER TOOLTIP */}
+      {isHovered && !isSelected && (
+        <g transform="translate(0, -26)" pointerEvents="none" className="sgp-op-hover-tooltip">
+          <rect
+            x={-75}
+            y={-11}
+            width={150}
+            height={22}
+            rx={4}
+            fill="#0B192C"
+            fillOpacity={0.94}
+            stroke="#1E293B"
+            strokeWidth={1}
+            filter="drop-shadow(0 4px 8px rgba(0,0,0,0.5))"
+          />
+          <text
+            x={0}
+            y={3.5}
+            textAnchor="middle"
+            fill="#FFFFFF"
+            fontSize={10}
             fontWeight={600}
             fontFamily="system-ui, sans-serif"
           >
-            {summary.fullName} · {summary.progressPct}% ca
+            {summary.fullName} ({initial}) · {summary.progressPct}% ca
           </text>
         </g>
       )}
@@ -256,4 +228,5 @@ export const OperatorMapMarker: React.FC<OperatorMapMarkerProps> = React.memo(({
 });
 
 OperatorMapMarker.displayName = 'OperatorMapMarker';
+
 
