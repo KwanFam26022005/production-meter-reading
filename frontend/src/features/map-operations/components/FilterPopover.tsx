@@ -8,6 +8,8 @@ interface FilterPopoverProps {
   zones: MapOperationalZone[];
   operators?: User[];
   onApplyFilters: (nextFilters: MapFilterOptions) => void;
+  isOpen?: boolean;
+  onToggle?: (open: boolean) => void;
 }
 
 const STATUS_OPTIONS: { id: MeterSemanticState; label: string; dotClass: string }[] = [
@@ -23,8 +25,19 @@ export const FilterPopover: React.FC<FilterPopoverProps> = ({
   zones,
   operators = [],
   onApplyFilters,
+  isOpen: controlledIsOpen,
+  onToggle,
 }) => {
-  const [isOpen, setIsOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isOpen = controlledIsOpen !== undefined ? controlledIsOpen : internalOpen;
+  const setIsOpen = (val: boolean | ((prev: boolean) => boolean)) => {
+    const nextVal = typeof val === 'function' ? val(isOpen) : val;
+    if (onToggle) {
+      onToggle(nextVal);
+    } else {
+      setInternalOpen(nextVal);
+    }
+  };
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Local draft state while popover is open

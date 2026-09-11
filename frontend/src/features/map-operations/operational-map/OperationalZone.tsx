@@ -72,7 +72,10 @@ export const OperationalZone: React.FC<OperationalZoneProps> = ({
         strokeWidth={strokeWidth}
         cursor="pointer"
         style={{ transition: 'fill 0.2s ease, stroke 0.2s ease' }}
-        onClick={() => onSelect(geometry.id)}
+        onClick={(e) => {
+          e.stopPropagation();
+          onSelect(geometry.id);
+        }}
         onMouseEnter={() => onHover(geometry.id)}
         onMouseLeave={() => onHover(null)}
       />

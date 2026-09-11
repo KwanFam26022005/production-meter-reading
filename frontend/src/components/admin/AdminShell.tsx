@@ -40,6 +40,18 @@ export const AdminShell: React.FC<AdminShellProps> = ({
     return () => window.removeEventListener('sgp-toggle-admin-sidebar', handleToggle);
   }, []);
 
+  useEffect(() => {
+    if (!sidebarOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        setSidebarOpen(false);
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown, true);
+    return () => document.removeEventListener('keydown', handleKeyDown, true);
+  }, [sidebarOpen]);
+
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     try {
       return localStorage.getItem('csg_admin_sidebar_collapsed') === 'true';
@@ -127,6 +139,17 @@ export const AdminShell: React.FC<AdminShellProps> = ({
             >
               {sidebarCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
             </button>
+            {sidebarOpen && (
+              <button
+                type="button"
+                className="admin-sidebar-close-btn"
+                onClick={() => setSidebarOpen(false)}
+                title="Đóng menu điều hướng (ESC)"
+                aria-label="Đóng menu điều hướng"
+              >
+                <X size={16} />
+              </button>
+            )}
           </div>
 
           <nav className="admin-nav-list">

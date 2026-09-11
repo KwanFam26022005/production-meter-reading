@@ -52,7 +52,9 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
   } = useMapSelection();
 
   const [exceptionFocus, setExceptionFocus] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
+  const [utilitySurface, setUtilitySurface] = useState<'search' | 'filter' | null>(null);
+  const searchOpen = utilitySurface === 'search';
+  const filterOpen = utilitySurface === 'filter';
   const [searchQuery, setSearchQuery] = useState('');
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedOperatorShiftId, setSelectedOperatorShiftId] = useState<string | null>(null);
@@ -115,7 +117,7 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
     selectMeter(null);
     selectZone(null);
     setDetailOpen(false);
-    setSearchOpen(false);
+    setUtilitySurface(null);
   }, [selectMeter, selectZone]);
 
   const handleSelectOperator = useCallback(
@@ -124,7 +126,7 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
       selectZone(null);
       selectMeter(null);
       setDetailOpen(false);
-      setSearchOpen(false);
+      setUtilitySurface(null);
     },
     [selectZone, selectMeter]
   );
@@ -133,22 +135,39 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
   useEffect(() => {
     const esc = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        if (selectedOperatorShiftId) {
-          setSelectedOperatorShiftId(null);
-        } else if (detailOpen) {
+        if (detailOpen) {
+          e.stopPropagation();
           setDetailOpen(false);
-        } else if (searchOpen) {
-          setSearchOpen(false);
+        } else if (selectedOperatorShiftId) {
+          e.stopPropagation();
+          setSelectedOperatorShiftId(null);
+        } else if (selection.selectedMeterId) {
+          e.stopPropagation();
+          selectMeter(null);
+        } else if (utilitySurface !== null) {
+          e.stopPropagation();
+          setUtilitySurface(null);
+        } else if (selection.selectedZoneId) {
+          e.stopPropagation();
+          selectZone(null);
         } else if (exceptionFocus) {
+          e.stopPropagation();
           setExceptionFocus(false);
-        } else {
-          clearSelection();
         }
       }
     };
     window.addEventListener('keydown', esc);
     return () => window.removeEventListener('keydown', esc);
-  }, [clearSelection, detailOpen, searchOpen, exceptionFocus, selectedOperatorShiftId]);
+  }, [
+    detailOpen,
+    selectedOperatorShiftId,
+    selection.selectedMeterId,
+    utilitySurface,
+    selection.selectedZoneId,
+    exceptionFocus,
+    selectMeter,
+    selectZone,
+  ]);
 
   const focusMeter = useCallback(
     (id: string) => {
@@ -158,7 +177,7 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
       selectZone(meter.zoneId);
       selectMeter(id);
       setDetailOpen(false);
-      setSearchOpen(false);
+      setUtilitySurface(null);
       const svgCoord = normalizedToOperationalSvg(meter.coordinates);
       setViewport({
         zoom: 1.45,
@@ -175,7 +194,7 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
       selectMeter(null);
       selectZone(id);
       setDetailOpen(false);
-      setSearchOpen(false);
+      setUtilitySurface(null);
     },
     [selectMeter, selectZone]
   );
@@ -261,7 +280,7 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
                 className="sgp-map-icon-btn"
                 aria-label="Tìm công tơ hoặc khu vực"
                 aria-expanded={searchOpen}
-                onClick={() => setSearchOpen((v) => !v)}
+                onClick={() => setUtilitySurface((v) => (v === 'search' ? null : 'search'))}
               >
                 <Search size={17} />
               </button>
@@ -276,7 +295,7 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="Tìm công tơ hoặc khu vực..."
                     />
-                    <button onClick={() => setSearchOpen(false)} aria-label="Đóng tìm kiếm">
+                    <button onClick={() => setUtilitySurface(null)} aria-label="Đóng tìm kiếm">
                       <X size={14} />
                     </button>
                   </div>
@@ -307,6 +326,8 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
               zones={mapZones}
               operators={availableOperators}
               onApplyFilters={setFilters}
+              isOpen={filterOpen}
+              onToggle={(open) => setUtilitySurface(open ? 'filter' : null)}
             />
           </div>
 
