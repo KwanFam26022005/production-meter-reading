@@ -6,3 +6,4 @@ export { MeterQuickPopup } from './MeterQuickPopup';
 export { MeterDetailDrawer, MeterDrawer } from './MeterDetailDrawer';
 export { SceneSearch } from './SceneSearch';
 export { SceneFilter } from './SceneFilter';
+export { AnalyticsDrawer } from '../context/AnalyticsDrawer';
