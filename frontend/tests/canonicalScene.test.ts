@@ -42,10 +42,10 @@ function distance(p1: { x: number; y: number }, p2: { x: number; y: number }): n
 // 1. CANONICAL TRANSFORM TESTS
 // ---------------------------------------------------------------------------
 test('Canonical Transform: Dimensions and Aspect Ratio match canonical port map', () => {
-  assert.equal(CANONICAL_SCENE_WIDTH, 1664);
-  assert.equal(CANONICAL_SCENE_HEIGHT, 932);
-  assert.equal(CANONICAL_VIEWBOX, '0 0 1664 932');
-  assert.equal(CANONICAL_MAP_VERSION, 'tan-thuan-v1');
+  assert.equal(CANONICAL_SCENE_WIDTH, 1915);
+  assert.equal(CANONICAL_SCENE_HEIGHT, 821);
+  assert.equal(CANONICAL_VIEWBOX, '0 0 1915 821');
+  assert.equal(CANONICAL_MAP_VERSION, 'tan-thuan-v2');
 });
 
 test('Canonical Transform: Boundary and Center Roundtrip Projections', () => {
@@ -56,13 +56,13 @@ test('Canonical Transform: Boundary and Center Roundtrip Projections', () => {
 
   // Max extent (1, 1)
   const maxSvg = normalizedToCanonicalScene({ x: 1, y: 1 });
-  assert.deepEqual(maxSvg, { x: 1664, y: 932 });
-  assert.deepEqual(canonicalSceneToNormalized(1664, 932), { x: 1, y: 1 });
+  assert.deepEqual(maxSvg, { x: 1915, y: 821 });
+  assert.deepEqual(canonicalSceneToNormalized(1915, 821), { x: 1, y: 1 });
 
   // Center (0.5, 0.5)
   const centerSvg = normalizedToCanonicalScene({ x: 0.5, y: 0.5 });
-  assert.deepEqual(centerSvg, { x: 832, y: 466 });
-  assert.deepEqual(canonicalSceneToNormalized(832, 466), { x: 0.5, y: 0.5 });
+  assert.deepEqual(centerSvg, { x: 958, y: 411 });
+  assert.deepEqual(canonicalSceneToNormalized(958, 411), { x: 0.5003, y: 0.5006 });
 });
 
 test('Viewport Clamping: Clamps pan coordinates to prevent black void exposure', () => {
@@ -70,10 +70,10 @@ test('Viewport Clamping: Clamps pan coordinates to prevent black void exposure',
   const z1 = clampPanForZoom(-100, 100, 1.0);
   assert.deepEqual(z1, { panX: 0, panY: 0 });
 
-  // Zoom = 1.45 -> panX in [-749, 0], panY in [-419, 0]
-  const z145 = clampPanForZoom(-900, -600, 1.45);
-  assert.equal(z145.panX, -749);
-  assert.equal(z145.panY, -419);
+  // Zoom = 1.45 -> panX in [-862, 0], panY in [-369, 0]
+  const z145 = clampPanForZoom(-1000, -600, 1.45);
+  assert.equal(z145.panX, -862);
+  assert.equal(z145.panY, -369);
 
   // Positive pan (pulling away from top/left) clamped to 0
   const zPositive = clampPanForZoom(200, 300, 1.45);

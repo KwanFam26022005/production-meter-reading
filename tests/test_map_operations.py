@@ -1,3 +1,4 @@
+import json
 import os
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -13,6 +14,8 @@ from backend.app.models import (
     AdminAuditLog,
     Meter,
     OperationalZone,
+    ReadingBatch,
+    ReadingRound,
     SessionModel,
     User,
     ZoneAssignment,
@@ -237,6 +240,43 @@ def test_map_overview_round_switching():
     token, csrf_token, _ = create_test_admin_session()
     cookies = {get_settings().session_cookie_name: token}
 
+    # Ensure rounds exist for 2026-08-25
+    db = SessionLocal()
+    try:
+        tz = ZoneInfo("Asia/Ho_Chi_Minh")
+        r_count = (
+            db.query(ReadingRound)
+            .filter(
+                ReadingRound.scheduled_at >= datetime(2026, 8, 25, 0, 0, tzinfo=tz),
+                ReadingRound.scheduled_at <= datetime(2026, 8, 25, 23, 59, tzinfo=tz),
+            )
+            .count()
+        )
+        if r_count < 2:
+            batch = db.query(ReadingBatch).filter(ReadingBatch.period_key == "2026-08").first()
+            if not batch:
+                batch = ReadingBatch(id=str(uuid.uuid4()), name="Đợt 2026-08", period_key="2026-08", status="OPEN")
+                db.add(batch)
+                db.flush()
+            r1_obj = ReadingRound(
+                id=str(uuid.uuid4()),
+                batch_id=batch.id,
+                scheduled_at=datetime(2026, 8, 25, 8, 0, tzinfo=tz),
+                status="CLOSED",
+                is_legacy=False,
+            )
+            r2_obj = ReadingRound(
+                id=str(uuid.uuid4()),
+                batch_id=batch.id,
+                scheduled_at=datetime(2026, 8, 25, 10, 0, tzinfo=tz),
+                status="OPEN",
+                is_legacy=False,
+            )
+            db.add_all([r1_obj, r2_obj])
+            db.commit()
+    finally:
+        db.close()
+
     # Query 2026-08-25 dashboard to get rounds
     dash_resp = client.get("/api/v1/admin/dashboard?date=2026-08-25", cookies=cookies)
     assert dash_resp.status_code == 200
@@ -245,7 +285,7 @@ def test_map_overview_round_switching():
     assert len(rounds) >= 2
 
     r1 = rounds[0]  # e.g. 08:00
-    r2 = rounds[2]  # e.g. 10:00
+    r2 = rounds[1]  # second round
 
     # Query overview for round 1
     resp_r1 = client.get(f"/api/v1/map/overview?date=2026-08-25&round_id={r1['round_id']}", cookies=cookies)
@@ -267,5 +307,113 @@ def test_map_overview_round_switching():
 
     # Round 1 and Round 2 data must be distinct reflecting that round's operational state
     assert data_r1["current_round_time"] != data_r2["current_round_time"]
+
+
+def test_admin_meter_creation_with_spatial_coordinates():
+    token, csrf_token, _ = create_test_admin_session()
+    cookies = {get_settings().session_cookie_name: token}
+
+    # Ensure clean slate for CT-V7-NEW
+    db = SessionLocal()
+    try:
+        db.query(Meter).filter(Meter.meter_code == "CT-V7-NEW").delete()
+        db.commit()
+    finally:
+        db.close()
+
+    create_payload = {
+        "meter_code": "CT-V7-NEW",
+        "name": "Công tơ thử nghiệm V7",
+        "location": "Bãi Container Trung tâm",
+        "meter_type": "LCD",
+        "zone_id": "zone-container",
+        "map_x": 0.6115,
+        "map_y": 0.5323,
+    }
+
+    resp = client.post(
+        "/api/v1/admin/meters",
+        json=create_payload,
+        headers={"X-CSRF-Token": csrf_token},
+        cookies=cookies,
+    )
+    assert resp.status_code == 200, resp.text
+    data = resp.json()
+    assert data["meter_code"] == "CT-V7-NEW"
+    assert data["zone_id"] == "zone-container"
+    assert data["map_x"] == 0.6115
+    assert data["map_y"] == 0.5323
+
+    # Check audit log
+    db = SessionLocal()
+    try:
+        audit = (
+            db.query(AdminAuditLog)
+            .filter(AdminAuditLog.action == "METER_CREATED", AdminAuditLog.resource_id == data["id"])
+            .first()
+        )
+        assert audit is not None
+        after_data = json.loads(audit.after_json) if isinstance(audit.after_json, str) else audit.after_json
+        assert after_data["meter_code"] == "CT-V7-NEW"
+        assert after_data["zone_id"] == "zone-container"
+        assert after_data["map_x"] == 0.6115
+        assert after_data["map_y"] == 0.5323
+    finally:
+        db.close()
+
+
+def test_admin_meter_relocation_updates_coordinates_and_audit_log():
+    token, csrf_token, _ = create_test_admin_session()
+    cookies = {get_settings().session_cookie_name: token}
+
+    # First fetch meters to find CT-V7-NEW
+    resp = client.get("/api/v1/admin/meters?search=CT-V7-NEW", cookies=cookies)
+    assert resp.status_code == 200
+    meters = resp.json()["meters"]
+    assert len(meters) >= 1
+    target = meters[0]
+
+    # Relocate to new coordinates
+    update_payload = {
+        "zone_id": "zone-berth",
+        "map_x": 0.7311,
+        "map_y": 0.3812,
+    }
+
+    patch_resp = client.patch(
+        f"/api/v1/admin/meters/{target['id']}",
+        json=update_payload,
+        headers={"X-CSRF-Token": csrf_token},
+        cookies=cookies,
+    )
+    assert patch_resp.status_code == 200, patch_resp.text
+    updated = patch_resp.json()
+    assert updated["zone_id"] == "zone-berth"
+    assert updated["map_x"] == 0.7311
+    assert updated["map_y"] == 0.3812
+
+    # Check audit log for METER_UPDATED
+    db = SessionLocal()
+    try:
+        audit = (
+            db.query(AdminAuditLog)
+            .filter(AdminAuditLog.action == "METER_UPDATED", AdminAuditLog.resource_id == target["id"])
+            .order_by(AdminAuditLog.created_at.desc())
+            .first()
+        )
+        assert audit is not None
+        before_data = json.loads(audit.before_json) if isinstance(audit.before_json, str) else audit.before_json
+        after_data = json.loads(audit.after_json) if isinstance(audit.after_json, str) else audit.after_json
+        assert before_data["zone_id"] == "zone-container"
+        assert after_data["zone_id"] == "zone-berth"
+        assert after_data["map_x"] == 0.7311
+        assert after_data["map_y"] == 0.3812
+
+        # Clean up test meter
+        db.query(Meter).filter(Meter.id == target["id"]).delete()
+        db.commit()
+    finally:
+        db.close()
+
 
 
