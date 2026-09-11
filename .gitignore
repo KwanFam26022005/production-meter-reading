@@ -42,9 +42,13 @@ datasets/
 uploads/
 artifacts/
 
-# Whitelist frontend static assets & public icons
+# Whitelist frontend static assets, public icons & v7 design documentation
 !frontend/src/assets/**
 !frontend/public/**
+!docs/design/map-operations/v7/screenshots/**
+
+# Agent local artifacts
+.agents/
 
 # Runtime output and logs
 backend/tmp/
