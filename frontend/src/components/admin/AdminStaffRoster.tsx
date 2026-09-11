@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  Calendar,
   CheckCircle2,
   Clock,
   FileSpreadsheet,
@@ -375,10 +374,7 @@ export const AdminStaffRoster: React.FC<AdminStaffRosterProps> = ({ user: _curre
       {/* 1. HEADER SECTION */}
       <div className="admin-page-header">
         <div className="admin-page-title-group">
-          <h1 className="admin-page-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Calendar size={22} style={{ color: 'var(--sgp-brand-600)' }} />
-            <span>Lịch phân ca</span>
-          </h1>
+          <h1 className="admin-page-title">Lịch phân ca</h1>
           <p className="admin-page-subtitle">
             Quản lý kíp trực và độ phủ nhân sự 24/7 theo chu kỳ cảng biển Sài Gòn
           </p>
