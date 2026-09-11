@@ -33,6 +33,7 @@
   align-items: center;
   gap: 12px;
   pointer-events: none;
+  z-index: 35;
 }
 
 /* Top-Left Title Cluster */
@@ -40,23 +41,24 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  background: rgba(255, 255, 255, 0.94);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  padding: 6px 14px 6px 10px;
+  background: rgba(255, 255, 255, 0.90);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  padding: 4px 14px 4px 6px;
   border-radius: 9999px;
-  border: 1px solid rgba(11, 79, 117, 0.14);
-  box-shadow: 0 4px 16px rgba(11, 79, 117, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  box-shadow: 0 4px 20px -2px rgba(11, 79, 117, 0.10);
   pointer-events: auto;
   user-select: none;
+  height: 38px;
 }
 
 .sgp-hud-menu-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 30px;
+  width: 28px;
+  height: 28px;
   border-radius: 9999px;
   border: none;
   background: rgba(14, 116, 144, 0.08);
@@ -96,7 +98,7 @@
 }
 
 .sgp-header-main-title {
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 700;
   color: #0F172A;
   margin: 0;
@@ -104,7 +106,7 @@
 }
 
 .sgp-header-sub-title {
-  font-size: 10.5px;
+  font-size: 10px;
   color: #64748B;
   font-weight: 500;
   line-height: 1;
@@ -115,14 +117,15 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  background: rgba(255, 255, 255, 0.94);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  padding: 5px 8px;
+  background: rgba(255, 255, 255, 0.90);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  padding: 3px 6px;
   border-radius: 9999px;
-  border: 1px solid rgba(11, 79, 117, 0.14);
-  box-shadow: 0 4px 16px rgba(11, 79, 117, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  box-shadow: 0 4px 20px -2px rgba(11, 79, 117, 0.10);
   pointer-events: auto;
+  height: 38px;
 }
 
 /* Segmented Control [Bản đồ] [Danh sách] with Sliding Pill */
@@ -162,8 +165,8 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 5px 12px;
-  font-size: 12px;
+  padding: 4px 11px;
+  font-size: 11.5px;
   font-weight: 600;
   border-radius: 9999px;
   border: none;
@@ -186,8 +189,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 30px;
+  height: 30px;
   border-radius: 9999px;
   border: 1px solid rgba(203, 213, 225, 0.8);
   background: #FFFFFF;
@@ -241,209 +244,217 @@
 }
 
 /* ==========================================================================
-   2. LEFT ACTIONS HUD (Search & Filter)
+   2. LEFT ACTIONS HUD (Action Rail)
    ========================================================================== */
 
 .sgp-hud-left-actions {
   position: absolute;
-  top: 72px;
+  top: 60px;
   left: 16px;
-  display: flex;
-  gap: 8px;
   z-index: 35;
+  pointer-events: auto;
+}
+
+.sgp-scene-action-hud {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.90);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  box-shadow: 0 4px 20px -2px rgba(11, 79, 117, 0.10);
+  border-radius: 9999px;
+  padding: 4px;
+}
+
+.sgp-scene-action-hud .sgp-map-icon-btn,
+.sgp-scene-action-hud .sgp-filter-trigger-btn {
+  width: 34px;
+  height: 34px;
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  border: none;
+  background: transparent;
+  color: #475569;
+  cursor: pointer;
+  transition: all 180ms ease;
+  position: relative;
+  padding: 0;
+}
+
+.sgp-scene-action-hud .sgp-filter-trigger-btn span:not(.sgp-filter-count-badge) {
+  display: none;
+}
+
+.sgp-scene-action-hud .sgp-filter-trigger-btn .sgp-filter-count-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: #0E7490;
+  color: #FFFFFF;
+  font-size: 9px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid #FFFFFF;
+}
+
+.sgp-scene-action-hud .sgp-map-icon-btn:hover,
+.sgp-scene-action-hud .sgp-filter-trigger-btn:hover {
+  background: rgba(14, 116, 144, 0.10);
+  color: #0E7490;
+  transform: scale(1.05);
+}
+
+.sgp-scene-action-hud .sgp-map-icon-btn.active,
+.sgp-scene-action-hud .sgp-map-icon-btn[aria-expanded="true"],
+.sgp-scene-action-hud .sgp-filter-trigger-btn[aria-expanded="true"],
+.sgp-scene-action-hud .sgp-filter-trigger-btn.has-active {
+  background: #0E7490;
+  color: #FFFFFF;
 }
 
 /* ==========================================================================
-   3. RIGHT SUMMARY HUD (Telemetry & Alert Focus)
+   3. RIGHT SUMMARY HUD (Telemetry Cluster)
    ========================================================================== */
 
 .sgp-hud-right-summary {
   position: absolute;
-  top: 72px;
+  top: 60px;
   right: 16px;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 8px;
   z-index: 35;
+  pointer-events: auto;
 }
 
 .sgp-scene-summary-hud {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 6px;
+  align-items: center;
+  pointer-events: auto;
 }
 
-/* Exception Summary Pill */
-.sgp-summary-pill-btn {
+.sgp-telemetry-cluster {
   display: flex;
   align-items: center;
-  gap: 7px;
-  padding: 6px 14px;
+  gap: 3px;
+  background: rgba(255, 255, 255, 0.90);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  box-shadow: 0 4px 20px -2px rgba(11, 79, 117, 0.10);
   border-radius: 9999px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  transition: all 180ms ease;
-  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
+  padding: 3px 5px;
 }
 
-.sgp-summary-pill-btn.all-healthy {
-  background: rgba(255, 255, 255, 0.94);
-  border: 1px solid rgba(16, 185, 129, 0.3);
-  color: #065F46;
-}
-
-.sgp-summary-pill-btn.all-healthy:hover {
-  border-color: #10B981;
-  background: #FFFFFF;
-}
-
-.sgp-summary-pill-btn.has-issues {
-  background: rgba(255, 255, 255, 0.95);
-  border: 1.5px solid #F59E0B;
-  color: #92400E;
-}
-
-.sgp-summary-pill-btn.has-issues:hover,
-.sgp-summary-pill-btn.focus-active {
-  background: #FFFBEB;
-  box-shadow: 0 4px 18px rgba(245, 158, 11, 0.25);
-}
-
-/* Telemetry Chips Row */
-.sgp-telemetry-chips-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-}
-
-.sgp-telemetry-chip {
+.sgp-telemetry-item {
   display: flex;
   align-items: center;
   gap: 5px;
-  padding: 4px 10px;
+  height: 26px;
+  padding: 0 8px;
   border-radius: 9999px;
-  font-size: 11px;
-  font-weight: 600;
   border: 1px solid transparent;
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(8px);
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+  background: transparent;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #334155;
   cursor: default;
   transition: all 180ms ease;
+  white-space: nowrap;
 }
 
-.sgp-telemetry-chip button,
-button.sgp-telemetry-chip {
+button.sgp-telemetry-item {
   cursor: pointer;
 }
 
-.sgp-telemetry-chip .chip-dot {
+button.sgp-telemetry-item:hover {
+  background: rgba(14, 116, 144, 0.08);
+  color: #0E7490;
+}
+
+.sgp-telemetry-divider {
+  width: 1px;
+  height: 14px;
+  background: rgba(203, 213, 225, 0.8);
+  margin: 0 2px;
+}
+
+.sgp-telemetry-item.item-exception.all-healthy {
+  color: #065F46;
+  background: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.2);
+}
+
+.sgp-telemetry-item.item-exception.has-issues {
+  color: #92400E;
+  background: rgba(245, 158, 11, 0.1);
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.sgp-telemetry-item.item-overdue {
+  color: #991B1B;
+}
+.sgp-telemetry-item.item-overdue:hover,
+.sgp-telemetry-item.item-overdue.active-focus {
+  background: #FEE2E2;
+  border-color: #EF4444;
+  color: #7F1D1D;
+}
+
+.sgp-telemetry-item.item-review {
+  color: #92400E;
+}
+.sgp-telemetry-item.item-review:hover,
+.sgp-telemetry-item.item-review.active-focus {
+  background: #FEF3C7;
+  border-color: #F59E0B;
+  color: #78350F;
+}
+
+.sgp-telemetry-item.item-pending {
+  color: #475569;
+}
+.sgp-telemetry-item.item-pending:hover,
+.sgp-telemetry-item.item-pending.active-focus {
+  background: #F1F5F9;
+  border-color: #94A3B8;
+  color: #1E293B;
+}
+
+.sgp-telemetry-item.item-reset {
+  color: #DC2626;
+  background: rgba(220, 38, 38, 0.08);
+  border-color: rgba(220, 38, 38, 0.2);
+}
+
+.sgp-telemetry-item.item-analytics {
+  color: #0E7490;
+  font-weight: 700;
+}
+.sgp-telemetry-item.item-analytics:hover {
+  background: rgba(14, 116, 144, 0.12);
+}
+
+.sgp-telemetry-item .chip-dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
 }
-
-.chip-confirmed {
-  color: #065F46;
-  border-color: rgba(16, 185, 129, 0.25);
-}
-.chip-confirmed .chip-dot {
-  background: #10B981;
-}
-
-.chip-overdue {
-  color: #991B1B;
-  border-color: rgba(220, 38, 38, 0.3);
-}
-.chip-overdue .chip-dot {
-  background: #DC2626;
-}
-.chip-overdue:hover,
-.chip-overdue.active-focus {
-  background: #FEF2F2;
-  border-color: #DC2626;
-  transform: translateY(-1px);
-}
-
-.chip-review {
-  color: #92400E;
-  border-color: rgba(245, 158, 11, 0.3);
-}
-.chip-review .chip-dot {
-  background: #F59E0B;
-}
-.chip-review:hover,
-.chip-review.active-focus {
-  background: #FFFBEB;
-  border-color: #F59E0B;
-  transform: translateY(-1px);
-}
-
-.chip-pending {
-  color: #475569;
-  border-color: rgba(148, 163, 184, 0.3);
-}
-.chip-pending .chip-dot {
-  background: #94A3B8;
-}
-.chip-pending:hover,
-.chip-pending.active-focus {
-  background: #F8FAFC;
-  border-color: #64748B;
-  transform: translateY(-1px);
-}
-
-.chip-analytics {
-  color: #0E7490;
-  border-color: rgba(14, 116, 144, 0.25);
-}
-.chip-analytics:hover {
-  background: rgba(14, 116, 144, 0.08);
-  border-color: #0E7490;
-}
-
-/* Active Focus Banner */
-.sgp-focus-indicator-banner {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 10px;
-  border-radius: 9999px;
-  background: #0F172A;
-  color: #F8FAFC;
-  font-size: 11px;
-  font-weight: 500;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  animation: sgp-focus-bar-enter 180ms ease-out;
-}
-
-.sgp-focus-clear-mini-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.2);
-  border: none;
-  color: #FFFFFF;
-  cursor: pointer;
-  transition: background 120ms ease;
-}
-
-.sgp-focus-clear-mini-btn:hover {
-  background: rgba(255, 255, 255, 0.4);
-}
+.dot-emerald { background: #10B981; }
+.dot-rose { background: #EF4444; }
+.dot-amber { background: #F59E0B; }
+.dot-slate { background: #94A3B8; }
 
 /* ==========================================================================
-   4. BOTTOM-LEFT ROUND HUD
+   4. BOTTOM-LEFT ROUND HUD (Scene Dock)
    ========================================================================== */
 
 .sgp-hud-bottom-left {
@@ -451,31 +462,35 @@ button.sgp-telemetry-chip {
   bottom: 16px;
   left: 16px;
   z-index: 35;
+  pointer-events: auto;
 }
 
 .sgp-scene-round-hud-wrap {
   position: relative;
 }
 
+.sgp-round-scene-dock,
 .sgp-round-hud-pill {
   display: flex;
   align-items: center;
-  gap: 4px;
-  background: rgba(255, 255, 255, 0.94);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(11, 79, 117, 0.14);
-  padding: 4px 6px;
+  gap: 3px;
+  background: rgba(255, 255, 255, 0.90);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  box-shadow: 0 4px 20px -2px rgba(11, 79, 117, 0.10);
   border-radius: 9999px;
-  box-shadow: 0 4px 14px rgba(11, 79, 117, 0.1);
-  cursor: pointer;
+  padding: 3px 4px;
+  height: 36px;
+  cursor: default;
   user-select: none;
   transition: all 180ms ease;
 }
 
+.sgp-round-scene-dock:hover,
 .sgp-round-hud-pill:hover {
   background: #FFFFFF;
-  border-color: #0E7490;
+  box-shadow: 0 6px 24px -2px rgba(14, 116, 144, 0.16);
   transform: translateY(-1px);
 }
 
@@ -483,23 +498,24 @@ button.sgp-telemetry-chip {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  border-radius: 9999px;
   border: none;
   background: transparent;
-  color: #64748B;
+  color: #475569;
   cursor: pointer;
   transition: all 120ms ease;
 }
 
 .sgp-round-nav-btn:hover:not(:disabled) {
-  background: rgba(14, 116, 144, 0.1);
+  background: rgba(14, 116, 144, 0.12);
   color: #0E7490;
+  transform: scale(1.05);
 }
 
 .sgp-round-nav-btn:disabled {
-  opacity: 0.3;
+  opacity: 0.25;
   cursor: not-allowed;
 }
 
@@ -507,10 +523,19 @@ button.sgp-telemetry-chip {
   display: flex;
   align-items: center;
   gap: 5px;
-  padding: 0 4px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 9999px;
+  background: rgba(14, 116, 144, 0.08);
+  color: #0E7490;
   font-size: 12px;
   font-weight: 600;
-  color: #0F172A;
+  cursor: pointer;
+  transition: all 120ms ease;
+}
+
+.sgp-round-info-segment:hover {
+  background: rgba(14, 116, 144, 0.16);
 }
 
 .sgp-round-clock {
@@ -523,6 +548,7 @@ button.sgp-telemetry-chip {
 
 .sgp-round-pct {
   color: #0E7490;
+  font-weight: 700;
 }
 
 /* Expanded Round Popover */
@@ -613,7 +639,7 @@ button.sgp-telemetry-chip {
 }
 
 /* ==========================================================================
-   5. BOTTOM-RIGHT VIEWPORT CONTROLS & LEGEND
+   5. BOTTOM-RIGHT VIEWPORT CONTROLS & LEGEND (Vertical Dock)
    ========================================================================== */
 
 .sgp-hud-bottom-right {
@@ -621,6 +647,102 @@ button.sgp-telemetry-chip {
   bottom: 16px;
   right: 16px;
   z-index: 35;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  pointer-events: auto;
+}
+
+.sgp-scene-control-hud {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  pointer-events: auto;
+}
+
+/* Legend trigger button inside dock */
+.sgp-scene-control-hud .sgp-map-legend-wrapper {
+  position: static;
+}
+
+.sgp-scene-control-hud .sgp-legend-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  background: rgba(255, 255, 255, 0.90);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  border-radius: 9999px;
+  box-shadow: 0 4px 20px -2px rgba(11, 79, 117, 0.10);
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+  transition: all 180ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sgp-scene-control-hud .sgp-legend-toggle:hover,
+.sgp-scene-control-hud .sgp-legend-toggle.active {
+  background: #FFFFFF;
+  color: #0E7490;
+  border-color: #0E7490;
+  box-shadow: 0 6px 24px -2px rgba(14, 116, 144, 0.18);
+  transform: translateY(-1px);
+}
+
+/* Viewport Controls inside dock */
+.sgp-scene-control-hud .sgp-viewport-controls {
+  position: static;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  background: rgba(255, 255, 255, 0.90);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  border-radius: 12px;
+  box-shadow: 0 4px 20px -2px rgba(11, 79, 117, 0.10);
+  padding: 4px;
+}
+
+.sgp-scene-control-hud .sgp-vctrl-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: #334155;
+  cursor: pointer;
+  transition: all 120ms ease;
+}
+
+.sgp-scene-control-hud .sgp-vctrl-btn:hover {
+  background: rgba(14, 116, 144, 0.10);
+  color: #0E7490;
+}
+
+.sgp-scene-control-hud .sgp-vctrl-btn.reset {
+  width: 100%;
+  padding: 0 6px;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.sgp-scene-control-hud .sgp-vctrl-divider {
+  width: 24px;
+  height: 1px;
+  background: rgba(203, 213, 225, 0.6);
+  margin: 2px 0;
 }
 
 /* ==========================================================================

@@ -44,6 +44,34 @@ export const CanonicalBaseMap: React.FC<CanonicalBaseMapProps> = ({
 
   return (
     <g className="sgp-canonical-base-map" aria-label="Bản đồ không gian Cảng Tân Thuận">
+      <defs>
+        {/* Extended Atmospheric Maritime-to-Forest Gradient */}
+        <linearGradient id="sgp-maritime-scene-gradient" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#0B486B" />
+          <stop offset="30%" stopColor="#0D3B56" />
+          <stop offset="65%" stopColor="#0F2B3E" />
+          <stop offset="88%" stopColor="#142C24" />
+          <stop offset="100%" stopColor="#11241C" />
+        </linearGradient>
+
+        {/* Soft edge blend mask for map image */}
+        <linearGradient id="sgp-edge-fade-x" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0" />
+          <stop offset="1%" stopColor="#FFFFFF" stopOpacity="1" />
+          <stop offset="99%" stopColor="#FFFFFF" stopOpacity="1" />
+          <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+
+      {/* 0. Extended Continuous Scene Backdrop (Eliminates harsh cuts on pan/zoom/wide viewports) */}
+      <rect
+        x={-1200}
+        y={-800}
+        width={CANONICAL_SCENE_WIDTH + 2400}
+        height={CANONICAL_SCENE_HEIGHT + 1600}
+        fill="url(#sgp-maritime-scene-gradient)"
+      />
+
       {/* 1. Neutral Port Canvas Fallback (Shown while loading or decoding) */}
       <rect
         x={0}

@@ -16,7 +16,7 @@ async function loginIfNeeded(page) {
     await employeeInput.fill('52300119');
     const passwordInput = await page.$('input[type="password"]');
     if (passwordInput) {
-      await passwordInput.fill('AdminPass123!');
+      await passwordInput.fill('khoa2005');
       const submitBtn = await page.$('button[type="submit"]');
       if (submitBtn) {
         await submitBtn.click();
@@ -89,7 +89,11 @@ async function run() {
   });
   await page.waitForTimeout(600);
   await page.screenshot({ path: path.join(OUT_DIR, 'qa-1440x900-operator-selected.png') });
+  // Close Operator popover and reset view to 100%
   await page.mouse.click(100, 100);
+  await page.waitForTimeout(300);
+  const resetBtn = await page.$('.sgp-vctrl-btn.reset');
+  if (resetBtn) await resetBtn.click();
   await page.waitForTimeout(400);
 
   // B. Critical State (Date 2026-08-07)

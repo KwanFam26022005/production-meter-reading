@@ -64,21 +64,11 @@ export const SceneRoundHUD: React.FC<SceneRoundHUDProps> = ({
 
   return (
     <div className="sgp-scene-round-hud-wrap" ref={popoverRef}>
-      {/* 1. COMPACT CURRENT ROUND PILL */}
+      {/* 1. SCENE DOCK: CURRENT ROUND & STEPPER */}
       <div
-        className="sgp-round-hud-pill"
-        role="button"
-        tabIndex={0}
-        onClick={() => setRoundMenuOpen((prev) => !prev)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            setRoundMenuOpen((prev) => !prev);
-          }
-        }}
+        className="sgp-round-scene-dock sgp-round-hud-pill"
+        role="region"
         aria-label={`Lượt đọc ${displayTime}, hoàn thành ${displayPct}%. Nhấn để chuyển lượt.`}
-        aria-haspopup="listbox"
-        aria-expanded={roundMenuOpen}
       >
         <button
           type="button"
@@ -88,11 +78,25 @@ export const SceneRoundHUD: React.FC<SceneRoundHUDProps> = ({
           title="Lượt trước"
           aria-label="Lượt trước"
         >
-          <ChevronLeft size={13} strokeWidth={2.5} />
+          <ChevronLeft size={14} strokeWidth={2.5} />
         </button>
 
-        <div className="sgp-round-info-segment">
-          <Clock size={12} className="sgp-round-clock" aria-hidden="true" />
+        <div
+          className="sgp-round-info-segment"
+          role="button"
+          tabIndex={0}
+          onClick={() => setRoundMenuOpen((prev) => !prev)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              setRoundMenuOpen((prev) => !prev);
+            }
+          }}
+          title="Nhấn để chọn lượt đọc khác"
+          aria-haspopup="listbox"
+          aria-expanded={roundMenuOpen}
+        >
+          <Clock size={12} className="sgp-round-clock text-cyan-700" aria-hidden="true" />
           <span className="sgp-round-time font-tabular">{displayTime}</span>
           <span className="sgp-round-dot">·</span>
           <span className="sgp-round-pct font-tabular">{displayPct}%</span>
@@ -106,7 +110,7 @@ export const SceneRoundHUD: React.FC<SceneRoundHUDProps> = ({
           title="Lượt tiếp theo"
           aria-label="Lượt tiếp theo"
         >
-          <ChevronRight size={13} strokeWidth={2.5} />
+          <ChevronRight size={14} strokeWidth={2.5} />
         </button>
       </div>
 

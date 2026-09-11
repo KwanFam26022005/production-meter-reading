@@ -128,7 +128,7 @@ export const OperationalScene: React.FC<OperationalSceneProps> = ({
         width: '100%',
         height: '100%',
         overflow: 'hidden',
-        backgroundColor: '#0F172A',
+        background: 'radial-gradient(ellipse at 50% 30%, #0B486B 0%, #0D3B56 35%, #0F2B3E 70%, #0A1C28 100%)',
         userSelect: 'none',
       }}
       onMouseDown={handleMouseDown}
@@ -141,7 +141,7 @@ export const OperationalScene: React.FC<OperationalSceneProps> = ({
       <svg
         viewBox={CANONICAL_VIEWBOX}
         className="sgp-operational-svg"
-        preserveAspectRatio="xMidYMid meet"
+        preserveAspectRatio="xMidYMid slice"
         style={{
           width: '100%',
           height: '100%',
