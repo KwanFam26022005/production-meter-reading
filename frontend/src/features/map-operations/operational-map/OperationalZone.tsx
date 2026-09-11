@@ -72,6 +72,7 @@ export const OperationalZone: React.FC<OperationalZoneProps> = React.memo(({
       className={`sgp-operational-zone ${isSelected ? 'selected' : ''} ${
         isHovered ? 'hovered' : ''
       } ${health.toLowerCase()}`}
+      data-zone-id={geometry.id}
       opacity={isDimmed ? 0.30 : 1}
       style={{ transition: 'opacity 340ms cubic-bezier(0.16, 1, 0.3, 1)' }}
       tabIndex={0}

@@ -12,6 +12,7 @@ interface MeterQuickPopupProps {
   meter: MapMeterItem;
   onDetails: () => void;
   onClose: () => void;
+  onRelocate?: () => void;
   viewport?: MapViewportState;
 }
 
@@ -29,6 +30,7 @@ export const MeterQuickPopup: React.FC<MeterQuickPopupProps> = ({
   meter,
   onDetails,
   onClose,
+  onRelocate,
   viewport,
 }) => {
   const stateCfg = SEMANTIC_STATE_CONFIG[meter.semanticState] || SEMANTIC_STATE_CONFIG.PENDING;
@@ -165,11 +167,35 @@ export const MeterQuickPopup: React.FC<MeterQuickPopupProps> = ({
       </div>
 
       {/* 3. Footer Call-to-Action */}
-      <div className="sgp-mqp-footer">
+      <div className="sgp-mqp-footer" style={{ display: 'flex', gap: 8 }}>
+        {onRelocate && (
+          <button
+            type="button"
+            className="sgp-mqp-relocate-btn"
+            onClick={onRelocate}
+            style={{
+              flex: 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '8px 10px',
+              borderRadius: 8,
+              border: '1px solid #CBD5E1',
+              backgroundColor: '#FFFFFF',
+              color: '#334155',
+              fontSize: 12,
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}
+          >
+            Chỉnh vị trí
+          </button>
+        )}
         <button
           type="button"
           className="sgp-mqp-action-btn"
           onClick={onDetails}
+          style={{ flex: 1.2 }}
         >
           <span>Xem chi tiết</span>
           <ArrowRight size={14} />

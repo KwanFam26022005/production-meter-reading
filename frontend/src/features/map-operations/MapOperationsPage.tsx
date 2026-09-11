@@ -6,7 +6,16 @@ import { LoadingState } from '../../components/ui/LoadingState';
 import { ErrorState } from '../../components/ui/ErrorState';
 import { deriveOperatorShiftSummary } from './utils/deriveOperatorShiftSummary';
 import type { User } from '../../types';
+import type { MapMeterItem } from './types';
 import { ImmersiveSceneShell } from './shell/ImmersiveSceneShell';
+import { calculateZoneCameraFraming } from './geometry/operationalGeometry';
+import {
+  useSpatialPlacement,
+  SpatialPlacementSvgLayer,
+  SpatialPlacementCard,
+  SpatialPlacementCoords,
+} from './placement/SpatialPlacementOverlay';
+import { createAdminMeter, updateAdminMeter } from '../../services/api';
 import './motion/mapMotion.css';
 
 interface MapOperationsPageProps {
@@ -67,21 +76,39 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
   const [analyticsOpen, setAnalyticsOpen] = useState(false);
   const [selectedOperatorShiftId, setSelectedOperatorShiftId] = useState<string | null>(null);
 
+  // Spatial Placement & Relocation Mode State (GATE 8)
+  const [placementState, setPlacementState] = useState<{
+    isActive: boolean;
+    isRelocating: boolean;
+    meterId?: string;
+    meterCode?: string;
+    meterName?: string;
+    meterType?: string;
+    targetZoneId: string;
+    targetZoneName: string;
+  }>({
+    isActive: false,
+    isRelocating: false,
+    targetZoneId: 'zone-container',
+    targetZoneName: 'Khu vực Bãi Container (CY)',
+  });
+
   // Runtime source of truth verification object
   useEffect(() => {
     if (typeof window !== 'undefined') {
       (window as any).__MAP_UI_BUILD__ = {
-        phase: 'Immersive-Spatial-Console-U0-U4',
+        phase: 'Immersive-Spatial-Console-V7',
         renderer: 'OperationalScene',
-        geometryVersion: 'tan-thuan-v1',
-        viewBox: '0 0 1664 932',
+        geometryVersion: 'tan-thuan-v2',
+        viewBox: '0 0 1915 821',
         zones: mapZones.length,
         meters: mapMeters.length,
         viewMode,
+        placementActive: placementState.isActive,
         timestamp: new Date().toISOString(),
       };
     }
-  }, [mapZones, mapMeters, viewMode]);
+  }, [mapZones, mapMeters, viewMode, placementState.isActive]);
 
   // Filtered meters with active focus support
   const filteredMeters = useMemo(() => {
@@ -130,7 +157,8 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
     selectZone(null);
     setDetailOpen(false);
     setAnalyticsOpen(false);
-  }, [selectMeter, selectZone]);
+    setViewport({ zoom: 1.0, panX: 0, panY: 0 });
+  }, [selectMeter, selectZone, setViewport]);
 
   const handleSelectOperator = useCallback(
     (operatorId: string) => {
@@ -143,11 +171,120 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
     [selectZone, selectMeter]
   );
 
+  // Placement mode confirmation & cancellation
+  const handleConfirmPlacement = useCallback(
+    async (
+      coords: SpatialPlacementCoords,
+      details?: { meterCode: string; name: string; meterType: string }
+    ) => {
+      if (placementState.isRelocating && placementState.meterId) {
+        await updateAdminMeter(placementState.meterId, {
+          map_x: coords.normX,
+          map_y: coords.normY,
+          zone_id: placementState.targetZoneId,
+        });
+      } else {
+        await createAdminMeter({
+          meter_code: details?.meterCode || 'CT-013',
+          name: details?.name || 'Công tơ mới',
+          meter_type: details?.meterType || 'LCD',
+          map_x: coords.normX,
+          map_y: coords.normY,
+          zone_id: placementState.targetZoneId,
+        });
+      }
+      setPlacementState((prev) => ({ ...prev, isActive: false }));
+      await refresh();
+      setViewport({ zoom: 1.0, panX: 0, panY: 0 });
+    },
+    [placementState, refresh, setViewport]
+  );
+
+  const handleCancelPlacement = useCallback(() => {
+    setPlacementState((prev) => ({ ...prev, isActive: false }));
+    setViewport({ zoom: 1.0, panX: 0, panY: 0 });
+  }, [setViewport]);
+
+  const placement = useSpatialPlacement({
+    isActive: placementState.isActive,
+    targetZoneId: placementState.targetZoneId,
+    targetZoneName: placementState.targetZoneName,
+    meterCode: placementState.meterCode,
+    meterName: placementState.meterName,
+    meterType: placementState.meterType,
+    isRelocating: placementState.isRelocating,
+    existingMeterId: placementState.meterId,
+    onConfirmPlacement: handleConfirmPlacement,
+    onCancel: handleCancelPlacement,
+    onZoneChange: (newZoneId) => {
+      const z = mapZones.find((zone) => zone.id === newZoneId);
+      setPlacementState((prev) => ({
+        ...prev,
+        targetZoneId: newZoneId,
+        targetZoneName: z ? z.name : newZoneId,
+      }));
+      const framing = calculateZoneCameraFraming(newZoneId);
+      setViewport(framing);
+    },
+  });
+
+  const handleStartPlacement = useCallback(
+    (zoneId?: string) => {
+      const targetId = zoneId || 'zone-container';
+      const targetZoneObj = mapZones.find((z) => z.id === targetId);
+      const targetName = targetZoneObj ? targetZoneObj.name : 'Khu vực Bãi Container (CY)';
+
+      clearSelection();
+
+      setPlacementState({
+        isActive: true,
+        isRelocating: false,
+        targetZoneId: targetId,
+        targetZoneName: targetName,
+        meterCode: '',
+        meterName: '',
+        meterType: 'LCD',
+      });
+
+      const framing = calculateZoneCameraFraming(targetId);
+      setViewport(framing);
+    },
+    [mapZones, clearSelection, setViewport]
+  );
+
+  const handleStartRelocation = useCallback(
+    (meter: MapMeterItem) => {
+      const targetId = meter.zoneId || 'zone-container';
+      const targetZoneObj = mapZones.find((z) => z.id === targetId);
+      const targetName = targetZoneObj ? targetZoneObj.name : 'Khu vực Bãi Container (CY)';
+
+      clearSelection();
+
+      setPlacementState({
+        isActive: true,
+        isRelocating: true,
+        meterId: meter.id,
+        meterCode: meter.meterCode,
+        meterName: meter.name,
+        meterType: 'LCD',
+        targetZoneId: targetId,
+        targetZoneName: targetName,
+      });
+
+      const framing = calculateZoneCameraFraming(targetId);
+      setViewport(framing);
+    },
+    [mapZones, clearSelection, setViewport]
+  );
+
   // Hierarchical ESC key handling
   useEffect(() => {
     const esc = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        if (analyticsOpen) {
+        if (placementState.isActive) {
+          e.stopPropagation();
+          handleCancelPlacement();
+        } else if (analyticsOpen) {
           e.stopPropagation();
           setAnalyticsOpen(false);
         } else if (detailOpen) {
@@ -162,6 +299,7 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
         } else if (selection.selectedZoneId) {
           e.stopPropagation();
           selectZone(null);
+          setViewport({ zoom: 1.0, panX: 0, panY: 0 });
         } else if (activeFocusType) {
           e.stopPropagation();
           setActiveFocusType(null);
@@ -174,6 +312,8 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
     window.addEventListener('keydown', esc);
     return () => window.removeEventListener('keydown', esc);
   }, [
+    placementState.isActive,
+    handleCancelPlacement,
     analyticsOpen,
     detailOpen,
     selectedOperatorShiftId,
@@ -183,6 +323,7 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
     exceptionFocus,
     selectMeter,
     selectZone,
+    setViewport,
   ]);
 
   // Tab Lifecycle: On unmount, ensure all selection & transient surfaces are cleanly reset
@@ -199,6 +340,7 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
 
   const focusMeter = useCallback(
     (id: string) => {
+      if (placementState.isActive) return;
       setSelectedOperatorShiftId(null);
       const meter = mapMeters.find((m) => m.id === id);
       if (!meter) return;
@@ -206,19 +348,26 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
       selectMeter(id);
       setDetailOpen(false);
       setAnalyticsOpen(false);
+      if (meter.zoneId) {
+        const framing = calculateZoneCameraFraming(meter.zoneId);
+        setViewport(framing);
+      }
     },
-    [mapMeters, selectMeter, selectZone]
+    [placementState.isActive, mapMeters, selectMeter, selectZone, setViewport]
   );
 
   const focusZone = useCallback(
     (id: string) => {
+      if (placementState.isActive) return;
       setSelectedOperatorShiftId(null);
       selectMeter(null);
       selectZone(id);
       setDetailOpen(false);
       setAnalyticsOpen(false);
+      const framing = calculateZoneCameraFraming(id);
+      setViewport(framing);
     },
-    [selectMeter, selectZone]
+    [placementState.isActive, selectMeter, selectZone, setViewport]
   );
 
   const exportCsv = useCallback(() => {
@@ -323,6 +472,57 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
       onSetAnalyticsOpen={setAnalyticsOpen}
       onInspectReading={onInspectReading}
       onReassignOperator={reassignOperator}
+
+      placementSvgLayer={
+        placementState.isActive ? (
+          <SpatialPlacementSvgLayer
+            isActive={placementState.isActive}
+            targetZoneId={placement.targetZoneId}
+            targetZoneName={placement.targetZoneName}
+            pinnedCoords={placement.pinnedCoords}
+            activeCanonical={placement.activeCanonical}
+            isCurrentInside={placement.isCurrentInside}
+            onSvgMouseMove={placement.handleSvgMouseMove}
+            onSvgClick={placement.handleSvgClick}
+          />
+        ) : undefined
+      }
+      placementCard={
+        placementState.isActive ? (
+          <SpatialPlacementCard
+            isActive={placementState.isActive}
+            targetZoneId={placement.targetZoneId}
+            targetZoneName={placement.targetZoneName}
+            code={placement.code}
+            name={placement.name}
+            meterType={placement.meterType}
+            isRelocating={placement.isRelocating}
+            pinnedCoords={placement.pinnedCoords}
+            activeCanonical={placement.activeCanonical}
+            isCurrentInside={placement.isCurrentInside}
+            isSubmitting={placement.isSubmitting}
+            error={placement.error}
+            setCode={placement.setCode}
+            setName={placement.setName}
+            setMeterType={placement.setMeterType}
+            onZoneChange={(newZoneId) => {
+              const z = mapZones.find((zone) => zone.id === newZoneId);
+              setPlacementState((prev) => ({
+                ...prev,
+                targetZoneId: newZoneId,
+                targetZoneName: z ? z.name : newZoneId,
+              }));
+              const framing = calculateZoneCameraFraming(newZoneId);
+              setViewport(framing);
+            }}
+            onResetPin={placement.handleResetPin}
+            onCancel={placement.onCancel}
+            onConfirm={placement.handleConfirm}
+          />
+        ) : undefined
+      }
+      onAddMeterToZone={handleStartPlacement}
+      onRelocateMeter={handleStartRelocation}
     />
   );
 };

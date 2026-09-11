@@ -36,6 +36,8 @@ export interface OperationalSceneProps {
   onHoverMeter: (meterId: string | null) => void;
   onClearSelection: () => void;
   onViewportChange: (viewport: MapViewportState) => void;
+  placementSvgLayer?: React.ReactNode;
+  placementCard?: React.ReactNode;
 }
 
 /**
@@ -71,6 +73,8 @@ export const OperationalScene: React.FC<OperationalSceneProps> = ({
   onHoverMeter,
   onClearSelection,
   onViewportChange: _onViewportChange,
+  placementSvgLayer,
+  placementCard,
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
 
@@ -78,7 +82,7 @@ export const OperationalScene: React.FC<OperationalSceneProps> = ({
   useEffect(() => {
     const operatorCount = new Set(zones.map((z) => z.assignedUser?.id).filter(Boolean)).size;
     console.log(
-      `[MapOps-H1] renderer=OperationalScene canonicalVersion=tan-thuan-v1 viewBox="${CANONICAL_VIEWBOX}" zones=${zones.length} meters=${meters.length} operators=${operatorCount}`
+      `[MapOps-H1] renderer=OperationalScene canonicalVersion=tan-thuan-v2 viewBox="${CANONICAL_VIEWBOX}" zones=${zones.length} meters=${meters.length} operators=${operatorCount}`
     );
   }, [zones, meters]);
 
@@ -123,7 +127,7 @@ export const OperationalScene: React.FC<OperationalSceneProps> = ({
         <g
           transform={`translate(${viewport.panX}, ${viewport.panY}) scale(${viewport.zoom})`}
           style={{
-            transition: 'transform 220ms cubic-bezier(0.16, 1, 0.3, 1)',
+            transition: 'transform 320ms cubic-bezier(0.16, 1, 0.3, 1)',
           }}
         >
           {/* 1. Canonical Physical Base Scene (Approved Illustration) */}
@@ -177,8 +181,14 @@ export const OperationalScene: React.FC<OperationalSceneProps> = ({
 
           {/* 7. Diagnostic Debug Overlay (?mapDebug=1) */}
           <MapDebugLayer zones={zones} meters={meters} />
+
+          {/* 8. Spatial Meter Placement & Relocation Layer (GATE 8) */}
+          {placementSvgLayer}
         </g>
       </svg>
+
+      {/* Floating Placement Card (Outside SVG, within relative container) */}
+      {placementCard}
     </div>
   );
 };

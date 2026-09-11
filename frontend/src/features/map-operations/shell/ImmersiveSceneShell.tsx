@@ -99,6 +99,10 @@ interface ImmersiveSceneShellProps {
   onSetAnalyticsOpen: (open: boolean) => void;
   onInspectReading?: (readingId: string) => void;
   onReassignOperator?: (zoneId: string, userId: string, note?: string) => Promise<void>;
+  placementSvgLayer?: React.ReactNode;
+  placementCard?: React.ReactNode;
+  onAddMeterToZone?: (zoneId: string) => void;
+  onRelocateMeter?: (meter: MapMeterItem) => void;
 }
 
 /**
@@ -163,6 +167,10 @@ export const ImmersiveSceneShell: React.FC<ImmersiveSceneShellProps> = ({
   onSetAnalyticsOpen,
   onInspectReading,
   onReassignOperator,
+  placementSvgLayer,
+  placementCard,
+  onAddMeterToZone,
+  onRelocateMeter,
 }) => {
   const issueCount = overallKpis.overdue + overallKpis.review;
   const rounds = dashboardData?.round_progress || [];
@@ -199,6 +207,8 @@ export const ImmersiveSceneShell: React.FC<ImmersiveSceneShellProps> = ({
             onHoverMeter={onHoverMeter}
             onClearSelection={onClearSelection}
             onViewportChange={onViewportChange}
+            placementSvgLayer={placementSvgLayer}
+            placementCard={placementCard}
           />
         ) : (
           <OperationalListView
@@ -302,6 +312,7 @@ export const ImmersiveSceneShell: React.FC<ImmersiveSceneShellProps> = ({
             meter={selectedMeter}
             viewport={viewport}
             onDetails={() => onSetDetailOpen(true)}
+            onRelocate={onRelocateMeter ? () => onRelocateMeter(selectedMeter) : undefined}
             onClose={onClearSelection}
           />
         )}
@@ -325,6 +336,7 @@ export const ImmersiveSceneShell: React.FC<ImmersiveSceneShellProps> = ({
             onClose={onClearSelection}
             onSelectMeter={onSelectMeter}
             onReassignOperator={onReassignOperator}
+            onAddMeter={onAddMeterToZone}
           />
         )}
 

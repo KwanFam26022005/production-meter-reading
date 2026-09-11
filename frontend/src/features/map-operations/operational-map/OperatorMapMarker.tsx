@@ -77,6 +77,16 @@ export const OperatorMapMarker: React.FC<OperatorMapMarkerProps> = React.memo(({
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
+      {/* 0. 48x48 px Invisible Touch Target Area (Section 25 Accessibility) */}
+      <rect
+        x={-24}
+        y={-24}
+        width={48}
+        height={48}
+        fill="transparent"
+        pointerEvents="all"
+      />
+
       {/* 1. SELECTION / HOVER HALO */}
       {isSelected && (
         <circle

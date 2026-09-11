@@ -60,40 +60,39 @@ export const MeterLayer: React.FC<MeterLayerProps> = ({
         // Coordinates resolution: explicit presentation transform
         const { x, y } = normalizedToCanonicalScene(m.coordinates);
 
-        // Semantic Colors per Section 13
-        let coreFill = '#10B981';  // Confirmed: green
+        // Semantic Colors per V7 Spec (04_MARKER_SYSTEM.md Section 17)
+        let coreFill = '#10B981'; // CONFIRMED: Emerald Green
         let ringStroke = '#10B981';
         let ringClass = '';
 
         if (isOverdue) {
-          coreFill = '#DC2626';     // Overdue: red
-          ringStroke = '#DC2626';
+          coreFill = '#EF4444'; // OVERDUE: Critical Red
+          ringStroke = '#EF4444';
           ringClass = 'sgp-pulse-ring';
         } else if (isReview) {
-          coreFill = '#F59E0B';     // Review: amber
+          coreFill = '#F59E0B'; // REVIEW: Amber Warning
           ringStroke = '#F59E0B';
           ringClass = 'sgp-pulse-ring-amber';
         } else if (m.semanticState === 'DUE') {
-          coreFill = '#0284C7';     // Due: blue
+          coreFill = '#0284C7'; // DUE: Operational Blue
           ringStroke = '#38BDF8';
         } else if (m.semanticState === 'PENDING') {
-          coreFill = '#94A3B8';     // Pending: slate
-          ringStroke = '#CBD5E1';
+          coreFill = '#64748B'; // PENDING: Neutral Slate
+          ringStroke = '#94A3B8';
         } else if (m.semanticState === 'INACTIVE') {
-          coreFill = '#CBD5E1';     // Inactive: gray
-          ringStroke = '#E2E8F0';
+          coreFill = '#94A3B8'; // INACTIVE: Muted Gray
+          ringStroke = '#CBD5E1';
         }
 
-        // Radii: small core and thin ring
-        const coreRadius = isHovered || isSelected ? 4.5 : 3.5;
-        const ringRadius = isHovered || isSelected ? 9.5 : 7.5;
-
-        // CT-code label visibility rule:
-        // ONLY show code when selected or hovered (clean map per approved design)
+        // CT-code label visibility rule: ONLY show code when selected or hovered
         const showCodePill = isSelected || isHovered;
 
         // Dim normal markers during exception focus
-        const isDimmed = exceptionFocus && !isException;
+        const isDimmed = exceptionFocus && !isException && !isSelected;
+
+        const accessibleLabel = `${m.meterCode}, ${m.zoneName || 'Khu vực tác nghiệp'}, ${
+          m.stateLabel || m.semanticState
+        }`;
 
         return (
           <g
@@ -102,11 +101,11 @@ export const MeterLayer: React.FC<MeterLayerProps> = ({
             data-meter-code={m.meterCode}
             className={`sgp-meter-point ${isSelected ? 'selected' : ''} ${
               isException ? 'exception' : ''
-            }`}
+            } ${isHovered ? 'hovered' : ''}`}
             transform={`translate(${x}, ${y})`}
             cursor="pointer"
             opacity={isDimmed ? 0.22 : 1}
-            style={{ transition: 'opacity 300ms ease, transform 180ms ease' }}
+            style={{ transition: 'opacity 280ms ease, transform 180ms ease' }}
             onClick={(e) => {
               e.stopPropagation();
               onSelectMeter(m.id);
@@ -115,7 +114,7 @@ export const MeterLayer: React.FC<MeterLayerProps> = ({
             onMouseLeave={() => onHoverMeter(null)}
             tabIndex={0}
             role="button"
-            aria-label={`${m.meterCode}, ${m.stateLabel || m.semanticState}`}
+            aria-label={accessibleLabel}
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
@@ -123,78 +122,174 @@ export const MeterLayer: React.FC<MeterLayerProps> = ({
               }
             }}
           >
-            {/* Pulsing ring for exceptions */}
+            {/* 0. 48x48 px Invisible Touch Target Area (Section 25 Accessibility) */}
+            <rect
+              x={-24}
+              y={-24}
+              width={48}
+              height={48}
+              fill="transparent"
+              pointerEvents="all"
+            />
+
+            {/* 1. Pulsing Ring for Overdue / Review Exceptions */}
             {isException && (
               <circle
                 cx={0}
                 cy={0}
-                r={14}
+                r={17}
                 fill="none"
                 stroke={ringStroke}
-                strokeWidth={1.5}
+                strokeWidth={isOverdue ? 2.0 : 1.8}
                 className={ringClass}
               />
             )}
 
-            {/* Selection focus halo */}
+            {/* 2. Selection Focus Halo (r=22) */}
             {isSelected && (
               <circle
                 cx={0}
                 cy={0}
-                r={16}
+                r={22}
                 fill="none"
                 stroke="var(--ops-accent, #0E7490)"
-                strokeWidth={2}
-                strokeDasharray="3 3"
-                opacity={0.8}
+                strokeWidth={2.5}
+                strokeDasharray="4 3"
+                opacity={0.9}
+                className="sgp-marker-halo"
               />
             )}
 
-            {/* Outer thin ring */}
-            <circle
-              cx={0}
-              cy={0}
-              r={ringRadius}
+            {/* 3. White Separation Outer Halo (Hexagon r=11, stroke=3.2px) */}
+            <path
+              d="M 0 -11 L 9.5 -5.5 L 9.5 5.5 L 0 11 L -9.5 5.5 L -9.5 -5.5 Z"
               fill="none"
-              stroke={ringStroke}
-              strokeWidth={1.2}
-              opacity={0.85}
-            />
-
-            {/* Core dot */}
-            <circle
-              cx={0}
-              cy={0}
-              r={coreRadius}
-              fill={coreFill}
               stroke="#FFFFFF"
-              strokeWidth={1.2}
+              strokeWidth={isException ? 3.5 : 2.5}
+              strokeLinejoin="round"
+              strokeLinecap="round"
             />
 
-            {/* CT-Code Pill (conditionally displayed per approved design: below marker) */}
+            {/* 4. Navy Structural Bezel (Industrial Hexagon Bezel) */}
+            <path
+              d="M 0 -10.5 L 9 -5.2 L 9 5.2 L 0 10.5 L -9 5.2 L -9 -5.2 Z"
+              fill="#073B5C"
+              stroke="#073B5C"
+              strokeWidth={1}
+              strokeLinejoin="round"
+              strokeLinecap="round"
+              filter="drop-shadow(0 2px 4px rgba(0,0,0,0.35))"
+            />
+
+            {/* 5. Semantic Core Plate */}
+            <path
+              d="M 0 -8.2 L 7 -4.1 L 7 4.1 L 0 8.2 L -7 4.1 L -7 -4.1 Z"
+              fill={coreFill}
+              stroke={coreFill}
+              strokeWidth={1}
+              strokeLinejoin="round"
+              strokeLinecap="round"
+            />
+
+            {/* 6. Primary Glyph: Industrial Analog Gauge Icon (Dial + Needle) */}
+            <g pointerEvents="none">
+              {/* Dial arc */}
+              <path
+                d="M -3.8 2 A 4.2 4.2 0 1 1 3.8 2"
+                fill="none"
+                stroke="#FFFFFF"
+                strokeWidth={1.2}
+                strokeLinecap="round"
+              />
+
+              {/* Needle depending on status */}
+              {m.semanticState === 'INACTIVE' ? (
+                <line
+                  x1={-3}
+                  y1={3}
+                  x2={3}
+                  y2={-3}
+                  stroke="#FFFFFF"
+                  strokeWidth={1.2}
+                  strokeLinecap="round"
+                />
+              ) : isOverdue ? (
+                <line
+                  x1={0}
+                  y1={0.5}
+                  x2={2.6}
+                  y2={-2.6}
+                  stroke="#FFFFFF"
+                  strokeWidth={1.3}
+                  strokeLinecap="round"
+                />
+              ) : isReview ? (
+                <line
+                  x1={0}
+                  y1={0.5}
+                  x2={2.2}
+                  y2={-2.2}
+                  stroke="#FFFFFF"
+                  strokeWidth={1.3}
+                  strokeLinecap="round"
+                />
+              ) : m.semanticState === 'DUE' ? (
+                <line
+                  x1={0}
+                  y1={0.5}
+                  x2={0}
+                  y2={-2.8}
+                  stroke="#FFFFFF"
+                  strokeWidth={1.2}
+                  strokeLinecap="round"
+                />
+              ) : (
+                <line
+                  x1={0}
+                  y1={0.5}
+                  x2={2.0}
+                  y2={-2.0}
+                  stroke="#FFFFFF"
+                  strokeWidth={1.2}
+                  strokeLinecap="round"
+                />
+              )}
+
+              {/* Needle pivot */}
+              {m.semanticState !== 'INACTIVE' && (
+                <circle cx={0} cy={0.5} r={0.9} fill="#FFFFFF" />
+              )}
+            </g>
+
+            {/* 7. CT-Code Callout Badge (Pill Anchored Above Marker) */}
             {showCodePill && (
               <g
-                transform="translate(0, 15)"
+                transform="translate(0, -22)"
                 pointerEvents="none"
-                className="sgp-meter-pill-group"
+                className="sgp-meter-callout-pill"
               >
                 <rect
-                  x={-24}
-                  y={-2}
-                  width={48}
-                  height={15}
-                  rx={4}
-                  fill={isOverdue ? '#DC2626' : isReview ? '#F59E0B' : '#0F172A'}
-                  fillOpacity={0.92}
-                  filter="drop-shadow(0 1px 3px rgba(0,0,0,0.3))"
+                  x={-28}
+                  y={-10}
+                  width={56}
+                  height={18}
+                  rx={5}
+                  fill={isOverdue ? '#EF4444' : isReview ? '#F59E0B' : '#073B5C'}
+                  stroke="#FFFFFF"
+                  strokeWidth={1}
+                  filter="drop-shadow(0 2px 6px rgba(0,0,0,0.35))"
+                />
+                <polygon
+                  points="-4,8 4,8 0,12"
+                  fill={isOverdue ? '#EF4444' : isReview ? '#F59E0B' : '#073B5C'}
                 />
                 <text
                   x={0}
-                  y={9}
+                  y={3}
                   textAnchor="middle"
                   fill="#FFFFFF"
-                  fontSize={8.5}
-                  fontWeight={700}
+                  fontSize={9}
+                  fontWeight={800}
                   fontFamily="system-ui, -apple-system, sans-serif"
                   letterSpacing="0.02em"
                 >

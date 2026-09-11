@@ -20,6 +20,7 @@ interface ZoneDrawerProps {
   onRequestReassign?: () => void;
   onReassignOperator?: (zoneId: string, userId: string, note?: string) => Promise<void>;
   onViewIn3D?: () => void;
+  onAddMeter?: (zoneId: string) => void;
 }
 
 /**
@@ -40,6 +41,7 @@ export const ZoneDrawer: React.FC<ZoneDrawerProps> = ({
   onClose,
   onSelectMeter,
   onRequestReassign,
+  onAddMeter,
 }) => {
   const [operatorPopoverOpen, setOperatorPopoverOpen] = useState(false);
   const operatorAnchorRef = useRef<HTMLDivElement | null>(null);
@@ -205,6 +207,16 @@ export const ZoneDrawer: React.FC<ZoneDrawerProps> = ({
                 onClick={handleFocusFirstException}
               >
                 Xem ngoại lệ trong khu vực
+              </button>
+            )}
+            {onAddMeter && (
+              <button
+                type="button"
+                className="sgp-zd-action-btn"
+                onClick={() => onAddMeter(zone.id)}
+                style={{ borderColor: '#0284C7', color: '#0284C7', fontWeight: 600 }}
+              >
+                + Thêm công tơ vào khu vực
               </button>
             )}
             <button
