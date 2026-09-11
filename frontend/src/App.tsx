@@ -562,7 +562,15 @@ export default function App() {
         {/* Tab content containers kept alive in DOM */}
         <div style={{ display: inspectingReadingId ? 'none' : 'contents' }}>
           {visitedAdminTabs.has('dashboard') && (
-            <div style={{ display: adminActiveTab === 'dashboard' ? 'block' : 'none' }}>
+            <div
+              style={{
+                display: adminActiveTab === 'dashboard' ? 'flex' : 'none',
+                flex: 1,
+                height: '100%',
+                minHeight: 0,
+                flexDirection: 'column',
+              }}
+            >
               <AdminDashboard onInspectReading={(rId) => setInspectingReadingId(rId)} />
             </div>
           )}
@@ -577,7 +585,15 @@ export default function App() {
             </div>
           )}
           {visitedAdminTabs.has('meters') && (
-            <div style={{ display: adminActiveTab === 'meters' ? 'block' : 'none' }}>
+            <div
+              style={{
+                display: adminActiveTab === 'meters' ? 'flex' : 'none',
+                flex: 1,
+                height: '100%',
+                minHeight: 0,
+                flexDirection: 'column',
+              }}
+            >
               <AdminMeters onInspectReading={(rId) => setInspectingReadingId(rId)} />
             </div>
           )}

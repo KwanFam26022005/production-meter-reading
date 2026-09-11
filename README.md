@@ -226,7 +226,7 @@ npm run dev
 
 **Terminal 3 — Cloudflare Quick Tunnel:**
 ```powershell
-cloudflared tunnel --protocol http2 --url http://localhost:5173
+cloudflared tunnel --protocol http2 --url http://127.0.0.1:5173 --http-host-header localhost:5173
 ```
 
 ---

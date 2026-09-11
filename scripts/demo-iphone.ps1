@@ -118,21 +118,53 @@ $BackendProcess = Start-Process -FilePath $PythonExe `
 Write-Host "-> Launching Vite Frontend Dev Server on port 5173..." -ForegroundColor White
 $FrontendDir = Join-Path $ProjectRoot "frontend"
 $FrontendProcess = Start-Process -FilePath "cmd.exe" `
-    -ArgumentList "/c", "set VITE_API_BASE_URL=&& npm run dev" `
+    -ArgumentList "/c", "set VITE_TUNNEL=1&& set VITE_API_BASE_URL=&& npm run dev" `
     -WorkingDirectory $FrontendDir `
     -PassThru
 
-# Give backend and frontend a moment to start
-Start-Sleep -Seconds 2
+# 9. Wait for Backend and Frontend Services to be Fully Ready
+Write-Host "-> Waiting for backend and frontend services to be ready..." -ForegroundColor Yellow
+$BackendReady = $false
+$FrontendReady = $false
+$MaxAttempts = 40
 
-# 9. Launch Cloudflare Quick Tunnel (target: http://localhost:5173)
+for ($i = 1; $i -le $MaxAttempts; $i++) {
+    if (-not $BackendReady) {
+        try {
+            $bResp = Invoke-WebRequest -Uri "http://127.0.0.1:8000/health" -UseBasicParsing -TimeoutSec 2 -ErrorAction SilentlyContinue
+            if ($bResp.StatusCode -eq 200) {
+                $BackendReady = $true
+                Write-Host "   [READY] FastAPI backend is responding on port 8000." -ForegroundColor Green
+            }
+        } catch {}
+    }
+    if (-not $FrontendReady) {
+        try {
+            $fResp = Invoke-WebRequest -Uri "http://127.0.0.1:5173" -UseBasicParsing -TimeoutSec 2 -ErrorAction SilentlyContinue
+            if ($fResp.StatusCode -eq 200) {
+                $FrontendReady = $true
+                Write-Host "   [READY] Vite frontend is responding on port 5173." -ForegroundColor Green
+            }
+        } catch {}
+    }
+    if ($BackendReady -and $FrontendReady) {
+        break
+    }
+    Start-Sleep -Milliseconds 500
+}
+
+if (-not $BackendReady -or -not $FrontendReady) {
+    Write-Warning "One or more services did not respond within timeout, proceeding to launch cloudflared anyway..."
+}
+
+# 10. Launch Cloudflare Quick Tunnel (target: http://127.0.0.1:5173 with Host header)
 Write-Host "-> Launching Cloudflare Quick Tunnel for port 5173 (HTTP/2)..." -ForegroundColor White
 $CloudflareProcess = Start-Process -FilePath "cloudflared" `
-    -ArgumentList "tunnel", "--protocol", "http2", "--url", "http://localhost:5173" `
+    -ArgumentList "tunnel", "--protocol", "http2", "--url", "http://127.0.0.1:5173", "--http-host-header", "localhost:5173" `
     -WorkingDirectory $ProjectRoot `
     -PassThru
 
-# 10. Record PIDs for Clean & Targeted Process Termination
+# 11. Record PIDs for Clean & Targeted Process Termination
 $TrackedPids = @{
     backend_pid = $BackendProcess.Id
     frontend_pid = $FrontendProcess.Id

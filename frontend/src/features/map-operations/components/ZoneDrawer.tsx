@@ -1,19 +1,23 @@
-import React, { useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import {
   X,
   ChevronRight,
-  UserCheck,
   Check,
   AlertCircle,
   Loader2,
   Box,
 } from 'lucide-react';
-import { MapOperationalZone } from '../types';
+import { MapMeterItem, MapOperationalZone } from '../types';
 import { SEMANTIC_STATE_CONFIG } from '../utils/mapStatus';
 import { User } from '../../../types';
+import { OperatorIconButton } from './OperatorIconButton';
+import { OperatorProgressPopover } from './OperatorProgressPopover';
+import { deriveOperatorOperationalSummary } from '../utils/deriveOperatorOperationalSummary';
 
 interface ZoneDrawerProps {
   zone: MapOperationalZone;
+  allMeters?: MapMeterItem[];
+  currentRoundTime?: string;
   availableOperators?: User[];
   onClose: () => void;
   onSelectMeter: (meterId: string) => void;
@@ -24,6 +28,8 @@ interface ZoneDrawerProps {
 
 export const ZoneDrawer: React.FC<ZoneDrawerProps> = ({
   zone,
+  allMeters,
+  currentRoundTime,
   availableOperators = [],
   onClose,
   onSelectMeter,
@@ -31,12 +37,19 @@ export const ZoneDrawer: React.FC<ZoneDrawerProps> = ({
   onReassignOperator,
   onViewIn3D,
 }) => {
+  const [operatorPopoverOpen, setOperatorPopoverOpen] = useState(false);
   const [isReassigning, setIsReassigning] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState(zone.assignedUser?.id || '');
   const [reassignNote, setReassignNote] = useState('');
   const [saving, setSaving] = useState(false);
   const [reassignError, setReassignError] = useState<string | null>(null);
   const [reassignSuccess, setReassignSuccess] = useState<string | null>(null);
+  const operatorAnchorRef = useRef<HTMLDivElement | null>(null);
+
+  // Purely derived operator summary — calculated from effective zone/meter state
+  const operatorSummary = useMemo(() => {
+    return deriveOperatorOperationalSummary(zone, allMeters, currentRoundTime);
+  }, [zone, allMeters, currentRoundTime]);
 
   const handleStartReassign = () => {
     setSelectedUserId(zone.assignedUser?.id || '');
@@ -77,12 +90,18 @@ export const ZoneDrawer: React.FC<ZoneDrawerProps> = ({
     }
   };
 
+  const zoneMeters = zone.meters || [];
+  const activeMeters = zoneMeters.filter((m) => m.isActive);
+  const totalDisplay = activeMeters.length > 0 ? activeMeters.length : zoneMeters.length;
+
   return (
     <aside className="sgp-side-drawer sgp-zone-drawer" aria-label="Chi tiết khu vực tác nghiệp">
-      {/* Header */}
+      {/* Header — includes Zone Name, Code Tag, Operator Icon Button, and Close Button */}
       <div className="sgp-drawer-header">
         <div className="sgp-drawer-title-group">
-          <span className="sgp-drawer-tag">{zone.code}</span>
+          <div className="sgp-drawer-tag-row">
+            <span className="sgp-drawer-tag">{zone.code}</span>
+          </div>
           <h2 className="sgp-drawer-title">{zone.name}</h2>
         </div>
         <div className="sgp-drawer-actions">
@@ -97,6 +116,24 @@ export const ZoneDrawer: React.FC<ZoneDrawerProps> = ({
               <span>Xem 3D</span>
             </button>
           )}
+
+          {/* Operator Icon Button — Affordance for responsible operator per Figma 2:363 */}
+          <div className="sgp-operator-icon-wrap" ref={operatorAnchorRef}>
+            <OperatorIconButton
+              operator={zone.assignedUser}
+              isOpen={operatorPopoverOpen}
+              onClick={() => setOperatorPopoverOpen((v) => !v)}
+            />
+            {operatorPopoverOpen && (
+              <OperatorProgressPopover
+                summary={operatorSummary}
+                onClose={() => setOperatorPopoverOpen(false)}
+                onRequestReassign={onReassignOperator ? handleStartReassign : undefined}
+                anchorRef={operatorAnchorRef}
+              />
+            )}
+          </div>
+
           <button
             type="button"
             className="sgp-drawer-close-btn"
@@ -110,8 +147,10 @@ export const ZoneDrawer: React.FC<ZoneDrawerProps> = ({
 
       {/* Content Body */}
       <div className="sgp-drawer-body">
-        {/* Description */}
-        <p className="sgp-zone-desc">{zone.description}</p>
+        {/* Description if present */}
+        {zone.description && (
+          <p className="sgp-zone-desc">{zone.description}</p>
+        )}
 
         {/* Success Alert */}
         {reassignSuccess && (
@@ -121,43 +160,11 @@ export const ZoneDrawer: React.FC<ZoneDrawerProps> = ({
           </div>
         )}
 
-        {/* Responsible Person Card */}
-        <div className="sgp-zone-operator-card">
-          <div className="sgp-operator-header">
-            <div className="sgp-operator-label">
-              <UserCheck size={16} color="#0B4F75" />
-              <span>Nhân sự phụ trách ca</span>
-            </div>
-            {onReassignOperator && !isReassigning && (
-              <button
-                type="button"
-                className="sgp-reassign-link"
-                onClick={handleStartReassign}
-              >
-                Thay đổi
-              </button>
-            )}
-          </div>
-
-          {!isReassigning ? (
-            zone.assignedUser ? (
-              <div className="sgp-operator-details">
-                <div className="sgp-operator-avatar">
-                  {zone.assignedUser.fullName.charAt(0)}
-                </div>
-                <div className="sgp-operator-info">
-                  <span className="sgp-operator-name">{zone.assignedUser.fullName}</span>
-                  <span className="sgp-operator-sub font-tabular">
-                    Mã NV: {zone.assignedUser.employeeCode} · {zone.assignedUser.role}
-                  </span>
-                </div>
-              </div>
-            ) : (
-              <div className="sgp-unassigned-notice">Chưa phân công nhân sự</div>
-            )
-          ) : (
-            /* Reassignment Form */
+        {/* Reassignment Form — only visible when explicitly initiated */}
+        {isReassigning && (
+          <div className="sgp-zone-operator-card reassign-active">
             <form className="sgp-reassign-form" onSubmit={handleSubmitReassign}>
+              <div className="sgp-reassign-form-title">Phân công nhân sự phụ trách</div>
               {reassignError && (
                 <div className="sgp-reassign-error">
                   <AlertCircle size={14} />
@@ -225,15 +232,15 @@ export const ZoneDrawer: React.FC<ZoneDrawerProps> = ({
                 </button>
               </div>
             </form>
-          )}
-        </div>
+          </div>
+        )}
 
-        {/* Operational Progress Metrics */}
+        {/* Operational Progress Metrics: Completed / Total & Progress Bar */}
         <div className="sgp-zone-metrics-block">
           <div className="sgp-metrics-head">
-            <span className="sgp-metrics-title">Tiến độ hoàn thành</span>
+            <span className="sgp-metrics-title">Tiến độ khu vực</span>
             <span className="sgp-metrics-pct font-tabular">
-              {zone.metrics.completionPercent}%
+              <strong>{zone.metrics.completionPercent}%</strong> · {zone.metrics.confirmedCount}/{totalDisplay} công tơ
             </span>
           </div>
           <div className="sgp-zone-prog-bar">
@@ -250,7 +257,7 @@ export const ZoneDrawer: React.FC<ZoneDrawerProps> = ({
             </div>
             <div className="sgp-stat-item review">
               <span className="sgp-stat-val font-tabular">{zone.metrics.reviewCount}</span>
-              <span className="sgp-stat-lbl">Cần duyệt</span>
+              <span className="sgp-stat-lbl">Cần kiểm tra</span>
             </div>
             <div className="sgp-stat-item overdue">
               <span className="sgp-stat-val font-tabular">{zone.metrics.overdueCount}</span>
@@ -266,10 +273,10 @@ export const ZoneDrawer: React.FC<ZoneDrawerProps> = ({
         {/* Meters In Zone List */}
         <div className="sgp-zone-meters-section">
           <h3 className="sgp-section-heading">
-            Danh sách công tơ ({zone.meters.length})
+            Danh sách công tơ ({zoneMeters.length})
           </h3>
           <div className="sgp-zone-meter-list">
-            {zone.meters.map((m) => {
+            {zoneMeters.map((m) => {
               const stCfg = SEMANTIC_STATE_CONFIG[m.semanticState];
               return (
                 <div
@@ -278,6 +285,13 @@ export const ZoneDrawer: React.FC<ZoneDrawerProps> = ({
                   onClick={() => onSelectMeter(m.id)}
                   role="button"
                   tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      onSelectMeter(m.id);
+                    }
+                  }}
+                  aria-label={`Công tơ ${m.meterCode}, ${m.name}, trạng thái: ${stCfg.label}`}
                 >
                   <div className="sgp-zm-left">
                     <span className="sgp-zm-code font-semibold">{m.meterCode}</span>

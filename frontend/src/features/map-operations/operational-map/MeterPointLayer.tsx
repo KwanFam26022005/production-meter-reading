@@ -57,7 +57,7 @@ export const MeterPointLayer: React.FC<MeterPointLayerProps> = ({
         const norm = customCoord || m.coordinates;
         const { x, y } = normalizedToSvg(norm);
 
-        const stCfg = SEMANTIC_STATE_CONFIG[m.semanticState];
+        const stCfg = SEMANTIC_STATE_CONFIG[m.semanticState] || SEMANTIC_STATE_CONFIG.PENDING;
 
         // Decluttering logic:
         // Show meter code ONLY when hovered, selected, or in exception state
