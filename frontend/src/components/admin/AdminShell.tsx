@@ -12,6 +12,7 @@ import {
   ShieldCheck,
   ChevronLeft,
   ChevronRight,
+  Map,
 } from 'lucide-react';
 import { User, formatUserRole } from '../../types';
 
@@ -73,7 +74,7 @@ export const AdminShell: React.FC<AdminShellProps> = ({
   };
 
   const navItems: { id: AdminTab; label: string; icon: React.ReactNode }[] = [
-    { id: 'dashboard', label: 'Tổng quan', icon: <LayoutDashboard size={18} /> },
+    { id: 'dashboard', label: 'Bản đồ công tơ', icon: <Map size={18} /> },
     { id: 'schedules', label: 'Lịch ghi', icon: <Calendar size={18} /> },
     { id: 'staff_roster', label: 'Lịch phân ca', icon: <Users size={18} /> },
     { id: 'meters', label: 'Công tơ', icon: <Zap size={18} /> },

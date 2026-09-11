@@ -2,19 +2,11 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useMapOperations } from './hooks/useMapOperations';
 import { useMapSelection } from './hooks/useMapSelection';
 import { filterMeters } from './utils/mapFilters';
-import { MapHeader } from './components/MapHeader';
-import {
-  ZoneDrawer,
-  MeterQuickPopup,
-  MeterDetailDrawer,
-  OperatorShiftPopover,
-} from './map-ui';
-import { OperationalScene } from './scene/OperationalScene';
-import { SceneHud } from './scene/SceneHud';
 import { LoadingState } from '../../components/ui/LoadingState';
 import { ErrorState } from '../../components/ui/ErrorState';
 import { normalizedToCanonicalScene } from './geometry/canonicalScene';
 import { deriveOperatorShiftSummary } from './utils/deriveOperatorShiftSummary';
+import { ImmersiveSceneShell } from './shell/ImmersiveSceneShell';
 import './motion/mapMotion.css';
 
 interface MapOperationsPageProps {
@@ -22,9 +14,16 @@ interface MapOperationsPageProps {
   onSwitchToLegacy?: () => void;
 }
 
+/**
+ * MapOperationsPage — Immersive Spatial Operations Console (Phase U0 → U4)
+ *
+ * MAP IS THE PAGE:
+ * Unified operational workspace merging Map + Overview into a single full-bleed scene.
+ * All controls (temporal, search, telemetry, legend, zoom) live as integrated HUD overlays.
+ */
 export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
   onInspectReading,
-  onSwitchToLegacy,
+  onSwitchToLegacy: _onSwitchToLegacy,
 }) => {
   const {
     selectedDate,
@@ -54,27 +53,51 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
     setHoveredMeter,
   } = useMapSelection();
 
+  // View mode: 'map' | 'list' (in-place animated segmented switch)
+  const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
+
+  // Alert Focus & Telemetry Focus state
   const [exceptionFocus, setExceptionFocus] = useState(false);
+  const [activeFocusType, setActiveFocusType] = useState<'OVERDUE' | 'REVIEW' | 'PENDING' | null>(null);
+
+  // Drawers state
   const [detailOpen, setDetailOpen] = useState(false);
+  const [analyticsOpen, setAnalyticsOpen] = useState(false);
   const [selectedOperatorShiftId, setSelectedOperatorShiftId] = useState<string | null>(null);
 
   // Runtime source of truth verification object
   useEffect(() => {
     if (typeof window !== 'undefined') {
       (window as any).__MAP_UI_BUILD__ = {
-        phase: 'Canonical-Base-Scene-H1',
+        phase: 'Immersive-Spatial-Console-U0-U4',
         renderer: 'OperationalScene',
         geometryVersion: 'tan-thuan-v1',
         viewBox: '0 0 1664 932',
         zones: mapZones.length,
         meters: mapMeters.length,
-        operators: new Set(mapZones.map((z) => z.assignedUser?.id).filter(Boolean)).size,
+        viewMode,
         timestamp: new Date().toISOString(),
       };
     }
-  }, [mapZones, mapMeters]);
+  }, [mapZones, mapMeters, viewMode]);
 
-  const filteredMeters = useMemo(() => filterMeters(mapMeters, filters), [mapMeters, filters]);
+  // Filtered meters with active focus support
+  const filteredMeters = useMemo(() => {
+    let list = filterMeters(mapMeters, filters);
+
+    if (activeFocusType === 'OVERDUE') {
+      list = list.filter((m) => m.semanticState === 'OVERDUE');
+    } else if (activeFocusType === 'REVIEW') {
+      list = list.filter((m) => m.semanticState === 'REVIEW');
+    } else if (activeFocusType === 'PENDING') {
+      list = list.filter((m) => m.semanticState === 'PENDING');
+    } else if (exceptionFocus) {
+      list = list.filter((m) => m.semanticState === 'OVERDUE' || m.semanticState === 'REVIEW');
+    }
+
+    return list;
+  }, [mapMeters, filters, activeFocusType, exceptionFocus]);
+
   const selectedMeter = mapMeters.find((m) => m.id === selection.selectedMeterId);
   const selectedZone = mapZones.find((z) => z.id === selection.selectedZoneId);
 
@@ -104,6 +127,7 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
     selectMeter(null);
     selectZone(null);
     setDetailOpen(false);
+    setAnalyticsOpen(false);
   }, [selectMeter, selectZone]);
 
   const handleSelectOperator = useCallback(
@@ -112,6 +136,7 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
       selectZone(null);
       selectMeter(null);
       setDetailOpen(false);
+      setAnalyticsOpen(false);
     },
     [selectZone, selectMeter]
   );
@@ -120,7 +145,10 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
   useEffect(() => {
     const esc = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        if (detailOpen) {
+        if (analyticsOpen) {
+          e.stopPropagation();
+          setAnalyticsOpen(false);
+        } else if (detailOpen) {
           e.stopPropagation();
           setDetailOpen(false);
         } else if (selectedOperatorShiftId) {
@@ -132,6 +160,9 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
         } else if (selection.selectedZoneId) {
           e.stopPropagation();
           selectZone(null);
+        } else if (activeFocusType) {
+          e.stopPropagation();
+          setActiveFocusType(null);
         } else if (exceptionFocus) {
           e.stopPropagation();
           setExceptionFocus(false);
@@ -141,10 +172,12 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
     window.addEventListener('keydown', esc);
     return () => window.removeEventListener('keydown', esc);
   }, [
+    analyticsOpen,
     detailOpen,
     selectedOperatorShiftId,
     selection.selectedMeterId,
     selection.selectedZoneId,
+    activeFocusType,
     exceptionFocus,
     selectMeter,
     selectZone,
@@ -155,7 +188,9 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
     return () => {
       setSelectedOperatorShiftId(null);
       setDetailOpen(false);
+      setAnalyticsOpen(false);
       setExceptionFocus(false);
+      setActiveFocusType(null);
       clearSelection();
     };
   }, [clearSelection]);
@@ -168,6 +203,7 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
       selectZone(meter.zoneId);
       selectMeter(id);
       setDetailOpen(false);
+      setAnalyticsOpen(false);
       const svgCoord = normalizedToCanonicalScene(meter.coordinates);
       setViewport({
         zoom: 1.45,
@@ -184,6 +220,7 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
       selectMeter(null);
       selectZone(id);
       setDetailOpen(false);
+      setAnalyticsOpen(false);
     },
     [selectMeter, selectZone]
   );
@@ -207,7 +244,7 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
   if (loading && !dashboardData && mapMeters.length === 0) {
     return (
       <div className="sgp-map-loading-container">
-        <LoadingState message="Đang tải sơ đồ cơ sở Cảng Tân Thuận..." />
+        <LoadingState message="Đang tải trung tâm tác nghiệp Cảng Tân Thuận..." />
       </div>
     );
   }
@@ -219,8 +256,6 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
       </div>
     );
   }
-
-  const issueCount = overallKpis.overdue + overallKpis.review;
 
   const handleZoomIn = () => {
     const nextZoom = Math.min(viewport.zoom + 0.15, 3.0);
@@ -237,138 +272,67 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
   };
 
   return (
-    <div className="sgp-map-first-root">
-      {/* Top Header with Date & Temporal Cluster */}
-      <MapHeader
-        selectedDate={selectedDate}
-        onDateChange={setSelectedDate}
-        rounds={dashboardData?.round_progress || []}
-        currentRoundTime={overallKpis.currentRoundTime}
-        currentRoundStatus={overallKpis.currentRoundStatus}
-        selectedRoundId={selectedRoundId || filters.selectedRoundId}
-        onSelectRound={(roundId) => {
-          setSelectedRoundId(roundId);
-          setFilters({ ...filters, selectedRoundId: roundId });
-        }}
-        viewMode="map"
-        onViewModeChange={(mode) => mode === 'legacy' && onSwitchToLegacy?.()}
-        onRefresh={refresh}
-        isLoading={loading}
-        onExportCsv={exportCsv}
-      />
+    <ImmersiveSceneShell
+      selectedDate={selectedDate}
+      onDateChange={setSelectedDate}
+      dashboardData={dashboardData}
+      mapMeters={mapMeters}
+      filteredMeters={filteredMeters}
+      mapZones={mapZones}
+      availableOperators={availableOperators}
+      overallKpis={overallKpis}
+      isLoading={loading}
+      onRefresh={refresh}
+      onExportCsv={exportCsv}
 
-      {/* Main Map Workspace Canvas */}
-      <main className="sgp-map-first-workspace" style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
-        <OperationalScene
-          zones={mapZones}
-          meters={filteredMeters}
-          selectedZoneId={selection.selectedZoneId}
-          selectedMeterId={selection.selectedMeterId}
-          hoveredZoneId={selection.hoveredZoneId}
-          hoveredMeterId={selection.hoveredMeterId}
-          activeLayer="STATUS"
-          exceptionsOnly={false}
-          exceptionFocus={exceptionFocus}
-          selectedOperatorId={filters.operatorId === 'ALL' ? undefined : filters.operatorId}
-          selectedOperatorShiftId={selectedOperatorShiftId}
-          currentRoundTime={overallKpis.currentRoundTime || undefined}
-          viewport={viewport}
-          onSelectZone={focusZone}
-          onSelectMeter={focusMeter}
-          onSelectOperator={handleSelectOperator}
-          onHoverZone={setHoveredZone}
-          onHoverMeter={setHoveredMeter}
-          onClearSelection={clearSelection}
-          onViewportChange={setViewport}
-        />
+      viewMode={viewMode}
+      onViewModeChange={setViewMode}
 
-        {/* Scene HUD Controls (Search/Filter, Exception summary, Round HUD, Legend & Zoom) */}
-        <SceneHud
-          meters={mapMeters}
-          zones={mapZones}
-          operators={availableOperators}
-          filters={filters}
-          onApplyFilters={setFilters}
-          onSelectMeter={focusMeter}
-          onSelectZone={focusZone}
-          onSelectOperator={handleSelectOperator}
-          issueCount={issueCount}
-          exceptionFocus={exceptionFocus}
-          onToggleExceptionFocus={() => setExceptionFocus((v) => !v)}
-          rounds={dashboardData?.round_progress || []}
-          currentRoundTime={overallKpis.currentRoundTime || undefined}
-          selectedRoundId={selectedRoundId || filters.selectedRoundId}
-          completionPercent={overallKpis.percent}
-          onSelectRound={(roundId) => {
-            setSelectedRoundId(roundId);
-            setFilters({ ...filters, selectedRoundId: roundId });
-          }}
-          zoom={viewport.zoom}
-          activeLayer="STATUS"
-          onZoomIn={handleZoomIn}
-          onZoomOut={handleZoomOut}
-          onResetView={handleResetView}
-        />
+      selectedRoundId={selectedRoundId || filters.selectedRoundId}
+      onSelectRound={(roundId) => {
+        setSelectedRoundId(roundId);
+        setFilters({ ...filters, selectedRoundId: roundId });
+      }}
+      filters={filters}
+      onApplyFilters={setFilters}
 
-        {/* Exception Focus Bar — Level 1 alert banner */}
-        {exceptionFocus && (
-          <div className="sgp-exception-focus-bar" role="status">
-            <strong className="sgp-ef-badge">{issueCount} vấn đề</strong>
-            <span>{overallKpis.overdue} quá hạn</span>
-            <span>{overallKpis.review} cần kiểm tra</span>
-            {overallKpis.pending > 0 && <span>{overallKpis.pending} chưa ghi</span>}
-            <button
-              type="button"
-              className="sgp-ef-clear-btn"
-              onClick={() => setExceptionFocus(false)}
-              aria-label="Xóa lọc ngoại lệ"
-            >
-              Xóa focus
-            </button>
-          </div>
-        )}
+      selection={selection}
+      selectedMeter={selectedMeter}
+      selectedZone={selectedZone}
+      selectedOperatorSummary={selectedOperatorSummary}
+      selectedOperatorShiftId={selectedOperatorShiftId}
 
-        {/* Level 2: Compact Anchored Meter Quick Popup */}
-        {selectedMeter && !detailOpen && (
-          <MeterQuickPopup
-            meter={selectedMeter}
-            viewport={viewport}
-            onDetails={() => setDetailOpen(true)}
-            onClose={clearSelection}
-          />
-        )}
+      onSelectZone={focusZone}
+      onSelectMeter={focusMeter}
+      onSelectOperator={handleSelectOperator}
+      onHoverZone={setHoveredZone}
+      onHoverMeter={setHoveredMeter}
+      onClearSelection={clearSelection}
+      onCloseOperatorPopover={() => setSelectedOperatorShiftId(null)}
 
-        {/* Level 2: Spatial Operator Shift Progress Popover */}
-        {selectedOperatorSummary && !selectedMeter && !selectedZone && !detailOpen && (
-          <OperatorShiftPopover
-            summary={selectedOperatorSummary}
-            onClose={() => setSelectedOperatorShiftId(null)}
-            onSelectZone={focusZone}
-          />
-        )}
+      viewport={viewport}
+      onViewportChange={setViewport}
+      onZoomIn={handleZoomIn}
+      onZoomOut={handleZoomOut}
+      onResetView={handleResetView}
 
-        {/* Level 2: Contextual Zone Drawer */}
-        {selectedZone && !selectedMeter && (
-          <ZoneDrawer
-            zone={selectedZone}
-            allMeters={mapMeters}
-            currentRoundTime={overallKpis.currentRoundTime || undefined}
-            availableOperators={availableOperators}
-            onClose={clearSelection}
-            onSelectMeter={focusMeter}
-            onReassignOperator={reassignOperator}
-          />
-        )}
+      exceptionFocus={exceptionFocus}
+      onToggleExceptionFocus={() => {
+        setActiveFocusType(null);
+        setExceptionFocus((v) => !v);
+      }}
+      activeFocusType={activeFocusType}
+      onFocusTypeChange={(type) => {
+        setActiveFocusType(type);
+        if (type) setExceptionFocus(false);
+      }}
 
-        {/* Level 3: Full Detail Meter Detail Drawer */}
-        {selectedMeter && detailOpen && (
-          <MeterDetailDrawer
-            meter={selectedMeter}
-            onClose={clearSelection}
-            onInspectReading={onInspectReading}
-          />
-        )}
-      </main>
-    </div>
+      detailOpen={detailOpen}
+      onSetDetailOpen={setDetailOpen}
+      analyticsOpen={analyticsOpen}
+      onSetAnalyticsOpen={setAnalyticsOpen}
+      onInspectReading={onInspectReading}
+      onReassignOperator={reassignOperator}
+    />
   );
 };
