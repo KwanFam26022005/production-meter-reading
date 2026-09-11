@@ -1223,6 +1223,149 @@ button.sgp-telemetry-item:hover {
 }
 
 /* ==========================================================================
+   7B. METER QUICK POPUP (Anchored Contextual Speech-Bubble Card)
+   ========================================================================== */
+
+.sgp-meter-quick-popup {
+  position: absolute;
+  width: 290px;
+  background: #FFFFFF;
+  border-radius: 14px;
+  border: 1px solid rgba(226, 232, 240, 0.90);
+  box-shadow: 0 10px 30px -4px rgba(15, 23, 42, 0.16), 0 4px 12px -2px rgba(15, 23, 42, 0.08);
+  padding: 14px 16px;
+  z-index: 100;
+  pointer-events: auto;
+  animation: sgp-popup-enter 180ms ease-out;
+}
+
+.sgp-mqp-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.sgp-mqp-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 700;
+  background: #E6F4EA;
+  color: #137333;
+  border: 1px solid rgba(19, 115, 51, 0.2);
+}
+
+.sgp-mqp-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sgp-mqp-code {
+  font-size: 14px;
+  font-weight: 800;
+  color: #0F172A;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  letter-spacing: 0.02em;
+}
+
+.sgp-mqp-close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: #94A3B8;
+  cursor: pointer;
+  transition: all 120ms ease;
+  padding: 0;
+}
+
+.sgp-mqp-close-btn:hover {
+  background: #F1F5F9;
+  color: #0F172A;
+}
+
+.sgp-mqp-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 14px;
+  border-top: 1px solid #F1F5F9;
+  padding-top: 10px;
+}
+
+.sgp-mqp-fact-row {
+  display: flex;
+  align-items: center;
+  font-size: 12px;
+  gap: 6px;
+  line-height: 1.3;
+}
+
+.sgp-mqp-fact-icon {
+  color: #64748B;
+  flex-shrink: 0;
+}
+
+.sgp-mqp-fact-label {
+  color: #64748B;
+  font-weight: 500;
+}
+
+.sgp-mqp-fact-val {
+  color: #0F172A;
+  font-weight: 700;
+  margin-left: auto;
+}
+
+.sgp-mqp-footer {
+  width: 100%;
+}
+
+.sgp-mqp-action-btn {
+  width: 100%;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #0B192C;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.sgp-mqp-action-btn:hover {
+  background: #073B5C;
+  box-shadow: 0 4px 12px rgba(7, 59, 92, 0.25);
+}
+
+.sgp-mqp-arrow {
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-top: 8px solid #FFFFFF;
+  filter: drop-shadow(0 2px 2px rgba(15, 23, 42, 0.08));
+}
+
+/* ==========================================================================
    8. ANIMATIONS & REDUCED MOTION OVERRIDES
    ========================================================================== */
 

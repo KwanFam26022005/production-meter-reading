@@ -188,7 +188,33 @@ export const OperatorMapMarker: React.FC<OperatorMapMarkerProps> = React.memo(({
         </g>
       ) : null}
 
-      {/* 5. MINIMAL HOVER TOOLTIP (Figma 6D-F requirement)
+      {/* 5. PERMANENT PROGRESS PILL (Approved Design) */}
+      <g transform="translate(0, 24)" pointerEvents="none">
+        <rect
+          x={-18}
+          y={-7}
+          width={36}
+          height={14}
+          rx={7}
+          fill="#0B192C"
+          stroke={isSelected ? '#38BDF8' : '#0284C7'}
+          strokeWidth={1.2}
+          filter="drop-shadow(0 2px 4px rgba(0,0,0,0.35))"
+        />
+        <text
+          x={0}
+          y={3}
+          textAnchor="middle"
+          fill="#38BDF8"
+          fontSize={9}
+          fontWeight={800}
+          fontFamily="system-ui, -apple-system, sans-serif"
+        >
+          {clampedProgress}%
+        </text>
+      </g>
+
+      {/* 6. MINIMAL HOVER TOOLTIP (Figma 6D-F requirement)
           Shows: "Nguyễn Văn A · 65% tiến độ ca"
       */}
       {isHovered && !isSelected && (

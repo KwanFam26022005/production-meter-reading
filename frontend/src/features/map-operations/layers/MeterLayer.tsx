@@ -38,7 +38,7 @@ export const MeterLayer: React.FC<MeterLayerProps> = ({
   selectedMeterId,
   hoveredMeterId,
   exceptionsOnly,
-  zoomLevel,
+  zoomLevel: _zoomLevel,
   onSelectMeter,
   onHoverMeter,
   exceptionFocus = false,
@@ -89,8 +89,8 @@ export const MeterLayer: React.FC<MeterLayerProps> = ({
         const ringRadius = isHovered || isSelected ? 9.5 : 7.5;
 
         // CT-code label visibility rule:
-        // ONLY show code when: hover, selected, exception, or high zoom (> 1.4)
-        const showCodePill = isSelected || isHovered || isException || zoomLevel > 1.4;
+        // ONLY show code when selected or hovered (clean map per approved design)
+        const showCodePill = isSelected || isHovered;
 
         // Dim normal markers during exception focus
         const isDimmed = exceptionFocus && !isException;
@@ -171,26 +171,26 @@ export const MeterLayer: React.FC<MeterLayerProps> = ({
               strokeWidth={1.2}
             />
 
-            {/* CT-Code Pill (conditionally displayed per Section 13) */}
+            {/* CT-Code Pill (conditionally displayed per approved design: below marker) */}
             {showCodePill && (
               <g
-                transform="translate(0, -14)"
+                transform="translate(0, 15)"
                 pointerEvents="none"
                 className="sgp-meter-pill-group"
               >
                 <rect
                   x={-24}
-                  y={-9}
+                  y={-2}
                   width={48}
                   height={15}
-                  rx={3}
+                  rx={4}
                   fill={isOverdue ? '#DC2626' : isReview ? '#F59E0B' : '#0F172A'}
                   fillOpacity={0.92}
-                  filter="drop-shadow(0 1px 2px rgba(0,0,0,0.25))"
+                  filter="drop-shadow(0 1px 3px rgba(0,0,0,0.3))"
                 />
                 <text
                   x={0}
-                  y={2}
+                  y={9}
                   textAnchor="middle"
                   fill="#FFFFFF"
                   fontSize={8.5}
