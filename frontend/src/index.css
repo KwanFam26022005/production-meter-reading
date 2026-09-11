@@ -14457,10 +14457,9 @@ body:has(.admin-portal-root) {
   }
 }
 
+.admin-main-viewport:has(.sgp-map-first-root) > .sgp-map-first-root,
 .admin-main-viewport:has(.sgp-map-first-root) > div,
-.admin-main-viewport:has(.sgp-unified-console-root) > div,
-.admin-main-viewport:has(.sgp-map-first-root) div[style*="display: contents"] > div,
-.admin-main-viewport:has(.sgp-unified-console-root) div[style*="display: contents"] > div {
+.admin-main-viewport:has(.sgp-unified-console-root) > div {
   height: 100% !important;
   flex: 1 !important;
   min-height: 0 !important;

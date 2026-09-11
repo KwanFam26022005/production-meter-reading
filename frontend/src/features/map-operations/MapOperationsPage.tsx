@@ -169,6 +169,17 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
     selectZone,
   ]);
 
+  // Tab Lifecycle: On unmount, ensure all selection & transient surfaces are cleanly reset
+  useEffect(() => {
+    return () => {
+      setSelectedOperatorShiftId(null);
+      setUtilitySurface(null);
+      setDetailOpen(false);
+      setExceptionFocus(false);
+      clearSelection();
+    };
+  }, [clearSelection]);
+
   const focusMeter = useCallback(
     (id: string) => {
       setSelectedOperatorShiftId(null);

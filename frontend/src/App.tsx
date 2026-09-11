@@ -133,13 +133,11 @@ export default function App() {
     } catch {}
     return 'dashboard';
   });
-  const [visitedAdminTabs, setVisitedAdminTabs] = useState<Set<AdminTab>>(() => new Set([adminActiveTab]));
   const [inspectingReadingId, setInspectingReadingId] = useState<string | null>(null);
 
   const handleSelectAdminTab = (tab: AdminTab) => {
     setInspectingReadingId(null);
     setAdminActiveTab(tab);
-    setVisitedAdminTabs((prev) => new Set(prev).add(tab));
     try {
       sessionStorage.setItem('admin_active_tab', tab);
     } catch {}
@@ -559,59 +557,27 @@ export default function App() {
           />
         )}
 
-        {/* Tab content containers kept alive in DOM */}
-        <div style={{ display: inspectingReadingId ? 'none' : 'contents' }}>
-          {visitedAdminTabs.has('dashboard') && (
-            <div
-              style={{
-                display: adminActiveTab === 'dashboard' ? 'flex' : 'none',
-                flex: 1,
-                height: '100%',
-                minHeight: 0,
-                flexDirection: 'column',
-              }}
-            >
+        {/* Active tab content: strictly isolate lifecycle so only active page is mounted */}
+        {!inspectingReadingId && (
+          <>
+            {adminActiveTab === 'dashboard' && (
               <AdminDashboard onInspectReading={(rId) => setInspectingReadingId(rId)} />
-            </div>
-          )}
-          {visitedAdminTabs.has('schedules') && (
-            <div style={{ display: adminActiveTab === 'schedules' ? 'block' : 'none' }}>
-              <AdminSchedules />
-            </div>
-          )}
-          {visitedAdminTabs.has('staff_roster') && (
-            <div style={{ display: adminActiveTab === 'staff_roster' ? 'block' : 'none' }}>
-              <AdminStaffRoster user={currentUser} />
-            </div>
-          )}
-          {visitedAdminTabs.has('meters') && (
-            <div
-              style={{
-                display: adminActiveTab === 'meters' ? 'flex' : 'none',
-                flex: 1,
-                height: '100%',
-                minHeight: 0,
-                flexDirection: 'column',
-              }}
-            >
+            )}
+            {adminActiveTab === 'schedules' && <AdminSchedules />}
+            {adminActiveTab === 'staff_roster' && <AdminStaffRoster user={currentUser} />}
+            {adminActiveTab === 'meters' && (
               <AdminMeters onInspectReading={(rId) => setInspectingReadingId(rId)} />
-            </div>
-          )}
-          {visitedAdminTabs.has('reports') && (
-            <div style={{ display: adminActiveTab === 'reports' ? 'block' : 'none' }}>
+            )}
+            {adminActiveTab === 'reports' && (
               <AdminReports
                 user={currentUser}
                 onBackToDashboard={() => handleSelectAdminTab('dashboard')}
                 onInspectReading={(rId) => setInspectingReadingId(rId)}
               />
-            </div>
-          )}
-          {visitedAdminTabs.has('audit') && (
-            <div style={{ display: adminActiveTab === 'audit' ? 'block' : 'none' }}>
-              <AdminAudit />
-            </div>
-          )}
-        </div>
+            )}
+            {adminActiveTab === 'audit' && <AdminAudit />}
+          </>
+        )}
 
         <LogoutConfirmModal
           isOpen={isLogoutModalOpen}
