@@ -369,6 +369,9 @@ export interface AdminMeterItem {
   location: string | null;
   meter_type: string;
   is_active: boolean;
+  zone_id?: string | null;
+  map_x?: number | null;
+  map_y?: number | null;
   created_at: string | null;
   updated_at: string | null;
   has_readings: boolean;
@@ -389,6 +392,9 @@ export interface AdminMeterCreatePayload {
   name: string;
   location?: string | null;
   meter_type?: string;
+  zone_id?: string | null;
+  map_x?: number | null;
+  map_y?: number | null;
 }
 
 export interface AdminMeterUpdatePayload {
@@ -396,6 +402,9 @@ export interface AdminMeterUpdatePayload {
   name?: string;
   location?: string | null;
   meter_type?: string;
+  zone_id?: string | null;
+  map_x?: number | null;
+  map_y?: number | null;
 }
 
 export interface AdminSchedulePreviewRound {

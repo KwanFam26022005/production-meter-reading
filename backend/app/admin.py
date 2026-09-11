@@ -175,6 +175,9 @@ def get_admin_meters(
                 location=m.location,
                 meter_type=m.meter_type,
                 is_active=m.is_active,
+                zone_id=m.zone_id,
+                map_x=m.map_x,
+                map_y=m.map_y,
                 created_at=m.created_at.isoformat() if m.created_at else None,
                 updated_at=m.updated_at.isoformat() if m.updated_at else None,
                 has_readings=(count > 0),
@@ -225,12 +228,23 @@ def create_admin_meter(
             detail="Mã công tơ đã tồn tại.",
         )
 
+    # Validate coordinate range if provided
+    map_x = payload.map_x
+    map_y = payload.map_y
+    if map_x is not None:
+        map_x = max(0.0, min(1.0, round(float(map_x), 4)))
+    if map_y is not None:
+        map_y = max(0.0, min(1.0, round(float(map_y), 4)))
+
     new_meter = Meter(
         id=str(uuid.uuid4()),
         meter_code=clean_code,
         name=clean_name,
         location=clean_loc,
         meter_type=clean_type,
+        zone_id=payload.zone_id,
+        map_x=map_x,
+        map_y=map_y,
         is_active=True,
     )
     db.add(new_meter)
@@ -248,6 +262,9 @@ def create_admin_meter(
             "name": new_meter.name,
             "location": new_meter.location,
             "meter_type": new_meter.meter_type,
+            "zone_id": new_meter.zone_id,
+            "map_x": new_meter.map_x,
+            "map_y": new_meter.map_y,
             "is_active": new_meter.is_active,
         },
     )
@@ -261,6 +278,9 @@ def create_admin_meter(
         location=new_meter.location,
         meter_type=new_meter.meter_type,
         is_active=new_meter.is_active,
+        zone_id=new_meter.zone_id,
+        map_x=new_meter.map_x,
+        map_y=new_meter.map_y,
         created_at=new_meter.created_at.isoformat() if new_meter.created_at else None,
         updated_at=new_meter.updated_at.isoformat() if new_meter.updated_at else None,
         has_readings=False,
@@ -288,6 +308,9 @@ def update_admin_meter(
         "name": meter.name,
         "location": meter.location,
         "meter_type": meter.meter_type,
+        "zone_id": meter.zone_id,
+        "map_x": meter.map_x,
+        "map_y": meter.map_y,
         "is_active": meter.is_active,
     }
 
@@ -333,6 +356,15 @@ def update_admin_meter(
         if mt in ("LCD", "MECHANICAL", "UNKNOWN"):
             meter.meter_type = mt
 
+    if payload.zone_id is not None:
+        meter.zone_id = payload.zone_id
+
+    if payload.map_x is not None:
+        meter.map_x = max(0.0, min(1.0, round(float(payload.map_x), 4)))
+
+    if payload.map_y is not None:
+        meter.map_y = max(0.0, min(1.0, round(float(payload.map_y), 4)))
+
     meter.updated_at = datetime.now(timezone.utc)
 
     after_state = {
@@ -340,6 +372,9 @@ def update_admin_meter(
         "name": meter.name,
         "location": meter.location,
         "meter_type": meter.meter_type,
+        "zone_id": meter.zone_id,
+        "map_x": meter.map_x,
+        "map_y": meter.map_y,
         "is_active": meter.is_active,
     }
 
@@ -371,6 +406,9 @@ def update_admin_meter(
         location=meter.location,
         meter_type=meter.meter_type,
         is_active=meter.is_active,
+        zone_id=meter.zone_id,
+        map_x=meter.map_x,
+        map_y=meter.map_y,
         created_at=meter.created_at.isoformat() if meter.created_at else None,
         updated_at=meter.updated_at.isoformat() if meter.updated_at else None,
         has_readings=(reading_count > 0),

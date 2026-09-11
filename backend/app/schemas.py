@@ -371,6 +371,9 @@ class AdminMeterCreateRequest(BaseModel):
     name: str
     location: Optional[str] = None
     meter_type: str = "UNKNOWN"
+    zone_id: Optional[str] = None
+    map_x: Optional[float] = None
+    map_y: Optional[float] = None
 
 
 class AdminMeterUpdateRequest(BaseModel):
@@ -378,6 +381,9 @@ class AdminMeterUpdateRequest(BaseModel):
     name: Optional[str] = None
     location: Optional[str] = None
     meter_type: Optional[str] = None
+    zone_id: Optional[str] = None
+    map_x: Optional[float] = None
+    map_y: Optional[float] = None
 
 
 class AdminMeterItem(BaseModel):
@@ -387,6 +393,9 @@ class AdminMeterItem(BaseModel):
     location: Optional[str] = None
     meter_type: str
     is_active: bool
+    zone_id: Optional[str] = None
+    map_x: Optional[float] = None
+    map_y: Optional[float] = None
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
     has_readings: bool = False
