@@ -13,7 +13,7 @@ import { OperatorShiftPopover } from './map-ui/OperatorShiftPopover';
 import { OperationalMap } from './operational-map/OperationalMap';
 import { LoadingState } from '../../components/ui/LoadingState';
 import { ErrorState } from '../../components/ui/ErrorState';
-import { OPERATIONAL_METER_COORDINATES } from './geometry/operationalGeometry';
+import { normalizedToOperationalSvg } from './geometry/operationalGeometry';
 import { deriveOperatorShiftSummary } from './utils/deriveOperatorShiftSummary';
 
 interface MapOperationsPageProps {
@@ -159,11 +159,11 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
       selectMeter(id);
       setDetailOpen(false);
       setSearchOpen(false);
-      const c = OPERATIONAL_METER_COORDINATES[meter.meterCode] || meter.coordinates;
+      const svgCoord = normalizedToOperationalSvg(meter.coordinates);
       setViewport({
         zoom: 1.45,
-        panX: -(c.x * 1300 * 1.45 - 650),
-        panY: -(c.y * 520 * 1.45 - 260),
+        panX: -(svgCoord.x * 1.45 - 650),
+        panY: -(svgCoord.y * 1.45 - 260),
       });
     },
     [mapMeters, selectMeter, selectZone, setViewport]
@@ -345,6 +345,7 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
         {selectedMeter && !detailOpen && (
           <MeterQuickPopup
             meter={selectedMeter}
+            viewport={viewport}
             onDetails={() => setDetailOpen(true)}
             onClose={clearSelection}
           />

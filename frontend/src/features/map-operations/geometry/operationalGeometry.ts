@@ -36,26 +36,40 @@ export interface OperationalZoneGeometry {
   accentColor: string;
 }
 
-export function normalizedToSvg(point: NormalizedPoint): { x: number; y: number } {
+/**
+ * Canonical Coordinate Transform Functions
+ *
+ * Canvas properties:
+ * - ViewBox: 0 0 1300 520 (FIT_VIEWBOX)
+ * - Width: 1300 px
+ * - Height: 520 px
+ * - Normalized range: [0.0, 1.0] x [0.0, 1.0]
+ * - Y-axis convention: standard SVG Y-down (0 is North/river, 1 is South/inland)
+ */
+export function normalizedToOperationalSvg(point: NormalizedPoint): { x: number; y: number } {
   return {
     x: Math.round(point.x * MAP_DIMENSIONS.width),
     y: Math.round(point.y * MAP_DIMENSIONS.height),
   };
 }
 
-export function svgToNormalized(svgX: number, svgY: number): NormalizedPoint {
+export function operationalSvgToNormalized(svgX: number, svgY: number): NormalizedPoint {
   return {
     x: Number((svgX / MAP_DIMENSIONS.width).toFixed(4)),
     y: Number((svgY / MAP_DIMENSIONS.height).toFixed(4)),
   };
 }
 
+// Canonical aliases
+export const normalizedToSvg = normalizedToOperationalSvg;
+export const svgToNormalized = operationalSvgToNormalized;
+
 /**
  * 4 Canonical Operational Zones in Tan Thuan Port:
  * 1. zone-berth: Quayside & handling apron (Cầu 1, 2, 3)
  * 2. zone-warehouse: CFS & General Cargo Warehouses (Kho B, C, D)
  * 3. zone-container: Container staging blocks (Bãi A, A2, B1, B2)
- * 4. zone-technical: General cargo & technical structures (Hàng Tổng Hợp, Trạm Điện, Xưởng)
+ * 4. zone-technical: General cargo, Electrical Substations & Workshops
  */
 export const OPERATIONAL_ZONES_GEOMETRY: OperationalZoneGeometry[] = [
   {
@@ -105,10 +119,10 @@ export const OPERATIONAL_ZONES_GEOMETRY: OperationalZoneGeometry[] = [
     ],
     centroidSvg: { x: 320, y: 260 },
     centroidNormalized: { x: 0.2462, y: 0.5000 },
-    labelPositionSvg: { x: 320, y: 260 },
+    labelPositionSvg: { x: 320, y: 205 },
     exceptionBadgeSvg: { x: 250, y: 332 },
-    operatorAnchorSvg: { x: 345, y: 340 },
-    operatorAnchorNormalized: { x: 0.2654, y: 0.6538 },
+    operatorAnchorSvg: { x: 398, y: 295 },
+    operatorAnchorNormalized: { x: 0.3062, y: 0.5673 },
   },
   {
     id: 'zone-container',
@@ -133,10 +147,10 @@ export const OPERATIONAL_ZONES_GEOMETRY: OperationalZoneGeometry[] = [
     ],
     centroidSvg: { x: 810, y: 278 },
     centroidNormalized: { x: 0.6231, y: 0.5346 },
-    labelPositionSvg: { x: 810, y: 278 },
+    labelPositionSvg: { x: 800, y: 198 },
     exceptionBadgeSvg: { x: 680, y: 332 },
-    operatorAnchorSvg: { x: 960, y: 345 },
-    operatorAnchorNormalized: { x: 0.7385, y: 0.6635 },
+    operatorAnchorSvg: { x: 800, y: 300 },
+    operatorAnchorNormalized: { x: 0.6154, y: 0.5769 },
   },
   {
     id: 'zone-technical',
@@ -147,22 +161,26 @@ export const OPERATIONAL_ZONES_GEOMETRY: OperationalZoneGeometry[] = [
     pointsSvg: [
       { x: 125, y: 365 },
       { x: 515, y: 365 },
-      { x: 515, y: 485 },
+      { x: 515, y: 385 },
+      { x: 940, y: 385 },
+      { x: 940, y: 485 },
       { x: 125, y: 485 },
     ],
-    polygonSvg: 'M 125,365 L 515,365 L 515,485 L 125,485 Z',
+    polygonSvg: 'M 125,365 L 515,365 L 515,385 L 940,385 L 940,485 L 125,485 Z',
     normalizedPolygon: [
       { x: 0.0962, y: 0.7019 },
       { x: 0.3962, y: 0.7019 },
-      { x: 0.3962, y: 0.9327 },
+      { x: 0.3962, y: 0.7404 },
+      { x: 0.7231, y: 0.7404 },
+      { x: 0.7231, y: 0.9327 },
       { x: 0.0962, y: 0.9327 },
     ],
-    centroidSvg: { x: 320, y: 425 },
-    centroidNormalized: { x: 0.2462, y: 0.8173 },
-    labelPositionSvg: { x: 320, y: 425 },
+    centroidSvg: { x: 532, y: 435 },
+    centroidNormalized: { x: 0.4092, y: 0.8365 },
+    labelPositionSvg: { x: 315, y: 378 },
     exceptionBadgeSvg: { x: 250, y: 472 },
-    operatorAnchorSvg: { x: 540, y: 445 },
-    operatorAnchorNormalized: { x: 0.4154, y: 0.8558 },
+    operatorAnchorSvg: { x: 440, y: 440 },
+    operatorAnchorNormalized: { x: 0.3385, y: 0.8462 },
   },
 ];
 
@@ -177,19 +195,20 @@ export function getZoneOperatorAnchor(zoneId: string): { x: number; y: number } 
 }
 
 /**
- * Meter SVG Coordinate Mapping (Figma Frames 2:2 & 2:104 Exact Match)
+ * @deprecated Authoritative coordinates now come directly from DB / API (meter.coordinates).
+ * Kept strictly as an emergency offline bootstrap seed matching DB records 1-to-1.
  */
 export const OPERATIONAL_METER_COORDINATES: Record<string, NormalizedPoint> = {
-  'CT-001': { x: 0.2269, y: 0.2923 }, // Cầu 1 (Quayside Berth 1)   -> SVG (295, 152)
-  'CT-002': { x: 0.4692, y: 0.2923 }, // Cầu 2 (Quayside Berth 2)   -> SVG (610, 152)
-  'CT-003': { x: 0.7154, y: 0.2923 }, // Cầu 3 (Quayside Berth 3)   -> SVG (930, 152)
-  'CT-004': { x: 0.1708, y: 0.4712 }, // Kho B - Cửa xuất hàng CFS  -> SVG (222, 245)
-  'CT-005': { x: 0.3062, y: 0.4712 }, // Kho C - Bách hóa tổng hợp  -> SVG (398, 245)
-  'CT-008': { x: 0.1708, y: 0.5808 }, // Kho D - Hệ thống giàn lạnh -> SVG (222, 302)
-  'CT-006': { x: 0.5285, y: 0.5000 }, // Bãi Container A            -> SVG (687, 260)
-  'CT-007': { x: 0.7015, y: 0.5000 }, // Bãi Container A2           -> SVG (912, 260)
-  'CT-009': { x: 0.5285, y: 0.6615 }, // Bãi Container B1           -> SVG (687, 344)
-  'CT-010': { x: 0.7015, y: 0.6615 }, // Bãi Container B2           -> SVG (912, 344)
-  'CT-011': { x: 0.2038, y: 0.8308 }, // Hàng Tổng Hợp              -> SVG (265, 432)
-  'CT-012': { x: 0.5115, y: 0.8173 }, // Trạm điện                   -> SVG (665, 425)
+  'CT-001': { x: 0.4923, y: 0.8115 }, // Trạm điện A (Trạm điện)       -> SVG (640, 422)
+  'CT-002': { x: 0.1708, y: 0.4596 }, // Kho B (Kho B)                  -> SVG (222, 239)
+  'CT-003': { x: 0.2269, y: 0.2769 }, // Cầu cảng 1 (Cầu 1)             -> SVG (295, 144)
+  'CT-004': { x: 0.4692, y: 0.2769 }, // Cầu cảng 2 (Cầu 2)             -> SVG (610, 144)
+  'CT-005': { x: 0.3062, y: 0.4596 }, // Kho C (Kho C)                  -> SVG (398, 239)
+  'CT-006': { x: 0.1708, y: 0.5769 }, // Kho D (Kho D)                  -> SVG (222, 300)
+  'CT-007': { x: 0.2038, y: 0.8154 }, // Trạm điện B (Hàng Tổng Hợp)    -> SVG (265, 424)
+  'CT-008': { x: 0.7154, y: 0.2769 }, // Cầu cảng 3 (Cầu 3)             -> SVG (930, 144)
+  'CT-009': { x: 0.6192, y: 0.8115 }, // Khu kỹ thuật 1 (Xưởng)         -> SVG (805, 422)
+  'CT-010': { x: 0.6654, y: 0.8115 }, // Khu kỹ thuật 2 (Xưởng)         -> SVG (865, 422)
+  'CT-011': { x: 0.5292, y: 0.5000 }, // Bãi Container 1 (Bãi A)        -> SVG (688, 260)
+  'CT-012': { x: 0.7015, y: 0.5000 }, // Bãi Container 2 (Bãi A2)       -> SVG (912, 260)
 };

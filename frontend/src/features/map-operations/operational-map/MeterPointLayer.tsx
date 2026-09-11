@@ -1,9 +1,6 @@
 import React from 'react';
 import { MapMeterItem } from '../types';
-import {
-  OPERATIONAL_METER_COORDINATES,
-  normalizedToSvg,
-} from '../geometry/operationalGeometry';
+import { normalizedToOperationalSvg } from '../geometry/operationalGeometry';
 
 interface MeterPointLayerProps {
   meters: MapMeterItem[];
@@ -49,10 +46,8 @@ export const MeterPointLayer: React.FC<MeterPointLayerProps> = ({
           return null;
         }
 
-        // Coordinates resolution
-        const customCoord = OPERATIONAL_METER_COORDINATES[m.meterCode];
-        const norm = customCoord || m.coordinates;
-        const { x, y } = normalizedToSvg(norm);
+        // Coordinates resolution: direct domain projection from database / API
+        const { x, y } = normalizedToOperationalSvg(m.coordinates);
 
         // Dot colors per Figma 2:2 & 2:104
         let dotFill = '#10B981'; // green default (confirmed)
@@ -71,6 +66,8 @@ export const MeterPointLayer: React.FC<MeterPointLayerProps> = ({
         return (
           <g
             key={m.id}
+            id={`meter-marker-${m.id}`}
+            data-meter-code={m.meterCode}
             className={`sgp-meter-point ${isSelected ? 'selected' : ''} ${
               isException ? 'exception' : ''
             }`}

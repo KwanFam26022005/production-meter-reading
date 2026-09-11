@@ -423,11 +423,10 @@ def migrate_db(db_engine=None) -> None:
                         "Khu vực Cầu cảng (Berths 1 - 3)",
                         "Tuyến bến cầu tàu tiếp nhận tàu hàng tổng hợp và container dọc sông Sài Gòn.",
                         json.dumps([
-                            {"x": 0.62, "y": 0.10},
-                            {"x": 0.82, "y": 0.10},
-                            {"x": 0.84, "y": 0.92},
-                            {"x": 0.64, "y": 0.92},
-                            {"x": 0.62, "y": 0.58},
+                            {"x": 0.0885, "y": 0.2212},
+                            {"x": 0.8885, "y": 0.2212},
+                            {"x": 0.8885, "y": 0.3173},
+                            {"x": 0.0885, "y": 0.3173},
                         ]),
                         1, now_utc, now_utc,
                     ),
@@ -437,10 +436,11 @@ def migrate_db(db_engine=None) -> None:
                         "Khu vực Bãi Container (CY)",
                         "Bãi tập kết, bốc dỡ container tiền phương và hậu phương phục vụ tàu cập cảng.",
                         json.dumps([
-                            {"x": 0.35, "y": 0.32},
-                            {"x": 0.60, "y": 0.32},
-                            {"x": 0.61, "y": 0.75},
-                            {"x": 0.34, "y": 0.75},
+                            {"x": 0.4269, "y": 0.3558},
+                            {"x": 0.7885, "y": 0.3558},
+                            {"x": 0.8154, "y": 0.4231},
+                            {"x": 0.8154, "y": 0.7154},
+                            {"x": 0.4269, "y": 0.7154},
                         ]),
                         1, now_utc, now_utc,
                     ),
@@ -450,10 +450,10 @@ def migrate_db(db_engine=None) -> None:
                         "Khu vực Kho hàng Tổng hợp (B, C, D)",
                         "Hệ thống kho hàng tổng hợp kín và bãi đệm bốc xếp hàng rời, bao kiện.",
                         json.dumps([
-                            {"x": 0.10, "y": 0.12},
-                            {"x": 0.32, "y": 0.12},
-                            {"x": 0.32, "y": 0.60},
-                            {"x": 0.08, "y": 0.60},
+                            {"x": 0.0962, "y": 0.3558},
+                            {"x": 0.3962, "y": 0.3558},
+                            {"x": 0.3962, "y": 0.6442},
+                            {"x": 0.0962, "y": 0.6442},
                         ]),
                         1, now_utc, now_utc,
                     ),
@@ -463,10 +463,12 @@ def migrate_db(db_engine=None) -> None:
                         "Khu Kỹ thuật & Trạm Phụ trợ Điện",
                         "Trạm biến áp trung/hạ thế, xưởng sửa chữa cơ giới và trung tâm kỹ thuật năng lượng.",
                         json.dumps([
-                            {"x": 0.08, "y": 0.64},
-                            {"x": 0.60, "y": 0.78},
-                            {"x": 0.60, "y": 0.94},
-                            {"x": 0.08, "y": 0.94},
+                            {"x": 0.0962, "y": 0.7019},
+                            {"x": 0.3962, "y": 0.7019},
+                            {"x": 0.3962, "y": 0.7404},
+                            {"x": 0.7231, "y": 0.7404},
+                            {"x": 0.7231, "y": 0.9327},
+                            {"x": 0.0962, "y": 0.9327},
                         ]),
                         1, now_utc, now_utc,
                     ),
@@ -478,24 +480,24 @@ def migrate_db(db_engine=None) -> None:
 
             # 12. Update meter coordinates and zone references if not set
             meter_coords = {
-                'CT-001': ('zone-technical', 0.18, 0.74),
-                'CT-002': ('zone-warehouse', 0.20, 0.24),
-                'CT-003': ('zone-berth', 0.72, 0.24),
-                'CT-004': ('zone-berth', 0.73, 0.50),
-                'CT-005': ('zone-warehouse', 0.21, 0.38),
-                'CT-006': ('zone-warehouse', 0.22, 0.52),
-                'CT-007': ('zone-technical', 0.36, 0.84),
-                'CT-008': ('zone-berth', 0.74, 0.78),
-                'CT-009': ('zone-technical', 0.40, 0.20),
-                'CT-010': ('zone-technical', 0.52, 0.20),
-                'CT-011': ('zone-container', 0.44, 0.46),
-                'CT-012': ('zone-container', 0.49, 0.62),
+                'CT-001': ('zone-technical', 0.4923, 0.8115),
+                'CT-002': ('zone-warehouse', 0.1708, 0.4596),
+                'CT-003': ('zone-berth', 0.2269, 0.2769),
+                'CT-004': ('zone-berth', 0.4692, 0.2769),
+                'CT-005': ('zone-warehouse', 0.3062, 0.4596),
+                'CT-006': ('zone-warehouse', 0.1708, 0.5769),
+                'CT-007': ('zone-technical', 0.2038, 0.8154),
+                'CT-008': ('zone-berth', 0.7154, 0.2769),
+                'CT-009': ('zone-technical', 0.6192, 0.8115),
+                'CT-010': ('zone-technical', 0.6654, 0.8115),
+                'CT-011': ('zone-container', 0.5292, 0.5000),
+                'CT-012': ('zone-container', 0.7015, 0.5000),
             }
             for code, (zid, mx, my) in meter_coords.items():
                 cursor.execute("""
                     UPDATE meters
                     SET zone_id = ?, map_x = ?, map_y = ?
-                    WHERE meter_code = ? AND (zone_id IS NULL OR map_x IS NULL)
+                    WHERE meter_code = ?
                 """, (zid, mx, my, code))
 
             # 13. Seed initial primary zone assignments if empty

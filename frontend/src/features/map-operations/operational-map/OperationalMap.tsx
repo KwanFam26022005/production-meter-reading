@@ -12,6 +12,7 @@ import { MeterPointLayer } from './MeterPointLayer';
 import { OperatorLayer } from './OperatorLayer';
 import { MapViewportControls } from './MapViewportControls';
 import { OperationalMapLegend } from './OperationalMapLegend';
+import { MapDebugLayer } from './MapDebugLayer';
 
 interface OperationalMapProps {
   zones: MapOperationalZone[];
@@ -200,6 +201,9 @@ export const OperationalMap: React.FC<OperationalMapProps> = ({
             currentRoundTime={currentRoundTime}
             onSelectOperator={onSelectOperator || (() => {})}
           />
+
+          {/* 5. Development Diagnostic Debug Overlay (?mapDebug=1) */}
+          <MapDebugLayer zones={zones} meters={meters} />
         </g>
       </svg>
 

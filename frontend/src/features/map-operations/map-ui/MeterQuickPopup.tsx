@@ -1,13 +1,14 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ArrowRight, X } from 'lucide-react';
-import { MapMeterItem } from '../types';
+import { MapMeterItem, MapViewportState } from '../types';
 import { SEMANTIC_STATE_CONFIG } from '../utils/mapStatus';
-import { OPERATIONAL_METER_COORDINATES } from '../geometry/operationalGeometry';
+import { normalizedToOperationalSvg } from '../geometry/operationalGeometry';
 
 interface MeterQuickPopupProps {
   meter: MapMeterItem;
   onDetails: () => void;
   onClose: () => void;
+  viewport?: MapViewportState;
 }
 
 /**
@@ -20,10 +21,69 @@ interface MeterQuickPopupProps {
  * - Facts: Lượt hiện tại & Chỉ số gần nhất (kWh)
  * - Footer: "Xem chi tiết →"
  * - Speech-bubble triangular pointer pointing down to meter location
+ *
+ * Anchoring:
+ * - Tracks the actual DOM position of `#meter-marker-${meter.id}` on pan/zoom
+ * - Fallbacks safely to canonical normalizedToOperationalSvg transform
  */
-export const MeterQuickPopup: React.FC<MeterQuickPopupProps> = ({ meter, onDetails, onClose }) => {
+export const MeterQuickPopup: React.FC<MeterQuickPopupProps> = ({
+  meter,
+  onDetails,
+  onClose,
+  viewport,
+}) => {
   const stateCfg = SEMANTIC_STATE_CONFIG[meter.semanticState] || SEMANTIC_STATE_CONFIG.PENDING;
   const popupRef = useRef<HTMLDivElement | null>(null);
+
+  // Position in container pixels or percentages
+  const [stylePos, setStylePos] = useState<{ left: string; top: string }>(() => {
+    const { x, y } = normalizedToOperationalSvg(meter.coordinates);
+    return {
+      left: `${((x / 1300) * 100).toFixed(1)}%`,
+      top: `${((y / 520) * 100).toFixed(1)}%`,
+    };
+  });
+
+  // Track marker DOM element to follow pan/zoom dynamically
+  useEffect(() => {
+    const updatePosition = () => {
+      const markerEl = document.getElementById(`meter-marker-${meter.id}`);
+      const stageEl = popupRef.current?.closest('.sgp-map-stage') as HTMLElement | null;
+
+      if (markerEl && stageEl) {
+        const markerRect = markerEl.getBoundingClientRect();
+        const stageRect = stageEl.getBoundingClientRect();
+
+        const rawLeft = markerRect.left + markerRect.width / 2 - stageRect.left;
+        const rawTop = markerRect.top - stageRect.top;
+
+        // Clamp within stage bounds to prevent clipping (popup is 250px wide)
+        const leftClamped = Math.max(130, Math.min(rawLeft, stageRect.width - 130));
+        const topClamped = Math.max(190, Math.min(rawTop, stageRect.height - 30));
+
+        setStylePos({
+          left: `${leftClamped.toFixed(1)}px`,
+          top: `${topClamped.toFixed(1)}px`,
+        });
+      } else {
+        const { x, y } = normalizedToOperationalSvg(meter.coordinates);
+        setStylePos({
+          left: `clamp(140px, ${((x / 1300) * 100).toFixed(1)}%, calc(100% - 160px))`,
+          top: `clamp(180px, ${((y / 520) * 100).toFixed(1)}%, calc(100% - 60px))`,
+        });
+      }
+    };
+
+    // Run on mount, on next animation frame (after SVG paint), and on resize/pan/zoom
+    updatePosition();
+    const rafId = requestAnimationFrame(updatePosition);
+    window.addEventListener('resize', updatePosition);
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      window.removeEventListener('resize', updatePosition);
+    };
+  }, [meter.id, meter.coordinates, viewport]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -42,11 +102,6 @@ export const MeterQuickPopup: React.FC<MeterQuickPopupProps> = ({ meter, onDetai
 
   const roundLabel = meter.latestReading?.roundTime || '14:00';
 
-  // Compute anchor position if available
-  const coord = OPERATIONAL_METER_COORDINATES[meter.meterCode] || meter.coordinates;
-  const leftPct = (coord.x * 100).toFixed(1);
-  const topPct = (coord.y * 100).toFixed(1);
-
   return (
     <aside
       ref={popupRef}
@@ -54,9 +109,9 @@ export const MeterQuickPopup: React.FC<MeterQuickPopupProps> = ({ meter, onDetai
       role="dialog"
       aria-label={`Thông tin nhanh công tơ ${meter.meterCode}`}
       style={{
-        left: `clamp(140px, ${leftPct}%, calc(100% - 160px))`,
-        top: `clamp(180px, ${topPct}%, calc(100% - 60px))`,
-        transform: 'translate(-50%, -100%) translateY(-24px)',
+        left: stylePos.left,
+        top: stylePos.top,
+        transform: 'translate(-50%, -100%) translateY(-14px)',
       }}
     >
       <button

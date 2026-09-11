@@ -242,13 +242,13 @@ test('Case I: Deterministic operator anchor geometry and fallback', () => {
   assert.deepEqual(berthAnchor, { x: 860, y: 140 });
 
   const whAnchor = getZoneOperatorAnchor('zone-warehouse');
-  assert.deepEqual(whAnchor, { x: 345, y: 340 });
+  assert.deepEqual(whAnchor, { x: 398, y: 295 });
 
   const contAnchor = getZoneOperatorAnchor('zone-container');
-  assert.deepEqual(contAnchor, { x: 960, y: 345 });
+  assert.deepEqual(contAnchor, { x: 800, y: 300 });
 
   const techAnchor = getZoneOperatorAnchor('zone-technical');
-  assert.deepEqual(techAnchor, { x: 540, y: 445 });
+  assert.deepEqual(techAnchor, { x: 440, y: 440 });
 
   // Unknown zone fallback
   const fallbackAnchor = getZoneOperatorAnchor('non-existent-zone');
