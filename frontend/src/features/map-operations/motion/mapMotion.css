@@ -1,14 +1,939 @@
 /**
- * Operational Motion System — Tan Thuan Spatial Console
+ * Operational Motion & Immersive Shell System — Tan Thuan Spatial Console
+ * Phase U0 → U4
  *
  * Rules:
  * - Animation only to explain state changes (no decorative noise)
- * - Motion durations bound to standard tokens: 120ms (fast), 220ms (normal), 340ms (focus)
- * - Smooth deceleration (ease-out-expo) for context surfaces
+ * - Motion durations bound to standard tokens: 120ms (fast), 180ms (normal), 240ms (medium), 320ms (slow)
+ * - Standard easing: cubic-bezier(0.4, 0, 0.2, 1)
  * - Immediate fallback for prefers-reduced-motion
  */
 
-/* ── Meter Status Pulse (Operational Attention) ── */
+/* ==========================================================================
+   1. ROOT HUD & SHELL LAYOUT
+   ========================================================================== */
+
+.sgp-scene-hud-container {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 30;
+}
+
+/* Top Bar: Title Cluster (Left) & Controls (Right) */
+.sgp-hud-top-bar {
+  position: absolute;
+  top: 14px;
+  left: 16px;
+  right: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  pointer-events: none;
+}
+
+/* Top-Left Title Cluster */
+.sgp-scene-header-hud {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 6px 14px 6px 10px;
+  border-radius: 9999px;
+  border: 1px solid rgba(11, 79, 117, 0.14);
+  box-shadow: 0 4px 16px rgba(11, 79, 117, 0.08);
+  pointer-events: auto;
+  user-select: none;
+}
+
+.sgp-hud-menu-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9999px;
+  border: none;
+  background: rgba(14, 116, 144, 0.08);
+  color: #0E7490;
+  cursor: pointer;
+  transition: background 180ms ease, transform 120ms ease;
+}
+
+.sgp-hud-menu-btn:hover {
+  background: rgba(14, 116, 144, 0.16);
+  transform: scale(1.04);
+}
+
+.sgp-header-title-wrap {
+  display: flex;
+  flex-direction: column;
+}
+
+.sgp-header-title-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sgp-live-indicator {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #10B981;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.25);
+  animation: sgp-live-blink 2.2s infinite ease-in-out;
+}
+
+@keyframes sgp-live-blink {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.45; transform: scale(0.9); }
+}
+
+.sgp-header-main-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #0F172A;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.sgp-header-sub-title {
+  font-size: 10.5px;
+  color: #64748B;
+  font-weight: 500;
+  line-height: 1;
+}
+
+/* Top Center/Right Controls Toolbar */
+.sgp-scene-top-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 5px 8px;
+  border-radius: 9999px;
+  border: 1px solid rgba(11, 79, 117, 0.14);
+  box-shadow: 0 4px 16px rgba(11, 79, 117, 0.08);
+  pointer-events: auto;
+}
+
+/* Segmented Control [Bản đồ] [Danh sách] with Sliding Pill */
+.sgp-scene-segmented-switch {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: rgba(241, 245, 249, 0.92);
+  border-radius: 9999px;
+  padding: 2px;
+  border: 1px solid rgba(203, 213, 225, 0.8);
+}
+
+.sgp-segmented-active-pill {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  width: calc(50% - 2px);
+  background: #0E7490;
+  border-radius: 9999px;
+  box-shadow: 0 2px 6px rgba(14, 116, 144, 0.35);
+  transition: transform 180ms cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+}
+
+.sgp-segmented-active-pill.pos-map {
+  transform: translateX(0);
+}
+
+.sgp-segmented-active-pill.pos-list {
+  transform: translateX(100%);
+}
+
+.sgp-segmented-btn {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 9999px;
+  border: none;
+  background: transparent;
+  color: #475569;
+  cursor: pointer;
+  transition: color 180ms ease;
+}
+
+.sgp-segmented-btn.active {
+  color: #FFFFFF;
+}
+
+/* Overflow Menu */
+.sgp-top-overflow-wrap {
+  position: relative;
+}
+
+.sgp-hud-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 9999px;
+  border: 1px solid rgba(203, 213, 225, 0.8);
+  background: #FFFFFF;
+  color: #475569;
+  cursor: pointer;
+  transition: all 180ms ease;
+}
+
+.sgp-hud-icon-btn:hover,
+.sgp-hud-icon-btn.active {
+  background: rgba(14, 116, 144, 0.08);
+  color: #0E7490;
+  border-color: #0E7490;
+}
+
+.sgp-hud-menu-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 190px;
+  background: #FFFFFF;
+  border-radius: 12px;
+  border: 1px solid rgba(11, 79, 117, 0.14);
+  box-shadow: 0 8px 24px rgba(11, 79, 117, 0.14);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  z-index: 50;
+  animation: sgp-popup-enter 180ms ease-out;
+}
+
+.sgp-hud-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: #1E293B;
+  font-size: 12.5px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 120ms ease;
+}
+
+.sgp-hud-menu-item:hover {
+  background: rgba(14, 116, 144, 0.08);
+  color: #0E7490;
+}
+
+/* ==========================================================================
+   2. LEFT ACTIONS HUD (Search & Filter)
+   ========================================================================== */
+
+.sgp-hud-left-actions {
+  position: absolute;
+  top: 72px;
+  left: 16px;
+  display: flex;
+  gap: 8px;
+  z-index: 35;
+}
+
+/* ==========================================================================
+   3. RIGHT SUMMARY HUD (Telemetry & Alert Focus)
+   ========================================================================== */
+
+.sgp-hud-right-summary {
+  position: absolute;
+  top: 72px;
+  right: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  z-index: 35;
+}
+
+.sgp-scene-summary-hud {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+/* Exception Summary Pill */
+.sgp-summary-pill-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 14px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: all 180ms ease;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
+}
+
+.sgp-summary-pill-btn.all-healthy {
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #065F46;
+}
+
+.sgp-summary-pill-btn.all-healthy:hover {
+  border-color: #10B981;
+  background: #FFFFFF;
+}
+
+.sgp-summary-pill-btn.has-issues {
+  background: rgba(255, 255, 255, 0.95);
+  border: 1.5px solid #F59E0B;
+  color: #92400E;
+}
+
+.sgp-summary-pill-btn.has-issues:hover,
+.sgp-summary-pill-btn.focus-active {
+  background: #FFFBEB;
+  box-shadow: 0 4px 18px rgba(245, 158, 11, 0.25);
+}
+
+/* Telemetry Chips Row */
+.sgp-telemetry-chips-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.sgp-telemetry-chip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid transparent;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+  cursor: default;
+  transition: all 180ms ease;
+}
+
+.sgp-telemetry-chip button,
+button.sgp-telemetry-chip {
+  cursor: pointer;
+}
+
+.sgp-telemetry-chip .chip-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.chip-confirmed {
+  color: #065F46;
+  border-color: rgba(16, 185, 129, 0.25);
+}
+.chip-confirmed .chip-dot {
+  background: #10B981;
+}
+
+.chip-overdue {
+  color: #991B1B;
+  border-color: rgba(220, 38, 38, 0.3);
+}
+.chip-overdue .chip-dot {
+  background: #DC2626;
+}
+.chip-overdue:hover,
+.chip-overdue.active-focus {
+  background: #FEF2F2;
+  border-color: #DC2626;
+  transform: translateY(-1px);
+}
+
+.chip-review {
+  color: #92400E;
+  border-color: rgba(245, 158, 11, 0.3);
+}
+.chip-review .chip-dot {
+  background: #F59E0B;
+}
+.chip-review:hover,
+.chip-review.active-focus {
+  background: #FFFBEB;
+  border-color: #F59E0B;
+  transform: translateY(-1px);
+}
+
+.chip-pending {
+  color: #475569;
+  border-color: rgba(148, 163, 184, 0.3);
+}
+.chip-pending .chip-dot {
+  background: #94A3B8;
+}
+.chip-pending:hover,
+.chip-pending.active-focus {
+  background: #F8FAFC;
+  border-color: #64748B;
+  transform: translateY(-1px);
+}
+
+.chip-analytics {
+  color: #0E7490;
+  border-color: rgba(14, 116, 144, 0.25);
+}
+.chip-analytics:hover {
+  background: rgba(14, 116, 144, 0.08);
+  border-color: #0E7490;
+}
+
+/* Active Focus Banner */
+.sgp-focus-indicator-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  background: #0F172A;
+  color: #F8FAFC;
+  font-size: 11px;
+  font-weight: 500;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  animation: sgp-focus-bar-enter 180ms ease-out;
+}
+
+.sgp-focus-clear-mini-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: #FFFFFF;
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.sgp-focus-clear-mini-btn:hover {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+/* ==========================================================================
+   4. BOTTOM-LEFT ROUND HUD
+   ========================================================================== */
+
+.sgp-hud-bottom-left {
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  z-index: 35;
+}
+
+.sgp-scene-round-hud-wrap {
+  position: relative;
+}
+
+.sgp-round-hud-pill {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(11, 79, 117, 0.14);
+  padding: 4px 6px;
+  border-radius: 9999px;
+  box-shadow: 0 4px 14px rgba(11, 79, 117, 0.1);
+  cursor: pointer;
+  user-select: none;
+  transition: all 180ms ease;
+}
+
+.sgp-round-hud-pill:hover {
+  background: #FFFFFF;
+  border-color: #0E7490;
+  transform: translateY(-1px);
+}
+
+.sgp-round-nav-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: #64748B;
+  cursor: pointer;
+  transition: all 120ms ease;
+}
+
+.sgp-round-nav-btn:hover:not(:disabled) {
+  background: rgba(14, 116, 144, 0.1);
+  color: #0E7490;
+}
+
+.sgp-round-nav-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.sgp-round-info-segment {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #0F172A;
+}
+
+.sgp-round-clock {
+  color: #0E7490;
+}
+
+.sgp-round-dot {
+  color: #94A3B8;
+}
+
+.sgp-round-pct {
+  color: #0E7490;
+}
+
+/* Expanded Round Popover */
+.sgp-round-picker-popover {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  width: 230px;
+  background: #FFFFFF;
+  border-radius: 12px;
+  border: 1px solid rgba(11, 79, 117, 0.14);
+  box-shadow: 0 8px 24px rgba(11, 79, 117, 0.14);
+  padding: 8px;
+  z-index: 50;
+  animation: sgp-popup-enter 180ms ease-out;
+}
+
+.sgp-round-popover-header {
+  font-size: 10px;
+  font-weight: 700;
+  color: #64748B;
+  padding: 4px 6px 8px;
+  border-bottom: 1px solid #E2E8F0;
+  letter-spacing: 0.04em;
+}
+
+.sgp-round-popover-body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 6px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.sgp-round-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: background 120ms ease;
+  width: 100%;
+}
+
+.sgp-round-item:hover {
+  background: rgba(14, 116, 144, 0.08);
+}
+
+.sgp-round-item.active {
+  background: rgba(14, 116, 144, 0.12);
+}
+
+.sgp-round-item-time-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.sgp-round-item-time {
+  font-size: 12px;
+  font-weight: 700;
+  color: #0F172A;
+}
+
+.sgp-round-item-sub {
+  font-size: 10px;
+  color: #64748B;
+}
+
+.sgp-round-item-stat-col {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sgp-round-item-stat-pct {
+  font-size: 11px;
+  font-weight: 600;
+  color: #0E7490;
+}
+
+.sgp-round-item-check {
+  color: #0E7490;
+}
+
+/* ==========================================================================
+   5. BOTTOM-RIGHT VIEWPORT CONTROLS & LEGEND
+   ========================================================================== */
+
+.sgp-hud-bottom-right {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  z-index: 35;
+}
+
+/* ==========================================================================
+   6. OPERATIONAL LIST VIEW (Alternate View Mode)
+   ========================================================================== */
+
+.sgp-operational-list-view {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background: #F8FAFC;
+  padding: 76px 24px 24px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  z-index: 20;
+}
+
+.sgp-list-view-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.sgp-list-count-badge {
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.sgp-list-switch-map-btn {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #0E7490;
+  background: rgba(14, 116, 144, 0.08);
+  border: 1px solid rgba(14, 116, 144, 0.2);
+  padding: 5px 14px;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: all 180ms ease;
+}
+
+.sgp-list-switch-map-btn:hover {
+  background: #0E7490;
+  color: #FFFFFF;
+}
+
+.sgp-list-table-container {
+  background: #FFFFFF;
+  border-radius: 12px;
+  border: 1px solid rgba(203, 213, 225, 0.8);
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
+  overflow-x: auto;
+}
+
+.sgp-list-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.sgp-list-table th {
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748B;
+  background: #F8FAFC;
+  border-bottom: 1px solid #E2E8F0;
+  letter-spacing: 0.03em;
+}
+
+.sgp-list-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #F1F5F9;
+  color: #1E293B;
+}
+
+.sgp-list-row {
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.sgp-list-row:hover {
+  background: #F8FAFC;
+}
+
+.sgp-list-row.selected {
+  background: #EFF6FF;
+}
+
+.sgp-list-zone-tag {
+  display: inline-flex;
+  align-items: center;
+  background: #F1F5F9;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  color: #475569;
+}
+
+.sgp-list-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.badge-confirmed {
+  background: #ECFDF5;
+  color: #065F46;
+}
+
+.badge-overdue {
+  background: #FEF2F2;
+  color: #991B1B;
+}
+
+.badge-review {
+  background: #FFFBEB;
+  color: #92400E;
+}
+
+.badge-due {
+  background: #F0F9FF;
+  color: #0369A1;
+}
+
+.badge-pending {
+  background: #F1F5F9;
+  color: #64748B;
+}
+
+.sgp-list-inspect-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid #CBD5E1;
+  background: #FFFFFF;
+  color: #334155;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 120ms ease;
+}
+
+.sgp-list-inspect-btn:hover {
+  background: rgba(14, 116, 144, 0.08);
+  border-color: #0E7490;
+  color: #0E7490;
+}
+
+/* ==========================================================================
+   7. ANALYTICS DRAWER
+   ========================================================================== */
+
+.sgp-analytics-drawer {
+  width: min(440px, 100vw);
+}
+
+.sgp-analytics-section {
+  margin-bottom: 24px;
+}
+
+.sgp-section-heading {
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748B;
+  letter-spacing: 0.04em;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+}
+
+.sgp-quality-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.sgp-quality-card {
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+}
+
+.sgp-q-label {
+  font-size: 11px;
+  color: #64748B;
+  font-weight: 500;
+}
+
+.sgp-q-val {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 4px 0 2px;
+}
+
+.sgp-q-sub {
+  font-size: 10px;
+  color: #94A3B8;
+}
+
+.sgp-zone-progress-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sgp-zone-progress-item {
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.sgp-zone-progress-item:hover {
+  background: #F1F5F9;
+  border-color: #CBD5E1;
+}
+
+.sgp-zp-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.sgp-zp-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: #1E293B;
+}
+
+.sgp-zp-pct {
+  font-size: 12px;
+  font-weight: 700;
+  color: #0E7490;
+}
+
+.sgp-zp-bar-track {
+  width: 100%;
+  height: 6px;
+  background: #E2E8F0;
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.sgp-zp-bar-fill {
+  height: 100%;
+  border-radius: 9999px;
+  transition: width 320ms ease;
+}
+
+.sgp-zp-footer {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10.5px;
+  margin-top: 6px;
+}
+
+.sgp-exceptions-mini-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sgp-exception-mini-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: #FFFBEB;
+  border: 1px solid #FDE68A;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.sgp-exception-mini-card:hover {
+  background: #FEF3C7;
+}
+
+.sgp-emc-left {
+  display: flex;
+  flex-direction: column;
+}
+
+.sgp-emc-code {
+  font-size: 12px;
+  font-weight: 700;
+  color: #92400E;
+}
+
+.sgp-emc-reason {
+  font-size: 11px;
+  color: #B45309;
+}
+
+/* ==========================================================================
+   8. ANIMATIONS & REDUCED MOTION OVERRIDES
+   ========================================================================== */
+
 @keyframes sgp-pulse-ring {
   0%, 100% {
     stroke-opacity: 1;
@@ -30,11 +955,10 @@
   transform-origin: center;
 }
 
-/* ── Context Surface Entries ── */
 @keyframes sgp-popup-enter {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(6px);
   }
   to {
     opacity: 1;
@@ -64,7 +988,6 @@
   }
 }
 
-/* ── Operator Progress Halo Pulse ── */
 @keyframes sgpHaloPulse {
   0%, 100% {
     stroke-opacity: 0.35;
@@ -76,15 +999,17 @@
   }
 }
 
-/* ── Reduced Motion Override ── */
 @media (prefers-reduced-motion: reduce) {
   .sgp-pulse-ring,
   .sgp-pulse-ring-amber,
   .sgp-meter-quick-popup-anim,
   .sgp-side-drawer,
   .sgp-exception-focus-bar,
-  .sgp-op-marker-halo {
+  .sgp-op-marker-halo,
+  .sgp-live-indicator,
+  .sgp-segmented-active-pill {
     animation: none !important;
+    transition: none !important;
   }
 
   .sgp-operational-zone,

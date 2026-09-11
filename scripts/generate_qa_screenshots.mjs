@@ -32,85 +32,67 @@ async function run() {
     headless: true,
   });
 
-  console.log('--- Step 1: 1440x900 Desktop Scenarios ---');
+  console.log('--- Step 1: 1440x900 Immersive Spatial Console Scenarios ---');
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   const page = await context.newPage();
 
   await page.goto('http://localhost:5173');
   await page.waitForTimeout(1000);
   await loginIfNeeded(page);
-  await page.waitForTimeout(1000);
+  await page.waitForTimeout(1200);
 
-  // A. Healthy State
-  console.log('Capturing A: Healthy state...');
+  // A. Healthy State (Default Immersive Shell)
+  console.log('Capturing A: Healthy state (Immersive Shell)...');
   await page.screenshot({ path: path.join(OUT_DIR, 'qa-1440x900-healthy.png') });
 
   // C. Zone Hover
   console.log('Capturing C: Zone hover...');
   await page.evaluate(() => {
     const el = document.querySelector('.sgp-operational-zone path');
-    if (el) {
-      el.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
-    }
+    if (el) el.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
   });
-  await page.waitForTimeout(500);
+  await page.waitForTimeout(400);
   await page.screenshot({ path: path.join(OUT_DIR, 'qa-1440x900-zone-hover.png') });
-
-  // Reset hover
   await page.evaluate(() => {
     const el = document.querySelector('.sgp-operational-zone path');
-    if (el) {
-      el.dispatchEvent(new MouseEvent('mouseleave', { bubbles: true }));
-    }
+    if (el) el.dispatchEvent(new MouseEvent('mouseleave', { bubbles: true }));
   });
   await page.waitForTimeout(200);
 
-  // D. Zone Selected (Click zone polygon)
+  // D. Zone Selected (Zone Drawer)
   console.log('Capturing D: Zone selected...');
   await page.evaluate(() => {
     const el = document.querySelector('.sgp-operational-zone path');
-    if (el) {
-      el.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    }
+    if (el) el.dispatchEvent(new MouseEvent('click', { bubbles: true }));
   });
-  await page.waitForTimeout(800);
+  await page.waitForTimeout(600);
   await page.screenshot({ path: path.join(OUT_DIR, 'qa-1440x900-zone-selected.png') });
-
-  // Close Zone Drawer
   await page.mouse.click(100, 100);
-  await page.waitForTimeout(500);
+  await page.waitForTimeout(400);
 
-  // E. Meter Selected (Click a meter marker)
+  // E. Meter Selected (Quick Popup)
   console.log('Capturing E: Meter selected...');
   await page.evaluate(() => {
     const el = document.querySelector('.sgp-meter-point');
-    if (el) {
-      el.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    }
+    if (el) el.dispatchEvent(new MouseEvent('click', { bubbles: true }));
   });
-  await page.waitForTimeout(800);
+  await page.waitForTimeout(600);
   await page.screenshot({ path: path.join(OUT_DIR, 'qa-1440x900-meter-selected.png') });
-
-  // Close Meter popup
   await page.mouse.click(100, 100);
-  await page.waitForTimeout(500);
+  await page.waitForTimeout(400);
 
-  // F. Operator Selected (Click an operator marker)
+  // F. Operator Selected (Shift Popover)
   console.log('Capturing F: Operator selected...');
   await page.evaluate(() => {
     const el = document.querySelector('.sgp-operator-map-marker');
-    if (el) {
-      el.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    }
+    if (el) el.dispatchEvent(new MouseEvent('click', { bubbles: true }));
   });
-  await page.waitForTimeout(800);
+  await page.waitForTimeout(600);
   await page.screenshot({ path: path.join(OUT_DIR, 'qa-1440x900-operator-selected.png') });
-
-  // Close Operator popover
   await page.mouse.click(100, 100);
-  await page.waitForTimeout(500);
+  await page.waitForTimeout(400);
 
-  // B. Critical State (Set date to 2026-08-07 where REVIEW readings exist)
+  // B. Critical State (Date 2026-08-07)
   console.log('Capturing B: Critical state (2026-08-07)...');
   await page.evaluate(() => {
     const input = document.querySelector('.vn-datepicker-native-input');
@@ -130,9 +112,36 @@ async function run() {
   const alertBtn = await page.$('button:has-text("vấn đề"), button:has-text("ngoại lệ")');
   if (alertBtn) {
     await alertBtn.click();
-    await page.waitForTimeout(800);
+    await page.waitForTimeout(600);
     await page.screenshot({ path: path.join(OUT_DIR, 'qa-1440x900-alert-focus.png') });
     await alertBtn.click();
+    await page.waitForTimeout(400);
+  }
+
+  // NEW: Analytics Drawer (Quality & Progress Detail)
+  console.log('Capturing Analytics Drawer...');
+  const analyticsBtn = await page.$('.chip-analytics, button:has-text("Phân tích")');
+  if (analyticsBtn) {
+    await analyticsBtn.click();
+    await page.waitForTimeout(600);
+    await page.screenshot({ path: path.join(OUT_DIR, 'qa-1440x900-analytics-drawer.png') });
+    // Close drawer
+    const closeBtn = await page.$('.sgp-analytics-drawer .sgp-drawer-close-btn');
+    if (closeBtn) await closeBtn.click();
+    else await page.mouse.click(100, 100);
+    await page.waitForTimeout(400);
+  }
+
+  // NEW: Operational List View Switch
+  console.log('Capturing Operational List View...');
+  const listModeBtn = await page.$('.sgp-segmented-btn:has-text("Danh sách")');
+  if (listModeBtn) {
+    await listModeBtn.click();
+    await page.waitForTimeout(600);
+    await page.screenshot({ path: path.join(OUT_DIR, 'qa-1440x900-list-view.png') });
+    // Switch back to map
+    const mapModeBtn = await page.$('.sgp-segmented-btn:has-text("Bản đồ")');
+    if (mapModeBtn) await mapModeBtn.click();
     await page.waitForTimeout(400);
   }
 
