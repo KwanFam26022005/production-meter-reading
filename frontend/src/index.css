@@ -8875,7 +8875,7 @@ body:has(.admin-portal-root) {
 .sgp-map-first-workspace .sgp-current-round-card { position: absolute; z-index: var(--z-map-controls, 30); left: 16px; bottom: 16px; width: 178px; margin: 0; box-shadow: 0 4px 14px rgba(22,45,58,.12); }
 .sgp-map-first-workspace .sgp-side-drawer { position: absolute; z-index: var(--z-map-drawers, 60); top: 0; right: 0; height: 100%; width: min(340px, 92vw); box-shadow: -12px 0 30px rgba(22,45,58,.16); }
 .sgp-map-first-workspace .sgp-viewport-controls { right: 16px; bottom: 16px; }
-.sgp-map-first-workspace .sgp-map-legend-wrapper { right: 16px; bottom: 72px; }
+.sgp-map-first-workspace .sgp-map-legend-wrapper { right: 16px; bottom: 148px; }
 .sgp-operational-zone:focus-visible, .sgp-meter-point:focus-visible { outline: 3px solid #087eaa; outline-offset: 4px; }
 
 /* ==========================================================================
@@ -9764,6 +9764,8 @@ body:has(.admin-portal-root) {
   .sgp-map-top-hud { inset: 10px 10px auto; }
   .sgp-exception-focus-bar { top: 60px; max-width: calc(100% - 20px); overflow-x: auto; white-space: nowrap; }
   .sgp-search-popover { width: min(300px, calc(100vw - 20px)); }
+  .sgp-map-first-workspace .sgp-viewport-controls { right: 10px; bottom: 10px; }
+  .sgp-map-first-workspace .sgp-map-legend-wrapper { right: 10px; bottom: 140px; }
   .sgp-map-first-workspace .sgp-current-round-card { left: 10px; bottom: 10px; }
   .sgp-map-first-workspace .sgp-side-drawer { top: auto; bottom: 0; width: 100%; height: min(72vh, 560px); border-radius: 16px 16px 0 0; }
   .sgp-meter-quick-popup { top: auto; right: 10px; left: 10px; bottom: 10px; width: auto; }
@@ -14792,6 +14794,14 @@ body:has(.admin-portal-root) {
   background-color: #94A3B8;
 }
 
+.sgp-css-dot.due {
+  background-color: #3B82F6;
+}
+
+.sgp-css-dot.confirmed {
+  background-color: #10B981;
+}
+
 .sgp-css-divider {
   color: #CBD5E1;
   font-weight: 300;
@@ -15118,91 +15128,193 @@ body:has(.admin-portal-root) {
 
 .sgp-filter-popover {
   position: absolute;
-  top: calc(100% + 4px);
-  right: 0;
-  width: 270px;
+  top: calc(100% + 6px);
+  left: 0;
+  right: auto;
+  width: 290px;
+  max-width: calc(100vw - 32px);
   background-color: #FFFFFF;
   border: 1px solid #CBD5E1;
   border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-  z-index: 50;
-  padding: 10px 12px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  z-index: var(--z-map-popovers, 40);
+  padding: 12px 14px;
+  box-sizing: border-box;
 }
 
 .sgp-fp-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 8px;
-  padding-bottom: 6px;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
   border-bottom: 1px solid #E2E8F0;
 }
 
 .sgp-fp-title {
   font-weight: 700;
-  font-size: 12px;
+  font-size: 13px;
   color: #073B5C;
 }
 
+.sgp-fp-close,
 .sgp-fp-close-btn {
   background: transparent;
   border: none;
   cursor: pointer;
-  color: #94A3B8;
+  color: #64748B;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.15s;
+}
+
+.sgp-fp-close:hover,
+.sgp-fp-close-btn:hover {
+  background-color: #F1F5F9;
+  color: #0F172A;
 }
 
 .sgp-fp-body {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  max-height: 320px;
+  gap: 12px;
+  max-height: 360px;
   overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 2px;
 }
 
-.sgp-fp-section-title {
-  font-size: 10.5px;
+.sgp-fp-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sgp-fp-label {
+  font-size: 11px;
   font-weight: 700;
-  color: #64748B;
-  margin-bottom: 3px;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.sgp-fp-select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 6px 10px;
+  border: 1px solid #CBD5E1;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #1E293B;
+  background-color: #F8FAFC;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.sgp-fp-select:focus {
+  border-color: #0E7490;
+  background-color: #FFFFFF;
+}
+
+.sgp-fp-checkbox-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .sgp-fp-checkbox-item {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 11px;
+  gap: 8px;
+  font-size: 12px;
   cursor: pointer;
   padding: 2px 0;
   color: #334155;
+  user-select: none;
 }
 
+.sgp-fp-checkbox-input {
+  margin: 0;
+  accent-color: #0E7490;
+  cursor: pointer;
+  width: 14px;
+  height: 14px;
+}
+
+.sgp-fp-checkbox-label {
+  flex: 1;
+  font-size: 12px;
+  color: #334155;
+}
+
+.sgp-fp-radio-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.sgp-fp-radio-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  color: #334155;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.sgp-fp-radio-item input[type="radio"] {
+  margin: 0;
+  accent-color: #0E7490;
+  cursor: pointer;
+}
+
+.sgp-fp-actions,
 .sgp-fp-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: 10px;
-  padding-top: 6px;
+  margin-top: 12px;
+  padding-top: 8px;
   border-top: 1px solid #E2E8F0;
 }
 
 .sgp-fp-clear-btn {
-  font-size: 11px;
+  font-size: 11.5px;
   color: #64748B;
   background: transparent;
   border: none;
   cursor: pointer;
   text-decoration: underline;
+  padding: 4px 6px;
+}
+
+.sgp-fp-clear-btn:hover {
+  color: #0F172A;
 }
 
 .sgp-fp-apply-btn {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   color: #FFFFFF;
-  background-color: #073B5C;
+  background-color: #0E7490;
   border: none;
-  border-radius: 4px;
-  padding: 4px 10px;
+  border-radius: 6px;
+  padding: 6px 14px;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: background-color 0.15s;
+}
+
+.sgp-fp-apply-btn:hover {
+  background-color: #08566E;
 }
 
 /* Zone list in Root View */
@@ -15654,9 +15766,9 @@ body:has(.admin-portal-root) {
 
 .sgp-map-legend-wrapper {
   position: absolute;
-  bottom: 16px;
+  bottom: 148px;
   right: 16px;
-  z-index: 20;
+  z-index: var(--z-map-controls, 30);
 }
 
 .sgp-legend-toggle {

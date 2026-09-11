@@ -93,3 +93,44 @@ test('Tab Lifecycle & Overlay Integrity: Absolute controls are contained inside 
     'Workspace must clip overlays'
   );
 });
+
+test('Map Filter Popover: Anchored with left: 0 and wrapped content to prevent clipping and horizontal scroll', () => {
+  const cssPath = path.resolve(__dirname, '../src/index.css');
+  const cssContent = fs.readFileSync(cssPath, 'utf-8');
+
+  // 1. Must use left: 0 to prevent left-side viewport clipping
+  assert.ok(
+    cssContent.includes('left: 0;'),
+    'Filter popover must align to left edge of trigger button'
+  );
+
+  // 2. Radio row must wrap and body must prevent horizontal overflow
+  assert.ok(
+    cssContent.includes('flex-wrap: wrap;'),
+    'Radio options must wrap to prevent horizontal scroll'
+  );
+  assert.ok(
+    cssContent.includes('overflow-x: hidden;'),
+    'Filter popover body must hide horizontal overflow'
+  );
+});
+
+test('Map Legend Positioning: Stacked above viewport controls with >= 140px bottom offset to prevent collision', () => {
+  const cssPath = path.resolve(__dirname, '../src/index.css');
+  const cssContent = fs.readFileSync(cssPath, 'utf-8');
+
+  // Must not have bottom: 72px which collides with viewport controls
+  assert.equal(
+    cssContent.includes('bottom: 72px;'),
+    false,
+    'Legend must not use conflicting bottom: 72px offset'
+  );
+
+  // Must use bottom: 148px
+  assert.ok(
+    cssContent.includes('.sgp-map-legend-wrapper { right: 16px; bottom: 148px; }') ||
+    cssContent.includes('bottom: 148px;'),
+    'Legend must be positioned at bottom: 148px above the zoom controls'
+  );
+});
+

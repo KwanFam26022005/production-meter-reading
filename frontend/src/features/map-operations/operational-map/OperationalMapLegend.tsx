@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Info, X } from 'lucide-react';
 
 interface OperationalMapLegendProps {
@@ -7,9 +7,31 @@ interface OperationalMapLegendProps {
 
 export const OperationalMapLegend: React.FC<OperationalMapLegendProps> = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const legendRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        setIsOpen(false);
+      }
+    };
+    const handleClickOutside = (e: MouseEvent) => {
+      if (legendRef.current && !legendRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown, true);
+    document.addEventListener('mousedown', handleClickOutside, true);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown, true);
+      document.removeEventListener('mousedown', handleClickOutside, true);
+    };
+  }, [isOpen]);
 
   return (
-    <div className="sgp-map-legend-wrapper">
+    <div className="sgp-map-legend-wrapper" ref={legendRef}>
       {isOpen && (
         <div className="sgp-legend-popover shadow-xl" role="region" aria-label="Chú giải trạng thái">
           <div className="sgp-legend-popover-header">
