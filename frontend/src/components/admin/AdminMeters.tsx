@@ -218,13 +218,26 @@ export const AdminMeters: React.FC<AdminMetersProps> = ({ onInspectReading }) =>
   const isSearchOrFilterActive =
     searchQuery.trim() !== '' || statusFilter !== 'ALL' || typeFilter !== 'ALL';
 
-  const [viewMode, setViewMode] = useState<'map' | 'legacy'>('legacy');
+  const [viewMode, setViewMode] = useState<'map' | 'legacy'>(() => {
+    try {
+      const saved = sessionStorage.getItem('csg_admin_meters_view_mode');
+      if (saved === 'legacy' || saved === 'map') return saved;
+    } catch {}
+    return 'map';
+  });
+
+  const handleSetViewMode = (mode: 'map' | 'legacy') => {
+    setViewMode(mode);
+    try {
+      sessionStorage.setItem('csg_admin_meters_view_mode', mode);
+    } catch {}
+  };
 
   if (viewMode === 'map') {
     return (
       <MapOperationsPage
         onInspectReading={onInspectReading}
-        onSwitchToLegacy={() => setViewMode('legacy')}
+        onSwitchToLegacy={() => handleSetViewMode('legacy')}
       />
     );
   }
@@ -243,7 +256,7 @@ export const AdminMeters: React.FC<AdminMetersProps> = ({ onInspectReading }) =>
             <button
               type="button"
               className="sgp-mode-btn"
-              onClick={() => setViewMode('map')}
+              onClick={() => handleSetViewMode('map')}
             >
               <Map size={15} />
               <span>Bản đồ</span>
@@ -251,7 +264,7 @@ export const AdminMeters: React.FC<AdminMetersProps> = ({ onInspectReading }) =>
             <button
               type="button"
               className="sgp-mode-btn active"
-              onClick={() => setViewMode('legacy')}
+              onClick={() => handleSetViewMode('legacy')}
             >
               <List size={15} />
               <span>Danh sách</span>

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'csg-meter-reading-shell-v1';
+const CACHE_NAME = 'csg-meter-reading-shell-v2';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -38,8 +38,13 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // NEVER cache API requests, non-GET requests, or multipart uploads
-  if (event.request.method !== 'GET' || url.pathname.startsWith('/api/')) {
+  // NEVER cache in local development, API requests, non-GET requests, or multipart uploads
+  if (
+    url.hostname === 'localhost' ||
+    url.hostname === '127.0.0.1' ||
+    event.request.method !== 'GET' ||
+    url.pathname.startsWith('/api/')
+  ) {
     return;
   }
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   LayoutDashboard,
   Calendar,
@@ -33,6 +33,13 @@ export const AdminShell: React.FC<AdminShellProps> = ({
   children,
 }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    const handleToggle = () => setSidebarOpen((prev) => !prev);
+    window.addEventListener('sgp-toggle-admin-sidebar', handleToggle);
+    return () => window.removeEventListener('sgp-toggle-admin-sidebar', handleToggle);
+  }, []);
+
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     try {
       return localStorage.getItem('csg_admin_sidebar_collapsed') === 'true';

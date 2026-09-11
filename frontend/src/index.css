@@ -13459,9 +13459,28 @@ body:has(.admin-portal-root) {
    ========================================================================== */
 
 /* 1. ROOT CONTAINER & ADMIN VIEWPORT INTEGRATION */
+/* Figma Frame 2:2 — Default Map Mode: MUST NOT show persistent left sidebar */
+.admin-shell-layout:has(.sgp-map-first-root) .admin-sidebar:not(.open) {
+  display: none !important;
+}
+
+.admin-shell-layout:has(.sgp-map-first-root) .admin-sidebar.open {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  bottom: 0 !important;
+  z-index: 120 !important;
+  width: 256px !important;
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3) !important;
+}
+
+.admin-shell-layout:has(.sgp-map-first-root) .admin-main-viewport,
 .admin-main-viewport:has(.sgp-map-first-root),
 .admin-main-viewport:has(.sgp-unified-console-root) {
   padding: 0 !important;
+  margin-left: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
   overflow: hidden !important;
   height: 100vh !important;
   max-height: 100vh !important;
@@ -13520,6 +13539,26 @@ body:has(.admin-portal-root) {
   align-items: center;
   gap: 8px;
   min-width: 0;
+}
+
+.sgp-mh-menu-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  border: 1px solid #E2E8F0;
+  background: #F8FAFC;
+  color: #073B5C;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.sgp-mh-menu-nav-btn:hover {
+  background: #E2E8F0;
+  color: #032135;
 }
 
 .sgp-mh-title {

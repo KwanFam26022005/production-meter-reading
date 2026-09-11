@@ -36,16 +36,18 @@ export interface AdminDashboardProps {
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onInspectReading }) => {
   const [viewMode, setViewMode] = useState<'map' | 'legacy'>(() => {
     try {
-      const saved = localStorage.getItem('csg_admin_dashboard_view_mode');
+      // Clear any stale legacy setting so user lands directly on map-first
+      localStorage.removeItem('csg_admin_dashboard_view_mode');
+      const saved = sessionStorage.getItem('csg_admin_dashboard_view_mode');
       if (saved === 'legacy' || saved === 'map') return saved;
     } catch {}
-    return (import.meta as any).env?.VITE_ENABLE_MAP_OPERATIONS === 'false' ? 'legacy' : 'map';
+    return 'map';
   });
 
   const handleSetViewMode = (mode: 'map' | 'legacy') => {
     setViewMode(mode);
     try {
-      localStorage.setItem('csg_admin_dashboard_view_mode', mode);
+      sessionStorage.setItem('csg_admin_dashboard_view_mode', mode);
     } catch {}
   };
 

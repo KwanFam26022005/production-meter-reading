@@ -5,10 +5,11 @@ import {
   MoreVertical,
   RefreshCw,
   Download,
+  Menu,
 } from 'lucide-react';
 import { VnDatePicker } from '../../../components/ui/VnDatePicker';
 
-interface MapHeaderProps {
+export interface MapHeaderProps {
   selectedDate: string;
   onDateChange: (newDate: string) => void;
   viewMode: 'map' | 'legacy';
@@ -16,6 +17,7 @@ interface MapHeaderProps {
   onRefresh: () => void;
   isLoading: boolean;
   onExportCsv?: () => void;
+  onToggleMenu?: () => void;
 }
 
 export const MapHeader: React.FC<MapHeaderProps> = ({
@@ -26,6 +28,7 @@ export const MapHeader: React.FC<MapHeaderProps> = ({
   onRefresh,
   isLoading,
   onExportCsv,
+  onToggleMenu,
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -52,8 +55,23 @@ export const MapHeader: React.FC<MapHeaderProps> = ({
 
   return (
     <header className="sgp-map-header" role="banner" aria-label="Đầu trang bản đồ công tơ">
-      {/* LEFT: Title + Port name — flex: 1 fr, never shrinks */}
+      {/* LEFT: Menu button + Title + Port name */}
       <div className="sgp-mh-title-wrap">
+        <button
+          type="button"
+          className="sgp-mh-menu-nav-btn"
+          onClick={() => {
+            if (onToggleMenu) {
+              onToggleMenu();
+            } else {
+              window.dispatchEvent(new CustomEvent('sgp-toggle-admin-sidebar'));
+            }
+          }}
+          title="Mở menu điều hướng quản trị"
+          aria-label="Mở menu quản trị"
+        >
+          <Menu size={18} />
+        </button>
         <div>
           <h1 className="sgp-mh-title">Bản đồ công tơ</h1>
           <span className="sgp-mh-subtitle">Cảng Tân Thuận</span>
