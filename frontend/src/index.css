@@ -14647,25 +14647,165 @@ body:has(.admin-portal-root) {
    PHASE 6: UNIFIED MAP OPERATIONS CONSOLE STYLING
    ========================================================================== */
 
-/* 1. ROOT CONTAINER & ADMIN VIEWPORT INTEGRATION */
-/* Figma Frame 2:2 — Default Map Mode: MUST NOT show persistent left sidebar */
-.admin-shell-layout:has(.sgp-map-first-root) .admin-sidebar:not(.open) {
-  display: none !important;
+/* 1. ROOT CONTAINER & ADMIN VIEWPORT INTEGRATION — APPROVED MARITIME RAIL */
+.admin-shell-layout:has(.sgp-map-first-root) .admin-sidebar,
+.admin-sidebar.rail-mode {
+  width: 84px !important;
+  min-width: 84px !important;
+  max-width: 84px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  background-color: #0B192C !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+  z-index: 50 !important;
+  height: 100vh !important;
+  position: sticky !important;
+  top: 0 !important;
+  box-shadow: 2px 0 12px rgba(0, 0, 0, 0.25) !important;
+  transition: width 0.18s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 .admin-shell-layout:has(.sgp-map-first-root) .admin-sidebar-backdrop {
-  z-index: var(--z-nav-backdrop, 80) !important;
-  display: block !important;
+  display: none !important;
 }
 
-.admin-shell-layout:has(.sgp-map-first-root) .admin-sidebar.open {
-  position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  bottom: 0 !important;
-  z-index: var(--z-nav-drawer, 90) !important;
-  width: 256px !important;
-  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3) !important;
+/* Brand area in rail mode */
+.admin-sidebar.rail-mode .admin-sidebar-brand,
+.admin-shell-layout:has(.sgp-map-first-root) .admin-sidebar .admin-sidebar-brand {
+  padding: 12px 8px !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+}
+
+.admin-sidebar-rail-menu-btn {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 10px;
+  color: #E2E8F0;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.admin-sidebar-rail-menu-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #FFFFFF;
+  border-color: rgba(255, 255, 255, 0.20);
+}
+
+/* Nav items list in rail mode */
+.admin-sidebar.rail-mode .admin-nav-list,
+.admin-shell-layout:has(.sgp-map-first-root) .admin-sidebar .admin-nav-list {
+  padding: 10px 6px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+  align-items: center !important;
+  overflow-x: hidden !important;
+}
+
+.admin-sidebar.rail-mode .admin-nav-item,
+.admin-shell-layout:has(.sgp-map-first-root) .admin-sidebar .admin-nav-item {
+  width: 66px !important;
+  min-height: 56px !important;
+  height: 56px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 3px !important;
+  padding: 4px 2px !important;
+  border-radius: 10px !important;
+  border: none !important;
+  border-left: none !important;
+  background: transparent !important;
+  color: #94A3B8 !important;
+  cursor: pointer !important;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  text-align: center !important;
+}
+
+.admin-sidebar.rail-mode .admin-nav-item:hover,
+.admin-shell-layout:has(.sgp-map-first-root) .admin-sidebar .admin-nav-item:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: #FFFFFF !important;
+  transform: scale(1.02);
+}
+
+.admin-sidebar.rail-mode .admin-nav-item.active,
+.admin-shell-layout:has(.sgp-map-first-root) .admin-sidebar .admin-nav-item.active {
+  background: #0284C7 !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.45) !important;
+}
+
+.admin-sidebar.rail-mode .admin-nav-icon,
+.admin-shell-layout:has(.sgp-map-first-root) .admin-sidebar .admin-nav-icon {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.admin-sidebar.rail-mode .admin-nav-label,
+.admin-shell-layout:has(.sgp-map-first-root) .admin-sidebar .admin-nav-label {
+  display: block !important;
+  font-size: 10.5px !important;
+  font-weight: 600 !important;
+  line-height: 1.15 !important;
+  letter-spacing: -0.01em !important;
+  color: inherit !important;
+  white-space: nowrap !important;
+}
+
+/* Footer in rail mode */
+.admin-sidebar.rail-mode .admin-sidebar-footer,
+.admin-shell-layout:has(.sgp-map-first-root) .admin-sidebar .admin-sidebar-footer {
+  padding: 16px 4px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.06) !important;
+  background: transparent !important;
+}
+
+.admin-sidebar-rail-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  user-select: none;
+}
+
+.admin-rail-anchor-icon {
+  color: #64748B;
+  transition: color 0.15s ease;
+}
+
+.admin-sidebar-rail-footer:hover .admin-rail-anchor-icon {
+  color: #0284C7;
+}
+
+.admin-rail-port-title {
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #64748B;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.admin-rail-version {
+  font-size: 9px;
+  color: #475569;
+  font-family: monospace;
 }
 
 .admin-shell-layout:has(.sgp-map-first-root) .admin-main-viewport,
@@ -14673,8 +14813,8 @@ body:has(.admin-portal-root) {
 .admin-main-viewport:has(.sgp-unified-console-root) {
   padding: 0 !important;
   margin-left: 0 !important;
-  width: 100% !important;
-  max-width: 100% !important;
+  flex: 1 !important;
+  min-width: 0 !important;
   overflow: hidden !important;
   height: 100vh !important;
   max-height: 100vh !important;
@@ -14683,6 +14823,17 @@ body:has(.admin-portal-root) {
 }
 
 @media (max-width: 1023px) {
+  .admin-shell-layout:has(.sgp-map-first-root) .admin-sidebar {
+    display: none !important;
+  }
+  .admin-shell-layout:has(.sgp-map-first-root) .admin-sidebar.open {
+    display: flex !important;
+    position: fixed !important;
+    top: 56px !important;
+    left: 0 !important;
+    bottom: 0 !important;
+    width: 84px !important;
+  }
   .admin-main-viewport:has(.sgp-map-first-root),
   .admin-main-viewport:has(.sgp-unified-console-root) {
     height: calc(100vh - 56px) !important;

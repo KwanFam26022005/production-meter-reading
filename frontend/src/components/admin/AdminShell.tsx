@@ -12,6 +12,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Map,
+  Anchor,
 } from 'lucide-react';
 import { User, formatUserRole } from '../../types';
 
@@ -73,13 +74,15 @@ export const AdminShell: React.FC<AdminShellProps> = ({
   };
 
   const navItems: { id: AdminTab; label: string; icon: React.ReactNode }[] = [
-    { id: 'dashboard', label: 'Bản đồ công tơ', icon: <Map size={18} /> },
-    { id: 'schedules', label: 'Lịch ghi', icon: <Calendar size={18} /> },
-    { id: 'staff_roster', label: 'Lịch phân ca', icon: <Users size={18} /> },
-    { id: 'meters', label: 'Công tơ', icon: <Zap size={18} /> },
-    { id: 'reports', label: 'Báo cáo', icon: <BarChart3 size={18} /> },
-    { id: 'audit', label: 'Nhật ký', icon: <ScrollText size={18} /> },
+    { id: 'dashboard', label: 'Bản đồ', icon: <Map size={22} /> },
+    { id: 'schedules', label: 'Lịch ghi', icon: <Calendar size={22} /> },
+    { id: 'staff_roster', label: 'Phân ca', icon: <Users size={22} /> },
+    { id: 'meters', label: 'Công tơ', icon: <Zap size={22} /> },
+    { id: 'reports', label: 'Báo cáo', icon: <BarChart3 size={22} /> },
+    { id: 'audit', label: 'Nhật ký', icon: <ScrollText size={22} /> },
   ];
+
+  const isMapMode = activeTab === 'dashboard';
 
   return (
     <div className="admin-portal-root">
@@ -114,41 +117,55 @@ export const AdminShell: React.FC<AdminShellProps> = ({
           />
         )}
 
-        {/* NAVY DESKTOP SIDEBAR */}
+        {/* NAVY DESKTOP SIDEBAR / MARITIME RAIL */}
         <aside
-          className={`admin-sidebar ${sidebarOpen ? 'open' : ''} ${sidebarCollapsed ? 'collapsed' : ''}`}
+          className={`admin-sidebar ${sidebarOpen ? 'open' : ''} ${sidebarCollapsed ? 'collapsed' : ''} ${isMapMode ? 'rail-mode' : ''}`}
           role="navigation"
           aria-label="Menu quản trị"
         >
           <div className="admin-sidebar-brand">
-            <div className="admin-brand-plate" title="Cảng Sài Gòn">
-              <img src="/logo.png" alt="Logo Cảng Sài Gòn" className="admin-brand-logo" />
-            </div>
-            {!sidebarCollapsed && (
-              <div className="admin-brand-info">
-                <span className="admin-brand-corp">CẢNG SÀI GÒN</span>
-                <span className="admin-brand-desc">Quản trị vận hành</span>
-              </div>
-            )}
-            <button
-              type="button"
-              className="admin-sidebar-collapse-btn"
-              onClick={toggleCollapse}
-              title={sidebarCollapsed ? 'Mở rộng menu (Phím tắt)' : 'Thu gọn menu để mở rộng không gian'}
-              aria-label={sidebarCollapsed ? 'Mở rộng menu' : 'Thu gọn menu'}
-            >
-              {sidebarCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
-            </button>
-            {sidebarOpen && (
+            {isMapMode ? (
               <button
                 type="button"
-                className="admin-sidebar-close-btn"
-                onClick={() => setSidebarOpen(false)}
-                title="Đóng menu điều hướng (ESC)"
-                aria-label="Đóng menu điều hướng"
+                className="admin-sidebar-rail-menu-btn"
+                onClick={() => setSidebarOpen((prev) => !prev)}
+                title="Menu quản trị"
+                aria-label="Menu quản trị"
               >
-                <X size={16} />
+                <Menu size={20} />
               </button>
+            ) : (
+              <>
+                <div className="admin-brand-plate" title="Cảng Sài Gòn">
+                  <img src="/logo.png" alt="Logo Cảng Sài Gòn" className="admin-brand-logo" />
+                </div>
+                {!sidebarCollapsed && (
+                  <div className="admin-brand-info">
+                    <span className="admin-brand-corp">CẢNG SÀI GÒN</span>
+                    <span className="admin-brand-desc">Quản trị vận hành</span>
+                  </div>
+                )}
+                <button
+                  type="button"
+                  className="admin-sidebar-collapse-btn"
+                  onClick={toggleCollapse}
+                  title={sidebarCollapsed ? 'Mở rộng menu (Phím tắt)' : 'Thu gọn menu để mở rộng không gian'}
+                  aria-label={sidebarCollapsed ? 'Mở rộng menu' : 'Thu gọn menu'}
+                >
+                  {sidebarCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+                </button>
+                {sidebarOpen && (
+                  <button
+                    type="button"
+                    className="admin-sidebar-close-btn"
+                    onClick={() => setSidebarOpen(false)}
+                    title="Đóng menu điều hướng (ESC)"
+                    aria-label="Đóng menu điều hướng"
+                  >
+                    <X size={16} />
+                  </button>
+                )}
+              </>
             )}
           </div>
 
@@ -164,45 +181,55 @@ export const AdminShell: React.FC<AdminShellProps> = ({
                     onSelectTab(item.id);
                     setSidebarOpen(false);
                   }}
-                  title={sidebarCollapsed ? item.label : undefined}
+                  title={item.label}
                   aria-label={item.label}
                   aria-current={isActive ? 'page' : undefined}
                 >
                   <span className="admin-nav-icon">{item.icon}</span>
-                  {!sidebarCollapsed && <span className="admin-nav-label">{item.label}</span>}
+                  <span className="admin-nav-label">{item.label}</span>
                 </button>
               );
             })}
           </nav>
 
           <div className="admin-sidebar-footer">
-            <div className="admin-user-card" title={sidebarCollapsed ? `${user.full_name} (${formatUserRole(user.role)})` : undefined}>
-              <div className="admin-avatar">
-                {user.full_name?.charAt(0).toUpperCase() || 'A'}
+            {isMapMode ? (
+              <div className="admin-sidebar-rail-footer" title="Cảng Tân Thuận v1.0.0">
+                <Anchor size={22} className="admin-rail-anchor-icon" />
+                <span className="admin-rail-port-title">CẢNG TÂN THUẬN</span>
+                <span className="admin-rail-version">v1.0.0</span>
               </div>
-              {!sidebarCollapsed && (
-                <div className="admin-user-details">
-                  <span className="admin-user-name" title={user.full_name}>
-                    {user.full_name}
-                  </span>
-                  <div className="admin-role-line">
-                    <ShieldCheck size={12} className="admin-role-icon" />
-                    <span className="admin-user-role">{formatUserRole(user.role)}</span>
+            ) : (
+              <>
+                <div className="admin-user-card" title={sidebarCollapsed ? `${user.full_name} (${formatUserRole(user.role)})` : undefined}>
+                  <div className="admin-avatar">
+                    {user.full_name?.charAt(0).toUpperCase() || 'A'}
                   </div>
+                  {!sidebarCollapsed && (
+                    <div className="admin-user-details">
+                      <span className="admin-user-name" title={user.full_name}>
+                        {user.full_name}
+                      </span>
+                      <div className="admin-role-line">
+                        <ShieldCheck size={12} className="admin-role-icon" />
+                        <span className="admin-user-role">{formatUserRole(user.role)}</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
 
-            <button
-              type="button"
-              className="admin-logout-btn"
-              onClick={onLogout}
-              title="Đăng xuất"
-              aria-label="Đăng xuất khỏi hệ thống quản trị"
-            >
-              <LogOut size={16} />
-              {!sidebarCollapsed && <span>Đăng xuất</span>}
-            </button>
+                <button
+                  type="button"
+                  className="admin-logout-btn"
+                  onClick={onLogout}
+                  title="Đăng xuất"
+                  aria-label="Đăng xuất khỏi hệ thống quản trị"
+                >
+                  <LogOut size={16} />
+                  {!sidebarCollapsed && <span>Đăng xuất</span>}
+                </button>
+              </>
+            )}
           </div>
         </aside>
 
