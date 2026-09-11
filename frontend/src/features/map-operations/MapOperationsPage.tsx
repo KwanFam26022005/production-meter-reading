@@ -9,10 +9,12 @@ import { CurrentRoundControl } from './components/CurrentRoundControl';
 import { ZoneDrawer } from './map-ui/ZoneDrawer';
 import { MeterQuickPopup } from './map-ui/MeterQuickPopup';
 import { MeterDetailDrawer } from './map-ui/MeterDetailDrawer';
+import { OperatorShiftPopover } from './map-ui/OperatorShiftPopover';
 import { OperationalMap } from './operational-map/OperationalMap';
 import { LoadingState } from '../../components/ui/LoadingState';
 import { ErrorState } from '../../components/ui/ErrorState';
 import { OPERATIONAL_METER_COORDINATES } from './geometry/operationalGeometry';
+import { deriveOperatorShiftSummary } from './utils/deriveOperatorShiftSummary';
 
 interface MapOperationsPageProps {
   onInspectReading?: (readingId: string) => void;
@@ -53,10 +55,47 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [detailOpen, setDetailOpen] = useState(false);
+  const [selectedOperatorShiftId, setSelectedOperatorShiftId] = useState<string | null>(null);
+
+  // Runtime source of truth verification object
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      (window as any).__MAP_UI_BUILD__ = {
+        phase: '6D',
+        renderer: 'OperationalMap',
+        geometryVersion: 'tan-thuan-operational-v2',
+        zones: mapZones.length,
+        meters: mapMeters.length,
+        operators: new Set(mapZones.map((z) => z.assignedUser?.id).filter(Boolean)).size,
+        timestamp: new Date().toISOString(),
+      };
+    }
+  }, [mapZones, mapMeters]);
 
   const filteredMeters = useMemo(() => filterMeters(mapMeters, filters), [mapMeters, filters]);
   const selectedMeter = mapMeters.find((m) => m.id === selection.selectedMeterId);
   const selectedZone = mapZones.find((z) => z.id === selection.selectedZoneId);
+
+  // Derive Shift Summary for selected operator marker
+  const selectedOperatorSummary = useMemo(() => {
+    if (!selectedOperatorShiftId) return null;
+    const foundZone = mapZones.find((z) => z.assignedUser?.id === selectedOperatorShiftId);
+    const user =
+      foundZone?.assignedUser ||
+      availableOperators.find((o) => o.id === selectedOperatorShiftId);
+    if (!user) return null;
+    const opObj = {
+      id: user.id,
+      fullName: 'fullName' in user ? user.fullName : (user as any).full_name || '',
+      employeeCode: 'employeeCode' in user ? user.employeeCode : (user as any).employee_code,
+    };
+    return deriveOperatorShiftSummary(
+      opObj,
+      mapZones,
+      mapMeters,
+      overallKpis.currentRoundTime || undefined
+    );
+  }, [selectedOperatorShiftId, mapZones, mapMeters, availableOperators, overallKpis.currentRoundTime]);
 
   const searchResults = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -72,17 +111,31 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
   }, [mapMeters, mapZones, searchQuery]);
 
   const clearSelection = useCallback(() => {
+    setSelectedOperatorShiftId(null);
     selectMeter(null);
     selectZone(null);
     setDetailOpen(false);
     setSearchOpen(false);
   }, [selectMeter, selectZone]);
 
+  const handleSelectOperator = useCallback(
+    (operatorId: string) => {
+      setSelectedOperatorShiftId(operatorId);
+      selectZone(null);
+      selectMeter(null);
+      setDetailOpen(false);
+      setSearchOpen(false);
+    },
+    [selectZone, selectMeter]
+  );
+
   // Hierarchical ESC key handling: dismiss topmost contextual surface first
   useEffect(() => {
     const esc = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        if (detailOpen) {
+        if (selectedOperatorShiftId) {
+          setSelectedOperatorShiftId(null);
+        } else if (detailOpen) {
           setDetailOpen(false);
         } else if (searchOpen) {
           setSearchOpen(false);
@@ -95,10 +148,11 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
     };
     window.addEventListener('keydown', esc);
     return () => window.removeEventListener('keydown', esc);
-  }, [clearSelection, detailOpen, searchOpen, exceptionFocus]);
+  }, [clearSelection, detailOpen, searchOpen, exceptionFocus, selectedOperatorShiftId]);
 
   const focusMeter = useCallback(
     (id: string) => {
+      setSelectedOperatorShiftId(null);
       const meter = mapMeters.find((m) => m.id === id);
       if (!meter) return;
       selectZone(meter.zoneId);
@@ -117,6 +171,7 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
 
   const focusZone = useCallback(
     (id: string) => {
+      setSelectedOperatorShiftId(null);
       selectMeter(null);
       selectZone(id);
       setDetailOpen(false);
@@ -185,9 +240,12 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
           exceptionsOnly={false}
           exceptionFocus={exceptionFocus}
           selectedOperatorId={filters.operatorId === 'ALL' ? undefined : filters.operatorId}
+          selectedOperatorShiftId={selectedOperatorShiftId}
+          currentRoundTime={overallKpis.currentRoundTime || undefined}
           viewport={viewport}
           onSelectZone={focusZone}
           onSelectMeter={focusMeter}
+          onSelectOperator={handleSelectOperator}
           onHoverZone={setHoveredZone}
           onHoverMeter={setHoveredMeter}
           onClearSelection={clearSelection}
@@ -299,6 +357,15 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
           currentRoundStatus={overallKpis.currentRoundStatus}
           onSelectRound={(roundId) => setFilters({ ...filters, selectedRoundId: roundId })}
         />
+
+        {/* Level 2: Spatial Operator Shift Progress Popover (Phase 6D) */}
+        {selectedOperatorSummary && !selectedMeter && !selectedZone && !detailOpen && (
+          <OperatorShiftPopover
+            summary={selectedOperatorSummary}
+            onClose={() => setSelectedOperatorShiftId(null)}
+            onSelectZone={focusZone}
+          />
+        )}
 
         {/* Level 2: Contextual Zone Drawer (Figma 2:363 & 9:8) */}
         {selectedZone && !selectedMeter && (

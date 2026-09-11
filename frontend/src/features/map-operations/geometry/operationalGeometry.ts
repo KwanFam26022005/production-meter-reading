@@ -12,8 +12,8 @@
  * (river now ends ~y=68 instead of y=110).
  */
 
-import { NormalizedPoint } from '../types';
-import { PHYSICAL_VIEWBOX } from './physicalScene';
+import type { NormalizedPoint } from '../types';
+import { PHYSICAL_VIEWBOX } from './physicalScene.ts';
 
 export interface OperationalZoneGeometry {
   id: string;
@@ -26,6 +26,8 @@ export interface OperationalZoneGeometry {
   centroidSvg: { x: number; y: number };
   centroidNormalized: NormalizedPoint;
   labelPositionSvg: { x: number; y: number };
+  operatorAnchorSvg?: { x: number; y: number };
+  operatorAnchorNormalized?: NormalizedPoint;
   accentColor: string;
 }
 
@@ -76,6 +78,8 @@ export const OPERATIONAL_ZONES_GEOMETRY: OperationalZoneGeometry[] = [
     centroidSvg: { x: 680, y: 88 },
     centroidNormalized: { x: 0.523, y: 0.169 },
     labelPositionSvg: { x: 680, y: 88 },
+    operatorAnchorSvg: { x: 860, y: 88 },
+    operatorAnchorNormalized: { x: 0.662, y: 0.169 },
   },
   {
     id: 'zone-warehouse',
@@ -99,6 +103,8 @@ export const OPERATIONAL_ZONES_GEOMETRY: OperationalZoneGeometry[] = [
     centroidSvg: { x: 345, y: 265 },
     centroidNormalized: { x: 0.265, y: 0.510 },
     labelPositionSvg: { x: 345, y: 265 },
+    operatorAnchorSvg: { x: 345, y: 340 },
+    operatorAnchorNormalized: { x: 0.265, y: 0.654 },
   },
   {
     id: 'zone-container',
@@ -122,6 +128,8 @@ export const OPERATIONAL_ZONES_GEOMETRY: OperationalZoneGeometry[] = [
     centroidSvg: { x: 960, y: 265 },
     centroidNormalized: { x: 0.738, y: 0.510 },
     labelPositionSvg: { x: 960, y: 265 },
+    operatorAnchorSvg: { x: 960, y: 345 },
+    operatorAnchorNormalized: { x: 0.738, y: 0.663 },
   },
   {
     id: 'zone-technical',
@@ -145,8 +153,21 @@ export const OPERATIONAL_ZONES_GEOMETRY: OperationalZoneGeometry[] = [
     centroidSvg: { x: 540, y: 398 },
     centroidNormalized: { x: 0.415, y: 0.765 },
     labelPositionSvg: { x: 540, y: 398 },
+    operatorAnchorSvg: { x: 540, y: 445 },
+    operatorAnchorNormalized: { x: 0.415, y: 0.856 },
   },
 ];
+
+/**
+ * Returns deterministic SVG coordinates for placing an operator marker in a zone.
+ * Fallback to zone centroid + 40px Y offset, or map center.
+ */
+export function getZoneOperatorAnchor(zoneId: string): { x: number; y: number } {
+  const geo = OPERATIONAL_ZONES_GEOMETRY.find((z) => z.id === zoneId);
+  if (geo?.operatorAnchorSvg) return geo.operatorAnchorSvg;
+  if (geo?.centroidSvg) return { x: geo.centroidSvg.x, y: geo.centroidSvg.y + 40 };
+  return { x: 650, y: 260 };
+}
 
 /**
  * Coordinate mapping adapter for existing meters into the elongated 2.5:1 port space.

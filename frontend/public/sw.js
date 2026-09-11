@@ -38,10 +38,11 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // NEVER cache in local development, API requests, non-GET requests, or multipart uploads
+  // NEVER cache in local development/tunnel, API requests, non-GET requests, or multipart uploads
   if (
     url.hostname === 'localhost' ||
     url.hostname === '127.0.0.1' ||
+    url.hostname.endsWith('.trycloudflare.com') ||
     event.request.method !== 'GET' ||
     url.pathname.startsWith('/api/')
   ) {

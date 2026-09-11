@@ -1,4 +1,4 @@
-import React, { useRef, useState, useCallback } from 'react';
+import React, { useRef, useState, useCallback, useEffect } from 'react';
 import {
   MapMeterItem,
   MapOperationalZone,
@@ -9,6 +9,7 @@ import { FIT_VIEWBOX } from '../geometry/physicalScene';
 import { PortFootprint } from './PortFootprint';
 import { ZoneOperationalLayer } from './ZoneOperationalLayer';
 import { MeterPointLayer } from './MeterPointLayer';
+import { OperatorLayer } from './OperatorLayer';
 import { MapViewportControls } from './MapViewportControls';
 import { OperationalMapLegend } from './OperationalMapLegend';
 
@@ -22,10 +23,13 @@ interface OperationalMapProps {
   activeLayer?: OperationalLayerType;
   exceptionsOnly?: boolean;
   selectedOperatorId?: string;
+  selectedOperatorShiftId?: string | null;
   isAssetMode?: boolean;
   viewport: MapViewportState;
+  currentRoundTime?: string;
   onSelectZone: (zoneId: string) => void;
   onSelectMeter: (meterId: string) => void;
+  onSelectOperator?: (operatorId: string) => void;
   onHoverZone: (zoneId: string | null) => void;
   onHoverMeter: (meterId: string | null) => void;
   onClearSelection: () => void;
@@ -43,10 +47,13 @@ export const OperationalMap: React.FC<OperationalMapProps> = ({
   activeLayer = 'STATUS',
   exceptionsOnly = false,
   selectedOperatorId,
+  selectedOperatorShiftId,
   isAssetMode = false,
   viewport,
+  currentRoundTime,
   onSelectZone,
   onSelectMeter,
+  onSelectOperator,
   onHoverZone,
   onHoverMeter,
   onClearSelection,
@@ -56,6 +63,15 @@ export const OperationalMap: React.FC<OperationalMapProps> = ({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const [dragStart, setDragStart] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+
+  // Runtime source of truth diagnostic
+  useEffect(() => {
+    const operatorCount = new Set(zones.map((z) => z.assignedUser?.id).filter(Boolean)).size;
+    console.log(
+      `[MapOps] renderer=OperationalMap geometryVersion=tan-thuan-operational-v2 zones=${zones.length} meters=${meters.length} operators=${operatorCount}`
+    );
+  }, [zones, meters]);
+
 
   // Pan / Drag Handling
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -174,6 +190,15 @@ export const OperationalMap: React.FC<OperationalMapProps> = ({
             onSelectMeter={onSelectMeter}
             onHoverMeter={onHoverMeter}
             exceptionFocus={exceptionFocus}
+          />
+
+          {/* 4. Spatial Operator Progress Layer (Phase 6D) */}
+          <OperatorLayer
+            zones={zones}
+            meters={meters}
+            selectedOperatorId={selectedOperatorShiftId}
+            currentRoundTime={currentRoundTime}
+            onSelectOperator={onSelectOperator || (() => {})}
           />
         </g>
       </svg>
