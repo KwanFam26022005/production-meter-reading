@@ -23,7 +23,7 @@ export interface OperatorMapMarkerProps {
  * - Selected state: Subtle halo ring (r=25).
  * - Full accessibility: role="button", role="progressbar", keyboard Enter/Space/Escape.
  */
-export const OperatorMapMarker: React.FC<OperatorMapMarkerProps> = ({
+export const OperatorMapMarker: React.FC<OperatorMapMarkerProps> = React.memo(({
   summary,
   x,
   y,
@@ -217,5 +217,7 @@ export const OperatorMapMarker: React.FC<OperatorMapMarkerProps> = ({
       )}
     </g>
   );
-};
+});
+
+OperatorMapMarker.displayName = 'OperatorMapMarker';
 

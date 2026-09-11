@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { useMapOperations } from './hooks/useMapOperations';
 import { useMapSelection } from './hooks/useMapSelection';
 import { filterMeters } from './utils/mapFilters';
@@ -9,13 +8,12 @@ import {
   MeterQuickPopup,
   MeterDetailDrawer,
   OperatorShiftPopover,
-  SceneSearch,
-  SceneFilter,
 } from './map-ui';
-import { OperationalMap } from './operational-map/OperationalMap';
+import { OperationalScene } from './scene/OperationalScene';
+import { SceneHud } from './scene/SceneHud';
 import { LoadingState } from '../../components/ui/LoadingState';
 import { ErrorState } from '../../components/ui/ErrorState';
-import { normalizedToOperationalSvg } from './geometry/operationalGeometry';
+import { normalizedToCanonicalScene } from './geometry/canonicalScene';
 import { deriveOperatorShiftSummary } from './utils/deriveOperatorShiftSummary';
 import './motion/mapMotion.css';
 
@@ -57,7 +55,6 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
   } = useMapSelection();
 
   const [exceptionFocus, setExceptionFocus] = useState(false);
-  const [utilitySurface, setUtilitySurface] = useState<'search' | 'filter' | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedOperatorShiftId, setSelectedOperatorShiftId] = useState<string | null>(null);
 
@@ -65,9 +62,10 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
   useEffect(() => {
     if (typeof window !== 'undefined') {
       (window as any).__MAP_UI_BUILD__ = {
-        phase: 'Hightopo-Spatial-Console',
-        renderer: 'OperationalMap',
-        geometryVersion: 'tan-thuan-operational-v2',
+        phase: 'Canonical-Base-Scene-H1',
+        renderer: 'OperationalScene',
+        geometryVersion: 'tan-thuan-v1',
+        viewBox: '0 0 1664 932',
         zones: mapZones.length,
         meters: mapMeters.length,
         operators: new Set(mapZones.map((z) => z.assignedUser?.id).filter(Boolean)).size,
@@ -106,7 +104,6 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
     selectMeter(null);
     selectZone(null);
     setDetailOpen(false);
-    setUtilitySurface(null);
   }, [selectMeter, selectZone]);
 
   const handleSelectOperator = useCallback(
@@ -115,12 +112,11 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
       selectZone(null);
       selectMeter(null);
       setDetailOpen(false);
-      setUtilitySurface(null);
     },
     [selectZone, selectMeter]
   );
 
-  // Hierarchical ESC key handling: dismiss topmost contextual surface first
+  // Hierarchical ESC key handling
   useEffect(() => {
     const esc = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -133,9 +129,6 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
         } else if (selection.selectedMeterId) {
           e.stopPropagation();
           selectMeter(null);
-        } else if (utilitySurface !== null) {
-          e.stopPropagation();
-          setUtilitySurface(null);
         } else if (selection.selectedZoneId) {
           e.stopPropagation();
           selectZone(null);
@@ -151,7 +144,6 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
     detailOpen,
     selectedOperatorShiftId,
     selection.selectedMeterId,
-    utilitySurface,
     selection.selectedZoneId,
     exceptionFocus,
     selectMeter,
@@ -162,7 +154,6 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
   useEffect(() => {
     return () => {
       setSelectedOperatorShiftId(null);
-      setUtilitySurface(null);
       setDetailOpen(false);
       setExceptionFocus(false);
       clearSelection();
@@ -177,12 +168,11 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
       selectZone(meter.zoneId);
       selectMeter(id);
       setDetailOpen(false);
-      setUtilitySurface(null);
-      const svgCoord = normalizedToOperationalSvg(meter.coordinates);
+      const svgCoord = normalizedToCanonicalScene(meter.coordinates);
       setViewport({
         zoom: 1.45,
-        panX: -(svgCoord.x * 1.45 - 650),
-        panY: -(svgCoord.y * 1.45 - 260),
+        panX: -(svgCoord.x * 1.45 - 832),
+        panY: -(svgCoord.y * 1.45 - 466),
       });
     },
     [mapMeters, selectMeter, selectZone, setViewport]
@@ -194,7 +184,6 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
       selectMeter(null);
       selectZone(id);
       setDetailOpen(false);
-      setUtilitySurface(null);
     },
     [selectMeter, selectZone]
   );
@@ -218,7 +207,7 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
   if (loading && !dashboardData && mapMeters.length === 0) {
     return (
       <div className="sgp-map-loading-container">
-        <LoadingState message="Đang kết nối sơ đồ vận hành Cảng Tân Thuận..." />
+        <LoadingState message="Đang tải sơ đồ cơ sở Cảng Tân Thuận..." />
       </div>
     );
   }
@@ -233,9 +222,23 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
 
   const issueCount = overallKpis.overdue + overallKpis.review;
 
+  const handleZoomIn = () => {
+    const nextZoom = Math.min(viewport.zoom + 0.15, 3.0);
+    setViewport({ ...viewport, zoom: Number(nextZoom.toFixed(2)) });
+  };
+
+  const handleZoomOut = () => {
+    const nextZoom = Math.max(viewport.zoom - 0.15, 0.6);
+    setViewport({ ...viewport, zoom: Number(nextZoom.toFixed(2)) });
+  };
+
+  const handleResetView = () => {
+    setViewport({ zoom: 1.0, panX: 0, panY: 0 });
+  };
+
   return (
     <div className="sgp-map-first-root">
-      {/* Compact Top Header with Unified Temporal Cluster (Date + Round) */}
+      {/* Top Header with Date & Temporal Cluster */}
       <MapHeader
         selectedDate={selectedDate}
         onDateChange={setSelectedDate}
@@ -254,9 +257,9 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
         onExportCsv={exportCsv}
       />
 
-      {/* Main Map Workspace (occupies nearly whole viewport below header) */}
-      <main className="sgp-map-first-workspace">
-        <OperationalMap
+      {/* Main Map Workspace Canvas */}
+      <main className="sgp-map-first-workspace" style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
+        <OperationalScene
           zones={mapZones}
           meters={filteredMeters}
           selectedZoneId={selection.selectedZoneId}
@@ -279,60 +282,41 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
           onViewportChange={setViewport}
         />
 
-        {/* Top HUD: Search, Filter, and Compact Exception HUD */}
-        <div className="sgp-map-top-hud">
-          <div className="sgp-map-action-cluster">
-            <SceneSearch
-              meters={mapMeters}
-              zones={mapZones}
-              operators={availableOperators}
-              isOpen={utilitySurface === 'search'}
-              onToggle={(open) => setUtilitySurface(open ? 'search' : null)}
-              onSelectMeter={focusMeter}
-              onSelectZone={focusZone}
-              onSelectOperator={handleSelectOperator}
-            />
+        {/* Scene HUD Controls (Search/Filter, Exception summary, Round HUD, Legend & Zoom) */}
+        <SceneHud
+          meters={mapMeters}
+          zones={mapZones}
+          operators={availableOperators}
+          filters={filters}
+          onApplyFilters={setFilters}
+          onSelectMeter={focusMeter}
+          onSelectZone={focusZone}
+          onSelectOperator={handleSelectOperator}
+          issueCount={issueCount}
+          exceptionFocus={exceptionFocus}
+          onToggleExceptionFocus={() => setExceptionFocus((v) => !v)}
+          rounds={dashboardData?.round_progress || []}
+          currentRoundTime={overallKpis.currentRoundTime || undefined}
+          selectedRoundId={selectedRoundId || filters.selectedRoundId}
+          completionPercent={overallKpis.percent}
+          onSelectRound={(roundId) => {
+            setSelectedRoundId(roundId);
+            setFilters({ ...filters, selectedRoundId: roundId });
+          }}
+          zoom={viewport.zoom}
+          activeLayer="STATUS"
+          onZoomIn={handleZoomIn}
+          onZoomOut={handleZoomOut}
+          onResetView={handleResetView}
+        />
 
-            <SceneFilter
-              filters={filters}
-              zones={mapZones}
-              operators={availableOperators}
-              onApplyFilters={setFilters}
-              isOpen={utilitySurface === 'filter'}
-              onToggle={(open) => setUtilitySurface(open ? 'filter' : null)}
-            />
-          </div>
-
-          {/* Compact Exception HUD (Figma 2:2 / 2:104) */}
-          <button
-            type="button"
-            className={`sgp-exception-hud ${exceptionFocus ? 'active' : ''}`}
-            onClick={() => setExceptionFocus((v) => !v)}
-            aria-pressed={exceptionFocus}
-          >
-            {issueCount > 0 ? (
-              <>
-                <AlertTriangle size={15} />
-                <span>{issueCount} vấn đề cần xử lý</span>
-              </>
-            ) : (
-              <>
-                <CheckCircle2 size={15} />
-                <span>Không có ngoại lệ</span>
-              </>
-            )}
-          </button>
-        </div>
-
-        {/* Exception Focus Bar — Level 1 operational exception HUD */}
+        {/* Exception Focus Bar — Level 1 alert banner */}
         {exceptionFocus && (
           <div className="sgp-exception-focus-bar" role="status">
             <strong className="sgp-ef-badge">{issueCount} vấn đề</strong>
             <span>{overallKpis.overdue} quá hạn</span>
             <span>{overallKpis.review} cần kiểm tra</span>
-            {overallKpis.pending > 0 && (
-              <span>{overallKpis.pending} chưa ghi</span>
-            )}
+            {overallKpis.pending > 0 && <span>{overallKpis.pending} chưa ghi</span>}
             <button
               type="button"
               className="sgp-ef-clear-btn"
@@ -344,7 +328,7 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
           </div>
         )}
 
-        {/* Level 2: Compact Anchored Meter Quick Popup (Figma 2:514) */}
+        {/* Level 2: Compact Anchored Meter Quick Popup */}
         {selectedMeter && !detailOpen && (
           <MeterQuickPopup
             meter={selectedMeter}
@@ -354,7 +338,7 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
           />
         )}
 
-        {/* Level 2: Spatial Operator Shift Progress Popover (Phase 6D) */}
+        {/* Level 2: Spatial Operator Shift Progress Popover */}
         {selectedOperatorSummary && !selectedMeter && !selectedZone && !detailOpen && (
           <OperatorShiftPopover
             summary={selectedOperatorSummary}
@@ -363,7 +347,7 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
           />
         )}
 
-        {/* Level 2: Contextual Zone Drawer (Figma 2:363 & 9:8) */}
+        {/* Level 2: Contextual Zone Drawer */}
         {selectedZone && !selectedMeter && (
           <ZoneDrawer
             zone={selectedZone}
@@ -376,7 +360,7 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
           />
         )}
 
-        {/* Level 3: Explicit Full Detail Meter Detail Drawer (Figma 2:514) */}
+        {/* Level 3: Full Detail Meter Detail Drawer */}
         {selectedMeter && detailOpen && (
           <MeterDetailDrawer
             meter={selectedMeter}

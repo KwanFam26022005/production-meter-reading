@@ -1,18 +1,13 @@
-import React, { useRef, useState, useCallback, useEffect } from 'react';
-import {
+import React from 'react';
+import type {
   MapMeterItem,
   MapOperationalZone,
   MapViewportState,
   OperationalLayerType,
 } from '../types';
-import { FIT_VIEWBOX } from '../geometry/physicalScene';
-import { PortFootprint } from './PortFootprint';
-import { ZoneOperationalLayer } from './ZoneOperationalLayer';
-import { MeterPointLayer } from './MeterPointLayer';
-import { OperatorLayer } from './OperatorLayer';
+import { OperationalScene } from '../scene/OperationalScene';
 import { MapViewportControls } from './MapViewportControls';
 import { OperationalMapLegend } from './OperationalMapLegend';
-import { MapDebugLayer } from './MapDebugLayer';
 
 interface OperationalMapProps {
   zones: MapOperationalZone[];
@@ -38,6 +33,14 @@ interface OperationalMapProps {
   exceptionFocus?: boolean;
 }
 
+/**
+ * OperationalMap — Master Container coordinating OperationalScene and overlay controls.
+ *
+ * Replaces synthetic schematic drawing with the canonical physical scene:
+ * - Approved physical port map image as base scene
+ * - Vector operational overlays aligned inside single 1664x932 coordinate space
+ * - Zero duplicated static SVG geometry
+ */
 export const OperationalMap: React.FC<OperationalMapProps> = ({
   zones,
   meters,
@@ -61,153 +64,56 @@ export const OperationalMap: React.FC<OperationalMapProps> = ({
   onViewportChange,
   exceptionFocus = false,
 }) => {
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const [isDragging, setIsDragging] = useState<boolean>(false);
-  const [dragStart, setDragStart] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
-
-  // Runtime source of truth diagnostic
-  useEffect(() => {
-    const operatorCount = new Set(zones.map((z) => z.assignedUser?.id).filter(Boolean)).size;
-    console.log(
-      `[MapOps] renderer=OperationalMap geometryVersion=tan-thuan-operational-v2 zones=${zones.length} meters=${meters.length} operators=${operatorCount}`
-    );
-  }, [zones, meters]);
-
-
-  // Pan / Drag Handling
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (e.button !== 0) return;
-    setIsDragging(true);
-    setDragStart({ x: e.clientX - viewport.panX, y: e.clientY - viewport.panY });
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging) return;
-    onViewportChange({
-      ...viewport,
-      panX: e.clientX - dragStart.x,
-      panY: e.clientY - dragStart.y,
-    });
-  };
-
-  const handleMouseUp = () => {
-    setIsDragging(false);
-  };
-
-  // Wheel Zoom — centered on cursor position for better UX
-  const handleWheel = (e: React.WheelEvent) => {
-    e.preventDefault();
-    const delta = e.deltaY < 0 ? 0.1 : -0.1;
-    const nextZoom = Math.min(Math.max(viewport.zoom + delta, 0.6), 3.0);
-    onViewportChange({
-      ...viewport,
-      zoom: Number(nextZoom.toFixed(2)),
-    });
-  };
-
-  const handleZoomIn = useCallback(() => {
+  const handleZoomIn = () => {
     const nextZoom = Math.min(viewport.zoom + 0.15, 3.0);
     onViewportChange({ ...viewport, zoom: Number(nextZoom.toFixed(2)) });
-  }, [viewport, onViewportChange]);
+  };
 
-  const handleZoomOut = useCallback(() => {
+  const handleZoomOut = () => {
     const nextZoom = Math.max(viewport.zoom - 0.15, 0.6);
     onViewportChange({ ...viewport, zoom: Number(nextZoom.toFixed(2)) });
-  }, [viewport, onViewportChange]);
+  };
 
-  const handleResetView = useCallback(() => {
+  const handleResetView = () => {
     onViewportChange({ zoom: 1.0, panX: 0, panY: 0 });
-  }, [onViewportChange]);
+  };
 
   return (
     <div
-      ref={containerRef}
-      className="sgp-operational-map-container"
+      className="sgp-operational-map-wrapper"
       style={{
         position: 'relative',
         width: '100%',
         height: '100%',
         overflow: 'hidden',
-        backgroundColor: 'var(--scene-bg, #EDF2F6)',
-        userSelect: 'none',
       }}
-      onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-      onMouseLeave={handleMouseUp}
-      onWheel={handleWheel}
     >
-      {/* MASTER SVG VIEWPORT
-          viewBox is derived from getOperationalMapBounds() — geometry-fit, not hard-coded pixels.
-          preserveAspectRatio="xMidYMid meet" ensures the port is centered vertically
-          inside whatever container height is available.
-          User pan/zoom is applied as a transform on the inner <g> group.
-      */}
-      <svg
-        viewBox={FIT_VIEWBOX}
-        className="sgp-operational-svg"
-        preserveAspectRatio="xMidYMid meet"
-        style={{
-          width: '100%',
-          height: '100%',
-          display: 'block',
-          cursor: isDragging ? 'grabbing' : 'grab',
-        }}
-        onClick={(e) => {
-          if (e.target === e.currentTarget) {
-            onClearSelection();
-          }
-        }}
-      >
-        <g
-          transform={`translate(${viewport.panX}, ${viewport.panY}) scale(${viewport.zoom})`}
-          style={{ transition: isDragging ? 'none' : 'transform 220ms cubic-bezier(0.16, 1, 0.3, 1)' }}
-        >
-          {/* 1. Physical Backdrop: River, Land, Quay, Roads, Warehouses, Container blocks */}
-          <PortFootprint />
+      {/* Master Operational Scene */}
+      <OperationalScene
+        zones={zones}
+        meters={meters}
+        selectedZoneId={selectedZoneId}
+        selectedMeterId={selectedMeterId}
+        hoveredZoneId={hoveredZoneId}
+        hoveredMeterId={hoveredMeterId}
+        activeLayer={activeLayer}
+        exceptionsOnly={exceptionsOnly}
+        selectedOperatorId={selectedOperatorId}
+        selectedOperatorShiftId={selectedOperatorShiftId}
+        isAssetMode={isAssetMode}
+        viewport={viewport}
+        currentRoundTime={currentRoundTime}
+        exceptionFocus={exceptionFocus}
+        onSelectZone={onSelectZone}
+        onSelectMeter={onSelectMeter}
+        onSelectOperator={onSelectOperator}
+        onHoverZone={onHoverZone}
+        onHoverMeter={onHoverMeter}
+        onClearSelection={onClearSelection}
+        onViewportChange={onViewportChange}
+      />
 
-          {/* 2. Operational Zones Layer */}
-          <ZoneOperationalLayer
-            zones={zones}
-            meters={meters}
-            selectedZoneId={selectedZoneId}
-            hoveredZoneId={hoveredZoneId}
-            activeLayer={activeLayer}
-            exceptionsOnly={exceptionsOnly}
-            exceptionFocus={exceptionFocus}
-            selectedOperatorId={selectedOperatorId}
-            onSelectZone={onSelectZone}
-            onHoverZone={onHoverZone}
-          />
-
-          {/* 3. Meters Layer (Decluttered in Operational Mode, Prominent in Asset Mode) */}
-          <MeterPointLayer
-            meters={meters}
-            selectedMeterId={selectedMeterId}
-            hoveredMeterId={hoveredMeterId}
-            exceptionsOnly={exceptionsOnly}
-            zoomLevel={viewport.zoom}
-            isAssetMode={isAssetMode}
-            onSelectMeter={onSelectMeter}
-            onHoverMeter={onHoverMeter}
-            exceptionFocus={exceptionFocus}
-          />
-
-          {/* 4. Spatial Operator Progress Layer (Phase 6D) */}
-          <OperatorLayer
-            zones={zones}
-            meters={meters}
-            selectedOperatorId={selectedOperatorShiftId}
-            currentRoundTime={currentRoundTime}
-            onSelectOperator={onSelectOperator || (() => {})}
-          />
-
-          {/* 5. Development Diagnostic Debug Overlay (?mapDebug=1) */}
-          <MapDebugLayer zones={zones} meters={meters} />
-        </g>
-      </svg>
-
-      {/* Floating Viewport Navigation Controls — positioned inside map, bottom-right */}
+      {/* Floating Viewport Navigation Controls — bottom-right */}
       <MapViewportControls
         zoom={viewport.zoom}
         onZoomIn={handleZoomIn}
@@ -215,7 +121,7 @@ export const OperationalMap: React.FC<OperationalMapProps> = ({
         onResetView={handleResetView}
       />
 
-      {/* Collapsed ⓘ Chú giải legend — bottom-right, above controls */}
+      {/* Collapsed Chú giải legend — bottom-right, stacked above controls */}
       <OperationalMapLegend activeLayer={activeLayer} />
     </div>
   );

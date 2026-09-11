@@ -23,7 +23,7 @@ interface OperationalZoneProps {
  * - Exceptions show a floating capsule badge (`⚠️ N`) placed under the zone title (Figma 2:104).
  * - Clicking polygon or badge selects the zone.
  */
-export const OperationalZone: React.FC<OperationalZoneProps> = ({
+export const OperationalZone: React.FC<OperationalZoneProps> = React.memo(({
   geometry,
   operationalState,
   isSelected,
@@ -155,4 +155,6 @@ export const OperationalZone: React.FC<OperationalZoneProps> = ({
       )}
     </g>
   );
-};
+});
+
+OperationalZone.displayName = 'OperationalZone';

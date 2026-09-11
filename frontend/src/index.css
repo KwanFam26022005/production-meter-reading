@@ -9987,10 +9987,14 @@ body:has(.admin-portal-root) {
   filter: drop-shadow(0 2px 2px rgba(7, 59, 92, 0.08));
 }
 
-@media (max-width: 700px) {
+@media (max-width: 768px), (pointer: coarse) {
   .sgp-map-top-hud { inset: 10px 10px auto; }
+  .sgp-map-icon-btn { min-height: 44px; width: 44px; }
+  .sgp-exception-hud { min-height: 44px; padding: 0 16px; }
+  .sgp-filter-trigger-btn { min-height: 44px; padding: 0 14px; }
+  .sgp-vctrl-btn { min-height: 44px; min-width: 44px; }
   .sgp-exception-focus-bar { top: 60px; max-width: calc(100% - 20px); overflow-x: auto; white-space: nowrap; }
-  .sgp-search-popover { width: min(300px, calc(100vw - 20px)); }
+  .sgp-search-popover { width: min(320px, calc(100vw - 20px)); }
   .sgp-map-first-workspace .sgp-viewport-controls { right: 10px; bottom: 10px; }
   .sgp-map-first-workspace .sgp-map-legend-wrapper { right: 10px; bottom: 140px; }
   .sgp-map-first-workspace .sgp-current-round-card { left: 10px; bottom: 10px; }
