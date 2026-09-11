@@ -865,6 +865,42 @@ button.sgp-telemetry-item:hover {
   transform: translateY(-1px);
 }
 
+/* Viewport Controls Cluster */
+.sgp-viewport-controls-cluster {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.sgp-vctrl-gps-btn {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.70);
+  border-radius: 50%;
+  box-shadow: 0 4px 16px -2px rgba(11, 79, 117, 0.12);
+  color: #334155;
+  cursor: pointer;
+  transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sgp-vctrl-gps-btn:hover {
+  background: #FFFFFF;
+  color: #0284C7;
+  box-shadow: 0 6px 20px -2px rgba(2, 132, 199, 0.22);
+  transform: translateY(-1px);
+}
+
+.sgp-vctrl-gps-btn:active {
+  transform: translateY(0);
+}
+
 /* Viewport Controls inside dock */
 .sgp-scene-control-hud .sgp-viewport-controls {
   position: static;
@@ -872,12 +908,12 @@ button.sgp-telemetry-item:hover {
   flex-direction: column;
   align-items: center;
   gap: 2px;
-  background: rgba(255, 255, 255, 0.90);
+  background: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.70);
   border-radius: 12px;
-  box-shadow: 0 4px 20px -2px rgba(11, 79, 117, 0.10);
+  box-shadow: 0 4px 16px -2px rgba(11, 79, 117, 0.12);
   padding: 4px;
 }
 
@@ -896,20 +932,21 @@ button.sgp-telemetry-item:hover {
 }
 
 .sgp-scene-control-hud .sgp-vctrl-btn:hover {
-  background: rgba(14, 116, 144, 0.10);
-  color: #0E7490;
+  background: rgba(2, 132, 199, 0.10);
+  color: #0284C7;
 }
 
 .sgp-scene-control-hud .sgp-vctrl-btn.reset {
-  width: 100%;
-  padding: 0 6px;
-  gap: 4px;
-  font-size: 11px;
-  font-weight: 600;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .sgp-scene-control-hud .sgp-vctrl-divider {
-  width: 24px;
+  width: 20px;
   height: 1px;
   background: rgba(203, 213, 225, 0.6);
   margin: 2px 0;
@@ -1071,11 +1108,50 @@ button.sgp-telemetry-item:hover {
 }
 
 /* ==========================================================================
-   7. ANALYTICS DRAWER
+   7. ANALYTICS DRAWER (Floating Inset Card)
    ========================================================================== */
 
-.sgp-analytics-drawer {
-  width: min(440px, 100vw);
+.sgp-map-first-workspace .sgp-side-drawer.sgp-analytics-drawer,
+.sgp-side-drawer.sgp-analytics-drawer {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  bottom: 16px;
+  height: calc(100% - 28px);
+  width: min(440px, calc(100vw - 32px));
+  background: #FFFFFF;
+  border: 1px solid rgba(226, 232, 240, 0.90);
+  border-radius: 16px;
+  box-shadow: 0 16px 40px -8px rgba(15, 23, 42, 0.18), 0 4px 12px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  z-index: var(--z-map-drawers, 60);
+  animation: sgp-drawer-float-enter 240ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes sgp-drawer-float-enter {
+  from {
+    opacity: 0;
+    transform: translateX(24px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+.sgp-drawer-anchor-badge {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #F0F9FF;
+  border: 1px solid #BAE6FD;
+  border-radius: 8px;
+  color: #0284C7;
+  flex-shrink: 0;
 }
 
 .sgp-analytics-section {

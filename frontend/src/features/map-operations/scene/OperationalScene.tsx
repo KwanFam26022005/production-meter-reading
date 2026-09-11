@@ -5,7 +5,7 @@ import type {
   MapViewportState,
   OperationalLayerType,
 } from '../types';
-import { CANONICAL_VIEWBOX } from '../geometry/canonicalScene';
+import { CANONICAL_VIEWBOX, clampPanForZoom } from '../geometry/canonicalScene';
 import { CanonicalBaseMap } from './CanonicalBaseMap';
 import { ZoneLayer } from '../layers/ZoneLayer';
 import { MeterLayer } from '../layers/MeterLayer';
@@ -93,10 +93,13 @@ export const OperationalScene: React.FC<OperationalSceneProps> = ({
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!isDragging) return;
+    const rawPanX = e.clientX - dragStart.x;
+    const rawPanY = e.clientY - dragStart.y;
+    const { panX, panY } = clampPanForZoom(rawPanX, rawPanY, viewport.zoom);
     onViewportChange({
       ...viewport,
-      panX: e.clientX - dragStart.x,
-      panY: e.clientY - dragStart.y,
+      panX,
+      panY,
     });
   };
 
@@ -108,10 +111,13 @@ export const OperationalScene: React.FC<OperationalSceneProps> = ({
   const handleWheel = (e: React.WheelEvent) => {
     e.preventDefault();
     const delta = e.deltaY < 0 ? 0.12 : -0.12;
-    const nextZoom = Math.min(Math.max(viewport.zoom + delta, 0.6), 3.0);
+    const nextZoom = Number(Math.min(Math.max(viewport.zoom + delta, 0.8), 2.5).toFixed(2));
+    const { panX, panY } = clampPanForZoom(viewport.panX, viewport.panY, nextZoom);
     onViewportChange({
       ...viewport,
-      zoom: Number(nextZoom.toFixed(2)),
+      zoom: nextZoom,
+      panX,
+      panY,
     });
   };
 

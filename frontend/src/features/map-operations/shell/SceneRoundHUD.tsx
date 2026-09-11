@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Clock, Check } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Sun, Check } from 'lucide-react';
 import type { AdminDashboardRoundProgress } from '../../../types';
 
 interface SceneRoundHUDProps {
@@ -96,10 +96,10 @@ export const SceneRoundHUD: React.FC<SceneRoundHUDProps> = ({
           aria-haspopup="listbox"
           aria-expanded={roundMenuOpen}
         >
-          <Clock size={12} className="sgp-round-clock text-cyan-700" aria-hidden="true" />
+          <Sun size={13} className="sgp-round-clock text-amber-500" aria-hidden="true" />
           <span className="sgp-round-time font-tabular">{displayTime}</span>
           <span className="sgp-round-dot">·</span>
-          <span className="sgp-round-pct font-tabular">{displayPct}%</span>
+          <span className="sgp-round-pct font-tabular text-sky-600">{displayPct}%</span>
         </div>
 
         <button

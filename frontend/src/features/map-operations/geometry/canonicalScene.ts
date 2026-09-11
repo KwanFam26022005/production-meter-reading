@@ -209,3 +209,35 @@ export const CANONICAL_OPERATOR_ANCHORS: Record<string, { x: number; y: number }
   'zone-container': { x: 1140, y: 525 },// Staging apron corridor south of container block 2
   'zone-technical': { x: 1000, y: 775 },// Open courtyard green lawn between Substation and Gate
 };
+
+/**
+ * Clamps pan coordinates so the canonical scene stays fully within the viewport bounds.
+ * Prevents "black void" exposure when zooming into or focusing on edge assets.
+ */
+export function clampPanForZoom(
+  panX: number,
+  panY: number,
+  zoom: number,
+  width: number = CANONICAL_SCENE_WIDTH,
+  height: number = CANONICAL_SCENE_HEIGHT
+): { panX: number; panY: number } {
+  if (zoom <= 1) {
+    const minX = (width * (1 - zoom)) / 2;
+    const minY = (height * (1 - zoom)) / 2;
+    return {
+      panX: Math.round(minX),
+      panY: Math.round(minY),
+    };
+  }
+
+  const minX = width * (1 - zoom);
+  const maxX = 0;
+  const minY = height * (1 - zoom);
+  const maxY = 0;
+
+  return {
+    panX: Math.round(Math.min(Math.max(panX, minX), maxX)),
+    panY: Math.round(Math.min(Math.max(panY, minY), maxY)),
+  };
+}
+

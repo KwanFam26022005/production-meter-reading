@@ -4,7 +4,7 @@ import { useMapSelection } from './hooks/useMapSelection';
 import { filterMeters } from './utils/mapFilters';
 import { LoadingState } from '../../components/ui/LoadingState';
 import { ErrorState } from '../../components/ui/ErrorState';
-import { normalizedToCanonicalScene } from './geometry/canonicalScene';
+import { normalizedToCanonicalScene, clampPanForZoom } from './geometry/canonicalScene';
 import { deriveOperatorShiftSummary } from './utils/deriveOperatorShiftSummary';
 import type { User } from '../../types';
 import { ImmersiveSceneShell } from './shell/ImmersiveSceneShell';
@@ -208,10 +208,14 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
       setDetailOpen(false);
       setAnalyticsOpen(false);
       const svgCoord = normalizedToCanonicalScene(meter.coordinates);
+      const targetZoom = 1.45;
+      const rawPanX = -(svgCoord.x * targetZoom - 832);
+      const rawPanY = -(svgCoord.y * targetZoom - 466);
+      const { panX, panY } = clampPanForZoom(rawPanX, rawPanY, targetZoom);
       setViewport({
-        zoom: 1.45,
-        panX: -(svgCoord.x * 1.45 - 832),
-        panY: -(svgCoord.y * 1.45 - 466),
+        zoom: targetZoom,
+        panX,
+        panY,
       });
     },
     [mapMeters, selectMeter, selectZone, setViewport]
@@ -261,13 +265,15 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
   }
 
   const handleZoomIn = () => {
-    const nextZoom = Math.min(viewport.zoom + 0.15, 3.0);
-    setViewport({ ...viewport, zoom: Number(nextZoom.toFixed(2)) });
+    const nextZoom = Number(Math.min(viewport.zoom + 0.15, 3.0).toFixed(2));
+    const { panX, panY } = clampPanForZoom(viewport.panX, viewport.panY, nextZoom);
+    setViewport({ zoom: nextZoom, panX, panY });
   };
 
   const handleZoomOut = () => {
-    const nextZoom = Math.max(viewport.zoom - 0.15, 0.6);
-    setViewport({ ...viewport, zoom: Number(nextZoom.toFixed(2)) });
+    const nextZoom = Number(Math.max(viewport.zoom - 0.15, 0.6).toFixed(2));
+    const { panX, panY } = clampPanForZoom(viewport.panX, viewport.panY, nextZoom);
+    setViewport({ zoom: nextZoom, panX, panY });
   };
 
   const handleResetView = () => {

@@ -9,6 +9,7 @@ import {
   CANONICAL_OPERATOR_ANCHORS,
   normalizedToCanonicalScene,
   canonicalSceneToNormalized,
+  clampPanForZoom,
 } from '../src/features/map-operations/geometry/canonicalScene';
 import {
   OPERATIONAL_ZONES_GEOMETRY,
@@ -62,6 +63,27 @@ test('Canonical Transform: Boundary and Center Roundtrip Projections', () => {
   const centerSvg = normalizedToCanonicalScene({ x: 0.5, y: 0.5 });
   assert.deepEqual(centerSvg, { x: 832, y: 466 });
   assert.deepEqual(canonicalSceneToNormalized(832, 466), { x: 0.5, y: 0.5 });
+});
+
+test('Viewport Clamping: Clamps pan coordinates to prevent black void exposure', () => {
+  // Zoom = 1.0 -> pan must be (0, 0)
+  const z1 = clampPanForZoom(-100, 100, 1.0);
+  assert.deepEqual(z1, { panX: 0, panY: 0 });
+
+  // Zoom = 1.45 -> panX in [-749, 0], panY in [-419, 0]
+  const z145 = clampPanForZoom(-900, -600, 1.45);
+  assert.equal(z145.panX, -749);
+  assert.equal(z145.panY, -419);
+
+  // Positive pan (pulling away from top/left) clamped to 0
+  const zPositive = clampPanForZoom(200, 300, 1.45);
+  assert.equal(zPositive.panX, 0);
+  assert.equal(zPositive.panY, 0);
+
+  // Valid internal pan preserved
+  const zValid = clampPanForZoom(-200, -150, 1.45);
+  assert.equal(zValid.panX, -200);
+  assert.equal(zValid.panY, -150);
 });
 
 // ---------------------------------------------------------------------------
