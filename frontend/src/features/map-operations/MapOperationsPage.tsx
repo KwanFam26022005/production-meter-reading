@@ -4,7 +4,6 @@ import { useMapSelection } from './hooks/useMapSelection';
 import { filterMeters } from './utils/mapFilters';
 import { LoadingState } from '../../components/ui/LoadingState';
 import { ErrorState } from '../../components/ui/ErrorState';
-import { normalizedToCanonicalScene, clampPanForZoom } from './geometry/canonicalScene';
 import { deriveOperatorShiftSummary } from './utils/deriveOperatorShiftSummary';
 import type { User } from '../../types';
 import { ImmersiveSceneShell } from './shell/ImmersiveSceneShell';
@@ -207,18 +206,8 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
       selectMeter(id);
       setDetailOpen(false);
       setAnalyticsOpen(false);
-      const svgCoord = normalizedToCanonicalScene(meter.coordinates);
-      const targetZoom = 1.45;
-      const rawPanX = -(svgCoord.x * targetZoom - 832);
-      const rawPanY = -(svgCoord.y * targetZoom - 466);
-      const { panX, panY } = clampPanForZoom(rawPanX, rawPanY, targetZoom);
-      setViewport({
-        zoom: targetZoom,
-        panX,
-        panY,
-      });
     },
-    [mapMeters, selectMeter, selectZone, setViewport]
+    [mapMeters, selectMeter, selectZone]
   );
 
   const focusZone = useCallback(
@@ -264,17 +253,8 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
     );
   }
 
-  const handleZoomIn = () => {
-    const nextZoom = Number(Math.min(viewport.zoom + 0.15, 3.0).toFixed(2));
-    const { panX, panY } = clampPanForZoom(viewport.panX, viewport.panY, nextZoom);
-    setViewport({ zoom: nextZoom, panX, panY });
-  };
-
-  const handleZoomOut = () => {
-    const nextZoom = Number(Math.max(viewport.zoom - 0.15, 0.6).toFixed(2));
-    const { panX, panY } = clampPanForZoom(viewport.panX, viewport.panY, nextZoom);
-    setViewport({ zoom: nextZoom, panX, panY });
-  };
+  const handleZoomIn = () => {};
+  const handleZoomOut = () => {};
 
   const handleResetView = () => {
     setViewport({ zoom: 1.0, panX: 0, panY: 0 });

@@ -1,11 +1,11 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useEffect } from 'react';
 import type {
   MapMeterItem,
   MapOperationalZone,
   MapViewportState,
   OperationalLayerType,
 } from '../types';
-import { CANONICAL_VIEWBOX, clampPanForZoom } from '../geometry/canonicalScene';
+import { CANONICAL_VIEWBOX } from '../geometry/canonicalScene';
 import { CanonicalBaseMap } from './CanonicalBaseMap';
 import { ZoneLayer } from '../layers/ZoneLayer';
 import { MeterLayer } from '../layers/MeterLayer';
@@ -70,11 +70,9 @@ export const OperationalScene: React.FC<OperationalSceneProps> = ({
   onHoverZone,
   onHoverMeter,
   onClearSelection,
-  onViewportChange,
+  onViewportChange: _onViewportChange,
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const [isDragging, setIsDragging] = useState<boolean>(false);
-  const [dragStart, setDragStart] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
 
   // Runtime diagnostic verification
   useEffect(() => {
@@ -84,43 +82,8 @@ export const OperationalScene: React.FC<OperationalSceneProps> = ({
     );
   }, [zones, meters]);
 
-  // Pan / Drag Handling
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (e.button !== 0) return;
-    setIsDragging(true);
-    setDragStart({ x: e.clientX - viewport.panX, y: e.clientY - viewport.panY });
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging) return;
-    const rawPanX = e.clientX - dragStart.x;
-    const rawPanY = e.clientY - dragStart.y;
-    const { panX, panY } = clampPanForZoom(rawPanX, rawPanY, viewport.zoom);
-    onViewportChange({
-      ...viewport,
-      panX,
-      panY,
-    });
-  };
-
-  const handleMouseUp = () => {
-    setIsDragging(false);
-  };
-
-  // Wheel Zoom centered on cursor
-  const handleWheel = (e: React.WheelEvent) => {
-    e.preventDefault();
-    const delta = e.deltaY < 0 ? 0.12 : -0.12;
-    const nextZoom = Number(Math.min(Math.max(viewport.zoom + delta, 0.8), 2.5).toFixed(2));
-    const { panX, panY } = clampPanForZoom(viewport.panX, viewport.panY, nextZoom);
-    onViewportChange({
-      ...viewport,
-      zoom: nextZoom,
-      panX,
-      panY,
-    });
-  };
-
+  // Fixed Responsive Camera: User interaction focuses on meters, zones, operators.
+  // Wheel zoom and manual zoom navigation are removed per Phase U6 specifications.
   const issueCount = meters.filter(
     (m) => m.semanticState === 'OVERDUE' || m.semanticState === 'REVIEW'
   ).length;
@@ -130,18 +93,14 @@ export const OperationalScene: React.FC<OperationalSceneProps> = ({
       ref={containerRef}
       className="sgp-operational-map-container"
       style={{
-        position: 'relative',
+        position: 'absolute',
+        inset: 0,
         width: '100%',
         height: '100%',
         overflow: 'hidden',
         background: 'radial-gradient(ellipse at 50% 30%, #0B486B 0%, #0D3B56 35%, #0F2B3E 70%, #0A1C28 100%)',
         userSelect: 'none',
       }}
-      onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-      onMouseLeave={handleMouseUp}
-      onWheel={handleWheel}
     >
       {/* MASTER SVG VIEWPORT — ONE SCENE, ONE COORDINATE SYSTEM */}
       <svg
@@ -152,7 +111,7 @@ export const OperationalScene: React.FC<OperationalSceneProps> = ({
           width: '100%',
           height: '100%',
           display: 'block',
-          cursor: isDragging ? 'grabbing' : 'grab',
+          cursor: 'default',
         }}
         onClick={(e) => {
           if (e.target === e.currentTarget) {
@@ -164,7 +123,7 @@ export const OperationalScene: React.FC<OperationalSceneProps> = ({
         <g
           transform={`translate(${viewport.panX}, ${viewport.panY}) scale(${viewport.zoom})`}
           style={{
-            transition: isDragging ? 'none' : 'transform 220ms cubic-bezier(0.16, 1, 0.3, 1)',
+            transition: 'transform 220ms cubic-bezier(0.16, 1, 0.3, 1)',
           }}
         >
           {/* 1. Canonical Physical Base Scene (Approved Illustration) */}

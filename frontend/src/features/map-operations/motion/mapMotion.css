@@ -638,8 +638,8 @@ button.sgp-telemetry-item:hover {
 
 .sgp-hud-bottom-left {
   position: absolute;
-  bottom: 16px;
-  left: 16px;
+  bottom: 24px;
+  left: 24px;
   z-index: 35;
   pointer-events: auto;
 }
@@ -823,20 +823,19 @@ button.sgp-telemetry-item:hover {
 
 .sgp-hud-bottom-right {
   position: absolute;
-  bottom: 16px;
-  right: 16px;
+  bottom: 24px;
+  right: 24px;
   z-index: 35;
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
+  align-items: center;
   gap: 8px;
   pointer-events: auto;
 }
 
 .sgp-scene-control-hud {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
+  flex-direction: row;
+  align-items: center;
   gap: 8px;
   pointer-events: auto;
 }
@@ -1517,6 +1516,17 @@ button.sgp-telemetry-item:hover {
   50% {
     stroke-opacity: 0.65;
     r: 27;
+  }
+}
+
+@media (max-width: 768px) {
+  .sgp-hud-bottom-left {
+    bottom: 16px;
+    left: 16px;
+  }
+  .sgp-hud-bottom-right {
+    bottom: 16px;
+    right: 16px;
   }
 }
 

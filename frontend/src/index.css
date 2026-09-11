@@ -8596,19 +8596,21 @@ body:has(.admin-portal-root) {
   }
 }
 
-/* Phase 6B — map-first direct manipulation surface */
+/* Phase 6B — map-first direct manipulation surface (Phase U6 Full-Bleed) */
 .sgp-map-first-root {
-  height: 100%;
-  min-height: calc(100vh - 60px);
+  height: 100% !important;
+  min-height: 0 !important;
   display: flex;
   flex-direction: column;
-  background: var(--scene-bg, #eef4f6);
+  background: var(--scene-bg, #0B486B);
   flex: 1;
+  overflow: hidden;
 }
 .sgp-map-first-workspace {
   position: relative;
   flex: 1;
-  min-height: calc(100vh - 130px);
+  height: 100% !important;
+  min-height: 0 !important;
   overflow: hidden;
 }
 .sgp-map-first-workspace > .sgp-operational-map-container {
@@ -14472,17 +14474,18 @@ body:has(.admin-portal-root) {
   color: #1E40AF;
 }
 
-/* Operational Map SVG Container */
+/* Operational Map SVG Container — Truly Full-Bleed (Phase U6) */
 .sgp-operational-map-container {
-  position: relative;
-  width: 100%;
-  height: calc(100vh - 225px);
-  min-height: 540px;
-  max-height: 86vh;
-  border-radius: 8px;
-  overflow: hidden;
-  border: 1px solid var(--sgp-border);
-  box-shadow: inset 0 0 2px rgba(7, 59, 92, 0.08);
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  overflow: hidden !important;
 }
 
 /* Viewport Controls */

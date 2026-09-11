@@ -1,30 +1,32 @@
 import React from 'react';
 import type { OperationalLayerType } from '../types';
 import { MapViewportControls } from '../operational-map/MapViewportControls';
+import { OperationalMapLegend } from '../operational-map/OperationalMapLegend';
 
 interface SceneControlHUDProps {
-  zoom: number;
+  zoom?: number;
   activeLayer?: OperationalLayerType;
-  onZoomIn: () => void;
-  onZoomOut: () => void;
-  onResetView: () => void;
+  onZoomIn?: () => void;
+  onZoomOut?: () => void;
+  onResetView?: () => void;
 }
 
 /**
- * SceneControlHUD — Bottom-Right Viewport Controls (Phase U5)
+ * SceneControlHUD — Bottom-Right Viewport Controls (Phase U6)
  *
  * Hosts:
- * - MapViewportControls (GPS Crosshair, Zoom In, Zoom Out, Fullscreen)
+ * - OperationalMapLegend (Chú giải bản đồ)
+ * - MapViewportControls (Single compact scene reset button)
  */
 export const SceneControlHUD: React.FC<SceneControlHUDProps> = ({
   zoom,
-  activeLayer: _activeLayer,
   onZoomIn,
   onZoomOut,
-  onResetView,
+  onResetView = () => {},
 }) => {
   return (
     <div className="sgp-scene-control-hud" role="region" aria-label="Điều khiển góc nhìn bản đồ">
+      <OperationalMapLegend />
       <MapViewportControls
         zoom={zoom}
         onZoomIn={onZoomIn}
