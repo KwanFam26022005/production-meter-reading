@@ -17,6 +17,7 @@ import { LoadingState } from '../../components/ui/LoadingState';
 import { ErrorState } from '../../components/ui/ErrorState';
 import { normalizedToOperationalSvg } from './geometry/operationalGeometry';
 import { deriveOperatorShiftSummary } from './utils/deriveOperatorShiftSummary';
+import './motion/mapMotion.css';
 
 interface MapOperationsPageProps {
   onInspectReading?: (readingId: string) => void;

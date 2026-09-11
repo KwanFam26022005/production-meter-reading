@@ -1,0 +1,97 @@
+/**
+ * Operational Motion System — Tan Thuan Spatial Console
+ *
+ * Rules:
+ * - Animation only to explain state changes (no decorative noise)
+ * - Motion durations bound to standard tokens: 120ms (fast), 220ms (normal), 340ms (focus)
+ * - Smooth deceleration (ease-out-expo) for context surfaces
+ * - Immediate fallback for prefers-reduced-motion
+ */
+
+/* ── Meter Status Pulse (Operational Attention) ── */
+@keyframes sgp-pulse-ring {
+  0%, 100% {
+    stroke-opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    stroke-opacity: 0.35;
+    transform: scale(1.05);
+  }
+}
+
+.sgp-pulse-ring {
+  animation: sgp-pulse-ring 2.4s ease-in-out infinite;
+  transform-origin: center;
+}
+
+.sgp-pulse-ring-amber {
+  animation: sgp-pulse-ring 2.8s ease-in-out infinite;
+  transform-origin: center;
+}
+
+/* ── Context Surface Entries ── */
+@keyframes sgp-popup-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes sgp-drawer-enter {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes sgp-focus-bar-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── Operator Progress Halo Pulse ── */
+@keyframes sgpHaloPulse {
+  0%, 100% {
+    stroke-opacity: 0.35;
+    r: 25;
+  }
+  50% {
+    stroke-opacity: 0.65;
+    r: 27;
+  }
+}
+
+/* ── Reduced Motion Override ── */
+@media (prefers-reduced-motion: reduce) {
+  .sgp-pulse-ring,
+  .sgp-pulse-ring-amber,
+  .sgp-meter-quick-popup-anim,
+  .sgp-side-drawer,
+  .sgp-exception-focus-bar,
+  .sgp-op-marker-halo {
+    animation: none !important;
+  }
+
+  .sgp-operational-zone,
+  .sgp-meter-point,
+  .sgp-operator-map-marker,
+  .sgp-meter-point circle,
+  .sgp-operator-map-marker circle {
+    transition: none !important;
+  }
+}
