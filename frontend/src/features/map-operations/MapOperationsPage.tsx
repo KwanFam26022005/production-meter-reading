@@ -320,7 +320,7 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
             {issueCount > 0 ? (
               <>
                 <AlertTriangle size={15} />
-                <span>{issueCount} vấn đề</span>
+                <span>{issueCount} vấn đề cần xử lý</span>
               </>
             ) : (
               <>

@@ -1,22 +1,17 @@
 /**
- * Physical Scene Geometry — Tan Thuan Port
+ * Physical Scene Geometry — Tan Thuan Port (Figma Authoritative Alignment)
  *
- * Contains ONLY physical geographic features:
- * - Saigon River (Northern edge) — reduced to ~15% of map height
- * - Port land footprint (Elongated 2.5:1 riverfront geometry)
- * - Concrete quayside apron & berths 1, 2, 3
- * - Internal arterial road network
- * - Warehouses B, C, D (West sector)
- * - Container stacking yard grid blocks (East sector)
- * - Technical area & 110kV substation (South-Central sector)
- * - Main entrance gate (South)
+ * Reconstructed directly from authoritative Figma frames:
+ * - Frame 2:2 (Default) & 2:104 (Critical Exceptions)
  *
- * NOTE: Does NOT contain operational metrics, zone assignments, or meter states.
- *
- * GEOMETRY REVISION (Phase 6A):
- *   River height reduced from ~115px → 72px (to avoid large empty top band).
- *   Port footprint y-start adjusted accordingly.
- *   All downstream y-coordinates shifted to match.
+ * Contains:
+ * - Saigon River banner with dashed mooring guidelines
+ * - Moored cargo ship ("TÀU HÀNG") stadium pill
+ * - Concrete quayside apron (Berths 1, 2, 3)
+ * - 4 major sectors: CẦU CẢNG, KHO / CFS, BÃI CONTAINER, BÃI HÀNG TỔNG HỢP
+ * - 10 discrete physical sub-blocks (Kho B, C, D, Bãi A, A2, B1, B2, Hàng Tổng Hợp, Trạm Điện, Xưởng)
+ * - Internal arterial roads: Central avenue and horizontal crossroad with dashed divider
+ * - Luu Trong Lu main access axis
  */
 
 export const PHYSICAL_VIEWBOX = {
@@ -25,180 +20,121 @@ export const PHYSICAL_VIEWBOX = {
   aspectRatio: 2.5,
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// OPERATIONAL MAP BOUNDS — geometry-fit, not hard-coded pixel offsets
-// Used to compute an auto-fit viewBox that centers the port footprint.
-// ─────────────────────────────────────────────────────────────────────────────
+export const FIT_VIEWBOX = '0 0 1300 520';
 
 /**
- * Returns the tight SVG bounding box of operational content:
- * river + quay edge (top) through gate (bottom).
- * Padding args are percentages of the respective dimension.
+ * Saigon River Northern Banner
  */
-export function getOperationalMapBounds(
-  paddingXPct = 0.04,
-  paddingYPct = 0.05,
-): { x: number; y: number; width: number; height: number } {
-  // Content spans y=0 (river top) to y=496 (gate bottom)
-  // and x=0 to x=1300
-  const contentX1 = 0;
-  const contentX2 = 1300;
-  const contentY1 = 0;   // top of river
-  const contentY2 = 498; // bottom of gate label
-
-  const contentW = contentX2 - contentX1;
-  const contentH = contentY2 - contentY1;
-
-  const padX = contentW * paddingXPct;
-  const padY = contentH * paddingYPct;
-
-  return {
-    x: contentX1 - padX,
-    y: contentY1 - padY,
-    width: contentW + 2 * padX,
-    height: contentH + 2 * padY,
-  };
-}
-
-/** Pre-computed default fit viewBox string for the SVG */
-export const FIT_VIEWBOX = (() => {
-  const b = getOperationalMapBounds(0.03, 0.04);
-  return `${b.x.toFixed(1)} ${b.y.toFixed(1)} ${b.width.toFixed(1)} ${b.height.toFixed(1)}`;
-})();
-
-// River is now 72px tall (≈ 14% of 520) — recognisable boundary, not dominant sky
 export const PHYSICAL_RIVER = {
-  path: 'M 0,0 L 1300,0 L 1300,72 C 1050,68 820,74 650,72 C 450,70 250,74 0,70 Z',
-  color: '#C8DDE9',
-  edgeColor: '#7A9FB5',
+  path: 'M 0,0 L 1300,0 L 1300,115 L 0,115 Z',
+  color: '#D4E3ED',
+  edgeColor: '#B6CDDC',
   label: 'SÔNG SÀI GÒN',
-  ripples: [
-    { d: 'M 120,25 C 180,22 240,28 300,25', opacity: 0.45 },
-    { d: 'M 480,32 C 560,28 640,36 720,31', opacity: 0.5 },
-    { d: 'M 880,22 C 950,20 1020,26 1090,22', opacity: 0.4 },
-    { d: 'M 260,50 C 330,47 400,53 470,49', opacity: 0.35 },
-    { d: 'M 670,55 C 750,51 830,59 910,54', opacity: 0.4 },
+  labelY: 48,
+  mooringLines: [
+    { x: 295, y1: 25, y2: 115 },
+    { x: 610, y1: 25, y2: 115 },
+    { x: 930, y1: 25, y2: 115 },
   ],
-};
-
-// Port land starts at y=68 (was 110), ends at y=498
-export const PHYSICAL_PORT_LAND = {
-  points: [
-    { x: 20, y: 68 },
-    { x: 1280, y: 68 },
-    { x: 1280, y: 478 },
-    { x: 1070, y: 496 },
-    { x: 650, y: 500 },
-    { x: 230, y: 496 },
-    { x: 20, y: 478 },
-  ],
-  fillColor: '#F3F6F8',
-  strokeColor: '#C8D8E2',
-};
-
-// Quay apron: y was 108 → now 66
-export const PHYSICAL_QUAY = {
-  rect: { x: 150, y: 66, width: 1060, height: 32 },
-  concreteFill: '#D8E4EC',
-  railStroke: '#9DB6C5',
-  bollards: [
-    { x: 200, y: 68 }, { x: 280, y: 68 }, { x: 360, y: 68 },
-    { x: 440, y: 68 }, { x: 520, y: 68 }, { x: 600, y: 68 },
-    { x: 680, y: 68 }, { x: 760, y: 68 }, { x: 840, y: 68 },
-    { x: 920, y: 68 }, { x: 1000, y: 68 }, { x: 1080, y: 68 },
-    { x: 1160, y: 68 },
-  ],
-  berths: [
-    { id: 'berth-1', name: 'CẦU 1', x: 310, y: 88 },
-    { id: 'berth-2', name: 'CẦU 2', x: 670, y: 88 },
-    { id: 'berth-3', name: 'CẦU 3', x: 1030, y: 88 },
+  guidelines: [
+    { x1: 220, y1: 65, x2: 370, y2: 65 },
+    { x1: 535, y1: 65, x2: 685, y2: 65 },
+    { x1: 855, y1: 65, x2: 1005, y2: 65 },
   ],
   mooredShip: {
-    path: 'M 735,50 L 915,50 C 930,50 940,56 940,61 C 940,66 930,72 915,72 L 735,72 C 727,72 723,67 723,61 C 723,55 727,50 735,50 Z',
-    fill: '#42566A',
-    superstructure: { x: 745, y: 53, width: 32, height: 13, fill: '#D8E8F2' },
-    label: 'TÀU HÀNG NỘI ĐỊA',
+    x: 640,
+    y: 82,
+    width: 180,
+    height: 24,
+    rx: 12,
+    frontWidth: 60,
+    frontFill: '#728A9A',
+    backFill: '#485F6E',
+    label: 'TÀU HÀNG',
   },
 };
 
-// Roads shifted by -42px in Y (110→68)
-export const PHYSICAL_ROADS = [
-  { id: 'road-south', d: 'M 50,450 L 1250,450', strokeWidth: 10 },
-  { id: 'road-central', d: 'M 650,498 L 650,100', strokeWidth: 12 },
-  { id: 'road-west', d: 'M 350,450 L 350,100', strokeWidth: 8 },
-  { id: 'road-east', d: 'M 950,450 L 950,100', strokeWidth: 8 },
-  { id: 'road-cross-mid', d: 'M 50,285 L 1250,285', strokeWidth: 7 },
+/**
+ * Outer Port Land Perimeter Boundary
+ */
+export const PHYSICAL_PORT_LAND = {
+  path: 'M 90,115 L 1220,115 L 1220,430 L 1030,488 L 135,488 L 90,430 Z',
+  fillColor: '#F5F8FA',
+  strokeColor: '#B5C7D3',
+};
+
+/**
+ * Quayside Apron along Saigon River (CẦU CẢNG)
+ */
+export const PHYSICAL_QUAY = {
+  rect: { x: 115, y: 115, width: 1040, height: 48 },
+  fill: '#EFF4F8',
+  stroke: '#A3BDCC',
+  label: 'CẦU CẢNG',
+  labelPosition: { x: 650, y: 135 },
+  berths: [
+    { id: 'berth-1', name: 'Cầu 1', x: 295, y: 144 },
+    { id: 'berth-2', name: 'Cầu 2', x: 610, y: 144 },
+    { id: 'berth-3', name: 'Cầu 3', x: 930, y: 144 },
+  ],
+  dividerX: 525,
+};
+
+/**
+ * Arterial Road Network & Avenue Labels
+ */
+export const PHYSICAL_ROADS = {
+  centralAvenue: { x: 525, y: 163, width: 25, height: 325, fill: '#E1EBF0' },
+  crossroad: { x: 115, y: 335, width: 945, height: 18, fill: '#E1EBF0' },
+  centerline: { x1: 115, y1: 344, x2: 1060, y2: 344, stroke: '#CAD7E2', strokeDasharray: '6 6', strokeWidth: 1.5 },
+  axisLabel: 'LƯU TRỌNG LƯ / CỔNG CHÍNH',
+  axisLabelPosition: { x: 537, y: 504 },
+};
+
+/**
+ * 4 Zone Container Outline Frames (Figma Schematic Hierarchy)
+ */
+export const PHYSICAL_ZONE_FRAMES = [
+  {
+    id: 'frame-kho',
+    title: 'KHO / CFS',
+    titlePosition: { x: 315, y: 198 },
+    rect: { x: 130, y: 185, width: 370, height: 142, rx: 4 },
+  },
+  {
+    id: 'frame-container',
+    title: 'BÃI CONTAINER',
+    titlePosition: { x: 800, y: 198 },
+    // Polygon with beveled top-right corner per Figma
+    polygon: 'M 560,185 L 1025,185 L 1060,220 L 1060,372 L 560,372 Z',
+  },
+  {
+    id: 'frame-cargo',
+    title: 'BÃI HÀNG TỔNG HỢP',
+    titlePosition: { x: 315, y: 378 },
+    rect: { x: 125, y: 365, width: 385, height: 115, rx: 4 },
+  },
 ];
 
-// Warehouses shifted -42px in Y
-export const PHYSICAL_WAREHOUSES = [
-  {
-    id: 'wh-b',
-    code: 'KHO B',
-    subTitle: 'Hàng CFS & Ngoại quan',
-    rect: { x: 70, y: 118, width: 238, height: 100 },
-  },
-  {
-    id: 'wh-c',
-    code: 'KHO C',
-    subTitle: 'Hàng Bách hóa Tổng hợp',
-    rect: { x: 375, y: 118, width: 230, height: 100 },
-  },
-  {
-    id: 'wh-d',
-    code: 'KHO D',
-    subTitle: 'Kho Lạnh / Reefer CFS',
-    rect: { x: 70, y: 310, width: 238, height: 108 },
-  },
-];
+/**
+ * 10 Discrete Physical Sub-Blocks inside the Zones (Figma exact match)
+ */
+export const PHYSICAL_SUB_BLOCKS = [
+  // 1. KHO / CFS sub-blocks
+  { id: 'block-wh-b', name: 'KHO B', rect: { x: 150, y: 215, width: 145, height: 48, rx: 4 } },
+  { id: 'block-wh-c', name: 'KHO C', rect: { x: 325, y: 215, width: 145, height: 48, rx: 4 } },
+  { id: 'block-wh-d', name: 'KHO D', rect: { x: 150, y: 278, width: 145, height: 44, rx: 4 } },
 
-// Container yards shifted -42px in Y
-export const PHYSICAL_CONTAINER_YARDS = [
-  {
-    id: 'cy-bay-1',
-    code: 'BÃI A1',
-    rect: { x: 695, y: 118, width: 220, height: 100 },
-    rows: 4,
-    cols: 6,
-  },
-  {
-    id: 'cy-bay-2',
-    code: 'BÃI A2',
-    rect: { x: 985, y: 118, width: 250, height: 100 },
-    rows: 4,
-    cols: 7,
-  },
-  {
-    id: 'cy-bay-3',
-    code: 'BÃI B1',
-    rect: { x: 695, y: 310, width: 220, height: 108 },
-    rows: 4,
-    cols: 6,
-  },
-  {
-    id: 'cy-bay-4',
-    code: 'BÃI B2',
-    rect: { x: 985, y: 310, width: 250, height: 108 },
-    rows: 4,
-    cols: 7,
-  },
-];
+  // 2. BÃI CONTAINER sub-blocks
+  { id: 'block-cy-a', name: 'BÃI A', rect: { x: 590, y: 215, width: 195, height: 90, rx: 4 } },
+  { id: 'block-cy-a2', name: 'BÃI A2', rect: { x: 815, y: 215, width: 195, height: 90, rx: 4 } },
+  { id: 'block-cy-b1', name: 'BÃI B1', rect: { x: 590, y: 320, width: 195, height: 48, rx: 4 } },
+  { id: 'block-cy-b2', name: 'BÃI B2', rect: { x: 815, y: 320, width: 195, height: 48, rx: 4 } },
 
-// Technical structures shifted -42px in Y
-export const PHYSICAL_TECHNICAL_STRUCTURES = [
-  {
-    id: 'tech-substation',
-    name: 'TRẠM NGUỒN 110KV',
-    rect: { x: 395, y: 330, width: 156, height: 90 },
-  },
-  {
-    id: 'tech-workshop',
-    name: 'XƯỞNG CƠ ĐIỆN VẬN HÀNH',
-    rect: { x: 570, y: 330, width: 148, height: 90 },
-  },
-  {
-    id: 'tech-gate',
-    name: 'CỔNG CHÍNH CẢNG TÂN THUẬN',
-    rect: { x: 600, y: 480, width: 100, height: 18 },
-  },
+  // 3. BÃI HÀNG TỔNG HỢP sub-block
+  { id: 'block-cargo', name: 'HÀNG TỔNG HỢP', rect: { x: 175, y: 395, width: 180, height: 58, rx: 4 } },
+
+  // 4. KỸ THUẬT & TRẠM ĐIỆN sub-blocks
+  { id: 'block-substation', name: 'TRẠM ĐIỆN', rect: { x: 590, y: 395, width: 150, height: 55, rx: 4 } },
+  { id: 'block-workshop', name: 'XƯỞNG', rect: { x: 765, y: 395, width: 145, height: 55, rx: 4 } },
 ];

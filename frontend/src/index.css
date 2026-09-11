@@ -8522,11 +8522,53 @@ body:has(.admin-portal-root) {
 }
 .sgp-map-top-hud { position: absolute; z-index: 30; inset: 16px 16px auto; display: flex; justify-content: space-between; align-items: flex-start; pointer-events: none; }
 .sgp-map-action-cluster, .sgp-search-wrap { display: flex; gap: 8px; align-items: flex-start; pointer-events: auto; position: relative; }
-.sgp-map-icon-btn, .sgp-exception-hud { min-height: 38px; border: 1px solid #d5e0e5; background: rgba(255,255,255,.95); border-radius: 9px; box-shadow: 0 4px 14px rgba(22,45,58,.12); color: #073b5c; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; padding: 0 12px; font: 600 12px inherit; }
-.sgp-map-icon-btn { width: 38px; justify-content: center; padding: 0; }
-.sgp-map-icon-btn:hover, .sgp-exception-hud:hover { border-color: #0b4f75; background: #fff; }
-.sgp-exception-hud { color: #a53232; }
-.sgp-exception-hud.active { background: #fff2f2; border-color: #e7a4a4; }
+.sgp-map-icon-btn {
+  min-height: 38px;
+  width: 38px;
+  justify-content: center;
+  border: 1px solid #d5e0e5;
+  background: rgba(255,255,255,.95);
+  border-radius: 9px;
+  box-shadow: 0 4px 14px rgba(22,45,58,.12);
+  color: #073b5c;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  transition: all 0.15s ease;
+}
+.sgp-map-icon-btn:hover { border-color: #0b4f75; background: #fff; }
+
+.sgp-exception-hud {
+  min-height: 38px;
+  border: 1px solid #d5e0e5;
+  background: #ffffff;
+  border-radius: 9px;
+  box-shadow: 0 4px 14px rgba(22,45,58,.10);
+  color: #059669;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 14px;
+  font: 700 12px inherit;
+  transition: all 0.15s ease;
+  pointer-events: auto;
+}
+.sgp-exception-hud:hover {
+  border-color: #0b4f75;
+  box-shadow: 0 6px 18px rgba(22,45,58,.15);
+}
+.sgp-exception-hud:has(.lucide-alert-triangle) {
+  background: #fffbeb;
+  border-color: #fde68a;
+  color: #92400e;
+}
+.sgp-exception-hud.active {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #b91c1c;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
+}
 .sgp-search-popover { position: absolute; top: 46px; left: 0; width: 300px; padding: 8px; background: #fff; border: 1px solid #d5e0e5; border-radius: 10px; box-shadow: 0 12px 30px rgba(22,45,58,.18); }
 .sgp-search-input-wrap { display: flex; align-items: center; gap: 7px; border-bottom: 1px solid #e7eef1; padding: 4px 3px 8px; color: #71818a; }
 .sgp-search-input-wrap input { flex: 1; border: 0; outline: 0; min-width: 0; font-size: 12px; color: #183b4b; }
@@ -9134,6 +9176,560 @@ body:has(.admin-portal-root) {
 
 .sgp-shift-zone-inspect-btn:hover {
   background: #e6f0f5;
+}
+
+/* ==========================================================================
+   FIGMA 2:104 — MAP CALLOUT PILLS & ZONE EXCEPTION BADGES
+   ========================================================================== */
+.sgp-meter-callout-pill {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sgp-zone-exception-badge {
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.sgp-zone-exception-badge:hover {
+  filter: drop-shadow(0 4px 8px rgba(180, 83, 9, 0.25));
+}
+
+/* ==========================================================================
+   FIGMA 2:363 — ZONE DRAWER STYLES
+   ========================================================================== */
+.sgp-zd-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px 12px;
+  border-bottom: 1px solid #edf2f5;
+}
+
+.sgp-zd-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 800;
+  color: #073b5c;
+  letter-spacing: 0.5px;
+}
+
+.sgp-zd-close-btn {
+  border: 0;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s;
+}
+
+.sgp-zd-close-btn:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.sgp-zd-body {
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow-y: auto;
+}
+
+.sgp-zd-stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12.5px;
+  color: #0f172a;
+}
+
+.sgp-zd-stat-label strong {
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.sgp-zd-prog-track {
+  width: 100%;
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.sgp-zd-prog-fill {
+  height: 100%;
+  background: #10b981;
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+.sgp-zd-operator-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+}
+
+.sgp-zd-op-title {
+  font-size: 11px;
+  font-weight: 750;
+  color: #71818a;
+  letter-spacing: 0.5px;
+}
+
+.sgp-zd-op-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  position: relative;
+}
+
+.sgp-zd-op-link {
+  border: 0;
+  background: transparent;
+  color: #0284c7;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+
+.sgp-zd-op-link:hover {
+  text-decoration: underline;
+}
+
+.sgp-zd-issue-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 700;
+  width: fit-content;
+}
+
+.sgp-zd-issue-pill.overdue {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+.sgp-zd-issue-pill.review {
+  background: #fffbeb;
+  color: #d97706;
+  border: 1px solid #fde68a;
+}
+
+.sgp-zd-divider {
+  border: 0;
+  height: 1px;
+  background: #edf2f5;
+  margin: 4px 0;
+}
+
+.sgp-zd-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sgp-zd-section-title {
+  font-size: 11px;
+  font-weight: 750;
+  color: #71818a;
+  letter-spacing: 0.5px;
+}
+
+.sgp-zd-meter-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sgp-zd-meter-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.sgp-zd-meter-card:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.sgp-zd-meter-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sgp-zd-meter-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.sgp-zd-meter-dot.dot-overdue { background: #dc2626; }
+.sgp-zd-meter-dot.dot-review { background: #f59e0b; }
+.sgp-zd-meter-dot.dot-confirmed { background: #10b981; }
+
+.sgp-zd-meter-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sgp-zd-meter-code {
+  font-size: 13px;
+  font-weight: 700;
+  color: #073b5c;
+}
+
+.sgp-zd-meter-sub {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.sgp-zd-meter-sub.text-overdue { color: #dc2626; }
+.sgp-zd-meter-sub.text-review { color: #d97706; }
+.sgp-zd-meter-sub.text-confirmed { color: #16a34a; }
+
+.sgp-zd-meter-arrow {
+  color: #94a3b8;
+}
+
+.sgp-zd-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sgp-zd-action-btn {
+  width: 100%;
+  padding: 8px 12px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #0f172a;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.sgp-zd-action-btn:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+}
+
+/* ==========================================================================
+   FIGMA 9:8 — OPERATOR PROGRESS POPOVER STYLES
+   ========================================================================== */
+.sgp-operator-popover.figma-9-8 {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 280px;
+  z-index: 70;
+  background: #ffffff;
+  border: 1px solid #d5e0e5;
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(22, 45, 58, 0.18);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sgp-pop-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #edf2f5;
+  position: relative;
+}
+
+.sgp-pop-avatar-circle {
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  background: #073b5c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sgp-pop-user-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.sgp-pop-user-name {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 750;
+  color: #073b5c;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sgp-pop-user-context {
+  margin: 2px 0 0;
+  font-size: 11px;
+  color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sgp-pop-close-btn {
+  position: absolute;
+  top: 0;
+  right: 0;
+  border: 0;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 2px;
+}
+
+.sgp-pop-close-btn:hover {
+  color: #0f172a;
+}
+
+.sgp-pop-progress-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sgp-pop-section-label {
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.5px;
+  color: #71818a;
+  text-transform: uppercase;
+}
+
+.sgp-pop-stat-line {
+  font-size: 12px;
+  color: #0f172a;
+}
+
+.sgp-pop-stat-line strong {
+  font-weight: 800;
+  color: #073b5c;
+}
+
+.sgp-pop-prog-track {
+  width: 100%;
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 999px;
+  overflow: hidden;
+  margin-top: 2px;
+}
+
+.sgp-pop-prog-fill {
+  height: 100%;
+  background: #0e7490;
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+.sgp-pop-metric-tiles {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.sgp-pop-tile {
+  padding: 8px 12px;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sgp-pop-tile.overdue {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+}
+
+.sgp-pop-tile.review {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+}
+
+.sgp-pop-tile-num {
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.sgp-pop-tile.overdue .sgp-pop-tile-num { color: #dc2626; }
+.sgp-pop-tile.review .sgp-pop-tile-num { color: #92400e; }
+
+.sgp-pop-tile-label {
+  font-size: 10.5px;
+  font-weight: 600;
+}
+
+.sgp-pop-tile.overdue .sgp-pop-tile-label { color: #991b1b; }
+.sgp-pop-tile.review .sgp-pop-tile-label { color: #92400e; }
+
+.sgp-pop-footer {
+  padding-top: 6px;
+  border-top: 1px solid #edf2f5;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sgp-pop-round-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #475569;
+  font-weight: 600;
+}
+
+.sgp-pop-clock-icon {
+  color: #64748b;
+}
+
+.sgp-pop-helper-note {
+  margin: 0;
+  font-size: 10px;
+  color: #94a3b8;
+}
+
+/* ==========================================================================
+   FIGMA 2:514 — METER QUICK POPUP STYLES WITH SPEECH POINTER
+   ========================================================================== */
+.sgp-meter-quick-popup.figma-2-514 {
+  position: absolute;
+  z-index: 45;
+  width: 250px;
+  padding: 16px;
+  border: 1px solid #d5e0e5;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 14px 36px rgba(22, 45, 58, 0.22);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  animation: sgpPopoverFadeIn 0.15s ease-out;
+}
+
+.sgp-qp-header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sgp-qp-code {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 800;
+  color: #073b5c;
+}
+
+.sgp-qp-sub {
+  margin: 0;
+  font-size: 11.5px;
+  color: #64748b;
+}
+
+.sgp-qp-status-wrap {
+  margin: 2px 0;
+}
+
+.sgp-qp-status-pill {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.sgp-qp-facts {
+  margin: 4px 0;
+  display: grid;
+  gap: 6px;
+  font-size: 11.5px;
+  border-top: 1px solid #edf2f5;
+  padding-top: 8px;
+}
+
+.sgp-qp-fact-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sgp-qp-facts dt {
+  color: #64748b;
+}
+
+.sgp-qp-facts dd {
+  margin: 0;
+  color: #0f172a;
+}
+
+.sgp-qp-reading {
+  font-size: 12.5px;
+  color: #073b5c;
+}
+
+.sgp-qp-detail-link {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: #0284c7;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+  padding: 6px 0;
+  border-top: 1px solid #edf2f5;
+  transition: color 0.15s;
+}
+
+.sgp-qp-detail-link:hover {
+  color: #0369a1;
+  text-decoration: underline;
+}
+
+.sgp-qp-pointer {
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-top: 8px solid #ffffff;
+  filter: drop-shadow(0 2px 2px rgba(22, 45, 58, 0.08));
 }
 
 @media (max-width: 700px) {

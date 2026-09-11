@@ -239,7 +239,7 @@ test('Case H: Current shift window label derivation', () => {
 
 test('Case I: Deterministic operator anchor geometry and fallback', () => {
   const berthAnchor = getZoneOperatorAnchor('zone-berth');
-  assert.deepEqual(berthAnchor, { x: 860, y: 88 });
+  assert.deepEqual(berthAnchor, { x: 860, y: 140 });
 
   const whAnchor = getZoneOperatorAnchor('zone-warehouse');
   assert.deepEqual(whAnchor, { x: 345, y: 340 });
