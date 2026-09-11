@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import tanThuanMapWebp from '../../../assets/maps/tan-thuan-canonical.webp';
+import tanThuanMapWebp from '../../../assets/maps/tan-thuan-canonical-v2.webp';
 import {
   CANONICAL_SCENE_WIDTH,
   CANONICAL_SCENE_HEIGHT,

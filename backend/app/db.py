@@ -480,18 +480,18 @@ def migrate_db(db_engine=None) -> None:
 
             # 12. Update meter coordinates and zone references if not set
             meter_coords = {
-                'CT-001': ('zone-technical', 0.4923, 0.8115),
-                'CT-002': ('zone-warehouse', 0.1708, 0.4596),
-                'CT-003': ('zone-berth', 0.2269, 0.2769),
-                'CT-004': ('zone-berth', 0.4692, 0.2769),
-                'CT-005': ('zone-warehouse', 0.3062, 0.4596),
-                'CT-006': ('zone-warehouse', 0.1708, 0.5769),
-                'CT-007': ('zone-technical', 0.2038, 0.8154),
-                'CT-008': ('zone-berth', 0.7154, 0.2769),
-                'CT-009': ('zone-technical', 0.6192, 0.8115),
-                'CT-010': ('zone-technical', 0.6654, 0.8115),
-                'CT-011': ('zone-container', 0.5292, 0.5000),
-                'CT-012': ('zone-container', 0.7015, 0.5000),
+                'CT-001': ('zone-technical', 0.5995, 0.8356),
+                'CT-002': ('zone-warehouse', 0.2648, 0.5664),
+                'CT-003': ('zone-berth', 0.1760, 0.4580),
+                'CT-004': ('zone-berth', 0.3624, 0.4507),
+                'CT-005': ('zone-warehouse', 0.3337, 0.5786),
+                'CT-006': ('zone-warehouse', 0.8773, 0.4629),
+                'CT-007': ('zone-technical', 0.5577, 0.8770),
+                'CT-008': ('zone-berth', 0.7311, 0.3812),
+                'CT-009': ('zone-technical', 0.6418, 0.8295),
+                'CT-010': ('zone-technical', 0.8564, 0.6821),
+                'CT-011': ('zone-container', 0.6115, 0.5323),
+                'CT-012': ('zone-container', 0.7321, 0.5164),
             }
             for code, (zid, mx, my) in meter_coords.items():
                 cursor.execute("""
