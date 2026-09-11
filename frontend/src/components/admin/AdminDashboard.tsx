@@ -11,7 +11,7 @@ import {
   Map,
   List,
 } from 'lucide-react';
-import { AdminDashboardResponse } from '../../types';
+import { AdminDashboardResponse, User } from '../../types';
 import { getAdminDashboard } from '../../services/api';
 import { LoadingState } from '../ui/LoadingState';
 import { ErrorState } from '../ui/ErrorState';
@@ -30,10 +30,11 @@ export const formatDisplayDateVN = (isoDate: string): string => {
 };
 
 export interface AdminDashboardProps {
+  user?: User;
   onInspectReading?: (readingId: string) => void;
 }
 
-export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onInspectReading }) => {
+export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onInspectReading }) => {
   const [viewMode, setViewMode] = useState<'map' | 'legacy'>(() => {
     try {
       // Clear any stale legacy setting so user lands directly on map-first
@@ -112,6 +113,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onInspectReading
   if (viewMode === 'map') {
     return (
       <MapOperationsPage
+        user={user}
         onInspectReading={onInspectReading}
         onSwitchToLegacy={() => handleSetViewMode('legacy')}
       />

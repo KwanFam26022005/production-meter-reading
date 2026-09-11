@@ -561,7 +561,7 @@ export default function App() {
         {!inspectingReadingId && (
           <>
             {adminActiveTab === 'dashboard' && (
-              <AdminDashboard onInspectReading={(rId) => setInspectingReadingId(rId)} />
+              <AdminDashboard user={currentUser} onInspectReading={(rId) => setInspectingReadingId(rId)} />
             )}
             {adminActiveTab === 'schedules' && <AdminSchedules />}
             {adminActiveTab === 'staff_roster' && <AdminStaffRoster user={currentUser} />}

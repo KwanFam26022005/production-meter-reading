@@ -26,6 +26,7 @@ import {
 } from '../context';
 
 interface ImmersiveSceneShellProps {
+  user?: User;
   // Data
   selectedDate: string;
   onDateChange: (date: string) => void;
@@ -110,6 +111,7 @@ interface ImmersiveSceneShellProps {
  * LAYER D: Contextual Details (ZoneDrawer, MeterQuickPopup, MeterDetailDrawer, OperatorShiftPopover, AnalyticsDrawer)
  */
 export const ImmersiveSceneShell: React.FC<ImmersiveSceneShellProps> = ({
+  user,
   selectedDate,
   onDateChange,
   dashboardData,
@@ -212,29 +214,26 @@ export const ImmersiveSceneShell: React.FC<ImmersiveSceneShellProps> = ({
         {/* LAYER C: INTEGRATED SCENE HUD OVERLAYS                       */}
         {/* ============================================================ */}
         <div className="sgp-scene-hud-container" style={{ pointerEvents: 'none' }}>
-          {/* TOP BAR CLUSTER */}
-          <div className="sgp-hud-top-bar" style={{ pointerEvents: 'none' }}>
-            <div style={{ pointerEvents: 'auto' }}>
-              <SceneHeaderHUD />
-            </div>
+          {/* TOP BAR CLUSTER — UNIFIED MARITIME HEADER */}
+          <div className="sgp-hud-top-bar" style={{ pointerEvents: 'auto' }}>
+            <SceneHeaderHUD />
 
-            <div style={{ pointerEvents: 'auto' }}>
-              <SceneTopControls
-                selectedDate={selectedDate}
-                onDateChange={onDateChange}
-                rounds={rounds}
-                currentRoundTime={overallKpis.currentRoundTime}
-                currentRoundStatus={overallKpis.currentRoundStatus}
-                selectedRoundId={selectedRoundId}
-                onSelectRound={onSelectRound}
-                viewMode={viewMode}
-                onViewModeChange={onViewModeChange}
-                onRefresh={onRefresh}
-                isLoading={isLoading}
-                onExportCsv={onExportCsv}
-                onOpenAnalytics={() => onSetAnalyticsOpen(true)}
-              />
-            </div>
+            <SceneTopControls
+              user={user}
+              selectedDate={selectedDate}
+              onDateChange={onDateChange}
+              rounds={rounds}
+              currentRoundTime={overallKpis.currentRoundTime}
+              currentRoundStatus={overallKpis.currentRoundStatus}
+              selectedRoundId={selectedRoundId}
+              onSelectRound={onSelectRound}
+              viewMode={viewMode}
+              onViewModeChange={onViewModeChange}
+              onRefresh={onRefresh}
+              isLoading={isLoading}
+              onExportCsv={onExportCsv}
+              onOpenAnalytics={() => onSetAnalyticsOpen(true)}
+            />
           </div>
 
           {/* LEFT ACTIONS HUD (Search & Filter) */}

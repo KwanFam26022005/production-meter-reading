@@ -90,7 +90,8 @@ export const SceneSearch: React.FC<SceneSearchProps> = ({
         onClick={() => onToggle(!isOpen)}
         title="Tìm công tơ, khu vực, nhân sự..."
       >
-        <Search size={17} />
+        <Search size={16} />
+        <span>Tìm kiếm</span>
       </button>
 
       {isOpen && (

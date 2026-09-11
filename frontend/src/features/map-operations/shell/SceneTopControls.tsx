@@ -11,9 +11,11 @@ import {
   BarChart2,
 } from 'lucide-react';
 import { VnDatePicker } from '../../../components/ui/VnDatePicker';
-import type { AdminDashboardRoundProgress } from '../../../types';
+import type { AdminDashboardRoundProgress, User } from '../../../types';
+import { formatUserRole } from '../../../types';
 
 interface SceneTopControlsProps {
+  user?: User;
   selectedDate: string;
   onDateChange: (date: string) => void;
   rounds: AdminDashboardRoundProgress[];
@@ -36,9 +38,11 @@ interface SceneTopControlsProps {
  * - Vietnamese Date Picker (DD/MM/YYYY)
  * - Round Selector with dropdown
  * - Animated segmented control: [Bản đồ] [Danh sách]
+ * - User profile pill: Avatar + Full Name + Role
  * - Overflow menu: Làm mới, Xuất CSV, Phân tích chất lượng
  */
 export const SceneTopControls: React.FC<SceneTopControlsProps> = ({
+  user,
   selectedDate,
   onDateChange,
   rounds = [],
@@ -85,8 +89,9 @@ export const SceneTopControls: React.FC<SceneTopControlsProps> = ({
       : -1;
 
   const currentRound = activeIdx >= 0 ? rounds[activeIdx] : null;
-  const displayTime = currentRound ? currentRound.scheduled_time : currentRoundTime || '--:--';
-  const displayPercent = currentRound ? Math.round(currentRound.completion_percent) : 0;
+  const shiftDisplayLabel = currentRound
+    ? `Ca 1 (${currentRound.scheduled_time})`
+    : (currentRoundTime ? `Ca 1 (${currentRoundTime})` : 'Ca 1 (06:00 - 14:00)');
 
   return (
     <div className="sgp-scene-top-controls" role="toolbar" aria-label="Điều khiển thời gian và góc nhìn">
@@ -111,11 +116,10 @@ export const SceneTopControls: React.FC<SceneTopControlsProps> = ({
           disabled={isLoading || rounds.length === 0}
           aria-haspopup="listbox"
           aria-expanded={isRoundDropdownOpen}
-          title="Chọn lượt đọc chỉ số"
+          title="Chọn ca tác nghiệp"
         >
           <Clock size={13} className="sgp-mh-clock-icon" aria-hidden="true" />
-          <span className="sgp-mh-round-label font-tabular">Ca {displayTime}</span>
-          <span className="sgp-mh-round-pct font-tabular">· {displayPercent}%</span>
+          <span className="sgp-mh-round-label font-tabular">{shiftDisplayLabel}</span>
           <ChevronDown
             size={12}
             className={`sgp-mh-chevron ${isRoundDropdownOpen ? 'rotate' : ''}`}
@@ -188,7 +192,18 @@ export const SceneTopControls: React.FC<SceneTopControlsProps> = ({
         </button>
       </div>
 
-      {/* 4. OVERFLOW MENU */}
+      {/* 4. USER PROFILE */}
+      <div className="sgp-header-user-profile" title={user ? `${user.full_name} (${formatUserRole(user.role)})` : 'Pham Hong Dang Khoa'}>
+        <div className="sgp-header-avatar">
+          {user?.full_name?.charAt(0)?.toUpperCase() || 'P'}
+        </div>
+        <div className="sgp-header-user-info">
+          <span className="sgp-header-user-name">{user?.full_name || 'Pham Hong Dang Khoa'}</span>
+          <span className="sgp-header-user-role">{user ? formatUserRole(user.role) : 'Quản trị viên'}</span>
+        </div>
+      </div>
+
+      {/* 5. OVERFLOW MENU */}
       <div className="sgp-top-overflow-wrap" ref={menuRef}>
         <button
           type="button"

@@ -6,10 +6,12 @@ import { LoadingState } from '../../components/ui/LoadingState';
 import { ErrorState } from '../../components/ui/ErrorState';
 import { normalizedToCanonicalScene } from './geometry/canonicalScene';
 import { deriveOperatorShiftSummary } from './utils/deriveOperatorShiftSummary';
+import type { User } from '../../types';
 import { ImmersiveSceneShell } from './shell/ImmersiveSceneShell';
 import './motion/mapMotion.css';
 
 interface MapOperationsPageProps {
+  user?: User;
   onInspectReading?: (readingId: string) => void;
   onSwitchToLegacy?: () => void;
 }
@@ -22,6 +24,7 @@ interface MapOperationsPageProps {
  * All controls (temporal, search, telemetry, legend, zoom) live as integrated HUD overlays.
  */
 export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
+  user,
   onInspectReading,
   onSwitchToLegacy: _onSwitchToLegacy,
 }) => {
@@ -273,6 +276,7 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
 
   return (
     <ImmersiveSceneShell
+      user={user}
       selectedDate={selectedDate}
       onDateChange={setSelectedDate}
       dashboardData={dashboardData}
