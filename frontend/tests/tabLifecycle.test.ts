@@ -134,3 +134,40 @@ test('Map Legend Positioning: Stacked above viewport controls with >= 140px bott
   );
 });
 
+test('Unified Temporal Header: CurrentRoundControl removed from bottom-left canvas and unified into MapHeader', () => {
+  const mapOpsPath = path.resolve(__dirname, '../src/features/map-operations/MapOperationsPage.tsx');
+  const mapOpsContent = fs.readFileSync(mapOpsPath, 'utf-8');
+  const mapHeaderPath = path.resolve(__dirname, '../src/features/map-operations/components/MapHeader.tsx');
+  const mapHeaderContent = fs.readFileSync(mapHeaderPath, 'utf-8');
+  const cssPath = path.resolve(__dirname, '../src/index.css');
+  const cssContent = fs.readFileSync(cssPath, 'utf-8');
+
+  // 1. CurrentRoundControl floating card removed from MapOperationsPage canvas
+  assert.equal(
+    mapOpsContent.includes('<CurrentRoundControl'),
+    false,
+    'Map canvas must not render bulky floating CurrentRoundControl card'
+  );
+
+  // 2. MapHeader contains round picker and dropdown
+  assert.ok(
+    mapHeaderContent.includes('sgp-mh-round-picker'),
+    'MapHeader must contain round picker control'
+  );
+  assert.ok(
+    mapHeaderContent.includes('sgp-mh-round-dropdown'),
+    'MapHeader must contain round dropdown selection menu'
+  );
+
+  // 3. CSS contains styles for round picker and dropdown
+  assert.ok(
+    cssContent.includes('.sgp-mh-round-picker'),
+    'CSS must style .sgp-mh-round-picker'
+  );
+  assert.ok(
+    cssContent.includes('.sgp-mh-round-dropdown'),
+    'CSS must style .sgp-mh-round-dropdown'
+  );
+});
+
+

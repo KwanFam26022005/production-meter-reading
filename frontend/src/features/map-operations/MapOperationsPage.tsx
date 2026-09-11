@@ -5,7 +5,6 @@ import { useMapSelection } from './hooks/useMapSelection';
 import { filterMeters } from './utils/mapFilters';
 import { MapHeader } from './components/MapHeader';
 import { FilterPopover } from './components/FilterPopover';
-import { CurrentRoundControl } from './components/CurrentRoundControl';
 import { ZoneDrawer } from './map-ui/ZoneDrawer';
 import { MeterQuickPopup } from './map-ui/MeterQuickPopup';
 import { MeterDetailDrawer } from './map-ui/MeterDetailDrawer';
@@ -246,10 +245,15 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
 
   return (
     <div className="sgp-map-first-root">
-      {/* Compact Top Header */}
+      {/* Compact Top Header with Unified Temporal Cluster (Date + Round) */}
       <MapHeader
         selectedDate={selectedDate}
         onDateChange={setSelectedDate}
+        rounds={dashboardData?.round_progress || []}
+        currentRoundTime={overallKpis.currentRoundTime}
+        currentRoundStatus={overallKpis.currentRoundStatus}
+        selectedRoundId={filters.selectedRoundId}
+        onSelectRound={(roundId) => setFilters({ ...filters, selectedRoundId: roundId })}
         viewMode="map"
         onViewModeChange={(mode) => mode === 'legacy' && onSwitchToLegacy?.()}
         onRefresh={refresh}
@@ -382,14 +386,6 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
             onClose={clearSelection}
           />
         )}
-
-        {/* Floating Current Round Control (Figma 2:2) */}
-        <CurrentRoundControl
-          rounds={dashboardData?.round_progress || []}
-          currentRoundTime={overallKpis.currentRoundTime}
-          currentRoundStatus={overallKpis.currentRoundStatus}
-          onSelectRound={(roundId) => setFilters({ ...filters, selectedRoundId: roundId })}
-        />
 
         {/* Level 2: Spatial Operator Shift Progress Popover (Phase 6D) */}
         {selectedOperatorSummary && !selectedMeter && !selectedZone && !detailOpen && (
