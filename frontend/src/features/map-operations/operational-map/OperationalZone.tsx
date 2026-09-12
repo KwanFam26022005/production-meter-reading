@@ -137,31 +137,34 @@ export const OperationalZone: React.FC<OperationalZoneProps> = React.memo(({
   const badgeBorder = geometry.badgeBorder || primaryColor;
   const badgeText = geometry.badgeText || '#E0F2FE';
 
-  // Two-layer edge styling based on active state (P0 Visual Contract Section 9, 10, 11)
-  let haloFillOpacity = geometry.haloFillOpacityDefault ?? 0.09;
-  let haloStrokeOpacity = geometry.haloStrokeOpacityDefault ?? 0.16;
-  let haloStrokeWidth = geometry.haloStrokeWidthDefault ?? 7.0;
+  // V9 Dual-Stroke & Zone Opacity States (Section 14 & 15)
+  // Layer A: Soft Halo (fill = none, stroke ~4px, stroke-opacity ~0.12-0.18)
+  // Layer B: Structural Edge & State Fill (fill 0.045-0.20, stroke ~1.4-1.8px, stroke-opacity ~0.78-0.88)
+  let haloStrokeOpacity = 0.15;
+  let haloStrokeWidth = 4.0;
 
-  let structuralBorderOpacity = geometry.structuralBorderOpacityDefault ?? 0.82;
-  let structuralBorderWidth = geometry.structuralBorderWidthDefault ?? 1.35;
+  let fillOpacity = 0.055; // Overview: 0.045–0.065
+  let structuralBorderOpacity = 0.82; // 0.78–0.88
+  let structuralBorderWidth = 1.6; // 1.4–1.8px
 
   if (isSelected) {
-    haloFillOpacity = geometry.haloFillOpacitySelected ?? 0.22;
-    haloStrokeOpacity = geometry.haloStrokeOpacitySelected ?? 0.25;
-    haloStrokeWidth = 7.5;
-    structuralBorderOpacity = geometry.structuralBorderOpacitySelected ?? 0.95;
-    structuralBorderWidth = geometry.structuralBorderWidthSelected ?? 2.15;
+    haloStrokeOpacity = 0.22;
+    haloStrokeWidth = 4.5;
+    fillOpacity = 0.18; // Selected: 0.16–0.20
+    structuralBorderOpacity = 0.95;
+    structuralBorderWidth = 2.0;
   } else if (isHovered) {
-    haloFillOpacity = geometry.haloFillOpacityHover ?? 0.16;
-    haloStrokeOpacity = geometry.haloStrokeOpacityHover ?? 0.22;
-    haloStrokeWidth = 7.0;
-    structuralBorderOpacity = geometry.structuralBorderOpacityHover ?? 0.88;
-    structuralBorderWidth = geometry.structuralBorderWidthHover ?? 1.75;
+    haloStrokeOpacity = 0.18;
+    haloStrokeWidth = 4.0;
+    fillOpacity = 0.10; // Hover: 0.09–0.12
+    structuralBorderOpacity = 0.88;
+    structuralBorderWidth = 1.8;
   } else if (isDimmed) {
-    haloFillOpacity = geometry.haloFillOpacityDimmed ?? 0.04;
-    haloStrokeOpacity = geometry.haloStrokeOpacityDimmed ?? 0.06;
-    structuralBorderOpacity = geometry.structuralBorderOpacityDimmed ?? 0.35;
-    structuralBorderWidth = 1.25;
+    haloStrokeOpacity = 0.08;
+    haloStrokeWidth = 3.5;
+    fillOpacity = 0.035; // Inactive non-selected during focus: 0.025–0.045
+    structuralBorderOpacity = 0.35;
+    structuralBorderWidth = 1.4;
   }
 
   // Pill label text (Section 12: Map renders shortLabel)
@@ -190,14 +193,30 @@ export const OperationalZone: React.FC<OperationalZoneProps> = React.memo(({
         }
       }}
     >
-      {/* LAYER A — ATMOSPHERIC HALO (Section 9: soft exterior glow) */}
+      {/* LAYER A — SOFT HALO (Section 14: soft exterior halo, fill=none) */}
       <path
         d={geometry.polygonSvg}
-        fill={primaryColor}
-        fillOpacity={haloFillOpacity}
+        fill="none"
         stroke={primaryColor}
         strokeOpacity={haloStrokeOpacity}
         strokeWidth={haloStrokeWidth}
+        strokeLinejoin="round"
+        strokeLinecap="round"
+        vectorEffect="non-scaling-stroke"
+        pointerEvents="none"
+        style={{
+          transition: 'stroke-opacity 240ms ease, stroke-width 240ms ease',
+        }}
+      />
+
+      {/* LAYER B — STRUCTURAL EDGE & FILL (Section 14: crisp edge + calm state fill) */}
+      <path
+        d={geometry.polygonSvg}
+        fill={primaryColor}
+        fillOpacity={fillOpacity}
+        stroke={primaryColor}
+        strokeOpacity={structuralBorderOpacity}
+        strokeWidth={structuralBorderWidth}
         strokeLinejoin="round"
         strokeLinecap="round"
         vectorEffect="non-scaling-stroke"
@@ -211,22 +230,6 @@ export const OperationalZone: React.FC<OperationalZoneProps> = React.memo(({
         }}
         onMouseEnter={() => onHover(zoneKey)}
         onMouseLeave={() => onHover(null)}
-      />
-
-      {/* LAYER B — STRUCTURAL BORDER (Section 9: crisp inner operational boundary) */}
-      <path
-        d={geometry.polygonSvg}
-        fill="none"
-        stroke={primaryColor}
-        strokeOpacity={structuralBorderOpacity}
-        strokeWidth={structuralBorderWidth}
-        strokeLinejoin="round"
-        strokeLinecap="round"
-        vectorEffect="non-scaling-stroke"
-        pointerEvents="none"
-        style={{
-          transition: 'stroke-opacity 240ms ease, stroke-width 240ms ease',
-        }}
       />
 
       {/* 2. CENTERED ZONE IDENTITY BADGE PILL (tan-thuan-approved-zoning.png) */}

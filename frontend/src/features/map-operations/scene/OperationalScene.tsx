@@ -6,6 +6,12 @@ import type {
   OperationalLayerType,
 } from '../types';
 import { CANONICAL_VIEWBOX, CANONICAL_MAP_VERSION } from '../geometry/canonicalScene';
+import {
+  isCalibrationModeActive,
+  useMapCalibration,
+  MapCalibrationSvgLayer,
+  MapCalibrationHUD,
+} from '../calibration/MapCalibrationOverlay';
 import type { SelectedEntity, MapMode } from '../state/useMapStateMachine';
 import { CanonicalBaseMap } from './CanonicalBaseMap';
 import { ZoneLayer } from '../layers/ZoneLayer';
@@ -84,6 +90,11 @@ export const OperationalScene: React.FC<OperationalSceneProps> = ({
   placementCard,
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const svgRef = useRef<SVGSVGElement | null>(null);
+  const worldGroupRef = useRef<SVGGElement | null>(null);
+
+  const isCalibrationActive = isCalibrationModeActive();
+  const calibration = useMapCalibration(svgRef, worldGroupRef);
 
   // Runtime diagnostic verification
   useEffect(() => {
@@ -115,6 +126,7 @@ export const OperationalScene: React.FC<OperationalSceneProps> = ({
     >
       {/* MASTER SVG VIEWPORT — ONE SCENE, ONE COORDINATE SYSTEM */}
       <svg
+        ref={svgRef}
         viewBox={CANONICAL_VIEWBOX}
         className="sgp-operational-svg"
         preserveAspectRatio="xMidYMid meet"
@@ -132,6 +144,7 @@ export const OperationalScene: React.FC<OperationalSceneProps> = ({
       >
         {/* SINGLE WORLD TRANSFORM GROUP */}
         <g
+          ref={worldGroupRef}
           transform={`translate(${viewport.panX}, ${viewport.panY}) scale(${viewport.zoom})`}
           style={{
             transition: 'transform 320ms cubic-bezier(0.16, 1, 0.3, 1)',
@@ -202,11 +215,19 @@ export const OperationalScene: React.FC<OperationalSceneProps> = ({
 
           {/* 8. Spatial Meter Placement & Relocation Layer (GATE 8) */}
           {placementSvgLayer}
+
+          {/* 9. Developer-Only Geometry Calibration Layer (?mapCalibration=1) */}
+          {isCalibrationActive && (
+            <MapCalibrationSvgLayer calibration={calibration} zoom={viewport.zoom} />
+          )}
         </g>
       </svg>
 
       {/* Floating Placement Card (Outside SVG, within relative container) */}
       {placementCard}
+
+      {/* Developer-Only Calibration HUD Panel (?mapCalibration=1) */}
+      {isCalibrationActive && <MapCalibrationHUD calibration={calibration} />}
     </div>
   );
 };

@@ -20,7 +20,7 @@ import {
   normalizedToCanonicalScene,
   canonicalSceneToNormalized,
 } from './canonicalScene';
-import { V81_PRESENTATION_ZONES } from './tanThuanPresentationGeometryV81';
+import { V9_PRESENTATION_ZONES } from './tanThuanPresentationGeometryV9';
 
 export const MAP_DIMENSIONS = {
   width: CANONICAL_SCENE_WIDTH,
@@ -408,11 +408,11 @@ const ZONE_CODES: Record<string, string> = {
 };
 
 /**
- * 6 Approved Visual Presentation Zones (V8.1 Spatial Correction):
- * Built from authoritative V81_PRESENTATION_ZONES in tanThuanPresentationGeometryV81.ts
+ * 6 Approved Visual Presentation Zones (V9 Canonical Geometry Alignment):
+ * Built from authoritative V9_PRESENTATION_ZONES derived from tanThuanPresentationGeometry.v9.json
  * Traced and calibrated against tan-thuan-canonical-base.png (1915x821).
  */
-export const SPATIAL_ZONE_PRESENTATIONS: SpatialZonePresentation[] = V81_PRESENTATION_ZONES.map((z) => {
+export const SPATIAL_ZONE_PRESENTATIONS: SpatialZonePresentation[] = V9_PRESENTATION_ZONES.map((z) => {
   const theme = ZONE_VISUAL_THEMES[z.id];
   return {
     ...theme,

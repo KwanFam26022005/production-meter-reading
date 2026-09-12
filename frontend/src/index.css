@@ -8621,11 +8621,11 @@ body:has(.admin-portal-root) {
 }
 .sgp-map-top-hud { position: absolute; z-index: var(--z-map-hud, 35); inset: 16px 16px auto; display: flex; justify-content: space-between; align-items: flex-start; pointer-events: none; }
 .sgp-map-action-cluster, .sgp-search-wrap { display: flex; gap: 8px; align-items: flex-start; pointer-events: auto; position: relative; }
-.sgp-map-icon-btn {
+.sgp-map-icon-control,
+.sgp-map-icon-btn:not(.sgp-scene-action-pill):not(.sgp-map-action-control) {
   min-height: 38px;
-  width: auto;
-  min-width: 38px;
-  padding: 0 10px;
+  width: 38px;
+  padding: 0;
   justify-content: center;
   border: 1px solid #d5e0e5;
   background: rgba(255,255,255,.95);
@@ -8637,10 +8637,28 @@ body:has(.admin-portal-root) {
   align-items: center;
   transition: all 0.15s ease;
 }
-.sgp-map-icon-btn:not(:has(span)) {
-  width: 38px;
-  padding: 0;
+
+.sgp-map-action-control,
+.sgp-scene-action-pill {
+  min-height: 38px;
+  width: auto;
+  min-width: 44px;
+  padding: 0 14px;
+  justify-content: center;
+  border: 1px solid #d5e0e5;
+  background: rgba(255,255,255,.95);
+  border-radius: 9999px;
+  box-shadow: 0 4px 14px rgba(22,45,58,.12);
+  color: #073b5c;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.15s ease;
 }
+
+.sgp-map-icon-control:hover,
+.sgp-map-action-control:hover,
 .sgp-map-icon-btn:hover { border-color: #0b4f75; background: #fff; }
 
 .sgp-exception-hud {
