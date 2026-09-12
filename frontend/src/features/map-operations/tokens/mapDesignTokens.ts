@@ -41,3 +41,32 @@ export const MAP_Z_INDEX = {
   dialog: 90,
   toast: 100,
 } as const;
+
+/**
+ * V8.1 Calm Contrast Design Tokens (Section 13 & 14)
+ * Low-chrome maritime operational UI surfaces.
+ */
+export const MAP_CALM_CONTRAST_TOKENS = {
+  chromeMist: 'rgba(255, 255, 255, 0.72)',
+  chromeMistStrong: 'rgba(255, 255, 255, 0.88)',
+  hudDark: 'rgba(15, 23, 42, 0.78)',
+  hudDarkHover: 'rgba(15, 23, 42, 0.90)',
+  borderSoft: 'rgba(15, 23, 42, 0.10)',
+  borderSoftDark: 'rgba(255, 255, 255, 0.20)',
+  textPrimary: '#0F172A',
+  textSecondary: '#475569',
+  shadowSoft: '0 4px 16px rgba(0, 0, 0, 0.08)',
+} as const;
+
+export const CALM_CONTRAST_TOKENS = {
+  '--map-chrome-mist': 'rgba(255, 255, 255, 0.72)',
+  '--map-chrome-mist-strong': 'rgba(255, 255, 255, 0.88)',
+  '--map-hud-dark': 'rgba(15, 23, 42, 0.78)',
+  '--map-hud-dark-hover': 'rgba(15, 23, 42, 0.90)',
+  '--map-border-soft': 'rgba(15, 23, 42, 0.10)',
+  '--map-text-primary': '#0F172A',
+  '--map-text-secondary': '#475569',
+  '--map-shadow-soft': '0 4px 16px rgba(0, 0, 0, 0.08)',
+} as const;
+
+export const MAP_CHROME_TOKENS = MAP_CALM_CONTRAST_TOKENS;

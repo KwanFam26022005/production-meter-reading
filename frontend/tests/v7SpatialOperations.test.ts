@@ -106,7 +106,7 @@ test('V7 Spatial: Presentation zones have pairwise non-overlapping centroids', (
 // ---------------------------------------------------------------------------
 test('V7 Spatial: Point-in-polygon correctly identifies inside vs outside coordinates', () => {
   // Inside tests
-  assert.ok(isPointInBusinessZone({ x: 920, y: 320 }, 'zone-berth'), 'Berth centroid must be inside zone-berth');
+  assert.ok(isPointInBusinessZone({ x: 930, y: 290 }, 'zone-berth'), 'Berth point must be inside zone-berth');
   assert.ok(isPointInBusinessZone({ x: 1170, y: 440 }, 'zone-container'), 'CY center must be inside zone-container');
   assert.ok(isPointInBusinessZone({ x: 440, y: 470 }, 'zone-warehouse'), 'Warehouse west must be inside zone-warehouse');
   assert.ok(isPointInBusinessZone({ x: 1680, y: 380 }, 'zone-warehouse'), 'CFS East must be inside zone-warehouse');
@@ -119,9 +119,9 @@ test('V7 Spatial: Point-in-polygon correctly identifies inside vs outside coordi
   assert.equal(isPointInBusinessZone({ x: 100, y: 100 }, 'zone-warehouse'), false);
   assert.equal(isPointInBusinessZone({ x: 100, y: 100 }, 'zone-technical'), false);
 
-  // Cross-zone test: Point inside Berth must be outside Technical
-  assert.equal(isPointInBusinessZone({ x: 920, y: 320 }, 'zone-technical'), false);
-  assert.equal(isPointInBusinessZone({ x: 920, y: 320 }, 'zone-container'), false);
+  // Cross-zone test: Point inside Berth must be outside Technical and Container
+  assert.equal(isPointInBusinessZone({ x: 930, y: 290 }, 'zone-technical'), false);
+  assert.equal(isPointInBusinessZone({ x: 930, y: 290 }, 'zone-container'), false);
 });
 
 // ---------------------------------------------------------------------------

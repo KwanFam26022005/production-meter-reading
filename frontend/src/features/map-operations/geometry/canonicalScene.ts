@@ -112,9 +112,9 @@ export const CANONICAL_12_METERS_AUDIT: MeterCalibrationRecord[] = [
     businessZoneId: 'zone-berth',
     presentationRegionId: 'pres-berth',
     canonicalX: 337,
-    canonicalY: 376,
+    canonicalY: 316,
     normalizedX: 0.1760,
-    normalizedY: 0.4580,
+    normalizedY: 0.3849,
     nearestLandmark: 'Cầu cảng 1 (Cần cẩu B.15–B.17)',
     anchorDirection: 'left',
   },
@@ -124,9 +124,9 @@ export const CANONICAL_12_METERS_AUDIT: MeterCalibrationRecord[] = [
     businessZoneId: 'zone-berth',
     presentationRegionId: 'pres-berth',
     canonicalX: 694,
-    canonicalY: 370,
+    canonicalY: 315,
     normalizedX: 0.3624,
-    normalizedY: 0.4507,
+    normalizedY: 0.3837,
     nearestLandmark: 'Cầu cảng 2 (Cần cẩu B.19–B.21A)',
     anchorDirection: 'left',
   },
@@ -172,9 +172,9 @@ export const CANONICAL_12_METERS_AUDIT: MeterCalibrationRecord[] = [
     businessZoneId: 'zone-berth',
     presentationRegionId: 'pres-berth',
     canonicalX: 1400,
-    canonicalY: 313,
+    canonicalY: 248,
     normalizedX: 0.7311,
-    normalizedY: 0.3812,
+    normalizedY: 0.3021,
     nearestLandmark: 'Cầu cảng 3 (Cần cẩu giàn B.21B–B.25A)',
     anchorDirection: 'left',
   },
@@ -236,10 +236,10 @@ export const CANONICAL_12_METERS_AUDIT: MeterCalibrationRecord[] = [
  * - Clearly belongs to the assigned zone
  */
 export const CANONICAL_OPERATOR_ANCHORS: Record<string, { x: number; y: number }> = {
-  'zone-berth': { x: 920, y: 330 },
+  'zone-berth': { x: 1030, y: 285 },
   'zone-warehouse': { x: 440, y: 480 },
   'zone-container': { x: 1280, y: 440 },
-  'zone-technical': { x: 1100, y: 770 },
+  'zone-technical': { x: 1100, y: 740 },
 };
 
 /**

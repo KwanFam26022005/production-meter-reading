@@ -15127,16 +15127,19 @@ body:has(.admin-portal-root) {
   box-sizing: border-box;
 }
 
-/* 2. MAP HEADER (CSS Grid layout - prevents overflow wrapping) */
+/* 2. MAP HEADER (CSS Grid layout - prevents overflow wrapping) (56-64px) */
 .sgp-map-header {
-  height: 50px;
+  height: 58px;
   display: grid;
   grid-template-columns: 1fr auto auto;
   align-items: center;
   gap: 16px;
-  padding: 0 16px;
-  background-color: #FFFFFF;
-  border-bottom: 1px solid #E2E8F0;
+  padding: 0 18px;
+  background-color: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
   z-index: var(--z-map-header, 70);
   flex: none;
   box-sizing: border-box;

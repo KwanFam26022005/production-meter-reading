@@ -239,7 +239,7 @@ test('Case H: Current shift window label derivation', () => {
 
 test('Case I: Deterministic operator anchor geometry and fallback', () => {
   const berthAnchor = getZoneOperatorAnchor('zone-berth');
-  assert.deepEqual(berthAnchor, { x: 920, y: 330 });
+  assert.deepEqual(berthAnchor, { x: 1030, y: 285 });
 
   const whAnchor = getZoneOperatorAnchor('zone-warehouse');
   assert.deepEqual(whAnchor, { x: 440, y: 480 });
@@ -248,7 +248,7 @@ test('Case I: Deterministic operator anchor geometry and fallback', () => {
   assert.deepEqual(contAnchor, { x: 1280, y: 440 });
 
   const techAnchor = getZoneOperatorAnchor('zone-technical');
-  assert.deepEqual(techAnchor, { x: 1100, y: 770 });
+  assert.deepEqual(techAnchor, { x: 1100, y: 740 });
 
   // Unknown zone fallback (canonical center 1915/2, 821/2)
   const fallbackAnchor = getZoneOperatorAnchor('non-existent-zone');
