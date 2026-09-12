@@ -22,6 +22,7 @@ interface MeterLayerProps {
   onSelectMeter: (meterId: string) => void;
   onHoverMeter: (meterId: string | null) => void;
   exceptionFocus?: boolean;
+  filterTier?: 'all' | 'normal' | 'issue' | 'selected';
 }
 
 /**
@@ -44,13 +45,14 @@ export const MeterLayer: React.FC<MeterLayerProps> = ({
   selectedMeterId,
   hoveredMeterId,
   exceptionsOnly,
-  zoomLevel: _zoomLevel,
+  zoomLevel = 1,
   mode = 'browse',
   selectedEntity = null,
   targetPlacementZoneId,
   onSelectMeter,
   onHoverMeter,
   exceptionFocus = false,
+  filterTier = 'all',
 }) => {
   const targetBusinessZoneId = resolveToBusinessZoneId(selectedZoneId);
 
@@ -63,19 +65,47 @@ export const MeterLayer: React.FC<MeterLayerProps> = ({
       : null
   );
 
+  // Filter & sort meters by Z-order render priority:
+  // Normal meters -> Issue meters -> Selected meters
+  const processedMeters = React.useMemo(() => {
+    let list = meters.slice();
+
+    if (exceptionsOnly) {
+      list = list.filter((m) => m.semanticState === 'OVERDUE' || m.semanticState === 'REVIEW');
+    }
+
+    if (filterTier !== 'all') {
+      list = list.filter((m) => {
+        const isSelected = m.id === selectedMeterId || activeSelectedEntity?.id === m.id;
+        const isException = m.semanticState === 'OVERDUE' || m.semanticState === 'REVIEW';
+
+        if (filterTier === 'normal') return !isSelected && !isException;
+        if (filterTier === 'issue') return isException && !isSelected;
+        if (filterTier === 'selected') return isSelected;
+        return true;
+      });
+    } else {
+      // Sort so normal < issue < selected (selected always renders on top)
+      list.sort((a, b) => {
+        const aSelected = a.id === selectedMeterId || activeSelectedEntity?.id === a.id ? 2 : 0;
+        const bSelected = b.id === selectedMeterId || activeSelectedEntity?.id === b.id ? 2 : 0;
+        const aException = a.semanticState === 'OVERDUE' || a.semanticState === 'REVIEW' ? 1 : 0;
+        const bException = b.semanticState === 'OVERDUE' || b.semanticState === 'REVIEW' ? 1 : 0;
+        return (aSelected + aException) - (bSelected + bException);
+      });
+    }
+
+    return list;
+  }, [meters, exceptionsOnly, filterTier, selectedMeterId, activeSelectedEntity]);
+
   return (
     <g className="sgp-meter-layer" aria-label="Lớp điểm công tơ tác nghiệp">
-      {meters.map((m) => {
+      {processedMeters.map((m) => {
         const isSelected = m.id === selectedMeterId || activeSelectedEntity?.id === m.id;
         const isHovered = m.id === hoveredMeterId;
         const isOverdue = m.semanticState === 'OVERDUE';
         const isReview = m.semanticState === 'REVIEW';
         const isException = isOverdue || isReview;
-
-        // Filter: Exceptions only mode
-        if (exceptionsOnly && !isException) {
-          return null;
-        }
 
         // Coordinates resolution: explicit presentation transform
         const sceneCoord = normalizedToCanonicalScene(m.coordinates);
@@ -94,9 +124,12 @@ export const MeterLayer: React.FC<MeterLayerProps> = ({
           }
         }
 
-        // Semantic Colors per V7 Spec
+        // Semantic Colors per V13.4 Spec:
+        // Normal: subtle cyan/green operational core (#10B981)
+        // Pending: neutral/blue-grey (#64748B)
+        // Overdue/review: red (#EF4444) / amber (#F59E0B)
+        // Inactive: muted slate (#94A3B8)
         let coreFill = '#10B981'; // CONFIRMED: Emerald Green
-
         if (isOverdue) {
           coreFill = '#EF4444'; // OVERDUE: Critical Red
         } else if (isReview) {
@@ -106,10 +139,10 @@ export const MeterLayer: React.FC<MeterLayerProps> = ({
         } else if (m.semanticState === 'PENDING') {
           coreFill = '#64748B'; // PENDING: Neutral Slate
         } else if (m.semanticState === 'INACTIVE') {
-          coreFill = '#94A3B8'; // INACTIVE: Muted Gray
+          coreFill = '#94A3B8'; // INACTIVE: Muted Slate
         }
 
-        // CT-code label visibility rule: ONLY show code when selected or hovered
+        // CT-code label visibility rule: ONLY show code when selected or hovered (no permanent labels at overview)
         const showCodePill = isSelected || isHovered;
 
         // Calculate centralized spatial emphasis
@@ -131,14 +164,18 @@ export const MeterLayer: React.FC<MeterLayerProps> = ({
           emphasis = Math.min(emphasis, 0.20);
         }
 
-        const accessibleLabel = `${m.meterCode}, ${m.zoneName || 'Khu vực tác nghiệp'}, ${
-          m.stateLabel || m.semanticState
-        }`;
+        // Accessible label per Section 19:
+        const stateDesc = isOverdue
+          ? 'quá hạn lượt ghi'
+          : isReview
+          ? 'cần kiểm tra xác nhận'
+          : m.stateLabel || m.semanticState;
+        const accessibleLabel = `Công tơ ${m.meterCode}, ${m.zoneName || 'Khu vực tác nghiệp'}, ${stateDesc}`;
 
-        // V10 Meter Level-of-Detail (LOD) (Section 33)
-        // OVERVIEW: 10–12px simplified meter glyph/dot (scale ~0.62)
-        // ZONE_FOCUS: 16–18px meter marker (scale ~0.85)
-        // ENTITY_FOCUS: 20–24px full marker with separation halo (scale ~1.15)
+        // V13.4 Level-of-Detail (LOD) & Sizing:
+        // OVERVIEW: 15–17px (target ~16px, lodScale = 0.80)
+        // ZONE_FOCUS: 18–20px (target ~19px, lodScale = 0.95)
+        // ENTITY_FOCUS: 22–24px (target ~23px, lodScale = 1.15)
         const isSelectedMeter = m.id === selectedMeterId || activeSelectedEntity?.id === m.id;
         const isZoneFocused = Boolean(selectedZoneId || activeSelectedEntity?.type === 'zone');
         const meterLod: 'OVERVIEW' | 'ZONE_FOCUS' | 'ENTITY_FOCUS' = isSelectedMeter
@@ -147,7 +184,13 @@ export const MeterLayer: React.FC<MeterLayerProps> = ({
           ? 'ZONE_FOCUS'
           : 'OVERVIEW';
 
-        const lodScale = meterLod === 'OVERVIEW' ? 0.62 : meterLod === 'ZONE_FOCUS' ? 0.85 : 1.15;
+        const lodScale = meterLod === 'OVERVIEW' ? 0.80 : meterLod === 'ZONE_FOCUS' ? 0.95 : 1.15;
+
+        // Screen-size normalization:
+        // screenMarkerScale = lodScale / cameraZoom
+        // The spatial anchor (x, y) remains strictly canonical.
+        const safeZoom = Math.max(0.1, zoomLevel);
+        const presentationScale = lodScale / safeZoom;
 
         return (
           <g
@@ -158,10 +201,10 @@ export const MeterLayer: React.FC<MeterLayerProps> = ({
             className={`sgp-meter-point ${isSelected ? 'selected' : ''} ${
               isException ? 'exception' : ''
             } ${isHovered ? 'hovered' : ''} lod-${meterLod.toLowerCase()}`}
-            transform={`translate(${x}, ${y}) scale(${lodScale})`}
+            transform={`translate(${x}, ${y}) scale(${presentationScale})`}
             cursor="pointer"
             opacity={emphasis}
-            style={{ transition: 'opacity 280ms ease, transform 180ms ease' }}
+            style={{ transition: 'opacity 280ms ease' }}
             onClick={(e) => {
               e.stopPropagation();
               onSelectMeter(m.id);
@@ -178,140 +221,103 @@ export const MeterLayer: React.FC<MeterLayerProps> = ({
               }
             }}
           >
-            {/* 0. Invisible Touch Target Area (Guarantees >= 44px hit target across all LOD scales) */}
+            {/* 0. Invisible Touch Target Area (Guarantees >= 44px hit target across all LOD scales and zoom levels) */}
             <circle cx={0} cy={0} r={22 / lodScale} fill="transparent" pointerEvents="all" />
 
-            {/* 1. SELECTION WHITE HALO (V7 Contract: r=15, stroke=2px) */}
-            {isSelected && (
-              <circle
-                cx={0}
-                cy={0}
-                r={15}
-                fill="none"
-                stroke="#FFFFFF"
-                strokeWidth={2}
-                filter="drop-shadow(0 0 6px rgba(255, 255, 255, 0.8))"
-                className="sgp-marker-selected-halo"
-              />
-            )}
-
-            {/* 2. ALERT BADGE: Small Warning Triangle at Corner (NO giant pulsing circles) */}
-            {isException && (
-              <g transform="translate(7, -10)" pointerEvents="none">
-                <path
-                  d="M 0 -7 L 6 3 L -6 3 Z"
-                  fill={isOverdue ? '#EF4444' : '#F59E0B'}
-                  stroke="#FFFFFF"
-                  strokeWidth={0.8}
-                  filter="drop-shadow(0 1px 3px rgba(0,0,0,0.5))"
-                />
-                <line x1={0} y1={-3} x2={0} y2={-0.5} stroke="#FFFFFF" strokeWidth={1} strokeLinecap="round" />
-                <circle cx={0} cy={1.5} r={0.6} fill="#FFFFFF" />
-              </g>
-            )}
-
-            {/* 3. White Separation Outer Halo (Hexagon r=11, stroke=3.2px) */}
-            <path
-              d="M 0 -11 L 9.5 -5.5 L 9.5 5.5 L 0 11 L -9.5 5.5 L -9.5 -5.5 Z"
-              fill="none"
-              stroke="#FFFFFF"
-              strokeWidth={isException ? 3.5 : 2.5}
-              strokeLinejoin="round"
-              strokeLinecap="round"
-            />
-
-            {/* 4. Navy Structural Bezel (Industrial Hexagon Bezel) */}
-            <path
-              d="M 0 -10.5 L 9 -5.2 L 9 5.2 L 0 10.5 L -9 5.2 L -9 -5.2 Z"
-              fill="#073B5C"
-              stroke="#073B5C"
-              strokeWidth={1}
-              strokeLinejoin="round"
-              strokeLinecap="round"
-              filter="drop-shadow(0 2px 4px rgba(0,0,0,0.35))"
-            />
-
-            {/* 5. Semantic Core Plate */}
-            <path
-              d="M 0 -8.2 L 7 -4.1 L 7 4.1 L 0 8.2 L -7 4.1 L -7 -4.1 Z"
-              fill={coreFill}
-              stroke={coreFill}
-              strokeWidth={1}
-              strokeLinejoin="round"
-              strokeLinecap="round"
-            />
-
-            {/* 6. Primary Glyph: Industrial Analog Gauge Icon (Dial + Needle) */}
-            <g pointerEvents="none">
-              {/* Dial arc */}
-              <path
-                d="M -3.8 2 A 4.2 4.2 0 1 1 3.8 2"
-                fill="none"
-                stroke="#FFFFFF"
-                strokeWidth={1.2}
-                strokeLinecap="round"
-              />
-
-              {/* Needle depending on status */}
-              {m.semanticState === 'INACTIVE' ? (
-                <line
-                  x1={-3}
-                  y1={3}
-                  x2={3}
-                  y2={-3}
-                  stroke="#FFFFFF"
-                  strokeWidth={1.2}
-                  strokeLinecap="round"
-                />
-              ) : isOverdue ? (
-                <line
-                  x1={0}
-                  y1={0.5}
-                  x2={2.6}
-                  y2={-2.6}
-                  stroke="#FFFFFF"
-                  strokeWidth={1.3}
-                  strokeLinecap="round"
-                />
-              ) : isReview ? (
-                <line
-                  x1={0}
-                  y1={0.5}
-                  x2={2.2}
-                  y2={-2.2}
-                  stroke="#FFFFFF"
-                  strokeWidth={1.3}
-                  strokeLinecap="round"
-                />
-              ) : m.semanticState === 'DUE' ? (
-                <line
-                  x1={0}
-                  y1={0.5}
-                  x2={0}
-                  y2={-2.8}
-                  stroke="#FFFFFF"
-                  strokeWidth={1.2}
-                  strokeLinecap="round"
-                />
-              ) : (
-                <line
-                  x1={0}
-                  y1={0.5}
-                  x2={2.0}
-                  y2={-2.0}
-                  stroke="#FFFFFF"
-                  strokeWidth={1.2}
-                  strokeLinecap="round"
-                />
+            {/* Visual Content Group (Enables isolated hover scale & selection one-shot motion) */}
+            <g className="sgp-meter-visual-content">
+              {/* 1. SELECTION FOCUS RING (Section 9: zone-independent cyan/white focus ring) */}
+              {isSelected && (
+                <>
+                  <circle
+                    cx={0}
+                    cy={0}
+                    r={14}
+                    fill="none"
+                    stroke="#00E5FF"
+                    strokeWidth={2}
+                    className="sgp-marker-selected-ring"
+                  />
+                  <circle
+                    cx={0}
+                    cy={0}
+                    r={16.5}
+                    fill="none"
+                    stroke="#FFFFFF"
+                    strokeWidth={1.5}
+                    opacity={0.9}
+                    filter="drop-shadow(0 0 6px rgba(0, 229, 255, 0.75))"
+                  />
+                </>
               )}
 
-              {/* Needle pivot */}
-              {m.semanticState !== 'INACTIVE' && (
-                <circle cx={0} cy={0.5} r={0.9} fill="#FFFFFF" />
+              {/* 2. METER SEPARATION HALO & BODY (Section 8: outer stroke rgba(255,255,255,0.90) 1.8px, dark navy body) */}
+              <path
+                d="M 0 -10 L 8.66 -5 L 8.66 5 L 0 10 L -8.66 5 L -8.66 -5 Z"
+                fill="#0B192C"
+                stroke="rgba(255, 255, 255, 0.90)"
+                strokeWidth={1.8}
+                strokeLinejoin="round"
+                strokeLinecap="round"
+                style={{ filter: 'drop-shadow(0 2px 4px rgba(0, 15, 25, 0.40))' }}
+              />
+
+              {/* 3. SEMANTIC STATUS CORE PLATE (Section 9) */}
+              <path
+                d="M 0 -7 L 6.06 -3.5 L 6.06 3.5 L 0 7 L -6.06 3.5 L -6.06 -3.5 Z"
+                fill={coreFill}
+                stroke={coreFill}
+                strokeWidth={0.8}
+                strokeLinejoin="round"
+              />
+
+              {/* 4. ANALOG GAUGE GLYPH */}
+              <g pointerEvents="none">
+                <path
+                  d="M -2.8 1.4 A 3 3 0 1 1 2.8 1.4"
+                  fill="none"
+                  stroke="#FFFFFF"
+                  strokeWidth={1.1}
+                  strokeLinecap="round"
+                />
+                <circle cx={0} cy={0.4} r={0.7} fill="#FFFFFF" />
+                {isOverdue ? (
+                  <line x1={0} y1={0.4} x2={2.2} y2={-2.0} stroke="#FFFFFF" strokeWidth={1.2} strokeLinecap="round" />
+                ) : isReview ? (
+                  <line x1={0} y1={0.4} x2={1.8} y2={-1.8} stroke="#FFFFFF" strokeWidth={1.2} strokeLinecap="round" />
+                ) : (
+                  <line x1={0} y1={0.4} x2={1.6} y2={-1.6} stroke="#FFFFFF" strokeWidth={1.1} strokeLinecap="round" />
+                )}
+              </g>
+
+              {/* 5. ISSUE BADGE: Small badge top-right with optional subtle breathing (Section 11) */}
+              {isException && (
+                <g transform="translate(7, -7)" className="sgp-meter-issue-badge" pointerEvents="none">
+                  <circle
+                    cx={0}
+                    cy={0}
+                    r={4.5}
+                    fill={isOverdue ? '#EF4444' : '#F59E0B'}
+                    stroke="#FFFFFF"
+                    strokeWidth={1}
+                    filter="drop-shadow(0 1px 2px rgba(0,0,0,0.5))"
+                  />
+                  <text
+                    x={0}
+                    y={2.5}
+                    textAnchor="middle"
+                    fill="#FFFFFF"
+                    fontSize={6}
+                    fontWeight={900}
+                    fontFamily="system-ui, sans-serif"
+                  >
+                    !
+                  </text>
+                </g>
               )}
             </g>
 
-            {/* 7. CT-Code Callout Badge (Pill Anchored Above Marker) */}
+            {/* 6. CT-CODE CALLOUT BADGE (Pill Anchored Above Marker, ONLY on hover/select) */}
             {showCodePill && (
               <g
                 transform="translate(0, -22)"

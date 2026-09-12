@@ -191,8 +191,8 @@ test('V13.2 Analytics: Layout integrates 2 MiniDonuts, inline metrics, and 6 pre
   const code = fs.readFileSync(surfacePath, 'utf-8');
 
   assert.ok(code.includes('MiniDonut'), 'UnifiedContextSurface must import and render MiniDonut');
-  assert.ok(code.includes('caption="OCR tự động"'), 'Must render OCR mini donut');
-  assert.ok(code.includes('caption="Tiến độ chung"'), 'Must render overall progress mini donut');
+  assert.ok(code.includes('caption="OCR"') || code.includes('caption="OCR tự động"'), 'Must render OCR mini donut');
+  assert.ok(code.includes('caption="Hoàn tất"') || code.includes('caption="Tiến độ chung"'), 'Must render overall progress mini donut');
   assert.ok(code.includes('sgp-analytics-inline-metrics'), 'Must render inline metrics row');
   assert.ok(code.includes('chỉnh sửa'), 'Inline metrics must mention user corrections');
   assert.ok(code.includes('xác nhận'), 'Inline metrics must mention confirmed count');

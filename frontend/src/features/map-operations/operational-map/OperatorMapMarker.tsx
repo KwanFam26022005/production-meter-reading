@@ -9,20 +9,24 @@ export interface OperatorMapMarkerProps {
   isSelected?: boolean;
   isDimmed?: boolean;
   emphasis?: number;
+  zoomLevel?: number;
+  zoneName?: string;
+  isZoneFocused?: boolean;
   onClick: (operatorId: string) => void;
 }
 
 /**
- * OperatorMapMarker — V7 Visual Contract Implementation
+ * OperatorMapMarker — V13.4 Spatial Marker Implementation
  *
  * Rules:
- * - CIRCLE footprint: 32-36px visual footprint (r=16, d=32px)
- * - Initials inside dark circle (#0F172A)
- * - Outer circular shift progress ring (0-100%)
- * - Issue badge (top-right) ONLY when issue count > 0 (Red overdue / Amber review)
- * - NO permanent large percentage pills (clutter-free physical scene)
- * - Hover tooltip reveals full name and progress %
- * - Opacity 25% when dimmed (another zone is selected)
+ * - CIRCLE footprint: Overview 30-34px (nominal 32px), Zone focus 32-36px, Selected 36-40px
+ * - White separation ring: rgba(255,255,255,0.90) 1.5px
+ * - Outer circular shift progress ring (track rgba(255,255,255,0.22), progress teal/cyan #06B6D4)
+ * - Stroke-dashoffset transition: 280ms ease-out (no looping)
+ * - Inner dark avatar disc (#0B192C) with bold initials
+ * - Issue badge (top-right) ONLY when issue count > 0; does not cover initials
+ * - Hit target: >= 44px
+ * - Screen-size normalization: lodScale / cameraZoom
  */
 export const OperatorMapMarker: React.FC<OperatorMapMarkerProps> = React.memo(({
   summary,
@@ -31,17 +35,34 @@ export const OperatorMapMarker: React.FC<OperatorMapMarkerProps> = React.memo(({
   isSelected = false,
   isDimmed = false,
   emphasis,
+  zoomLevel = 1,
+  zoneName,
+  isZoneFocused = false,
   onClick,
 }) => {
   const [isHovered, setIsHovered] = useState(false);
 
-  // SVG circular geometry: r=15.5 -> outer footprint ~34px
-  const ringRadius = 15.5;
-  const ringCircumference = 2 * Math.PI * ringRadius; // ~97.39px
+  // V13.4 Operator LOD & Sizing:
+  // OVERVIEW: 30–34px (target 32px, lodScale = 1.0)
+  // ZONE_FOCUS: 32–36px (target 34px, lodScale = 1.0625)
+  // ENTITY_FOCUS: 36–40px (target 38px, lodScale = 1.1875)
+  const operatorLod: 'OVERVIEW' | 'ZONE_FOCUS' | 'ENTITY_FOCUS' = isSelected
+    ? 'ENTITY_FOCUS'
+    : isZoneFocused
+    ? 'ZONE_FOCUS'
+    : 'OVERVIEW';
+
+  const lodScale = operatorLod === 'OVERVIEW' ? 1.0 : operatorLod === 'ZONE_FOCUS' ? 1.0625 : 1.1875;
+  const safeZoom = Math.max(0.1, zoomLevel);
+  const presentationScale = lodScale / safeZoom;
+
+  // SVG circular geometry: base outer diameter = 32px (r = 16px)
+  const ringRadius = 13.5;
+  const ringCircumference = 2 * Math.PI * ringRadius; // ~84.82px
   const clampedProgress = Math.max(0, Math.min(100, summary.progressPct));
   const strokeOffset = ringCircumference - (clampedProgress / 100) * ringCircumference;
 
-  // Extract initials (e.g. "Đặng Văn B" -> "DB", "Trần Thị C" -> "TC", or single initial fallback)
+  // Extract initials (e.g. "Nguyễn Văn An" -> "NA", "Đặng Văn B" -> "DB")
   const nameParts = summary.fullName?.trim().split(/\s+/) || [];
   const initial =
     nameParts.length >= 2
@@ -49,17 +70,13 @@ export const OperatorMapMarker: React.FC<OperatorMapMarkerProps> = React.memo(({
       : summary.fullName?.trim().charAt(0).toUpperCase() || 'NV';
 
   const hasOverdue = summary.overdueMeters > 0;
-  const hasReview = summary.reviewMeters > 0;
   const issueCount = summary.overdueMeters + summary.reviewMeters;
 
-  // Accessible descriptive label
-  const issueDesc = hasOverdue
-    ? `${summary.overdueMeters} quá hạn`
-    : hasReview
-    ? `${summary.reviewMeters} cần kiểm tra`
-    : 'tiến độ bình thường';
-
-  const accessibleLabel = `${summary.fullName} (${initial}), tiến độ ca ${summary.progressPct}%, ${issueDesc}`;
+  // Accessible descriptive label per Section 19:
+  // "Nguyễn Văn An, phụ trách Cầu cảng, 67 phần trăm hoàn tất"
+  const accessibleLabel = `${summary.fullName || 'Nhân viên vận hành'}, phụ trách ${
+    zoneName || 'khu vực'
+  }, ${summary.progressPct} phần trăm hoàn tất${issueCount > 0 ? `, ${issueCount} vấn đề cần xử lý` : ''}`;
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ' ') {
@@ -73,8 +90,8 @@ export const OperatorMapMarker: React.FC<OperatorMapMarkerProps> = React.memo(({
     <g
       className={`sgp-operator-map-marker ${isSelected ? 'selected' : ''} ${
         isHovered ? 'hovered' : ''
-      }`}
-      transform={`translate(${x}, ${y})`}
+      } lod-${operatorLod.toLowerCase()}`}
+      transform={`translate(${x}, ${y}) scale(${presentationScale})`}
       role="button"
       tabIndex={0}
       aria-label={accessibleLabel}
@@ -91,113 +108,125 @@ export const OperatorMapMarker: React.FC<OperatorMapMarkerProps> = React.memo(({
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {/* 0. 44x44 px Invisible Touch Target */}
-      <circle cx={0} cy={0} r={22} fill="transparent" pointerEvents="all" />
+      {/* 0. Invisible Touch Target Area (Guarantees >= 44px hit target across all LODs and camera zooms) */}
+      <circle cx={0} cy={0} r={22 / lodScale} fill="transparent" pointerEvents="all" />
 
-      {/* 1. SELECTION / HOVER HALO */}
-      {isSelected && (
-        <circle
-          cx={0}
-          cy={0}
-          r={21}
-          fill="none"
-          stroke="#00A3FF"
-          strokeWidth={2}
-          strokeOpacity={0.8}
-          filter="drop-shadow(0 0 6px rgba(0, 163, 255, 0.6))"
-          className="sgp-op-marker-halo"
-        />
-      )}
-
-      {/* 2. BACKGROUND DISC & PROGRESS TRACK */}
-      <circle
-        cx={0}
-        cy={0}
-        r={ringRadius}
-        fill="#0F172A"
-        stroke="#1E293B"
-        strokeWidth={2.6}
-      />
-
-      {/* Dynamic progress ring circle */}
-      <circle
-        cx={0}
-        cy={0}
-        r={ringRadius}
-        fill="none"
-        stroke={isSelected ? '#38BDF8' : '#0284C7'}
-        strokeWidth={2.8}
-        strokeLinecap="round"
-        strokeDasharray={ringCircumference}
-        strokeDashoffset={strokeOffset}
-        transform="rotate(-90)"
-        style={{ transition: 'stroke-dashoffset 340ms cubic-bezier(0.16, 1, 0.3, 1)' }}
-        role="progressbar"
-        aria-valuenow={clampedProgress}
-        aria-valuemin={0}
-        aria-valuemax={100}
-      />
-
-      {/* 3. INNER AVATAR DISC (Dark Circle with Initials) */}
-      <circle
-        cx={0}
-        cy={0}
-        r={12}
-        fill="#0B192C"
-        stroke="#1E293B"
-        strokeWidth={1}
-      />
-
-      {initial ? (
-        <text
-          x={0}
-          y={4}
-          textAnchor="middle"
-          fill="#FFFFFF"
-          fontSize={10.5}
-          fontWeight={700}
-          fontFamily="system-ui, -apple-system, sans-serif"
-          pointerEvents="none"
-          letterSpacing="0.04em"
-        >
-          {initial}
-        </text>
-      ) : (
-        <g transform="translate(-6, -6)">
-          <User size={12} color="#FFFFFF" />
-        </g>
-      )}
-
-      {/* 4. EXCEPTION BADGE: RENDER ONLY WHEN ISSUE COUNT > 0 */}
-      {issueCount > 0 && (
-        <g transform="translate(12, -12)" className="sgp-op-badge">
+      {/* Visual Content Group */}
+      <g className="sgp-op-visual-content">
+        {/* 1. SELECTION / FOCUS HALO */}
+        {isSelected && (
           <circle
             cx={0}
             cy={0}
-            r={6.5}
-            fill={hasOverdue ? '#EF4444' : '#F59E0B'}
-            stroke="#0B192C"
-            strokeWidth={1.5}
-            filter="drop-shadow(0 1px 3px rgba(0,0,0,0.5))"
+            r={18.5}
+            fill="none"
+            stroke="#00E5FF"
+            strokeWidth={2}
+            filter="drop-shadow(0 0 6px rgba(0, 229, 255, 0.75))"
+            className="sgp-op-marker-halo"
           />
+        )}
+
+        {/* 2. WHITE SEPARATION RING (Section 12: white separation ring against aerial map) */}
+        <circle
+          cx={0}
+          cy={0}
+          r={15.5}
+          fill="#0F172A"
+          stroke="rgba(255, 255, 255, 0.90)"
+          strokeWidth={1.5}
+          style={{ filter: 'drop-shadow(0 2px 4px rgba(0, 15, 25, 0.40))' }}
+        />
+
+        {/* 3. PROGRESS RING TRACK (Section 13: track rgba(255,255,255,.18-.24)) */}
+        <circle
+          cx={0}
+          cy={0}
+          r={ringRadius}
+          fill="none"
+          stroke="rgba(255, 255, 255, 0.22)"
+          strokeWidth={2.8}
+        />
+
+        {/* 4. PROGRESS RING INDICATOR (Section 13: operational teal/cyan #06B6D4, animate 250-300ms ease-out) */}
+        <circle
+          cx={0}
+          cy={0}
+          r={ringRadius}
+          fill="none"
+          stroke={isSelected ? '#38BDF8' : '#06B6D4'}
+          strokeWidth={2.8}
+          strokeLinecap="round"
+          strokeDasharray={ringCircumference}
+          strokeDashoffset={strokeOffset}
+          transform="rotate(-90)"
+          style={{ transition: 'stroke-dashoffset 280ms ease-out' }}
+          role="progressbar"
+          aria-valuenow={clampedProgress}
+          aria-valuemin={0}
+          aria-valuemax={100}
+        />
+
+        {/* 5. INNER AVATAR DISC (Dark Circle with Initials) */}
+        <circle
+          cx={0}
+          cy={0}
+          r={10.5}
+          fill="#0B192C"
+          stroke="rgba(255, 255, 255, 0.15)"
+          strokeWidth={1}
+        />
+
+        {initial ? (
           <text
             x={0}
-            y={2.5}
+            y={3.5}
             textAnchor="middle"
             fill="#FFFFFF"
-            fontSize={8}
-            fontWeight={800}
-            fontFamily="system-ui, sans-serif"
+            fontSize={9.5}
+            fontWeight={700}
+            fontFamily="system-ui, -apple-system, sans-serif"
             pointerEvents="none"
+            letterSpacing="0.04em"
           >
-            {issueCount > 9 ? '9+' : issueCount}
+            {initial}
           </text>
-        </g>
-      )}
+        ) : (
+          <g transform="translate(-5, -5)">
+            <User size={10} color="#FFFFFF" />
+          </g>
+        )}
 
-      {/* 5. MINIMAL HOVER TOOLTIP */}
+        {/* 6. ISSUE BADGE: RENDER ONLY WHEN ISSUE COUNT > 0 (Section 14: does not cover initials) */}
+        {issueCount > 0 && (
+          <g transform="translate(11, -11)" className="sgp-op-badge" pointerEvents="none">
+            <circle
+              cx={0}
+              cy={0}
+              r={5.5}
+              fill={hasOverdue ? '#EF4444' : '#F59E0B'}
+              stroke="#FFFFFF"
+              strokeWidth={1}
+              filter="drop-shadow(0 1px 2px rgba(0,0,0,0.5))"
+            />
+            <text
+              x={0}
+              y={2.5}
+              textAnchor="middle"
+              fill="#FFFFFF"
+              fontSize={7.5}
+              fontWeight={800}
+              fontFamily="system-ui, sans-serif"
+            >
+              {issueCount > 9 ? '9+' : issueCount}
+            </text>
+          </g>
+        )}
+      </g>
+
+      {/* 7. MINIMAL HOVER TOOLTIP */}
       {isHovered && !isSelected && (
-        <g transform="translate(0, -26)" pointerEvents="none" className="sgp-op-hover-tooltip">
+        <g transform="translate(0, -24)" pointerEvents="none" className="sgp-op-hover-tooltip">
           <rect
             x={-75}
             y={-11}
@@ -206,7 +235,7 @@ export const OperatorMapMarker: React.FC<OperatorMapMarkerProps> = React.memo(({
             rx={4}
             fill="#0B192C"
             fillOpacity={0.94}
-            stroke="#1E293B"
+            stroke="rgba(255, 255, 255, 0.20)"
             strokeWidth={1}
             filter="drop-shadow(0 4px 8px rgba(0,0,0,0.5))"
           />

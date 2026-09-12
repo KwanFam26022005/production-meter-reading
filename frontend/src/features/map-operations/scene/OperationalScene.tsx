@@ -173,7 +173,7 @@ export const OperationalScene: React.FC<OperationalSceneProps> = ({
           {/* Normal Runtime Overlays: Suppressed in dedicated Calibration Workspace */}
           {!isCalibrationActive && (
             <>
-              {/* 2. Operational Zones Layer (Transparent Polygons + Exception Badges) */}
+              {/* 2. Operational Zones Layer (Zone fill & Zone stroke) */}
               <ZoneLayer
                 zones={zones}
                 meters={meters}
@@ -190,7 +190,14 @@ export const OperationalScene: React.FC<OperationalSceneProps> = ({
                 onHoverZone={onHoverZone}
               />
 
-              {/* 3. Operational Meter Markers Layer */}
+              {/* 3. Operational Labels Layer (Zone Labels rendered beneath entity markers) */}
+              <LabelsLayer
+                zoomLevel={viewport.zoom}
+                selectedZoneId={selectedZoneId}
+                hoveredZoneId={hoveredZoneId}
+              />
+
+              {/* 4. Normal Meter Markers Layer (Section 17: normal meter) */}
               <MeterLayer
                 meters={meters}
                 selectedZoneId={selectedZoneId}
@@ -205,35 +212,93 @@ export const OperationalScene: React.FC<OperationalSceneProps> = ({
                 onSelectMeter={onSelectMeter}
                 onHoverMeter={onHoverMeter}
                 exceptionFocus={exceptionFocus}
+                filterTier="normal"
               />
 
-              {/* 4. Spatial Operator Markers Layer */}
+              {/* 5. Normal Spatial Operator Markers Layer (Section 17: operator) */}
               <OperatorLayer
                 zones={zones}
                 meters={meters}
                 selectedZoneId={selectedZoneId}
                 selectedOperatorId={selectedOperatorShiftId}
                 currentRoundTime={currentRoundTime}
+                zoomLevel={viewport.zoom}
                 mode={mode}
                 selectedEntity={selectedEntity}
                 targetPlacementZoneId={targetPlacementZoneId}
+                filterTier="normal"
                 onSelectOperator={onSelectOperator || (() => {})}
               />
 
-              {/* 5. Alert Atmospheric Layer */}
-              <AlertLayer isActive={exceptionFocus} issueCount={issueCount} />
-
-              {/* 6. Operational Labels Layer */}
-              <LabelsLayer
-                zoomLevel={viewport.zoom}
+              {/* 6. Issue Entities Layer (Section 17: issue entity) */}
+              <MeterLayer
+                meters={meters}
                 selectedZoneId={selectedZoneId}
-                hoveredZoneId={hoveredZoneId}
+                selectedMeterId={selectedMeterId}
+                hoveredMeterId={hoveredMeterId}
+                exceptionsOnly={exceptionsOnly}
+                zoomLevel={viewport.zoom}
+                isAssetMode={isAssetMode}
+                mode={mode}
+                selectedEntity={selectedEntity}
+                targetPlacementZoneId={targetPlacementZoneId}
+                onSelectMeter={onSelectMeter}
+                onHoverMeter={onHoverMeter}
+                exceptionFocus={exceptionFocus}
+                filterTier="issue"
+              />
+              <OperatorLayer
+                zones={zones}
+                meters={meters}
+                selectedZoneId={selectedZoneId}
+                selectedOperatorId={selectedOperatorShiftId}
+                currentRoundTime={currentRoundTime}
+                zoomLevel={viewport.zoom}
+                mode={mode}
+                selectedEntity={selectedEntity}
+                targetPlacementZoneId={targetPlacementZoneId}
+                filterTier="issue"
+                onSelectOperator={onSelectOperator || (() => {})}
               />
 
-              {/* 7. Diagnostic Debug Overlay (?mapDebug=1) */}
+              {/* 7. Selected Entity Layer (Section 17: selected entity always on top) */}
+              <MeterLayer
+                meters={meters}
+                selectedZoneId={selectedZoneId}
+                selectedMeterId={selectedMeterId}
+                hoveredMeterId={hoveredMeterId}
+                exceptionsOnly={exceptionsOnly}
+                zoomLevel={viewport.zoom}
+                isAssetMode={isAssetMode}
+                mode={mode}
+                selectedEntity={selectedEntity}
+                targetPlacementZoneId={targetPlacementZoneId}
+                onSelectMeter={onSelectMeter}
+                onHoverMeter={onHoverMeter}
+                exceptionFocus={exceptionFocus}
+                filterTier="selected"
+              />
+              <OperatorLayer
+                zones={zones}
+                meters={meters}
+                selectedZoneId={selectedZoneId}
+                selectedOperatorId={selectedOperatorShiftId}
+                currentRoundTime={currentRoundTime}
+                zoomLevel={viewport.zoom}
+                mode={mode}
+                selectedEntity={selectedEntity}
+                targetPlacementZoneId={targetPlacementZoneId}
+                filterTier="selected"
+                onSelectOperator={onSelectOperator || (() => {})}
+              />
+
+              {/* 8. Alert Atmospheric Layer */}
+              <AlertLayer isActive={exceptionFocus} issueCount={issueCount} />
+
+              {/* 9. Diagnostic Debug Overlay (?mapDebug=1) */}
               <MapDebugLayer zones={zones} meters={meters} />
 
-              {/* 8. Spatial Meter Placement & Relocation Layer (GATE 8) */}
+              {/* 10. Spatial Meter Placement & Relocation Layer (Interaction Overlay) */}
               {placementSvgLayer}
             </>
           )}

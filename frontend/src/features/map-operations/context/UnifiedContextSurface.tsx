@@ -689,14 +689,8 @@ export const UnifiedContextSurface: React.FC<UnifiedContextSurfaceProps> = ({
                 <div className="sgp-rail-icon-box analytics-icon">
                   <BarChart3 size={16} />
                 </div>
-                <div>
-                  <span className="sgp-rail-eyebrow">PHÂN TÍCH VẬN HÀNH</span>
-                  <h2 className="sgp-rail-title">Chất lượng & Tiến độ</h2>
-                </div>
+                <h2 className="sgp-rail-title text-sm font-bold tracking-wide">PHÂN TÍCH VẬN HÀNH</h2>
               </div>
-              <span className="sgp-rail-subtitle">
-                Độ chính xác OCR & tiến độ theo phân khu
-              </span>
             </div>
             <button
               type="button"
@@ -709,16 +703,16 @@ export const UnifiedContextSurface: React.FC<UnifiedContextSurfaceProps> = ({
             </button>
           </div>
 
-          {/* BODY: MINIMAL VISUAL METRICS (V13.2 / V13.3) */}
+          {/* BODY: MINIMAL VISUAL METRICS (V13.4 Compact Analytics) */}
           <div className="sgp-rail-body">
-            {/* SUMMARY: TWO SMALL COMPACT DONUTS (Section 6: 68-76px, 6-7px stroke) */}
+            {/* SUMMARY: TWO COMPACT DONUTS (V13.4: 68-72px, 6px stroke) */}
             <div
               className="sgp-analytics-donuts-row"
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-around',
-                padding: '12px 0 16px',
+                padding: '10px 0 12px',
                 borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
               }}
             >
@@ -726,11 +720,11 @@ export const UnifiedContextSurface: React.FC<UnifiedContextSurfaceProps> = ({
                 value={
                   dashboardData?.provenance?.ocr_confirmed_percent
                     ? Math.round(dashboardData.provenance.ocr_confirmed_percent)
-                    : 84
+                    : 78
                 }
-                size={72}
-                strokeWidth={6.5}
-                caption="OCR tự động"
+                size={70}
+                strokeWidth={6}
+                caption="OCR"
                 color="#38BDF8"
               />
               <MiniDonut
@@ -739,11 +733,11 @@ export const UnifiedContextSurface: React.FC<UnifiedContextSurfaceProps> = ({
                     ? presentationAnalytics.completionPercent
                     : dashboardData?.kpis?.completion_percent
                     ? Math.round(dashboardData.kpis.completion_percent)
-                    : 0
+                    : 92
                 }
-                size={72}
-                strokeWidth={6.5}
-                caption="Tiến độ chung"
+                size={70}
+                strokeWidth={6}
+                caption="Hoàn tất"
                 color={
                   (presentationAnalytics.completionPercent ?? 0) === 100
                     ? '#10B981'
@@ -752,16 +746,15 @@ export const UnifiedContextSurface: React.FC<UnifiedContextSurfaceProps> = ({
               />
             </div>
 
-            {/* INLINE METRICS (Section 6: 14% chỉnh sửa · 81 xác nhận · 8 thủ công · 1 vấn đề) */}
+            {/* INLINE METRICS: ONE COMPACT ROW (V13.4: 14% chỉnh sửa · 81 xác nhận · 8 thủ công, NO issue count here) */}
             <div
               className="sgp-analytics-inline-metrics"
               style={{
                 display: 'flex',
-                flexWrap: 'wrap',
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 gap: '8px',
-                padding: '10px 4px 14px',
+                padding: '8px 4px 10px',
                 fontSize: '12px',
                 color: '#94A3B8',
                 borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
@@ -781,25 +774,20 @@ export const UnifiedContextSurface: React.FC<UnifiedContextSurfaceProps> = ({
               <span className="font-tabular font-medium text-slate-300">
                 {dashboardData?.provenance?.manual_entry_count ?? 8} thủ công
               </span>
-              {canonicalIssueCount > 0 && (
-                <>
-                  <span>·</span>
-                  <span className="font-tabular font-semibold text-rose-400">
-                    {canonicalIssueCount} vấn đề
-                  </span>
-                </>
-              )}
             </div>
 
-            {/* Zone Progress Breakdown (Section 7: Exactly 6 Presentation Zones, Grid Separator) */}
-            <ContextSection title="Tiến độ phân khu" eyebrow="TIẾN ĐỘ PHÂN KHU">
-              <div className="flex flex-col gap-3 py-1">
+            {/* Zone Progress Breakdown: Exactly 6 Presentation Zones (V13.4: Single heading THEO PHÂN KHU, no subtitle) */}
+            <div className="sgp-analytics-zones-section py-2 border-b border-white/5">
+              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+                THEO PHÂN KHU
+              </h3>
+              <div className="flex flex-col gap-2 py-0.5">
                 {presentationAnalytics.zones.map((pz) => {
                   const hasMeters = pz.totalMeters > 0;
                   return (
                     <div
                       key={pz.id}
-                      className="cursor-pointer hover:bg-slate-800/40 p-2 rounded-lg transition-colors border border-transparent hover:border-slate-700/50"
+                      className="cursor-pointer hover:bg-slate-800/40 p-1.5 rounded-lg transition-colors border border-transparent hover:border-slate-700/50"
                       onClick={() => onSelectZone?.(pz.id)}
                       role="button"
                       tabIndex={0}
@@ -817,7 +805,7 @@ export const UnifiedContextSurface: React.FC<UnifiedContextSurfaceProps> = ({
                           gridTemplateColumns: 'minmax(0, 1fr) auto',
                           gap: '8px',
                           alignItems: 'center',
-                          marginBottom: '6px',
+                          marginBottom: '4px',
                           fontSize: '12px',
                         }}
                       >
@@ -838,9 +826,9 @@ export const UnifiedContextSurface: React.FC<UnifiedContextSurfaceProps> = ({
                   );
                 })}
               </div>
-            </ContextSection>
+            </div>
 
-            {/* Progressive Disclosure Exceptions Queue (Section 8-9) */}
+            {/* Progressive Disclosure Exceptions Queue (V13.4: Collapsed by default, ⚠ N vấn đề cần xử lý) */}
             {canonicalIssueCount > 0 && (
               <div className="sgp-analytics-issue-queue-section pt-1">
                 <button
@@ -866,7 +854,7 @@ export const UnifiedContextSurface: React.FC<UnifiedContextSurfaceProps> = ({
                 >
                   <div className="flex items-center gap-2">
                     <AlertTriangle size={14} className="text-rose-400 shrink-0" />
-                    <span>Vấn đề cần xử lý ({canonicalIssueCount})</span>
+                    <span>⚠ {canonicalIssueCount} vấn đề cần xử lý</span>
                   </div>
                   <ChevronDown
                     size={14}

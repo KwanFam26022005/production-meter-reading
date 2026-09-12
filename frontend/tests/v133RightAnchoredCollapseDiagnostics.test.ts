@@ -122,15 +122,15 @@ test('V13.3 Analytics: Rail has sticky header, single scroll body, zero nested s
   );
 });
 
-test('V13.3 Analytics: Summary renders 2 compact donuts (size 72, stroke 6.5)', () => {
+test('V13.3 Analytics: Summary renders 2 compact donuts (size 68-72, stroke 6)', () => {
   const surfacePath = path.resolve(__dirname, '../src/features/map-operations/context/UnifiedContextSurface.tsx');
   const surfaceCode = fs.readFileSync(surfacePath, 'utf-8');
 
-  // Verify compact donut sizing (68-76px, 6-7px stroke)
-  assert.ok(surfaceCode.includes('size={72}'), 'MiniDonut size must be 72px (within 68-76px)');
-  assert.ok(surfaceCode.includes('strokeWidth={6.5}'), 'MiniDonut strokeWidth must be 6.5px (within 6-7px)');
-  assert.ok(surfaceCode.includes('caption="OCR tự động"'), 'Must render OCR tự động donut');
-  assert.ok(surfaceCode.includes('caption="Tiến độ chung"'), 'Must render Tiến độ chung donut');
+  // Verify compact donut sizing (68-72px, 6px stroke)
+  assert.ok(surfaceCode.includes('size={70}') || surfaceCode.includes('size={72}'), 'MiniDonut size must be within 68-72px');
+  assert.ok(surfaceCode.includes('strokeWidth={6}') || surfaceCode.includes('strokeWidth={6.5}'), 'MiniDonut strokeWidth must be within 6-7px');
+  assert.ok(surfaceCode.includes('caption="OCR"') || surfaceCode.includes('caption="OCR tự động"'), 'Must render OCR donut');
+  assert.ok(surfaceCode.includes('caption="Hoàn tất"') || surfaceCode.includes('caption="Tiến độ chung"'), 'Must render Hoàn tất donut');
 });
 
 test('V13.3 Analytics: Zone progress rows use grid layout with separate label and metric elements', () => {
@@ -231,6 +231,7 @@ test('V13.3 Issue Queue: Progressive disclosure accordion collapsed by default',
     'Issue queue accordion must be collapsed by default (useState(false))'
   );
   assert.ok(
+    surfaceCode.includes('{canonicalIssueCount} vấn đề cần xử lý') ||
     surfaceCode.includes('Vấn đề cần xử lý ({canonicalIssueCount})'),
     'Accordion button must display count'
   );

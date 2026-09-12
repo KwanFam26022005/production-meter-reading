@@ -2,26 +2,26 @@ import React from 'react';
 
 export interface MiniDonutProps {
   value: number; // 0 to 100
-  size?: number; // default 72 (recommended: 68-76px)
-  strokeWidth?: number; // default 6.5 (recommended: 6-7px)
-  label?: string; // e.g. "84%"
-  caption: string; // e.g. "OCR tự động"
+  size?: number; // default 70 (recommended: 68-72px)
+  strokeWidth?: number; // default 6 (recommended: 6px)
+  label?: string; // e.g. "78%"
+  caption: string; // e.g. "OCR"
   color?: string; // default "#38BDF8" (sky-400)
   trackColor?: string; // default "rgba(255, 255, 255, 0.08)"
 }
 
 /**
- * MiniDonut (V13.2 / V13.3)
+ * MiniDonut (V13.4)
  *
  * Lightweight, reusable SVG progress donut.
- * Compact sizing (68-76px, 6-7px stroke).
+ * Compact sizing (68-72px, 6px stroke).
  * Zero external chart dependencies.
  * Respects prefers-reduced-motion.
  */
 export const MiniDonut: React.FC<MiniDonutProps> = ({
   value,
-  size = 72,
-  strokeWidth = 6.5,
+  size = 70,
+  strokeWidth = 6,
   label,
   caption,
   color = '#38BDF8',

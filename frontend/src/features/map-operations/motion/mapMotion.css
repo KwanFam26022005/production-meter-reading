@@ -1460,6 +1460,62 @@ button.sgp-telemetry-item:hover {
   }
 }
 
+/* ==========================================================================
+   V13.4 SPATIAL ENTITY MARKER HIERARCHY & MOTION CONTRACT
+   ========================================================================== */
+
+/* Meter Marker Visual Content (Hover scale 140ms, Selected one-shot 200ms) */
+.sgp-meter-point {
+  transform-box: fill-box;
+}
+
+.sgp-meter-point .sgp-meter-visual-content {
+  transform-origin: 0 0;
+  transition: transform 140ms ease-out;
+}
+
+.sgp-meter-point:hover .sgp-meter-visual-content {
+  transform: scale(1.09);
+}
+
+.sgp-meter-point.selected .sgp-meter-visual-content {
+  animation: sgpMeterSelectedOneShot 200ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+@keyframes sgpMeterSelectedOneShot {
+  0% { transform: scale(0.94); }
+  60% { transform: scale(1.08); }
+  100% { transform: scale(1.0); }
+}
+
+/* Meter Issue Badge Breathing (Section 11: opacity 0.78 <-> 1 over 2.0s) */
+.sgp-meter-issue-badge {
+  animation: sgpBadgeBreathing 2000ms ease-in-out infinite;
+}
+
+@keyframes sgpBadgeBreathing {
+  0%, 100% {
+    opacity: 0.78;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Operator Marker Visual Content (Hover scale 140ms ease-out) */
+.sgp-operator-map-marker {
+  transform-box: fill-box;
+}
+
+.sgp-operator-map-marker .sgp-op-visual-content {
+  transform-origin: 0 0;
+  transition: transform 140ms ease-out;
+}
+
+.sgp-operator-map-marker:hover .sgp-op-visual-content {
+  transform: scale(1.08);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .sgp-pulse-ring,
   .sgp-pulse-ring-amber,
@@ -1468,7 +1524,9 @@ button.sgp-telemetry-item:hover {
   .sgp-exception-focus-bar,
   .sgp-op-marker-halo,
   .sgp-live-indicator,
-  .sgp-segmented-active-pill {
+  .sgp-segmented-active-pill,
+  .sgp-meter-issue-badge,
+  .sgp-meter-point.selected .sgp-meter-visual-content {
     animation: none !important;
     transition: none !important;
   }
@@ -1477,8 +1535,15 @@ button.sgp-telemetry-item:hover {
   .sgp-meter-point,
   .sgp-operator-map-marker,
   .sgp-meter-point circle,
-  .sgp-operator-map-marker circle {
+  .sgp-operator-map-marker circle,
+  .sgp-meter-visual-content,
+  .sgp-op-visual-content {
     transition: none !important;
+    transform: none !important;
+  }
+
+  .sgp-meter-issue-badge {
+    opacity: 1 !important;
   }
 }
 

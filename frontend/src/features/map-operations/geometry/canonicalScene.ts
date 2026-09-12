@@ -19,7 +19,7 @@ export const CANONICAL_VIEWBOX = '0 0 1915 821';
 export const CANONICAL_ASPECT_RATIO = CANONICAL_SCENE_WIDTH / CANONICAL_SCENE_HEIGHT;
 
 /**
- * MAP CANVAS DIAGNOSTIC CONSTANTS & SPECIFICATIONS (V13.3)
+ * MAP CANVAS DIAGNOSTIC CONSTANTS & SPECIFICATIONS (V13.3 / V13.4)
  *
  * Current Active Map Source:
  * - Canonical image: 1915 x 821
@@ -33,13 +33,15 @@ export const CANONICAL_ASPECT_RATIO = CANONICAL_SCENE_WIDTH / CANONICAL_SCENE_HE
  * - High-density source option (2x): 3830 x 1864
  * - Alternative raster resolution: 2560 x 1246
  *
- * IMPORTANT NOTE ON ASPECT-RATIO & COVER/STRETCH:
- * - The current blank strip is an aspect-ratio mismatch between the 2.33:1 map source
- *   and typical 2.05:1 displays, NOT a geometry bug.
+ * CRITICAL MIGRATION RULES (V13.4 Section 21 & 22):
+ * - New 1915x932 artwork should preserve the current 1915x821 map at exact pixel scale
+ *   and position where possible.
+ * - Preferred migration strategy: extend canvas 111px downward (821 + 111 = 932px).
+ * - DO NOT stretch the current image vertically.
+ * - Changing raster resolution alone (e.g. 3830x1642) while preserving the 2.332521 aspect
+ *   does NOT solve the workspace letterbox; it only improves sharpness.
+ * - A future map-source migration must change canonical height/aspect. DO NOT perform it now.
  * - DO NOT apply `object-fit: cover`, `preserveAspectRatio="slice"`, or non-uniform stretching.
- *   Spatial alignment and coordinate precision take precedence over hiding the blank strip.
- * - Migrating from 1915x821 to 1915x932 requires a separate controlled map-source
- *   re-calibration migration. DO NOT perform it in V13.3.
  */
 export const MAP_CANVAS_DIAGNOSTICS = {
   currentSource: {
@@ -56,16 +58,27 @@ export const MAP_CANVAS_DIAGNOSTICS = {
     logicalWidth: 1915,
     logicalHeight: 932,
     aspectRatio: 1915 / 932,
+    extendDownwardPx: 111,
+    preservePixelScale: true,
+    doNotStretchVertically: true,
     highDensityWidth: 3830,
     highDensityHeight: 1864,
     alternativeRasterWidth: 2560,
     alternativeRasterHeight: 1246,
+  },
+  resolutionVsAspectRatioNote: {
+    exampleWidth: 3830,
+    exampleHeight: 1642,
+    aspectRatio: 3830 / 1642, // 2.332521
+    doesNotSolveLetterbox: true,
+    reason: 'Changing raster resolution alone while preserving 2.332521 aspect does NOT solve the workspace letterbox; it only improves sharpness without changing layout fit.',
   },
   migrationRules: {
     allowCover: false,
     allowSlice: false,
     allowStretching: false,
     separateMigrationRequired: true,
+    preferredStrategy: 'extend canvas 111px downward without vertical stretching',
   },
 } as const;
 
