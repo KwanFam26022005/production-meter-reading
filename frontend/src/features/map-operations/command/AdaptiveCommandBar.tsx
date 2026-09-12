@@ -112,7 +112,7 @@ export const AdaptiveCommandBar: React.FC<AdaptiveCommandBarProps> = ({
   onOpenAnalytics,
   onOpenCalibration,
   onToggleLegend,
-  isLegendOpen = false,
+  isLegendOpen: _isLegendOpen = false,
   onBack,
   backLabel,
 }) => {
@@ -292,13 +292,13 @@ export const AdaptiveCommandBar: React.FC<AdaptiveCommandBarProps> = ({
         ) : (
           <div className="sgp-cmd-identity" title="Cảng Sài Gòn — Cảng Tân Thuận">
             <img src="/icon-192.png" alt="Cảng Sài Gòn" className="sgp-cmd-logo" />
-            {!model.compactIdentity ? (
+            {!model.compactIdentity && (
               <div className="sgp-cmd-title-wrap">
                 <span className="sgp-cmd-brand-title">CẢNG TÂN THUẬN</span>
-                <span className="sgp-cmd-sub-title">Bản đồ công tơ</span>
+                <span className="sgp-cmd-sub-title">
+                  {viewMode === 'map' ? 'Bản đồ công tơ' : 'Danh sách công tơ'}
+                </span>
               </div>
-            ) : (
-              <span className="sgp-cmd-brand-compact">TÂN THUẬN</span>
             )}
           </div>
         )}
@@ -661,70 +661,38 @@ export const AdaptiveCommandBar: React.FC<AdaptiveCommandBarProps> = ({
           </div>
         )}
 
-        {/* INLINE TELEMETRY (Section 15: Replaces large floating summary capsule) */}
+        {/* INLINE TELEMETRY (Section 10, 19: Interactive Progress Status -> Analytics) */}
         {model.showTelemetry && (
           <button
             type="button"
             className="sgp-cmd-telemetry-pill"
             onClick={onOpenAnalytics}
             title="Nhấp để mở Phân tích chất lượng vận hành"
-            aria-label="Chỉ số vận hành"
+            aria-label="Chỉ số vận hành: nhấp để mở phân tích"
           >
-            <CheckCircle2 size={13} className="text-emerald-400 shrink-0" />
-            <span className="font-tabular font-medium text-emerald-300">
-              {overallKpis.confirmed}/{overallKpis.total}
-            </span>
-            {issueCount > 0 && (
+            {issueCount > 0 ? (
               <>
-                <span className="sgp-cmd-telemetry-divider" aria-hidden="true">·</span>
-                <span className="font-tabular font-semibold text-amber-400 flex items-center gap-1">
-                  <AlertTriangle size={12} />
-                  {overallKpis.overdue > 0 ? `${overallKpis.overdue} quá hạn` : `${issueCount} vấn đề`}
+                <AlertTriangle size={13} className="text-amber-400 shrink-0" />
+                <span className="font-tabular font-semibold text-amber-300">
+                  {model.compactTelemetry
+                    ? `⚠ ${issueCount} · ${overallKpis.confirmed}/${overallKpis.total}`
+                    : `⚠ ${issueCount} · ${overallKpis.confirmed}/${overallKpis.total}`}
+                </span>
+              </>
+            ) : (
+              <>
+                <CheckCircle2 size={13} className="text-emerald-400 shrink-0" />
+                <span className="font-tabular font-medium text-emerald-300">
+                  {model.compactTelemetry
+                    ? `✓ ${overallKpis.confirmed}/${overallKpis.total}`
+                    : `✓ ${overallKpis.confirmed}/${overallKpis.total} hoàn tất`}
                 </span>
               </>
             )}
           </button>
         )}
 
-        {/* ANALYTICS BUTTON (Section 15) */}
-        {model.showAnalyticsButton && (
-          <button
-            type="button"
-            className="sgp-cmd-tool-btn"
-            onClick={onOpenAnalytics}
-            title="Phân tích vận hành"
-            aria-label="Phân tích vận hành"
-          >
-            <BarChart3 size={15} />
-          </button>
-        )}
-
-        {/* MAP-ONLY UTILITIES: LEGEND & FULLSCREEN (Section 10, 11) */}
-        {model.showLegendButton && onToggleLegend && (
-          <button
-            type="button"
-            className={`sgp-cmd-tool-btn ${isLegendOpen ? 'active' : ''}`}
-            onClick={onToggleLegend}
-            title="Chú giải bản đồ"
-            aria-label="Chú giải bản đồ"
-          >
-            <Layers size={15} />
-          </button>
-        )}
-
-        {model.showFullscreenButton && (
-          <button
-            type="button"
-            className="sgp-cmd-tool-btn"
-            onClick={handleToggleFullscreen}
-            title={isFullscreen ? 'Thu nhỏ cửa sổ' : 'Toàn màn hình'}
-            aria-label="Toàn màn hình"
-          >
-            {isFullscreen ? <Minimize size={15} /> : <Maximize size={15} />}
-          </button>
-        )}
-
-        {/* OVERFLOW MENU (Section 18, 19: Contains Admin Calibration) */}
+        {/* OVERFLOW MENU (Section 11, 12: Absolute Deduplication) */}
         {model.showOverflowMenu && (
           <div className="sgp-cmd-overflow-wrap" ref={menuRef}>
             <button
@@ -740,93 +708,59 @@ export const AdaptiveCommandBar: React.FC<AdaptiveCommandBarProps> = ({
 
             {isMenuOpen && (
               <div className="sgp-cmd-overflow-menu" role="menu">
-                <button
-                  type="button"
-                  className="sgp-cmd-menu-item"
-                  onClick={() => {
-                    onRefresh();
-                    setIsMenuOpen(false);
-                  }}
-                  role="menuitem"
-                >
-                  <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />
-                  <span>Làm mới dữ liệu</span>
-                </button>
+                {model.overflowItems.map((item) => {
+                  let icon: React.ReactNode = null;
+                  let onClick = () => {};
 
-                <button
-                  type="button"
-                  className="sgp-cmd-menu-item"
-                  onClick={() => {
-                    onExportCsv();
-                    setIsMenuOpen(false);
-                  }}
-                  role="menuitem"
-                >
-                  <Download size={14} />
-                  <span>Xuất CSV</span>
-                </button>
+                  switch (item.id) {
+                    case 'refresh':
+                      icon = <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />;
+                      onClick = () => onRefresh();
+                      break;
+                    case 'export-csv':
+                      icon = <Download size={14} />;
+                      onClick = () => onExportCsv();
+                      break;
+                    case 'analytics':
+                      icon = <BarChart3 size={14} />;
+                      onClick = () => onOpenAnalytics();
+                      break;
+                    case 'legend':
+                      icon = <Layers size={14} />;
+                      onClick = () => onToggleLegend?.();
+                      break;
+                    case 'fullscreen':
+                      icon = isFullscreen ? <Minimize size={14} /> : <Maximize size={14} />;
+                      onClick = () => handleToggleFullscreen();
+                      break;
+                    case 'calibration':
+                      icon = <Compass size={14} className="text-amber-400" />;
+                      onClick = () => onOpenCalibration?.();
+                      break;
+                  }
 
-                <button
-                  type="button"
-                  className="sgp-cmd-menu-item"
-                  onClick={() => {
-                    onOpenAnalytics();
-                    setIsMenuOpen(false);
-                  }}
-                  role="menuitem"
-                >
-                  <BarChart3 size={14} />
-                  <span>Phân tích vận hành</span>
-                </button>
+                  const isAdminItem = item.category === 'admin';
 
-                {viewMode === 'map' && onToggleLegend && (
-                  <button
-                    type="button"
-                    className="sgp-cmd-menu-item"
-                    onClick={() => {
-                      onToggleLegend();
-                      setIsMenuOpen(false);
-                    }}
-                    role="menuitem"
-                  >
-                    <Layers size={14} />
-                    <span>Chú giải bản đồ</span>
-                  </button>
-                )}
-
-                {viewMode === 'map' && (
-                  <button
-                    type="button"
-                    className="sgp-cmd-menu-item"
-                    onClick={() => {
-                      handleToggleFullscreen();
-                      setIsMenuOpen(false);
-                    }}
-                    role="menuitem"
-                  >
-                    {isFullscreen ? <Minimize size={14} /> : <Maximize size={14} />}
-                    <span>{isFullscreen ? 'Thu nhỏ' : 'Toàn màn hình'}</span>
-                  </button>
-                )}
-
-                {/* Administrative Calibration action preserved in overflow menu (Section 19) */}
-                {isAdmin && onOpenCalibration && (
-                  <>
-                    <div className="sgp-cmd-menu-divider" role="separator" />
-                    <button
-                      type="button"
-                      className="sgp-cmd-menu-item admin-item"
-                      onClick={() => {
-                        onOpenCalibration();
-                        setIsMenuOpen(false);
-                      }}
-                      role="menuitem"
-                    >
-                      <Compass size={14} className="text-amber-400" />
-                      <span className="font-medium text-amber-200">Hiệu chỉnh bản đồ</span>
-                    </button>
-                  </>
-                )}
+                  return (
+                    <React.Fragment key={item.id}>
+                      {isAdminItem && <div className="sgp-cmd-menu-divider" role="separator" />}
+                      <button
+                        type="button"
+                        className={`sgp-cmd-menu-item ${isAdminItem ? 'admin-item' : ''}`}
+                        onClick={() => {
+                          onClick();
+                          setIsMenuOpen(false);
+                        }}
+                        role="menuitem"
+                      >
+                        {icon}
+                        <span className={isAdminItem ? 'font-medium text-amber-200' : ''}>
+                          {item.label}
+                        </span>
+                      </button>
+                    </React.Fragment>
+                  );
+                })}
               </div>
             )}
           </div>

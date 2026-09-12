@@ -44,6 +44,7 @@ import {
   ActionRow,
   EntityListItem,
 } from './contextRailPrimitives';
+import { derivePresentationZoneAnalytics } from '../analytics/presentationAnalytics';
 
 export type UnifiedContextType =
   | 'zone-summary'
@@ -167,6 +168,10 @@ export const UnifiedContextSurface: React.FC<UnifiedContextSurfaceProps> = ({
 
   const isAnalytics = contextType === 'analytics';
   const widthClass = isAnalytics ? 'width-analytics' : 'width-standard';
+
+  const presentationAnalytics = useMemo(() => {
+    return derivePresentationZoneAnalytics(allMeters);
+  }, [allMeters]);
 
   return (
     <aside
@@ -636,7 +641,7 @@ export const UnifiedContextSurface: React.FC<UnifiedContextSurfaceProps> = ({
                 </div>
               </div>
               <span className="sgp-rail-subtitle">
-                Độ chính xác OCR & Thống kê theo phân khu
+                Độ chính xác OCR & tiến độ theo phân khu
               </span>
             </div>
             <button
@@ -650,10 +655,10 @@ export const UnifiedContextSurface: React.FC<UnifiedContextSurfaceProps> = ({
             </button>
           </div>
 
-          {/* BODY: FLATTENED HIERARCHY WITHOUT BOXED KPI CARDS (Section 28) */}
+          {/* BODY: FLATTENED HIERARCHY WITHOUT BOXED KPI CARDS (Section 7, 28) */}
           <div className="sgp-rail-body">
             {/* OCR Provenance Section */}
-            <ContextSection title="Độ chính xác nhận diện OCR" eyebrow="AI PROVENANCE" bordered={false}>
+            <ContextSection title="Độ chính xác nhận diện OCR" eyebrow="OCR" bordered={false}>
               <div className="grid grid-cols-2 gap-3 py-1">
                 <div>
                   <div className="text-xs text-slate-400">Tự động OCR</div>
@@ -680,27 +685,40 @@ export const UnifiedContextSurface: React.FC<UnifiedContextSurfaceProps> = ({
               </div>
             </ContextSection>
 
-            {/* Zone Progress Breakdown */}
-            <ContextSection title="Tiến độ theo phân khu" eyebrow="TIẾN ĐỘ KHU VỰC">
+            {/* Zone Progress Breakdown (Section 2, 3, 4, 7: Exactly 6 Presentation Zones) */}
+            <ContextSection title="Tiến độ phân khu" eyebrow="TIẾN ĐỘ PHÂN KHU">
               <div className="flex flex-col gap-3 py-1">
-                {zones.map((z) => {
-                  const zMeters = allMeters.filter((m) => m.zoneId === z.id);
-                  const conf = zMeters.filter((m) => m.semanticState === 'CONFIRMED').length;
-                  const total = zMeters.length;
-                  const pct = total > 0 ? Math.round((conf / total) * 100) : 100;
+                {presentationAnalytics.zones.map((pz) => {
+                  const hasMeters = pz.totalMeters > 0;
                   return (
                     <div
-                      key={z.id}
-                      className="cursor-pointer hover:bg-slate-800/40 p-1.5 rounded transition-colors"
-                      onClick={() => onSelectZone?.(z.id)}
+                      key={pz.id}
+                      className="cursor-pointer hover:bg-slate-800/40 p-2 rounded-lg transition-colors border border-transparent hover:border-slate-700/50"
+                      onClick={() => onSelectZone?.(pz.id)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          onSelectZone?.(pz.id);
+                        }
+                      }}
+                      aria-label={`${pz.name}: ${pz.statusLabel}`}
                     >
-                      <div className="flex justify-between items-center text-xs mb-1">
-                        <span className="font-medium text-slate-200">{z.name}</span>
+                      <div className="flex justify-between items-center text-xs mb-1.5">
+                        <span className="font-medium text-slate-200">{pz.name}</span>
                         <span className="font-tabular text-slate-300">
-                          {conf}/{total} · {pct}%
+                          {pz.statusLabel}
                         </span>
                       </div>
-                      <ProgressLine percent={pct} />
+                      {hasMeters ? (
+                        <ProgressLine
+                          percent={pz.completionPercent ?? 0}
+                          color={pz.color}
+                        />
+                      ) : (
+                        <div className="h-1.5 w-full bg-slate-800/60 rounded-full overflow-hidden" />
+                      )}
                     </div>
                   );
                 })}

@@ -90,9 +90,10 @@ test('V13 Command Bar: Model dynamically adjusts controls between Map and List m
   assert.equal(mapModel.showViewSwitch, true, 'Must show view switch');
   assert.equal(mapModel.showSearch, true, 'Must show search');
   assert.equal(mapModel.showFilter, true, 'Must show filter');
-  assert.equal(mapModel.showTelemetry, true, 'Must show inline telemetry');
-  assert.equal(mapModel.showLegendButton, true, 'Must show legend button in Map mode');
-  assert.equal(mapModel.showFullscreenButton, true, 'Must show fullscreen button in Map mode');
+  assert.equal(mapModel.showLegendButton, false, 'Legend direct button removed from primary bar in V13.1');
+  assert.equal(mapModel.showFullscreenButton, false, 'Fullscreen direct button removed from primary bar in V13.1');
+  assert.ok(mapModel.overflowItems.some((i) => i.id === 'legend'), 'Legend present in Map overflow');
+  assert.ok(mapModel.overflowItems.some((i) => i.id === 'fullscreen'), 'Fullscreen present in Map overflow');
   assert.equal(mapModel.compactIdentity, false, 'Full identity title on desktop');
 
   // Admin calibration option present in overflow for admin

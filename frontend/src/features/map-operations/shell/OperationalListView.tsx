@@ -1,29 +1,33 @@
 import React from 'react';
-import { Eye, MapPin, AlertTriangle, CheckCircle2, Clock } from 'lucide-react';
+import { MapPin, AlertTriangle, CheckCircle2, Clock, ChevronRight } from 'lucide-react';
 import type { MapMeterItem } from '../types';
 
-interface OperationalListViewProps {
+export interface OperationalListViewProps {
   meters: MapMeterItem[];
   selectedMeterId: string | null;
   onSelectMeter: (meterId: string) => void;
   onInspectReading?: (readingId: string) => void;
-  onSwitchToMap: () => void;
+  onSwitchToMap?: () => void;
+  activeFilterCount?: number;
 }
 
 /**
- * OperationalListView — Alternate View Mode of the Operational Console (Section 7)
+ * OperationalListView — Alternate View Mode of the Operational Console (V13.1)
  *
- * Displays the current filtered meter operations state in an operational list/table:
- * - Preserves date, round, zone, status, and search filters
- * - Shows semantic status badges, zone tags, and latest reading values
- * - Allows quick inspection and switching back to map
+ * Section 13-15: List Simplification
+ * - Removed redundant map switch CTA button from list header (AdaptiveCommandBar owns view switching).
+ * - Compact result summary heading (`12 công tơ` or `12 công tơ · 2 bộ lọc`).
+ * - Whole row click / Enter to open meter context rail.
+ * - Trailing chevron-right visible on hover/focus/selected.
+ * - Accessible table row semantics.
  */
 export const OperationalListView: React.FC<OperationalListViewProps> = ({
   meters,
   selectedMeterId,
   onSelectMeter,
-  onInspectReading,
-  onSwitchToMap,
+  onInspectReading: _onInspectReading,
+  onSwitchToMap: _onSwitchToMap,
+  activeFilterCount = 0,
 }) => {
   const getStatusBadge = (state: MapMeterItem['semanticState'], label?: string) => {
     switch (state) {
@@ -64,22 +68,20 @@ export const OperationalListView: React.FC<OperationalListViewProps> = ({
     }
   };
 
+  const countSummaryText =
+    activeFilterCount > 0
+      ? `${meters.length} công tơ · ${activeFilterCount} bộ lọc`
+      : `${meters.length} công tơ`;
+
   return (
     <div className="sgp-operational-list-view" role="region" aria-label="Danh sách công tơ tác nghiệp">
+      {/* Section 14: Compact table heading replacing elevated summary card */}
       <div className="sgp-list-view-header">
-        <div className="sgp-list-header-left">
-          <span className="sgp-list-count-badge font-tabular">
-            {meters.length} công tơ trong phạm vi lọc
+        <div className="sgp-list-header-left flex items-center gap-2.5">
+          <h2 className="sgp-list-title font-semibold text-slate-800 text-sm">Công tơ</h2>
+          <span className="sgp-list-count-badge font-tabular text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200">
+            {countSummaryText}
           </span>
-        </div>
-        <div className="sgp-list-header-right">
-          <button
-            type="button"
-            className="sgp-list-switch-map-btn"
-            onClick={onSwitchToMap}
-          >
-            Xem trên bản đồ
-          </button>
         </div>
       </div>
 
@@ -99,7 +101,7 @@ export const OperationalListView: React.FC<OperationalListViewProps> = ({
                 <th scope="col">KHU VỰC</th>
                 <th scope="col">TRẠNG THÁI</th>
                 <th scope="col">CHỈ SỐ GẦN NHẤT</th>
-                <th scope="col" className="text-right">THAO TÁC</th>
+                <th scope="col" className="w-8 text-right" aria-label="Hành động"></th>
               </tr>
             </thead>
             <tbody>
@@ -111,6 +113,9 @@ export const OperationalListView: React.FC<OperationalListViewProps> = ({
                     className={`sgp-list-row ${isSelected ? 'selected' : ''}`}
                     onClick={() => onSelectMeter(meter.id)}
                     tabIndex={0}
+                    role="row"
+                    aria-selected={isSelected}
+                    aria-label={`Công tơ ${meter.meterCode}, ${meter.name}, trạng thái ${meter.stateLabel || meter.semanticState}`}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault();
@@ -136,24 +141,13 @@ export const OperationalListView: React.FC<OperationalListViewProps> = ({
                         <span className="text-slate-400">—</span>
                       )}
                     </td>
-                    <td className="text-right">
-                      <button
-                        type="button"
-                        className="sgp-list-inspect-btn"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (meter.latestReading?.readingId && onInspectReading) {
-                            onInspectReading(meter.latestReading.readingId);
-                          } else {
-                            onSelectMeter(meter.id);
-                          }
-                        }}
-                        title="Xem chi tiết"
-                        aria-label={`Xem chi tiết ${meter.meterCode}`}
-                      >
-                        <Eye size={14} />
-                        <span>Chi tiết</span>
-                      </button>
+                    {/* Section 15: Chevron visible on hover/focus/selected, whole row is interactive */}
+                    <td className="text-right w-8">
+                      <ChevronRight
+                        size={16}
+                        className="sgp-list-row-chevron text-slate-400 inline-block transition-transform"
+                        aria-hidden="true"
+                      />
                     </td>
                   </tr>
                 );

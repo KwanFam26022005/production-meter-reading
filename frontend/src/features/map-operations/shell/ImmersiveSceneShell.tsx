@@ -218,6 +218,14 @@ export const ImmersiveSceneShell: React.FC<ImmersiveSceneShellProps> = ({
   const rounds = dashboardData?.round_progress || [];
   const isCalibrationActive = viewMode === 'calibration' || isCalibrationModeActive();
 
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (filters.zoneId && filters.zoneId !== 'ALL') count++;
+    if (filters.status && filters.status !== 'ALL') count++;
+    if (filters.operatorId && filters.operatorId !== 'ALL') count++;
+    return count;
+  }, [filters]);
+
   const operationalStates = useMemo(() => {
     return projectAllZonesOperationalState(mapZones, mapMeters);
   }, [mapZones, mapMeters]);
@@ -322,6 +330,7 @@ export const ImmersiveSceneShell: React.FC<ImmersiveSceneShellProps> = ({
             onSelectMeter={onSelectMeter}
             onInspectReading={onInspectReading}
             onSwitchToMap={() => onViewModeChange('map')}
+            activeFilterCount={activeFilterCount}
           />
         )}
 

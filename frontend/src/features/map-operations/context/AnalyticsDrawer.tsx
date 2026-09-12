@@ -12,13 +12,9 @@ interface AnalyticsDrawerProps {
 }
 
 /**
- * AnalyticsDrawer — On-Demand Operational Quality & Progress Drawer (Section 6.C & 6.D)
- *
- * Hosts the secondary analytical details from the old Overview:
- * - OCR / Recognition accuracy stats & confidence distribution
- * - Confirmation mode ratio (Tự động vs Thủ công)
- * - Location / Area progress breakdown
- * - Exceptions queue with direct inspection action
+ * @deprecated V13.1 — Deactivated from active Map Operations runtime.
+ * Analytics is now exclusively provided by UnifiedContextSurface (variant='analytics').
+ * This component is retained for backward-compatibility test exports only.
  */
 export const AnalyticsDrawer: React.FC<AnalyticsDrawerProps> = ({
   dashboardData,
@@ -112,9 +108,11 @@ export const AnalyticsDrawer: React.FC<AnalyticsDrawerProps> = ({
 
           <div className="sgp-zone-progress-list">
             {zones.map((zone) => {
-              const total = zone.metrics?.totalMeters || 1;
+              const total = zone.metrics?.totalMeters ?? 0;
               const confirmed = zone.metrics?.confirmedCount || 0;
-              const pct = Math.round((confirmed / total) * 100);
+              const hasMeters = total > 0;
+              const pct = hasMeters ? Math.round((confirmed / total) * 100) : null;
+              const statusText = hasMeters ? `${confirmed}/${total} · ${pct}%` : 'Không có công tơ';
 
               return (
                 <div
@@ -129,25 +127,21 @@ export const AnalyticsDrawer: React.FC<AnalyticsDrawerProps> = ({
                       <MapPin size={12} className="inline mr-1 text-slate-400" />
                       {zone.name}
                     </span>
-                    <span className="sgp-zp-pct font-tabular">{pct}%</span>
+                    <span className="sgp-zp-count font-tabular">
+                      {statusText}
+                    </span>
                   </div>
                   <div className="sgp-zp-bar-track">
-                    <div
-                      className="sgp-zp-bar-fill"
-                      style={{
-                        width: `${pct}%`,
-                        backgroundColor: pct === 100 ? '#10B981' : '#0E7490',
-                      }}
-                    />
-                  </div>
-                  <div className="sgp-zp-footer">
-                    <span className="font-tabular text-slate-500">
-                      {confirmed}/{total} công tơ hoàn tất
-                    </span>
-                    {zone.assignedUser && (
-                      <span className="text-slate-400">
-                        {zone.assignedUser.fullName}
-                      </span>
+                    {hasMeters ? (
+                      <div
+                        className="sgp-zp-bar-fill"
+                        style={{
+                          width: `${pct}%`,
+                          backgroundColor: zone.primaryColor || '#0284c7',
+                        }}
+                      />
+                    ) : (
+                      <div className="sgp-zp-bar-empty" />
                     )}
                   </div>
                 </div>
