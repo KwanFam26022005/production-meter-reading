@@ -20,6 +20,8 @@ import { OperatorLayer } from '../layers/OperatorLayer';
 import { AlertLayer } from '../layers/AlertLayer';
 import { LabelsLayer } from '../layers/LabelsLayer';
 import { MapDebugLayer } from '../operational-map/MapDebugLayer';
+import type { MapWorkspaceView } from '../../../types';
+import type { MapCalibrationWorkspace } from '../calibration/useMapCalibrationWorkspace';
 
 export interface OperationalSceneProps {
   zones: MapOperationalZone[];
@@ -48,6 +50,9 @@ export interface OperationalSceneProps {
   onViewportChange: (viewport: MapViewportState) => void;
   placementSvgLayer?: React.ReactNode;
   placementCard?: React.ReactNode;
+  viewMode?: MapWorkspaceView;
+  isCalibrationActive?: boolean;
+  calibrationWorkspace?: MapCalibrationWorkspace;
 }
 
 /**
@@ -88,13 +93,25 @@ export const OperationalScene: React.FC<OperationalSceneProps> = ({
   onViewportChange: _onViewportChange,
   placementSvgLayer,
   placementCard,
+  viewMode = 'map',
+  isCalibrationActive: propIsCalibrationActive,
+  calibrationWorkspace,
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
   const worldGroupRef = useRef<SVGGElement | null>(null);
 
-  const isCalibrationActive = isCalibrationModeActive();
-  const calibration = useMapCalibration(svgRef, worldGroupRef);
+  const isCalibrationActive =
+    propIsCalibrationActive !== undefined
+      ? propIsCalibrationActive
+      : viewMode === 'calibration' || isCalibrationModeActive();
+
+  const calibration = useMapCalibration(
+    svgRef,
+    worldGroupRef,
+    calibrationWorkspace ? () => calibrationWorkspace.closeMapCalibration() : undefined,
+    calibrationWorkspace
+  );
 
   // Runtime diagnostic verification
   useEffect(() => {

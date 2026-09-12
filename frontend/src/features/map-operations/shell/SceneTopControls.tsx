@@ -9,10 +9,11 @@ import {
   RefreshCw,
   Download,
   BarChart2,
+  Compass,
 } from 'lucide-react';
 import { VnDatePicker } from '../../../components/ui/VnDatePicker';
-import type { AdminDashboardRoundProgress, User } from '../../../types';
-import { formatUserRole } from '../../../types';
+import type { AdminDashboardRoundProgress, User, MapWorkspaceView } from '../../../types';
+import { formatUserRole, canAdministerMapConfiguration } from '../../../types';
 
 interface SceneTopControlsProps {
   user?: User;
@@ -23,12 +24,13 @@ interface SceneTopControlsProps {
   currentRoundStatus?: string | null;
   selectedRoundId?: string;
   onSelectRound: (roundId: string) => void;
-  viewMode: 'map' | 'list';
-  onViewModeChange: (mode: 'map' | 'list') => void;
+  viewMode: MapWorkspaceView;
+  onViewModeChange: (mode: MapWorkspaceView) => void;
   onRefresh: () => void;
   isLoading: boolean;
   onExportCsv: () => void;
   onOpenAnalytics?: () => void;
+  onOpenCalibration?: () => void;
 }
 
 /**
@@ -57,6 +59,7 @@ export const SceneTopControls: React.FC<SceneTopControlsProps> = ({
   isLoading,
   onExportCsv,
   onOpenAnalytics,
+  onOpenCalibration,
 }) => {
   const [isRoundDropdownOpen, setIsRoundDropdownOpen] = useState(false);
   const roundDropdownRef = useRef<HTMLDivElement>(null);
@@ -263,6 +266,30 @@ export const SceneTopControls: React.FC<SceneTopControlsProps> = ({
                 <BarChart2 size={13} />
                 <span>Phân tích chất lượng</span>
               </button>
+            )}
+            {canAdministerMapConfiguration(user) && onOpenCalibration && (
+              <>
+                <div
+                  style={{
+                    height: '1px',
+                    background: 'rgba(255, 255, 255, 0.12)',
+                    margin: '4px 0',
+                  }}
+                  role="separator"
+                />
+                <button
+                  type="button"
+                  className="sgp-hud-menu-item text-amber-400"
+                  onClick={() => {
+                    onOpenCalibration();
+                    setIsMenuOpen(false);
+                  }}
+                  role="menuitem"
+                >
+                  <Compass size={13} className="text-amber-400" />
+                  <span>Hiệu chỉnh bản đồ</span>
+                </button>
+              </>
             )}
           </div>
         )}

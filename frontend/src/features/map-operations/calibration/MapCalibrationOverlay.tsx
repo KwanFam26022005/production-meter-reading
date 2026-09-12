@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   CANONICAL_GEOMETRY_V10,
   V10RawZone,
@@ -31,11 +31,17 @@ import {
   ChevronDown,
   ChevronRight,
   ChevronLeft,
+  ArrowLeft,
+  Save,
+  Upload,
+  CheckCircle2,
+  AlertTriangle,
 } from 'lucide-react';
+import type { MapCalibrationWorkspace } from './useMapCalibrationWorkspace';
+import { formatExportTimestamp } from './useMapCalibrationWorkspace';
 
 export function isCalibrationModeActive(): boolean {
   if (typeof window === 'undefined') return false;
-  if (!import.meta.env.DEV) return false;
   const params = new URLSearchParams(window.location.search);
   return params.get('mapCalibration') === '1' || sessionStorage.getItem('mapCalibration') === '1';
 }
@@ -103,20 +109,53 @@ export interface CalibrationState {
   handlePointerDownOperatorAnchor: (e: React.PointerEvent) => void;
   handlePointerDownLandmark: (id: string, e: React.PointerEvent) => void;
   handleCanvasClick: (e: React.PointerEvent) => void;
+  workspace?: MapCalibrationWorkspace;
 }
 
 export function useMapCalibration(
   svgRef: React.RefObject<SVGSVGElement | null>,
   worldGroupRef: React.RefObject<SVGGElement | null>,
-  onClose?: () => void
+  onClose?: () => void,
+  workspace?: MapCalibrationWorkspace
 ): CalibrationState {
   const [zones, setZones] = useState<V10RawZone[]>(() =>
-    JSON.parse(JSON.stringify(CANONICAL_GEOMETRY_V10.zones))
+    workspace
+      ? JSON.parse(JSON.stringify(workspace.draftGeometry.zones))
+      : JSON.parse(JSON.stringify(CANONICAL_GEOMETRY_V10.zones))
   );
   const [landmarks, setLandmarks] = useState<CalibrationLandmark[]>(() =>
-    JSON.parse(JSON.stringify(CANONICAL_LANDMARKS))
+    workspace
+      ? JSON.parse(JSON.stringify(workspace.draftGeometry.landmarks || []))
+      : JSON.parse(JSON.stringify(CANONICAL_LANDMARKS))
   );
   const [history, setHistory] = useState<V10RawZone[][]>([]);
+
+  // Bidirectional sync with workspace
+  const isInternalUpdateRef = useRef(false);
+
+  useEffect(() => {
+    if (workspace?.draftGeometry && !isInternalUpdateRef.current) {
+      setZones(workspace.draftGeometry.zones);
+      if (workspace.draftGeometry.landmarks) {
+        setLandmarks(workspace.draftGeometry.landmarks);
+      }
+    }
+    isInternalUpdateRef.current = false;
+  }, [workspace?.draftGeometry]);
+
+  useEffect(() => {
+    if (workspace) {
+      isInternalUpdateRef.current = true;
+      workspace.setDraftGeometry((prev) => {
+        if (prev.zones === zones && prev.landmarks === landmarks) return prev;
+        return {
+          ...prev,
+          zones,
+          landmarks,
+        };
+      });
+    }
+  }, [zones, landmarks, workspace]);
   
   // Default startup state (Section 11)
   const [selectedZoneId, setSelectedZoneId] = useState<string>('pres-berth');
@@ -491,29 +530,39 @@ export function useMapCalibration(
 
   const handleDownloadJson = () => {
     const jsonStr = generateExportJson();
+    const timestamp = formatExportTimestamp();
+    const filename = `tanThuanPresentationGeometry.v10.${timestamp}.json`;
     const blob = new Blob([jsonStr], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'tanThuanPresentationGeometry.v10.json';
+    a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
   };
 
   const handleReset = () => {
-    setZones(JSON.parse(JSON.stringify(CANONICAL_GEOMETRY_V10.zones)));
-    setLandmarks(JSON.parse(JSON.stringify(CANONICAL_LANDMARKS)));
+    if (workspace) {
+      workspace.resetToPublished();
+    } else {
+      setZones(JSON.parse(JSON.stringify(CANONICAL_GEOMETRY_V10.zones)));
+      setLandmarks(JSON.parse(JSON.stringify(CANONICAL_LANDMARKS)));
+    }
     setSelectedVertexIdx(null);
     setSelectedLandmarkId(null);
     setHistory([]);
   };
 
   const handleExit = () => {
-    sessionStorage.removeItem('mapCalibration');
-    const url = new URL(window.location.href);
-    url.searchParams.delete('mapCalibration');
-    window.history.replaceState({}, '', url.toString());
-    onClose?.();
+    if (workspace) {
+      workspace.closeMapCalibration();
+    } else {
+      sessionStorage.removeItem('mapCalibration');
+      const url = new URL(window.location.href);
+      url.searchParams.delete('mapCalibration');
+      window.history.replaceState({}, '', url.toString());
+      onClose?.();
+    }
   };
 
   const handlePointerDownVertex = (idx: number, e: React.PointerEvent) => {
@@ -586,6 +635,7 @@ export function useMapCalibration(
     handlePointerDownOperatorAnchor,
     handlePointerDownLandmark,
     handleCanvasClick,
+    workspace,
   };
 }
 
@@ -950,9 +1000,52 @@ export const MapCalibrationHUD: React.FC<{
     handleDownloadJson,
     handleReset,
     handleExit,
+    workspace,
   } = calibration;
 
   const boundaryContract = ZONE_BOUNDARY_CONTRACTS[selectedZoneId];
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [feedback, setFeedback] = useState<{ message: string; isError?: boolean } | null>(null);
+
+  const handleApply = () => {
+    if (!workspace) return;
+    const res = workspace.applyGeometry();
+    if (res.success) {
+      setFeedback({ message: `✓ Đã áp dụng & tải ${res.filename}` });
+      setTimeout(() => setFeedback(null), 3500);
+    } else {
+      setFeedback({ message: `⚠️ ${res.errors?.[0] || 'Lỗi kiểm tra hình học'}`, isError: true });
+      setTimeout(() => setFeedback(null), 4000);
+    }
+  };
+
+  const handleSaveDraft = () => {
+    if (!workspace) return;
+    workspace.saveDraft();
+    setFeedback({ message: '✓ Đã lưu bản nháp vào trình duyệt' });
+    setTimeout(() => setFeedback(null), 2500);
+  };
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !workspace) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const content = ev.target?.result as string;
+      if (content) {
+        const res = workspace.importGeometry(content);
+        if (res.success) {
+          setFeedback({ message: '✓ Đã nhập JSON thành công' });
+          setTimeout(() => setFeedback(null), 2500);
+        } else {
+          setFeedback({ message: `⚠️ ${res.error || 'Lỗi đọc tệp JSON'}`, isError: true });
+          setTimeout(() => setFeedback(null), 4000);
+        }
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
 
   // Collapsed State: Show small floating restore button (Section 7)
   if (isPanelCollapsed) {
@@ -1000,73 +1093,129 @@ export const MapCalibrationHUD: React.FC<{
   }
 
   return (
-    <aside
-      className="sgp-map-hud-surface"
-      role="region"
-      aria-label="V10 Calibration Workspace"
-      style={{
-        position: 'absolute',
-        top: '16px',
-        left: '16px',
-        width: '300px', // 280-320px per Section 6
-        maxHeight: 'calc(100vh - 32px)',
-        overflowY: 'auto',
-        borderRadius: '12px',
-        padding: '14px',
-        color: '#F8FAFC',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '10px',
-        zIndex: 1000,
-        boxShadow: '0 12px 32px rgba(0, 0, 0, 0.55)',
-        fontSize: '12px',
-      }}
-    >
-      {/* 1. Header (Section 6) */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <Compass size={16} className="text-amber-400" />
-          <span style={{ fontWeight: 700, fontSize: '12.5px', letterSpacing: '0.03em' }}>
-            CALIBRATION 1915×821
-          </span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-          <button
-            type="button"
-            onClick={() => setIsPanelCollapsed(true)}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: '#94A3B8',
-              cursor: 'pointer',
-              padding: '3px',
-              display: 'flex',
-              alignItems: 'center',
-            }}
-            title="Thu gọn bảng (Tab)"
-          >
-            <ChevronLeft size={16} />
-          </button>
+    <>
+      <aside
+        className="sgp-map-hud-surface"
+        role="region"
+        aria-label="V10 Calibration Workspace"
+        style={{
+          position: 'absolute',
+          top: '16px',
+          left: '16px',
+          width: '300px', // 280-320px per Section 6
+          maxHeight: 'calc(100vh - 32px)',
+          overflowY: 'auto',
+          borderRadius: '12px',
+          padding: '14px',
+          color: '#F8FAFC',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '10px',
+          zIndex: 1000,
+          boxShadow: '0 12px 32px rgba(0, 0, 0, 0.55)',
+          fontSize: '12px',
+        }}
+      >
+        {/* 1. Header (Section 5 & 6) */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
           <button
             type="button"
             onClick={handleExit}
             style={{
-              background: 'transparent',
-              border: 'none',
-              color: '#94A3B8',
+              background: 'rgba(56, 189, 248, 0.12)',
+              border: '1px solid rgba(56, 189, 248, 0.3)',
+              borderRadius: '6px',
+              color: '#38BDF8',
               cursor: 'pointer',
-              padding: '3px',
+              padding: '4px 8px',
               display: 'flex',
               alignItems: 'center',
+              gap: '5px',
+              fontSize: '11px',
+              fontWeight: 600,
             }}
-            title="Thoát chế độ hiệu chuẩn"
+            title="Thoát và trở lại giao diện Bản đồ (Esc)"
           >
-            <X size={15} />
+            <ArrowLeft size={13} />
+            <span>← Trở lại bản đồ</span>
           </button>
-        </div>
-      </div>
 
-      {/* Human-Signoff Workflow Step Hints (Section 10) */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <button
+              type="button"
+              onClick={() => setIsPanelCollapsed(true)}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#94A3B8',
+                cursor: 'pointer',
+                padding: '3px',
+                display: 'flex',
+                alignItems: 'center',
+              }}
+              title="Thu gọn bảng (Tab)"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <button
+              type="button"
+              onClick={handleExit}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#94A3B8',
+                cursor: 'pointer',
+                padding: '3px',
+                display: 'flex',
+                alignItems: 'center',
+              }}
+              title="Đóng hiệu chuẩn"
+            >
+              <X size={15} />
+            </button>
+          </div>
+        </div>
+
+        {/* Sync Status Badge & Title */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Compass size={15} className="text-amber-400" />
+            <span style={{ fontWeight: 700, fontSize: '11.5px', letterSpacing: '0.03em' }}>
+              HIỆU CHUẨN 1915×821
+            </span>
+          </div>
+          {workspace?.isGeometryDirty ? (
+            <span
+              style={{
+                fontSize: '10px',
+                padding: '1px 6px',
+                borderRadius: '4px',
+                background: 'rgba(234, 179, 8, 0.18)',
+                color: '#FACC15',
+                border: '1px solid rgba(234, 179, 8, 0.35)',
+                fontWeight: 600,
+              }}
+            >
+              Bản nháp (Đã sửa)
+            </span>
+          ) : (
+            <span
+              style={{
+                fontSize: '10px',
+                padding: '1px 6px',
+                borderRadius: '4px',
+                background: 'rgba(16, 185, 129, 0.15)',
+                color: '#34D399',
+                border: '1px solid rgba(16, 185, 129, 0.25)',
+                fontWeight: 500,
+              }}
+            >
+              Đã đồng bộ
+            </span>
+          )}
+        </div>
+
+        {/* Human-Signoff Workflow Step Hints (Section 10) */}
       <div
         style={{
           display: 'flex',
@@ -1373,97 +1522,219 @@ export const MapCalibrationHUD: React.FC<{
         </div>
       </div>
 
-      {/* 6. Primary Actions (Section 6) */}
-      <div style={{ display: 'flex', gap: '6px' }}>
-        <button
-          type="button"
-          onClick={handleUndo}
-          style={{
-            flex: 1,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '4px',
-            padding: '6px 8px',
-            borderRadius: '6px',
-            fontSize: '11px',
-            fontWeight: 500,
-            background: 'rgba(15, 23, 42, 0.6)',
-            border: '1px solid rgba(255, 255, 255, 0.14)',
-            color: '#CBD5E1',
-            cursor: 'pointer',
-          }}
-          title="Hoàn tác (Ctrl+Z)"
-        >
-          <Undo2 size={12} /> Hoàn tác
-        </button>
-        <button
-          type="button"
-          onClick={handleReset}
-          style={{
-            flex: 1,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '4px',
-            padding: '6px 8px',
-            borderRadius: '6px',
-            fontSize: '11px',
-            fontWeight: 500,
-            background: 'rgba(15, 23, 42, 0.6)',
-            border: '1px solid rgba(255, 255, 255, 0.14)',
-            color: '#CBD5E1',
-            cursor: 'pointer',
-          }}
-          title="Khôi phục trạng thái ban đầu"
-        >
-          <RotateCcw size={12} /> Khôi phục
-        </button>
+      {/* 6. Primary Actions (Section 6, 10, 11, 12, 13, 14) */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+        {feedback && (
+          <div
+            style={{
+              padding: '5px 8px',
+              borderRadius: '5px',
+              fontSize: '10.5px',
+              background: feedback.isError ? 'rgba(239, 68, 68, 0.2)' : 'rgba(16, 185, 129, 0.2)',
+              border: `1px solid ${feedback.isError ? '#EF4444' : '#10B981'}`,
+              color: feedback.isError ? '#F87171' : '#34D399',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+          >
+            {feedback.isError ? <AlertTriangle size={12} /> : <CheckCircle2 size={12} />}
+            <span>{feedback.message}</span>
+          </div>
+        )}
+
+        {/* Apply Geometry Button (Section 13 & 14) */}
+        {workspace && (
+          <button
+            type="button"
+            onClick={handleApply}
+            disabled={!workspace.validationGate.valid}
+            style={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              background: workspace.validationGate.valid ? '#0284C7' : 'rgba(255, 255, 255, 0.05)',
+              border: `1px solid ${workspace.validationGate.valid ? '#38BDF8' : 'rgba(255, 255, 255, 0.1)'}`,
+              color: workspace.validationGate.valid ? '#FFFFFF' : '#64748B',
+              padding: '7px 10px',
+              borderRadius: '6px',
+              fontSize: '11.5px',
+              fontWeight: 600,
+              cursor: workspace.validationGate.valid ? 'pointer' : 'not-allowed',
+            }}
+            title={
+              workspace.validationGate.valid
+                ? 'Áp dụng ranh giới vào phiên làm việc và xuất JSON'
+                : `Không thể áp dụng: còn ${workspace.validationGate.errors.length} lỗi hình học`
+            }
+          >
+            <CheckCircle2 size={13} />
+            <span>
+              {workspace.validationGate.valid
+                ? 'Áp dụng geometry'
+                : `Áp dụng (${workspace.validationGate.errors.length} lỗi)`}
+            </span>
+          </button>
+        )}
+
+        {/* Draft & Reset Row */}
+        <div style={{ display: 'flex', gap: '6px' }}>
+          {workspace && (
+            <button
+              type="button"
+              onClick={handleSaveDraft}
+              style={{
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '4px',
+                padding: '6px 8px',
+                borderRadius: '6px',
+                fontSize: '11px',
+                fontWeight: 500,
+                background: 'rgba(15, 23, 42, 0.6)',
+                border: '1px solid rgba(255, 255, 255, 0.14)',
+                color: '#CBD5E1',
+                cursor: 'pointer',
+              }}
+              title="Lưu bản nháp vào trình duyệt (localStorage)"
+            >
+              <Save size={12} /> Lưu bản nháp
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={handleReset}
+            style={{
+              flex: 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '4px',
+              padding: '6px 8px',
+              borderRadius: '6px',
+              fontSize: '11px',
+              fontWeight: 500,
+              background: 'rgba(15, 23, 42, 0.6)',
+              border: '1px solid rgba(255, 255, 255, 0.14)',
+              color: '#CBD5E1',
+              cursor: 'pointer',
+            }}
+            title="Khôi phục trạng thái ban đầu"
+          >
+            <RotateCcw size={12} /> Khôi phục
+          </button>
+        </div>
+
+        {/* Undo & Copy Row */}
+        <div style={{ display: 'flex', gap: '6px' }}>
+          <button
+            type="button"
+            onClick={handleUndo}
+            style={{
+              flex: 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '4px',
+              padding: '6px 8px',
+              borderRadius: '6px',
+              fontSize: '11px',
+              fontWeight: 500,
+              background: 'rgba(15, 23, 42, 0.6)',
+              border: '1px solid rgba(255, 255, 255, 0.14)',
+              color: '#CBD5E1',
+              cursor: 'pointer',
+            }}
+            title="Hoàn tác (Ctrl+Z)"
+          >
+            <Undo2 size={12} /> Hoàn tác
+          </button>
+          <button
+            type="button"
+            onClick={handleCopyJson}
+            style={{
+              flex: 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '4px',
+              background: copySuccess ? '#059669' : 'rgba(15, 23, 42, 0.6)',
+              border: '1px solid rgba(255, 255, 255, 0.14)',
+              color: copySuccess ? '#FFFFFF' : '#CBD5E1',
+              padding: '6px 8px',
+              borderRadius: '6px',
+              fontSize: '11px',
+              cursor: 'pointer',
+            }}
+            title="Sao chép toàn bộ V10 JSON vào bộ nhớ tạm"
+          >
+            <Copy size={12} /> {copySuccess ? 'Đã sao chép' : 'Sao chép JSON'}
+          </button>
+        </div>
+
+        {/* Import & Export Row (Section 12) */}
+        <div style={{ display: 'flex', gap: '6px' }}>
+          {workspace && (
+            <>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".json"
+                style={{ display: 'none' }}
+                onChange={handleFileInputChange}
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                style={{
+                  flex: 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '4px',
+                  background: 'rgba(15, 23, 42, 0.6)',
+                  border: '1px solid rgba(255, 255, 255, 0.14)',
+                  color: '#CBD5E1',
+                  padding: '6px 8px',
+                  borderRadius: '6px',
+                  fontSize: '11px',
+                  cursor: 'pointer',
+                }}
+                title="Nhập tệp geometry JSON vào bản nháp"
+              >
+                <Upload size={12} /> Nhập JSON
+              </button>
+            </>
+          )}
+
+          <button
+            type="button"
+            onClick={handleDownloadJson}
+            style={{
+              flex: 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '4px',
+              background: 'rgba(15, 23, 42, 0.6)',
+              border: '1px solid rgba(255, 255, 255, 0.14)',
+              color: '#CBD5E1',
+              padding: '6px 8px',
+              borderRadius: '6px',
+              fontSize: '11px',
+              cursor: 'pointer',
+            }}
+            title="Tải tệp JSON với dấu thời gian"
+          >
+            <Download size={12} /> Xuất JSON
+          </button>
+        </div>
       </div>
-
-      <button
-        type="button"
-        onClick={handleCopyJson}
-        style={{
-          width: '100%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '6px',
-          background: copySuccess ? '#059669' : '#0284C7',
-          border: 'none',
-          color: '#FFFFFF',
-          padding: '7px 10px',
-          borderRadius: '6px',
-          fontSize: '11.5px',
-          fontWeight: 600,
-          cursor: 'pointer',
-          transition: 'background 150ms ease',
-        }}
-      >
-        <Copy size={13} /> {copySuccess ? 'Đã sao chép V10 JSON!' : 'Sao chép V10 JSON'}
-      </button>
-
-      <button
-        type="button"
-        onClick={handleDownloadJson}
-        style={{
-          width: '100%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '4px',
-          background: 'rgba(15, 23, 42, 0.6)',
-          border: '1px solid rgba(255, 255, 255, 0.14)',
-          color: '#CBD5E1',
-          padding: '6px 10px',
-          borderRadius: '6px',
-          fontSize: '11px',
-          cursor: 'pointer',
-        }}
-      >
-        <Download size={12} /> Tải tệp JSON
-      </button>
 
       {/* 7. Collapsible Advanced Section: "Chi tiết kỹ thuật" (Section 6) */}
       <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.08)', paddingTop: '6px' }}>
@@ -1529,6 +1800,104 @@ export const MapCalibrationHUD: React.FC<{
         )}
       </div>
     </aside>
+
+    {/* Unsaved Changes Confirmation Modal (Section 10) */}
+    {workspace?.showUnsavedModal && (
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Cảnh báo thay đổi chưa lưu"
+        style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(2, 6, 23, 0.75)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+        }}
+      >
+        <div
+          style={{
+            background: '#0B192C',
+            border: '1px solid rgba(255, 255, 255, 0.16)',
+            borderRadius: '12px',
+            padding: '20px',
+            maxWidth: '380px',
+            width: '90%',
+            boxShadow: '0 20px 40px rgba(0, 0, 0, 0.6)',
+            color: '#F8FAFC',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+            <AlertTriangle size={20} className="text-amber-400" />
+            <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 700 }}>
+              Bạn có thay đổi chưa lưu.
+            </h3>
+          </div>
+          <p style={{ fontSize: '12px', color: '#94A3B8', lineHeight: 1.5, margin: '0 0 18px 0' }}>
+            Ranh giới phân khu hoặc điểm mốc đã được điều chỉnh trong bản nháp. Bạn muốn xử lý thế nào trước khi thoát?
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <button
+              type="button"
+              onClick={() => {
+                workspace.saveDraft();
+                workspace.closeMapCalibration(true);
+              }}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                borderRadius: '6px',
+                background: '#0284C7',
+                border: 'none',
+                color: '#FFF',
+                fontSize: '12px',
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              Lưu bản nháp
+            </button>
+            <button
+              type="button"
+              onClick={() => workspace.discardDraft()}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                borderRadius: '6px',
+                background: 'rgba(239, 68, 68, 0.15)',
+                border: '1px solid rgba(239, 68, 68, 0.4)',
+                color: '#F87171',
+                fontSize: '12px',
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              Hủy thay đổi
+            </button>
+            <button
+              type="button"
+              onClick={() => workspace.setShowUnsavedModal(false)}
+              style={{
+                width: '100%',
+                padding: '7px 12px',
+                borderRadius: '6px',
+                background: 'transparent',
+                border: '1px solid rgba(255, 255, 255, 0.14)',
+                color: '#94A3B8',
+                fontSize: '12px',
+                cursor: 'pointer',
+              }}
+            >
+              Tiếp tục chỉnh
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+  </>
   );
 };
 

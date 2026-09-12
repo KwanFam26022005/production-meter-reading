@@ -20,6 +20,7 @@ import {
 import { createAdminMeter, updateAdminMeter } from '../../services/api';
 import { useMapStateMachine, DetailView } from './state/useMapStateMachine';
 import { focusEntity } from './services/mapCameraService';
+import { useMapCalibrationWorkspace } from './calibration/useMapCalibrationWorkspace';
 import './motion/mapMotion.css';
 
 interface MapOperationsPageProps {
@@ -68,8 +69,13 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
   // Centralized UI State Machine
   const mapState = useMapStateMachine();
 
-  // View mode: 'map' | 'list' (in-place animated segmented switch)
-  const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
+  // Centralized Map Workspace & Calibration View (V12)
+  const calibrationWorkspace = useMapCalibrationWorkspace('map', () => {
+    setAnalyticsOpen(false);
+    mapState.resetToBrowse();
+  });
+  const viewMode = calibrationWorkspace.workspaceView;
+  const setViewMode = calibrationWorkspace.setWorkspaceView;
 
   // Alert Focus & Telemetry Focus state
   const [exceptionFocus, setExceptionFocus] = useState(false);
@@ -486,6 +492,8 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
 
       viewMode={viewMode}
       onViewModeChange={setViewMode}
+      onOpenCalibration={calibrationWorkspace.openMapCalibration}
+      calibrationWorkspace={calibrationWorkspace}
 
       selectedRoundId={selectedRoundId || filters.selectedRoundId}
       onSelectRound={(roundId) => {

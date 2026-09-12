@@ -42,6 +42,28 @@ export function formatUserRole(role?: string | null): string {
   return 'Nhân viên';
 }
 
+/**
+ * Map Workspace View Modes (Section 3)
+ * Normal user views: 'map' | 'list'
+ * Administrative calibration workspace: 'calibration'
+ */
+export type MapWorkspaceView = 'map' | 'list' | 'calibration';
+
+/**
+ * Check if the user is authorized to administer map geometry configuration (Section 4)
+ * Allows ADMIN and MANAGER roles, strictly excludes ordinary meter-reading operators.
+ */
+export function canAdministerMapConfiguration(user?: User | null): boolean {
+  if (!user || !user.role) return false;
+  const normalized = user.role.trim().toUpperCase();
+  return (
+    normalized === 'ADMIN' ||
+    normalized === 'ROLE_ADMIN' ||
+    normalized === 'MANAGER' ||
+    normalized === 'ROLE_MANAGER'
+  );
+}
+
 export interface AttendanceDetail {
   id: string;
   timestamp: string;

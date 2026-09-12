@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import type { AdminDashboardResponse, User } from '../../../types';
+import type { AdminDashboardResponse, User, MapWorkspaceView } from '../../../types';
 import type {
   MapMeterItem,
   MapOperationalZone,
@@ -16,9 +16,9 @@ import { SceneSummaryHUD } from './SceneSummaryHUD';
 import { SceneRoundHUD } from './SceneRoundHUD';
 import { SceneControlHUD } from './SceneControlHUD';
 import { OperationalListView } from './OperationalListView';
-
 import { OperationalScene } from '../scene/OperationalScene';
 import { isCalibrationModeActive } from '../calibration/MapCalibrationOverlay';
+import type { MapCalibrationWorkspace } from '../calibration/useMapCalibrationWorkspace';
 import { SpatialInspector, MapContextRail } from '../map-ui';
 import { AnalyticsDrawer } from '../context';
 import type {
@@ -53,9 +53,11 @@ interface ImmersiveSceneShellProps {
   onRefresh: () => void;
   onExportCsv: () => void;
 
-  // View Mode: Map / List
-  viewMode: 'map' | 'list';
-  onViewModeChange: (mode: 'map' | 'list') => void;
+  // View Mode: Map / List / Calibration (V12)
+  viewMode: MapWorkspaceView;
+  onViewModeChange: (mode: MapWorkspaceView) => void;
+  onOpenCalibration?: () => void;
+  calibrationWorkspace?: MapCalibrationWorkspace;
 
   // Selection & Filters
   selectedRoundId?: string;
@@ -193,6 +195,8 @@ export const ImmersiveSceneShell: React.FC<ImmersiveSceneShellProps> = ({
   selectedEntity = null,
   detailView = null,
   placementContext = null,
+  onOpenCalibration,
+  calibrationWorkspace,
   onOpenDetails,
   onBackToInspector,
   onUpdatePlacementContext,
@@ -205,7 +209,7 @@ export const ImmersiveSceneShell: React.FC<ImmersiveSceneShellProps> = ({
 }) => {
   const issueCount = overallKpis.overdue + overallKpis.review;
   const rounds = dashboardData?.round_progress || [];
-  const isCalibrationActive = isCalibrationModeActive();
+  const isCalibrationActive = viewMode === 'calibration' || isCalibrationModeActive();
 
   const operationalStates = useMemo(() => {
     return projectAllZonesOperationalState(mapZones, mapMeters);
@@ -221,7 +225,7 @@ export const ImmersiveSceneShell: React.FC<ImmersiveSceneShellProps> = ({
         {/* ============================================================ */}
         {/* LAYER B: PRIMARY CENTER CANVAS (MAP OR LIST)                */}
         {/* ============================================================ */}
-        {viewMode === 'map' ? (
+        {viewMode !== 'list' ? (
           <OperationalScene
             zones={mapZones}
             meters={filteredMeters}
@@ -247,6 +251,9 @@ export const ImmersiveSceneShell: React.FC<ImmersiveSceneShellProps> = ({
             onClearSelection={onClearSelection}
             onViewportChange={onViewportChange}
             placementSvgLayer={placementSvgLayer}
+            viewMode={viewMode}
+            isCalibrationActive={isCalibrationActive}
+            calibrationWorkspace={calibrationWorkspace}
           />
         ) : (
           <OperationalListView
@@ -282,6 +289,7 @@ export const ImmersiveSceneShell: React.FC<ImmersiveSceneShellProps> = ({
               isLoading={isLoading}
               onExportCsv={onExportCsv}
               onOpenAnalytics={() => onSetAnalyticsOpen(true)}
+              onOpenCalibration={onOpenCalibration}
             />
           </div>
 
