@@ -215,6 +215,13 @@ export const ImmersiveSceneShell: React.FC<ImmersiveSceneShellProps> = ({
 
 }) => {
   const [isLegendOpen, setIsLegendOpen] = React.useState(false);
+  const [isToolbarCollapsed, setIsToolbarCollapsed] = React.useState<boolean>(() => {
+    try {
+      return sessionStorage.getItem('cmd_bar_collapsed') === '1';
+    } catch {
+      return false;
+    }
+  });
   const rounds = dashboardData?.round_progress || [];
   const isCalibrationActive = viewMode === 'calibration' || isCalibrationModeActive();
 
@@ -306,7 +313,15 @@ export const ImmersiveSceneShell: React.FC<ImmersiveSceneShellProps> = ({
       className="sgp-map-first-root"
       role="main"
       aria-label="Trung tâm tác nghiệp công tơ Cảng Tân Thuận"
-      style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}
+      style={
+        {
+          position: 'relative',
+          width: '100%',
+          height: '100%',
+          overflow: 'hidden',
+          '--commandbar-clearance': isToolbarCollapsed ? '16px' : '80px',
+        } as React.CSSProperties
+      }
     >
       {/* IMMERSIVE FULL-BLEED WORKSPACE CONTAINER (V13.2 Section 18) */}
       <main
@@ -366,6 +381,8 @@ export const ImmersiveSceneShell: React.FC<ImmersiveSceneShellProps> = ({
               user={user}
               viewMode={viewMode}
               onViewModeChange={onViewModeChange}
+              isCollapsed={isToolbarCollapsed}
+              onToggleCollapse={setIsToolbarCollapsed}
               selectedDate={selectedDate}
               onDateChange={onDateChange}
               rounds={rounds}
@@ -392,21 +409,22 @@ export const ImmersiveSceneShell: React.FC<ImmersiveSceneShellProps> = ({
               isLegendOpen={isLegendOpen}
             />
 
-            {/* Viewport controls strictly unmounted in List mode (Section 19-21) */}
+            {/* Viewport controls strictly unmounted in List mode AND when ContextRail is open (V13.3 Section 10-11) */}
             {viewMode === 'map' && (
-              <div
-                className="sgp-hud-bottom-right"
-                style={{
-                  position: 'absolute',
-                  bottom: '20px',
-                  right: activeContextType ? '400px' : '20px',
-                  zIndex: 35,
-                  transition: 'right 200ms cubic-bezier(0.16, 1, 0.3, 1)',
-                  pointerEvents: 'auto',
-                }}
-              >
-                <SceneControlHUD />
-              </div>
+              !activeContextType ? (
+                <div
+                  className="sgp-hud-bottom-right"
+                  style={{
+                    position: 'absolute',
+                    bottom: '18px',
+                    right: '18px',
+                    zIndex: 35,
+                    pointerEvents: 'auto',
+                  }}
+                >
+                  <SceneControlHUD />
+                </div>
+              ) : null
             )}
           </>
         )}

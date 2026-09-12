@@ -19,6 +19,57 @@ export const CANONICAL_VIEWBOX = '0 0 1915 821';
 export const CANONICAL_ASPECT_RATIO = CANONICAL_SCENE_WIDTH / CANONICAL_SCENE_HEIGHT;
 
 /**
+ * MAP CANVAS DIAGNOSTIC CONSTANTS & SPECIFICATIONS (V13.3)
+ *
+ * Current Active Map Source:
+ * - Canonical image: 1915 x 821
+ * - Aspect ratio: 1915 / 821 = 2.332521 (wide panoramic)
+ *
+ * Primary Observed Desktop Workspace Target:
+ * - Typical viewport: ~2.05:1 (e.g. 1920 x 936 desktop workspace after chrome/sidebar)
+ *
+ * Future Recommended Canvas Specification:
+ * - Logical target: 1915 x 932 (~2.0547:1 aspect ratio)
+ * - High-density source option (2x): 3830 x 1864
+ * - Alternative raster resolution: 2560 x 1246
+ *
+ * IMPORTANT NOTE ON ASPECT-RATIO & COVER/STRETCH:
+ * - The current blank strip is an aspect-ratio mismatch between the 2.33:1 map source
+ *   and typical 2.05:1 displays, NOT a geometry bug.
+ * - DO NOT apply `object-fit: cover`, `preserveAspectRatio="slice"`, or non-uniform stretching.
+ *   Spatial alignment and coordinate precision take precedence over hiding the blank strip.
+ * - Migrating from 1915x821 to 1915x932 requires a separate controlled map-source
+ *   re-calibration migration. DO NOT perform it in V13.3.
+ */
+export const MAP_CANVAS_DIAGNOSTICS = {
+  currentSource: {
+    width: 1915,
+    height: 821,
+    aspectRatio: 2.332521,
+    viewBox: '0 0 1915 821',
+  },
+  workspaceTarget: {
+    aspectRatio: 2.05,
+    description: 'Primary observed desktop workspace target (~2.05:1)',
+  },
+  futureRecommendation: {
+    logicalWidth: 1915,
+    logicalHeight: 932,
+    aspectRatio: 1915 / 932,
+    highDensityWidth: 3830,
+    highDensityHeight: 1864,
+    alternativeRasterWidth: 2560,
+    alternativeRasterHeight: 1246,
+  },
+  migrationRules: {
+    allowCover: false,
+    allowSlice: false,
+    allowStretching: false,
+    separateMigrationRequired: true,
+  },
+} as const;
+
+/**
  * Explicit Presentation Transform:
  * Projects normalized coordinates [0.0, 1.0] to canonical scene coordinates [0, 1915] x [0, 821].
  * Single helper used across all layers and contextual surfaces.

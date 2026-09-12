@@ -231,7 +231,7 @@ test('V13.2 Map: Full-bleed container is position: absolute; inset: 0 in JSX and
   );
 });
 
-test('V13.2 Bottom Utilities: Viewport fullscreen removed, info [i] retained and shifted on rail open', () => {
+test('V13.2 / V13.3 Bottom Utilities: Viewport fullscreen removed, info [i] retained and hidden on rail open', () => {
   const hudPath = path.resolve(__dirname, '../src/features/map-operations/shell/SceneControlHUD.tsx');
   const hudCode = fs.readFileSync(hudPath, 'utf-8');
 
@@ -241,9 +241,14 @@ test('V13.2 Bottom Utilities: Viewport fullscreen removed, info [i] retained and
   const shellPath = path.resolve(__dirname, '../src/features/map-operations/shell/ImmersiveSceneShell.tsx');
   const shellCode = fs.readFileSync(shellPath, 'utf-8');
 
+  // V13.3: Hide completely when activeContextType !== null, safe edge at 18px
   assert.ok(
-    shellCode.includes('right: activeContextType ? \'400px\' : \'20px\''),
-    'Bottom utility must shift left when ContextRail is open'
+    shellCode.includes('!activeContextType') && shellCode.includes('SceneControlHUD'),
+    'Bottom utility must be hidden when ContextRail is open'
+  );
+  assert.ok(
+    shellCode.includes("bottom: '18px'"),
+    'Bottom utility must have safe edge 18px'
   );
 });
 

@@ -82,6 +82,10 @@ export interface AdaptiveCommandBarProps {
   // Back context if in placement / workflow
   onBack?: () => void;
   backLabel?: string;
+
+  // Controlled collapse state (V13.3)
+  isCollapsed?: boolean;
+  onToggleCollapse?: (collapsed: boolean) => void;
 }
 
 export type ActiveCommandSurfaceType = 'shift' | 'search' | 'filter' | 'overflow' | null;
@@ -114,15 +118,19 @@ export const AdaptiveCommandBar: React.FC<AdaptiveCommandBarProps> = ({
   onOpenCalibration,
   onBack,
   backLabel,
+  isCollapsed: controlledCollapsed,
+  onToggleCollapse,
 }) => {
   // 1. Full Collapse State (Section 4: EXPANDED vs COLLAPSED)
-  const [isCollapsed, setIsCollapsed] = useState<boolean>(() => {
+  const [internalCollapsed, setInternalCollapsed] = useState<boolean>(() => {
     try {
       return sessionStorage.getItem('cmd_bar_collapsed') === '1';
     } catch {
       return false;
     }
   });
+
+  const isCollapsed = controlledCollapsed !== undefined ? controlledCollapsed : internalCollapsed;
 
   const [viewportWidth, setViewportWidth] = useState(() =>
     typeof window !== 'undefined' ? window.innerWidth : 1440
@@ -135,14 +143,22 @@ export const AdaptiveCommandBar: React.FC<AdaptiveCommandBarProps> = ({
   }, []);
 
   const handleCollapse = () => {
-    setIsCollapsed(true);
+    if (onToggleCollapse) {
+      onToggleCollapse(true);
+    } else {
+      setInternalCollapsed(true);
+    }
     try {
       sessionStorage.setItem('cmd_bar_collapsed', '1');
     } catch {}
   };
 
   const handleExpand = () => {
-    setIsCollapsed(false);
+    if (onToggleCollapse) {
+      onToggleCollapse(false);
+    } else {
+      setInternalCollapsed(false);
+    }
     try {
       sessionStorage.setItem('cmd_bar_collapsed', '0');
     } catch {}
@@ -266,16 +282,29 @@ export const AdaptiveCommandBar: React.FC<AdaptiveCommandBarProps> = ({
   }, [rounds, currentRoundTime, overallKpis]);
 
   // =========================================================================
-  // RENDER: COLLAPSED STATE (Section 4: Floating Avatar Only, min 44px)
+  // RENDER: COLLAPSED STATE (V13.3 Section 1: Right-Anchored Avatar Shell)
+  // Exactly one avatar button [P] at the same right-edge location (right: 16px)
+  // occupied by profile in expanded mode. Contracts inward; no teleporting.
   // =========================================================================
   if (isCollapsed) {
     return (
-      <div
-        className="sgp-cmd-collapsed-dock"
+      <header
+        className="sgp-hud-top-bar sgp-adaptive-command-bar collapsed"
+        role="toolbar"
+        aria-label="Thanh điều hành tác nghiệp (Đã thu gọn)"
         style={{
           position: 'absolute',
           top: '14px',
-          left: '16px',
+          right: '16px',
+          left: 'auto',
+          transformOrigin: 'right center',
+          width: '44px',
+          height: '44px',
+          padding: 0,
+          borderRadius: '12px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
           zIndex: 40,
           pointerEvents: 'auto',
         }}
@@ -309,20 +338,29 @@ export const AdaptiveCommandBar: React.FC<AdaptiveCommandBarProps> = ({
         >
           <span className="sgp-cmd-avatar-initial">{userInitial}</span>
         </button>
-      </div>
+      </header>
     );
   }
 
   // =========================================================================
-  // RENDER: EXPANDED COMMAND BAR (Section 4-10)
+  // RENDER: EXPANDED COMMAND BAR (Right-Anchored, Section 1-10)
   // =========================================================================
   return (
     <>
       <header
-        className="sgp-hud-top-bar sgp-adaptive-command-bar"
+        className="sgp-hud-top-bar sgp-adaptive-command-bar expanded"
         role="toolbar"
         aria-label="Thanh điều hành tác nghiệp cảng"
-        style={{ zIndex: 40 }}
+        style={{
+          position: 'absolute',
+          top: '14px',
+          right: '16px',
+          left: 'auto',
+          transformOrigin: 'right center',
+          width: 'auto',
+          maxWidth: 'calc(100vw - 32px)',
+          zIndex: 40,
+        }}
       >
         {/* ============================================================ */}
         {/* 1. LEFT GROUP: BACK BUTTON ONLY (Branding removed in V13.2)  */}

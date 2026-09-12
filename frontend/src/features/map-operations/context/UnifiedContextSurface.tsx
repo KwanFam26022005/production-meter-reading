@@ -29,6 +29,7 @@ import {
   MapPin,
   ExternalLink,
   ChevronRight,
+  ChevronDown,
 } from 'lucide-react';
 import type { MapMeterItem, MapOperationalZone } from '../types';
 import type { User, AdminDashboardResponse } from '../../../types';
@@ -173,6 +174,58 @@ export const UnifiedContextSurface: React.FC<UnifiedContextSurfaceProps> = ({
   const presentationAnalytics = useMemo(() => {
     return derivePresentationZoneAnalytics(allMeters);
   }, [allMeters]);
+
+  // Progressive disclosure for issue queue (Section 9: Collapsed by default)
+  const [isIssueQueueExpanded, setIsIssueQueueExpanded] = useState(false);
+
+  // Canonical issue queue (Section 8: toolbarIssueCount === analyticsIssueCount === issueQueue.length)
+  const canonicalIssueQueue = useMemo(() => {
+    const domainIssueMeters = allMeters.filter(
+      (m) => m.semanticState === 'OVERDUE' || m.semanticState === 'REVIEW'
+    );
+
+    if (domainIssueMeters.length > 0) {
+      return domainIssueMeters.map((m) => {
+        const matchingEx = dashboardData?.exceptions?.find(
+          (ex) => ex.meter_id === m.id || ex.meter_code === m.meterCode
+        );
+        const issueLabel =
+          m.semanticState === 'OVERDUE'
+            ? 'Quá hạn ghi số'
+            : m.semanticState === 'REVIEW'
+            ? (matchingEx?.exception_label || 'Cần kiểm tra xác nhận')
+            : (matchingEx?.exception_label || 'Vấn đề vận hành');
+
+        return {
+          id: m.id,
+          meterId: m.id,
+          meterCode: m.meterCode || m.id,
+          name: m.name || m.meterCode || m.id,
+          zoneName: m.zoneName || m.zoneId,
+          issueType: m.semanticState,
+          issueLabel,
+          readingId: matchingEx?.reading_id || m.latestReading?.readingId,
+        };
+      });
+    }
+
+    if (dashboardData?.exceptions && dashboardData.exceptions.length > 0) {
+      return dashboardData.exceptions.map((ex) => ({
+        id: ex.meter_id || ex.reading_id || 'issue',
+        meterId: ex.meter_id || '',
+        meterCode: ex.meter_code || 'CT',
+        name: ex.meter_code || 'Công tơ',
+        zoneName: undefined,
+        issueType: 'REVIEW',
+        issueLabel: ex.exception_label || 'Cần kiểm tra xác nhận',
+        readingId: ex.reading_id,
+      }));
+    }
+
+    return [];
+  }, [allMeters, dashboardData]);
+
+  const canonicalIssueCount = canonicalIssueQueue.length;
 
   return (
     <aside
@@ -656,9 +709,9 @@ export const UnifiedContextSurface: React.FC<UnifiedContextSurfaceProps> = ({
             </button>
           </div>
 
-          {/* BODY: MINIMAL VISUAL METRICS (V13.2 Section 12-15) */}
+          {/* BODY: MINIMAL VISUAL METRICS (V13.2 / V13.3) */}
           <div className="sgp-rail-body">
-            {/* SUMMARY: TWO SMALL DONUTS MAX (Section 14) */}
+            {/* SUMMARY: TWO SMALL COMPACT DONUTS (Section 6: 68-76px, 6-7px stroke) */}
             <div
               className="sgp-analytics-donuts-row"
               style={{
@@ -675,8 +728,8 @@ export const UnifiedContextSurface: React.FC<UnifiedContextSurfaceProps> = ({
                     ? Math.round(dashboardData.provenance.ocr_confirmed_percent)
                     : 84
                 }
-                size={80}
-                strokeWidth={7}
+                size={72}
+                strokeWidth={6.5}
                 caption="OCR tự động"
                 color="#38BDF8"
               />
@@ -688,8 +741,8 @@ export const UnifiedContextSurface: React.FC<UnifiedContextSurfaceProps> = ({
                     ? Math.round(dashboardData.kpis.completion_percent)
                     : 0
                 }
-                size={80}
-                strokeWidth={7}
+                size={72}
+                strokeWidth={6.5}
                 caption="Tiến độ chung"
                 color={
                   (presentationAnalytics.completionPercent ?? 0) === 100
@@ -699,7 +752,7 @@ export const UnifiedContextSurface: React.FC<UnifiedContextSurfaceProps> = ({
               />
             </div>
 
-            {/* INLINE METRICS (Section 14) */}
+            {/* INLINE METRICS (Section 6: 14% chỉnh sửa · 81 xác nhận · 8 thủ công · 1 vấn đề) */}
             <div
               className="sgp-analytics-inline-metrics"
               style={{
@@ -717,28 +770,28 @@ export const UnifiedContextSurface: React.FC<UnifiedContextSurfaceProps> = ({
               <span className="font-tabular font-medium text-amber-300">
                 {dashboardData?.provenance?.user_corrected_percent
                   ? `${Math.round(dashboardData.provenance.user_corrected_percent)}%`
-                  : '11%'}{' '}
+                  : '14%'}{' '}
                 chỉnh sửa
               </span>
               <span>·</span>
               <span className="font-tabular font-medium text-slate-300">
-                {dashboardData?.provenance?.ocr_confirmed_count ?? 92} xác nhận
+                {dashboardData?.provenance?.ocr_confirmed_count ?? 81} xác nhận
               </span>
               <span>·</span>
               <span className="font-tabular font-medium text-slate-300">
-                {dashboardData?.provenance?.manual_entry_count ?? 5} thủ công
+                {dashboardData?.provenance?.manual_entry_count ?? 8} thủ công
               </span>
-              {presentationAnalytics.issueMeters > 0 && (
+              {canonicalIssueCount > 0 && (
                 <>
                   <span>·</span>
                   <span className="font-tabular font-semibold text-rose-400">
-                    {presentationAnalytics.issueMeters} vấn đề
+                    {canonicalIssueCount} vấn đề
                   </span>
                 </>
               )}
             </div>
 
-            {/* Zone Progress Breakdown (Section 2, 3, 4, 7: Exactly 6 Presentation Zones) */}
+            {/* Zone Progress Breakdown (Section 7: Exactly 6 Presentation Zones, Grid Separator) */}
             <ContextSection title="Tiến độ phân khu" eyebrow="TIẾN ĐỘ PHÂN KHU">
               <div className="flex flex-col gap-3 py-1">
                 {presentationAnalytics.zones.map((pz) => {
@@ -758,9 +811,18 @@ export const UnifiedContextSurface: React.FC<UnifiedContextSurfaceProps> = ({
                       }}
                       aria-label={`${pz.name}: ${pz.statusLabel}`}
                     >
-                      <div className="flex justify-between items-center text-xs mb-1.5">
-                        <span className="font-medium text-slate-200">{pz.name}</span>
-                        <span className="font-tabular text-slate-300">
+                      <div
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'minmax(0, 1fr) auto',
+                          gap: '8px',
+                          alignItems: 'center',
+                          marginBottom: '6px',
+                          fontSize: '12px',
+                        }}
+                      >
+                        <span className="font-medium text-slate-200 truncate">{pz.name}</span>
+                        <span className="font-tabular text-slate-300 shrink-0">
                           {pz.statusLabel}
                         </span>
                       </div>
@@ -778,31 +840,81 @@ export const UnifiedContextSurface: React.FC<UnifiedContextSurfaceProps> = ({
               </div>
             </ContextSection>
 
-            {/* Exceptions Queue */}
-            {dashboardData?.exceptions && dashboardData.exceptions.length > 0 && (
-              <ContextSection title="Vấn đề cần xử lý" eyebrow="HÀNG ĐỢI KIỂM TRA">
-                <div className="flex flex-col gap-1.5">
-                  {dashboardData.exceptions.slice(0, 5).map((ex) => (
-                    <EntityListItem
-                      key={ex.reading_id || ex.meter_id}
-                      icon={<AlertTriangle size={14} className="text-amber-400" />}
-                      title={ex.meter_code}
-                      subtitle={ex.exception_label || 'Cần xác nhận'}
-                      action={
-                        ex.reading_id && onInspectReading ? (
-                          <button
-                            type="button"
-                            className="sgp-btn-secondary text-xs px-2 py-1 h-7"
-                            onClick={() => onInspectReading(ex.reading_id!)}
-                          >
-                            Kiểm tra
-                          </button>
-                        ) : undefined
-                      }
-                    />
-                  ))}
-                </div>
-              </ContextSection>
+            {/* Progressive Disclosure Exceptions Queue (Section 8-9) */}
+            {canonicalIssueCount > 0 && (
+              <div className="sgp-analytics-issue-queue-section pt-1">
+                <button
+                  type="button"
+                  className="sgp-issue-queue-accordion-header"
+                  onClick={() => setIsIssueQueueExpanded((prev) => !prev)}
+                  aria-expanded={isIssueQueueExpanded}
+                  style={{
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    background: 'rgba(244, 63, 94, 0.10)',
+                    border: '1px solid rgba(244, 63, 94, 0.25)',
+                    color: '#FDA4AF',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    transition: 'background 140ms ease',
+                  }}
+                >
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle size={14} className="text-rose-400 shrink-0" />
+                    <span>Vấn đề cần xử lý ({canonicalIssueCount})</span>
+                  </div>
+                  <ChevronDown
+                    size={14}
+                    style={{
+                      transform: isIssueQueueExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                      transition: 'transform 180ms ease',
+                    }}
+                  />
+                </button>
+
+                {isIssueQueueExpanded && (
+                  <div className="flex flex-col gap-1.5 mt-2">
+                    {canonicalIssueQueue.map((item) => (
+                      <EntityListItem
+                        key={item.id}
+                        icon={<AlertTriangle size={14} className="text-rose-400" />}
+                        title={item.meterCode}
+                        subtitle={item.zoneName ? `${item.zoneName} · ${item.issueLabel}` : item.issueLabel}
+                        action={
+                          item.readingId && onInspectReading ? (
+                            <button
+                              type="button"
+                              className="sgp-btn-secondary text-xs px-2 py-1 h-7"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onInspectReading(item.readingId!);
+                              }}
+                            >
+                              Kiểm tra
+                            </button>
+                          ) : item.meterId && onSelectMeter ? (
+                            <button
+                              type="button"
+                              className="sgp-btn-secondary text-xs px-2 py-1 h-7"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onSelectMeter(item.meterId);
+                              }}
+                            >
+                              Xem vị trí
+                            </button>
+                          ) : undefined
+                        }
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
             )}
           </div>
         </div>
