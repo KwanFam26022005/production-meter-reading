@@ -2226,6 +2226,78 @@ button.sgp-telemetry-item:hover {
   color: #38BDF8;
 }
 
+/* Telemetry Status Pill (Synchronized Dark Smoked HUD Capsule) */
+.sgp-cmd-telemetry-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 12px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  color: #E2E8F0;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  user-select: none;
+  box-sizing: border-box;
+  transition: all 140ms ease;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  outline: none;
+}
+
+.sgp-cmd-telemetry-pill:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.22);
+  color: #FFFFFF;
+}
+
+.sgp-cmd-telemetry-pill:focus-visible {
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.45);
+}
+
+.sgp-cmd-telemetry-pill.has-issues {
+  background: rgba(245, 158, 11, 0.10);
+  border-color: rgba(245, 158, 11, 0.30);
+  color: #FCD34D;
+}
+
+.sgp-cmd-telemetry-pill.has-issues:hover {
+  background: rgba(245, 158, 11, 0.18);
+  border-color: rgba(245, 158, 11, 0.45);
+  color: #FDE68A;
+}
+
+.sgp-cmd-telemetry-pill.has-issues.active {
+  background: rgba(245, 158, 11, 0.22);
+  border-color: #F59E0B;
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.25);
+  color: #FEF3C7;
+}
+
+.sgp-cmd-telemetry-pill.all-confirmed {
+  background: rgba(16, 185, 129, 0.10);
+  border-color: rgba(16, 185, 129, 0.28);
+  color: #6EE7B7;
+}
+
+.sgp-cmd-telemetry-pill.all-confirmed:hover {
+  background: rgba(16, 185, 129, 0.18);
+  border-color: rgba(16, 185, 129, 0.42);
+  color: #A7F3D0;
+}
+
+.sgp-cmd-telemetry-pill.all-confirmed.active {
+  background: rgba(16, 185, 129, 0.22);
+  border-color: #10B981;
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.25);
+  color: #D1FAE5;
+}
+
 /* Inline Expanding Search (Section 13) */
 .sgp-cmd-search-wrap {
   position: relative;

@@ -75,6 +75,7 @@ export interface AdaptiveCommandBarProps {
   isLoading: boolean;
   onExportCsv: () => void;
   onOpenAnalytics: () => void;
+  isAnalyticsOpen?: boolean;
   onOpenCalibration?: () => void;
   onToggleLegend?: () => void;
   isLegendOpen?: boolean;
@@ -115,6 +116,7 @@ export const AdaptiveCommandBar: React.FC<AdaptiveCommandBarProps> = ({
   isLoading,
   onExportCsv,
   onOpenAnalytics,
+  isAnalyticsOpen,
   onOpenCalibration,
   onBack,
   backLabel,
@@ -498,10 +500,11 @@ export const AdaptiveCommandBar: React.FC<AdaptiveCommandBarProps> = ({
           {model.showTelemetry && (
             <button
               type="button"
-              className="sgp-cmd-telemetry-pill"
+              className={`sgp-cmd-telemetry-pill ${issueCount > 0 ? 'has-issues' : 'all-confirmed'} ${isAnalyticsOpen ? 'active' : ''}`}
               onClick={onOpenAnalytics}
               title="Nhấp để mở Phân tích chất lượng vận hành"
               aria-label="Chỉ số vận hành: nhấp để mở phân tích"
+              aria-expanded={isAnalyticsOpen}
             >
               {issueCount > 0 ? (
                 <>

@@ -403,7 +403,8 @@ export const ImmersiveSceneShell: React.FC<ImmersiveSceneShellProps> = ({
               onRefresh={onRefresh}
               isLoading={isLoading}
               onExportCsv={onExportCsv}
-              onOpenAnalytics={() => onSetAnalyticsOpen(true)}
+              onOpenAnalytics={() => onSetAnalyticsOpen(activeContextType !== 'analytics')}
+              isAnalyticsOpen={activeContextType === 'analytics'}
               onOpenCalibration={onOpenCalibration}
               onToggleLegend={() => setIsLegendOpen((prev) => !prev)}
               isLegendOpen={isLegendOpen}
