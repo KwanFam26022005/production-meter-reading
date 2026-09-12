@@ -854,7 +854,7 @@ export const UnifiedContextSurface: React.FC<UnifiedContextSurfaceProps> = ({
                 >
                   <div className="flex items-center gap-2">
                     <AlertTriangle size={14} className="text-rose-400 shrink-0" />
-                    <span>⚠ {canonicalIssueCount} vấn đề cần xử lý</span>
+                    <span>{canonicalIssueCount} vấn đề cần xử lý</span>
                   </div>
                   <ChevronDown
                     size={14}

@@ -508,8 +508,8 @@ export const AdaptiveCommandBar: React.FC<AdaptiveCommandBarProps> = ({
                   <AlertTriangle size={13} className="text-amber-400 shrink-0" />
                   <span className="font-tabular font-semibold text-amber-300">
                     {model.compactTelemetry
-                      ? `⚠ ${issueCount} · ${overallKpis.confirmed}/${overallKpis.total}`
-                      : `⚠ ${issueCount} vấn đề · ${overallKpis.confirmed}/${overallKpis.total}`}
+                      ? `${issueCount} · ${overallKpis.confirmed}/${overallKpis.total}`
+                      : `${issueCount} vấn đề · ${overallKpis.confirmed}/${overallKpis.total}`}
                   </span>
                 </>
               ) : (
@@ -517,8 +517,8 @@ export const AdaptiveCommandBar: React.FC<AdaptiveCommandBarProps> = ({
                   <CheckCircle2 size={13} className="text-emerald-400 shrink-0" />
                   <span className="font-tabular font-medium text-emerald-300">
                     {model.compactTelemetry
-                      ? `✓ ${overallKpis.confirmed}/${overallKpis.total}`
-                      : `✓ ${overallKpis.confirmed}/${overallKpis.total} hoàn tất`}
+                      ? `${overallKpis.confirmed}/${overallKpis.total}`
+                      : `${overallKpis.confirmed}/${overallKpis.total} hoàn tất`}
                   </span>
                 </>
               )}
