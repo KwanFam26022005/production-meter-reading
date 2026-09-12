@@ -309,6 +309,12 @@ export function useMapCalibrationWorkspace(
 ): MapCalibrationWorkspace {
   const [workspaceView, setWorkspaceViewState] = useState<MapWorkspaceView>(() => {
     if (hasCalibrationQueryParam()) return 'calibration';
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('view') === 'list' || sessionStorage.getItem('map_workspace_view') === 'list') {
+        return 'list';
+      }
+    }
     return initialView;
   });
 
@@ -395,6 +401,9 @@ export function useMapCalibrationWorkspace(
           closeMapCalibration();
         } else {
           setWorkspaceViewState(view);
+          if (typeof window !== 'undefined') {
+            sessionStorage.setItem('map_workspace_view', view);
+          }
         }
       }
     },

@@ -77,6 +77,15 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
   const viewMode = calibrationWorkspace.workspaceView;
   const setViewMode = calibrationWorkspace.setWorkspaceView;
 
+  // Search Query state (unified across Map and List modes)
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Context Surface Navigation History (Zone -> Zone-Meters -> Meter-Detail)
+  const [previousContext, setPreviousContext] = useState<{
+    type: 'zone-summary' | 'zone-meters';
+    zoneId: string;
+  } | null>(null);
+
   // Alert Focus & Telemetry Focus state
   const [exceptionFocus, setExceptionFocus] = useState(false);
   const [activeFocusType, setActiveFocusType] = useState<'OVERDUE' | 'REVIEW' | 'PENDING' | null>(null);
@@ -151,9 +160,20 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
     }
   }, [mapZones, mapMeters, viewMode, mapState.mode, mapState.selectedEntity, mapState.detailView]);
 
-  // Filtered meters with active focus support
+  // Filtered meters with active focus and search query support
   const filteredMeters = useMemo(() => {
     let list = filterMeters(mapMeters, filters);
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      list = list.filter(
+        (m) =>
+          m.meterCode.toLowerCase().includes(q) ||
+          m.name.toLowerCase().includes(q) ||
+          m.zoneName?.toLowerCase().includes(q) ||
+          m.zoneId?.toLowerCase().includes(q)
+      );
+    }
 
     if (activeFocusType === 'OVERDUE') {
       list = list.filter((m) => m.semanticState === 'OVERDUE');
@@ -166,7 +186,7 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
     }
 
     return list;
-  }, [mapMeters, filters, activeFocusType, exceptionFocus]);
+  }, [mapMeters, filters, searchQuery, activeFocusType, exceptionFocus]);
 
   // Selected Entity resolutions
   const selectedMeter = useMemo(() => {
@@ -206,6 +226,7 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
   }, [mapState.selectedEntity, mapZones, mapMeters, availableOperators, overallKpis.currentRoundTime]);
 
   const clearSelection = useCallback(() => {
+    setPreviousContext(null);
     mapState.resetToBrowse();
     setAnalyticsOpen(false);
     setViewport({ zoom: 1.0, panX: 0, panY: 0 });
@@ -214,6 +235,7 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
   const handleSelectOperator = useCallback(
     (operatorId: string) => {
       if (mapState.mode === 'placement') return;
+      setPreviousContext(null);
       mapState.selectOperator(operatorId);
       setAnalyticsOpen(false);
       const foundZone = mapZones.find((z) => z.assignedUser?.id === operatorId);
@@ -233,6 +255,12 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
   const focusMeter = useCallback(
     (id: string) => {
       if (mapState.mode === 'placement') return;
+      if (mapState.selectedEntity?.type === 'zone') {
+        setPreviousContext({
+          type: mapState.detailView === 'zone' ? 'zone-meters' : 'zone-summary',
+          zoneId: mapState.selectedEntity.id,
+        });
+      }
       mapState.selectMeter(id);
       setAnalyticsOpen(false);
       const m = mapMeters.find((meter) => meter.id === id);
@@ -252,6 +280,7 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
   const focusZone = useCallback(
     (id: string) => {
       if (mapState.mode === 'placement') return;
+      setPreviousContext(null);
       mapState.selectZone(id);
       setAnalyticsOpen(false);
       const framing = focusEntity({
@@ -264,6 +293,26 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
     },
     [mapState, setViewport]
   );
+
+  const handleBackFromMeter = useCallback(() => {
+    if (previousContext) {
+      const { type, zoneId } = previousContext;
+      setPreviousContext(null);
+      mapState.selectZone(zoneId);
+      if (type === 'zone-meters') {
+        mapState.openDetails('zone');
+      }
+      const framing = focusEntity({
+        entity: { type: 'zone', id: zoneId },
+        mode: type === 'zone-meters' ? 'details' : 'inspect',
+        viewportWidth: typeof window !== 'undefined' ? window.innerWidth : 1440,
+        viewportHeight: typeof window !== 'undefined' ? window.innerHeight : 900,
+      });
+      setViewport(framing);
+    } else {
+      clearSelection();
+    }
+  }, [previousContext, mapState, setViewport, clearSelection]);
 
   const handleOpenDetails = useCallback(
     (view?: DetailView) => {
@@ -502,6 +551,11 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
       }}
       filters={filters}
       onApplyFilters={setFilters}
+      searchQuery={searchQuery}
+      onSearchQueryChange={setSearchQuery}
+      hasMeterBack={Boolean(previousContext)}
+      meterBackLabel={previousContext?.type === 'zone-meters' ? 'Danh sách công tơ' : 'Tổng quan khu vực'}
+      onMeterBack={handleBackFromMeter}
 
       selection={{
         selectedZoneId: mapState.selectedEntity?.type === 'zone' ? mapState.selectedEntity.id : null,

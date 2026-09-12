@@ -126,7 +126,16 @@ export default function App() {
   const [activeScreen, setActiveScreen] = useState<ActiveScreen>('home');
   const [adminActiveTab, setAdminActiveTab] = useState<AdminTab>(() => {
     try {
+      const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+      if (params?.get('tab') === 'meters' || (typeof window !== 'undefined' && window.location.pathname.includes('/meters'))) {
+        sessionStorage.setItem('map_workspace_view', 'list');
+        return 'dashboard';
+      }
       const saved = sessionStorage.getItem('admin_active_tab');
+      if (saved === 'meters') {
+        sessionStorage.setItem('map_workspace_view', 'list');
+        return 'dashboard';
+      }
       if (saved && ['dashboard', 'schedules', 'staff_roster', 'meters', 'reports', 'audit'].includes(saved)) {
         return saved as AdminTab;
       }
@@ -137,6 +146,17 @@ export default function App() {
 
   const handleSelectAdminTab = (tab: AdminTab) => {
     setInspectingReadingId(null);
+    // V13: Legacy meter navigation redirects into Map Operations -> List view
+    if (tab === 'meters') {
+      try {
+        sessionStorage.setItem('map_workspace_view', 'list');
+      } catch {}
+      setAdminActiveTab('dashboard');
+      try {
+        sessionStorage.setItem('admin_active_tab', 'dashboard');
+      } catch {}
+      return;
+    }
     setAdminActiveTab(tab);
     try {
       sessionStorage.setItem('admin_active_tab', tab);

@@ -9,18 +9,13 @@ import type {
 import type { OperatorShiftSummary } from '../utils/deriveOperatorShiftSummary';
 import { projectAllZonesOperationalState } from '../state/operationalProjection';
 
-import { SceneHeaderHUD } from './SceneHeaderHUD';
-import { SceneTopControls } from './SceneTopControls';
-import { SceneActionHUD } from './SceneActionHUD';
-import { SceneSummaryHUD } from './SceneSummaryHUD';
-import { SceneRoundHUD } from './SceneRoundHUD';
+import { AdaptiveCommandBar } from '../command/AdaptiveCommandBar';
 import { SceneControlHUD } from './SceneControlHUD';
 import { OperationalListView } from './OperationalListView';
 import { OperationalScene } from '../scene/OperationalScene';
 import { isCalibrationModeActive } from '../calibration/MapCalibrationOverlay';
 import type { MapCalibrationWorkspace } from '../calibration/useMapCalibrationWorkspace';
-import { SpatialInspector, MapContextRail } from '../map-ui';
-import { AnalyticsDrawer } from '../context';
+import { UnifiedContextSurface, type UnifiedContextType } from '../context/UnifiedContextSurface';
 import type {
   MapMode,
   SelectedEntity,
@@ -64,6 +59,12 @@ interface ImmersiveSceneShellProps {
   onSelectRound: (roundId: string) => void;
   filters: MapFilterOptions;
   onApplyFilters: (filters: MapFilterOptions) => void;
+  searchQuery?: string;
+  onSearchQueryChange?: (query: string) => void;
+
+  hasMeterBack?: boolean;
+  meterBackLabel?: string;
+  onMeterBack?: () => void;
 
   selection: {
     selectedZoneId: string | null;
@@ -154,6 +155,12 @@ export const ImmersiveSceneShell: React.FC<ImmersiveSceneShellProps> = ({
   onSelectRound,
   filters,
   onApplyFilters,
+  searchQuery = '',
+  onSearchQueryChange,
+
+  hasMeterBack = false,
+  meterBackLabel,
+  onMeterBack,
 
   selection,
   selectedMeter,
@@ -176,9 +183,9 @@ export const ImmersiveSceneShell: React.FC<ImmersiveSceneShellProps> = ({
   onResetView,
 
   exceptionFocus,
-  onToggleExceptionFocus,
+  onToggleExceptionFocus: _onToggleExceptionFocus,
   activeFocusType,
-  onFocusTypeChange,
+  onFocusTypeChange: _onFocusTypeChange,
 
   detailOpen: _detailOpen,
   onSetDetailOpen,
@@ -202,18 +209,71 @@ export const ImmersiveSceneShell: React.FC<ImmersiveSceneShellProps> = ({
   onUpdatePlacementContext,
   onConfirmPlacement,
   onCancelPlacement,
-  onResetPin,
+  onResetPin: _onResetPin,
   isSubmittingPlacement = false,
   placementError = null,
 
 }) => {
-  const issueCount = overallKpis.overdue + overallKpis.review;
+  const [isLegendOpen, setIsLegendOpen] = React.useState(false);
   const rounds = dashboardData?.round_progress || [];
   const isCalibrationActive = viewMode === 'calibration' || isCalibrationModeActive();
 
   const operationalStates = useMemo(() => {
     return projectAllZonesOperationalState(mapZones, mapMeters);
   }, [mapZones, mapMeters]);
+
+  // Derive single active contextual surface type (Invariant: at most 1 visible)
+  const activeContextType: UnifiedContextType | null = useMemo(() => {
+    if (isCalibrationActive) return null;
+    if (analyticsOpen) return 'analytics';
+    if (mapMode === 'placement') return 'workflow';
+    if (selectedEntity?.type === 'zone') {
+      return detailView === 'zone' ? 'zone-meters' : 'zone-summary';
+    }
+    if (selectedEntity?.type === 'meter') return 'meter-detail';
+    if (selectedEntity?.type === 'operator') return 'operator-detail';
+    return null;
+  }, [isCalibrationActive, analyticsOpen, mapMode, selectedEntity, detailView]);
+
+  const handleCloseContext = React.useCallback(() => {
+    if (activeContextType === 'analytics') {
+      onSetAnalyticsOpen(false);
+    } else if (activeContextType === 'workflow') {
+      if (onCancelPlacement) onCancelPlacement();
+      else onClearSelection();
+    } else {
+      onClearSelection();
+    }
+  }, [activeContextType, onSetAnalyticsOpen, onCancelPlacement, onClearSelection]);
+
+  const { hasContextBack, contextBackLabel, handleContextBack } = useMemo(() => {
+    if (activeContextType === 'zone-meters') {
+      return {
+        hasContextBack: true,
+        contextBackLabel: 'Tổng quan khu vực',
+        handleContextBack: onBackToInspector || onClearSelection,
+      };
+    }
+    if (activeContextType === 'meter-detail') {
+      return {
+        hasContextBack: Boolean(hasMeterBack),
+        contextBackLabel: meterBackLabel || 'Quay lại',
+        handleContextBack: onMeterBack || onClearSelection,
+      };
+    }
+    if (activeContextType === 'workflow') {
+      return {
+        hasContextBack: true,
+        contextBackLabel: 'Hủy tác vụ',
+        handleContextBack: onCancelPlacement || onClearSelection,
+      };
+    }
+    return {
+      hasContextBack: false,
+      contextBackLabel: undefined,
+      handleContextBack: undefined,
+    };
+  }, [activeContextType, onBackToInspector, onClearSelection, hasMeterBack, meterBackLabel, onMeterBack, onCancelPlacement]);
 
   return (
     <div className="sgp-map-first-root" role="main" aria-label="Trung tâm tác nghiệp công tơ Cảng Tân Thuận">
@@ -266,174 +326,109 @@ export const ImmersiveSceneShell: React.FC<ImmersiveSceneShellProps> = ({
         )}
 
         {/* ============================================================ */}
-        {/* LAYER C: INTEGRATED SCENE HUD OVERLAYS                       */}
+        {/* LAYER C: ADAPTIVE COMMAND BAR + MAP-ONLY VIEWPORT CONTROLS   */}
         {/* ============================================================ */}
         {!isCalibrationActive && (
-          <div className="sgp-scene-hud-container" style={{ pointerEvents: 'none' }}>
-          {/* TOP BAR CLUSTER — UNIFIED MARITIME HEADER */}
-          <div className="sgp-hud-top-bar" style={{ pointerEvents: 'auto' }}>
-            <SceneHeaderHUD />
-
-            <SceneTopControls
+          <>
+            <AdaptiveCommandBar
               user={user}
+              viewMode={viewMode}
+              onViewModeChange={onViewModeChange}
               selectedDate={selectedDate}
               onDateChange={onDateChange}
               rounds={rounds}
-              currentRoundTime={overallKpis.currentRoundTime}
-              currentRoundStatus={overallKpis.currentRoundStatus}
               selectedRoundId={selectedRoundId}
               onSelectRound={onSelectRound}
-              viewMode={viewMode}
-              onViewModeChange={onViewModeChange}
+              currentRoundTime={overallKpis.currentRoundTime}
+              overallKpis={overallKpis}
+              filters={filters}
+              onApplyFilters={onApplyFilters}
+              searchQuery={searchQuery}
+              onSearchQueryChange={onSearchQueryChange || (() => {})}
+              mapMeters={mapMeters}
+              mapZones={mapZones}
+              availableOperators={availableOperators}
+              onSelectMeter={onSelectMeter}
+              onSelectZone={onSelectZone}
+              onSelectOperator={onSelectOperator}
               onRefresh={onRefresh}
               isLoading={isLoading}
               onExportCsv={onExportCsv}
               onOpenAnalytics={() => onSetAnalyticsOpen(true)}
               onOpenCalibration={onOpenCalibration}
+              onToggleLegend={() => setIsLegendOpen((prev) => !prev)}
+              isLegendOpen={isLegendOpen}
             />
-          </div>
 
-          {/* LEFT ACTIONS HUD (Search & Filter) */}
-          <div className="sgp-hud-left-actions" style={{ pointerEvents: 'auto' }}>
-            <SceneActionHUD
-              meters={mapMeters}
-              zones={mapZones}
-              operators={availableOperators}
-              filters={filters}
-              onApplyFilters={onApplyFilters}
-              onSelectMeter={onSelectMeter}
-              onSelectZone={onSelectZone}
-              onSelectOperator={onSelectOperator}
-            />
-          </div>
+            {/* Viewport controls strictly unmounted in List mode (Section 5) */}
+            {viewMode === 'map' && (
+              <div className="sgp-hud-bottom-right" style={{ pointerEvents: 'auto' }}>
+                <SceneControlHUD
+                  zoom={viewport.zoom}
+                  activeLayer="STATUS"
+                  onZoomIn={onZoomIn}
+                  onZoomOut={onZoomOut}
+                  onResetView={onResetView}
+                />
+              </div>
+            )}
+          </>
+        )}
 
-          {/* RIGHT SUMMARY & TELEMETRY HUD */}
-          <div className="sgp-hud-right-summary" style={{ pointerEvents: 'auto' }}>
-            <SceneSummaryHUD
-              totalMeters={overallKpis.total}
-              confirmedCount={overallKpis.confirmed}
-              overdueCount={overallKpis.overdue}
-              reviewCount={overallKpis.review}
-              pendingCount={overallKpis.pending}
-              issueCount={issueCount}
-              exceptionFocus={exceptionFocus}
-              activeFocusType={activeFocusType}
-              onToggleExceptionFocus={onToggleExceptionFocus}
-              onFocusTypeChange={onFocusTypeChange}
-              onOpenAnalytics={() => onSetAnalyticsOpen(true)}
-            />
-          </div>
-
-          {/* BOTTOM LEFT: COMPACT ROUND HUD */}
-          <div className="sgp-hud-bottom-left" style={{ pointerEvents: 'auto' }}>
-            <SceneRoundHUD
-              rounds={rounds}
-              currentRoundTime={overallKpis.currentRoundTime || undefined}
-              selectedRoundId={selectedRoundId}
-              completionPercent={overallKpis.percent}
-              onSelectRound={onSelectRound}
-            />
-          </div>
-
-          {/* BOTTOM RIGHT: VIEWPORT CONTROLS & LEGEND */}
-          {viewMode === 'map' && (
-            <div className="sgp-hud-bottom-right" style={{ pointerEvents: 'auto' }}>
-              <SceneControlHUD
-                zoom={viewport.zoom}
-                activeLayer="STATUS"
-                onZoomIn={onZoomIn}
-                onZoomOut={onZoomOut}
-                onResetView={onResetView}
-              />
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ============================================================ */}
-      {/* LAYER D: CONTEXTUAL SURFACES (FAMILY B & FAMILY C)           */}
-      {/* Invariant: At most 1 contextual surface is ever visible!     */}
-      {/* Suppressed in calibration workspace (?mapCalibration=1)      */}
-      {/* ============================================================ */}
-
-      {/* Family B: SpatialInspector (312px dark maritime frosted glass) */}
-      {!isCalibrationActive && !analyticsOpen && mapMode === 'inspect' && selectedEntity && viewMode === 'map' && (
-        selectedEntity.type === 'zone' && selectedZone ? (
-          <SpatialInspector
-            variant="zone"
+        {/* ============================================================ */}
+        {/* LAYER D: UNIFIED CONTEXT SURFACE (Normalized Rail)           */}
+        {/* Invariant: At most 1 contextual surface is ever visible!     */}
+        {/* Suppressed in calibration workspace (?mapCalibration=1)      */}
+        {/* ============================================================ */}
+        {!isCalibrationActive && activeContextType && (
+          <UnifiedContextSurface
+            contextType={activeContextType}
+            theme={viewMode === 'list' ? 'light' : 'dark'}
             zone={selectedZone}
-            zoneState={operationalStates[selectedZone.id]}
-            onClose={onClearSelection}
-            onOpenDetails={() => (onOpenDetails ? onOpenDetails('zone') : onSetDetailOpen(true))}
-            onAddMeter={onAddMeterToZone}
-          />
-        ) : selectedEntity.type === 'operator' && selectedOperatorSummary ? (
-          <SpatialInspector
-            variant="operator"
-            operator={availableOperators.find((u) => u.id === selectedOperatorSummary.operatorId)}
-            operatorSummary={selectedOperatorSummary}
-            onClose={onClearSelection}
-            onOpenDetails={() => (onOpenDetails ? onOpenDetails('operator') : onSetDetailOpen(true))}
-          />
-        ) : selectedEntity.type === 'meter' && selectedMeter ? (
-          <SpatialInspector
-            variant="meter"
+            zoneState={selectedZone ? operationalStates[selectedZone.id] : undefined}
+            allMeters={mapMeters}
             meter={selectedMeter}
-            onClose={onClearSelection}
-            onOpenDetails={() => (onOpenDetails ? onOpenDetails('meter') : onSetDetailOpen(true))}
-            onRelocateMeter={onRelocateMeter}
+            operator={
+              selectedOperatorSummary
+                ? availableOperators.find((u) => u.id === selectedOperatorSummary.operatorId)
+                : undefined
+            }
+            operatorSummary={selectedOperatorSummary}
+            dashboardData={dashboardData}
+            zones={mapZones}
+            placementContext={
+              placementContext
+                ? {
+                    targetZoneId: placementContext.targetZoneId,
+                    targetZoneName: placementContext.targetZoneName,
+                    isRelocating: placementContext.isRelocating,
+                    meterId: placementContext.meterId,
+                    meterCode: placementContext.meterCode,
+                    meterName: placementContext.meterName,
+                    meterType: placementContext.meterType,
+                    pinnedCoords: placementContext.pinnedCoords,
+                  }
+                : null
+            }
+            isSubmittingPlacement={isSubmittingPlacement}
+            placementError={placementError}
+            hasBack={hasContextBack}
+            backLabel={contextBackLabel}
+            onBack={handleContextBack}
+            onClose={handleCloseContext}
+            onSelectMeter={onSelectMeter}
+            onSelectZone={onSelectZone}
+            onSelectOperator={onSelectOperator}
+            onInspectReading={onInspectReading}
+            onMorphToZoneMeters={() => (onOpenDetails ? onOpenDetails('zone') : onSetDetailOpen(true))}
+            onMorphToZoneSummary={onBackToInspector}
+            onStartPlacement={onAddMeterToZone}
+            onStartRelocation={onRelocateMeter}
+            onUpdatePlacement={onUpdatePlacementContext}
+            onConfirmPlacement={onConfirmPlacement}
+            onCancelPlacement={onCancelPlacement}
           />
-        ) : null
-      )}
-
-      {/* Family C: MapContextRail (360px right rail / mobile sheet) */}
-      {!isCalibrationActive && !analyticsOpen && (mapMode === 'details' || mapMode === 'placement') && (
-        <MapContextRail
-          variant={
-            mapMode === 'placement'
-              ? 'meter-placement'
-              : detailView === 'zone'
-              ? 'zone-detail'
-              : detailView === 'operator'
-              ? 'operator-detail'
-              : 'meter-detail'
-          }
-          zone={selectedZone}
-          allMeters={mapMeters}
-          zoneState={selectedZone ? operationalStates[selectedZone.id] : undefined}
-          operator={selectedOperatorSummary ? availableOperators.find((u) => u.id === selectedOperatorSummary.operatorId) : undefined}
-          operatorSummary={selectedOperatorSummary || undefined}
-          meter={selectedMeter}
-          placementContext={placementContext}
-          zones={mapZones}
-          isSubmittingPlacement={isSubmittingPlacement}
-          placementError={placementError}
-          onBack={onBackToInspector || onClearSelection}
-          onClose={onClearSelection}
-          onSelectMeter={onSelectMeter}
-          onInspectReading={onInspectReading}
-          onStartPlacement={onAddMeterToZone}
-          onStartRelocation={onRelocateMeter}
-          onUpdatePlacement={onUpdatePlacementContext}
-          onResetPin={onResetPin}
-          onConfirmPlacement={onConfirmPlacement}
-          onCancelPlacement={onCancelPlacement}
-        />
-      )}
-
-      {/* Analytics Drawer (Opened exclusively from Header / Summary telemetry) */}
-      {!isCalibrationActive && analyticsOpen && (
-        <AnalyticsDrawer
-          dashboardData={dashboardData}
-          zones={mapZones}
-          onClose={() => onSetAnalyticsOpen(false)}
-          onInspectReading={onInspectReading}
-          onSelectZone={(zoneId) => {
-            onSetAnalyticsOpen(false);
-            onSelectZone(zoneId);
-          }}
-        />
-      )}
+        )}
     </main>
   </div>
 );

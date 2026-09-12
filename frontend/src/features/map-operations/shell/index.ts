@@ -6,3 +6,4 @@ export { SceneSummaryHUD } from './SceneSummaryHUD';
 export { SceneRoundHUD } from './SceneRoundHUD';
 export { SceneControlHUD } from './SceneControlHUD';
 export { OperationalListView } from './OperationalListView';
+export { AdaptiveCommandBar } from '../command/AdaptiveCommandBar';

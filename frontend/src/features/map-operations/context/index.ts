@@ -4,3 +4,5 @@ export { MeterQuickPopup } from '../map-ui/MeterQuickPopup';
 export { MeterDetailDrawer } from '../map-ui/MeterDetailDrawer';
 export { OperatorShiftPopover } from '../map-ui/OperatorShiftPopover';
 export { AnalyticsDrawer } from './AnalyticsDrawer';
+export { UnifiedContextSurface } from './UnifiedContextSurface';
+export * from './contextRailPrimitives';

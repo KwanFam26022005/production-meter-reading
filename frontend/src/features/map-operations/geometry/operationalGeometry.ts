@@ -676,7 +676,8 @@ export function getZoneBoundingBox(zoneId: string): ZoneBoundingBox {
  * to frame a zone comfortably inside the 1915x821 canvas with generous operational padding.
  */
 export function calculateZoneCameraFraming(
-  zoneId: string
+  zoneId: string,
+  contextRailOpen: boolean = false
 ): { zoom: number; panX: number; panY: number } {
   const bbox = getZoneBoundingBox(zoneId);
 
@@ -686,9 +687,10 @@ export function calculateZoneCameraFraming(
   const targetZoom = Number(Math.min(1.85, Math.max(1.15, Math.min(zoomX, zoomY))).toFixed(2));
 
   // Center the bounding box center in the 1915x821 viewBox:
-  // sceneCenter_screen = pan + sceneCenter_world * zoom
-  // -> pan = (viewBoxDimension / 2) - sceneCenter_world * zoom
-  const panX = Math.round(CANONICAL_SCENE_WIDTH / 2 - bbox.centerX * targetZoom);
+  // When context rail is open (380px on desktop right), shift the target center leftward
+  // so the focused zone is framed in the usable viewport without being covered
+  const centerShiftX = contextRailOpen ? 120 : 0;
+  const panX = Math.round((CANONICAL_SCENE_WIDTH / 2 - centerShiftX) - bbox.centerX * targetZoom);
   const panY = Math.round(CANONICAL_SCENE_HEIGHT / 2 - bbox.centerY * targetZoom);
 
   return { zoom: targetZoom, panX, panY };

@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import {
   Calendar,
   Users,
-  Zap,
   BarChart3,
   ScrollText,
   LogOut,
@@ -51,11 +50,11 @@ export const AdminShell: React.FC<AdminShellProps> = ({
     return () => document.removeEventListener('keydown', handleKeyDown, true);
   }, [sidebarOpen]);
 
+  // Visible navigation in V13: "Công tơ" integrated into "Bản đồ" (Map / List switch)
   const navItems: { id: AdminTab; label: string; icon: React.ReactNode }[] = [
     { id: 'dashboard', label: 'Bản đồ', icon: <Map size={22} /> },
     { id: 'schedules', label: 'Lịch ghi', icon: <Calendar size={22} /> },
     { id: 'staff_roster', label: 'Phân ca', icon: <Users size={22} /> },
-    { id: 'meters', label: 'Công tơ', icon: <Zap size={22} /> },
     { id: 'reports', label: 'Báo cáo', icon: <BarChart3 size={22} /> },
     { id: 'audit', label: 'Nhật ký', icon: <ScrollText size={22} /> },
   ];
