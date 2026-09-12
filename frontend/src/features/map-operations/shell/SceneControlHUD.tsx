@@ -1,6 +1,5 @@
 import React from 'react';
 import type { OperationalLayerType } from '../types';
-import { MapViewportControls } from '../operational-map/MapViewportControls';
 import { OperationalMapLegend } from '../operational-map/OperationalMapLegend';
 
 interface SceneControlHUDProps {
@@ -12,27 +11,15 @@ interface SceneControlHUDProps {
 }
 
 /**
- * SceneControlHUD — Bottom-Right Viewport Controls (Phase U6)
+ * SceneControlHUD — Bottom-Right Viewport Controls (V13.2 Section 19-21)
  *
- * Hosts:
- * - OperationalMapLegend (Chú giải bản đồ)
- * - MapViewportControls (Single compact scene reset button)
+ * Cleaned to retain only the single map information/legend entry [i].
+ * Fullscreen / Maximize viewport buttons removed.
  */
-export const SceneControlHUD: React.FC<SceneControlHUDProps> = ({
-  zoom,
-  onZoomIn,
-  onZoomOut,
-  onResetView = () => {},
-}) => {
+export const SceneControlHUD: React.FC<SceneControlHUDProps> = () => {
   return (
-    <div className="sgp-scene-control-hud" role="region" aria-label="Điều khiển góc nhìn bản đồ">
+    <div className="sgp-scene-control-hud" role="region" aria-label="Chú giải bản đồ">
       <OperationalMapLegend />
-      <MapViewportControls
-        zoom={zoom}
-        onZoomIn={onZoomIn}
-        onZoomOut={onZoomOut}
-        onResetView={onResetView}
-      />
     </div>
   );
 };

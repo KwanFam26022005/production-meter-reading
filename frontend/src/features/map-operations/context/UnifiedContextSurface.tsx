@@ -45,6 +45,7 @@ import {
   EntityListItem,
 } from './contextRailPrimitives';
 import { derivePresentationZoneAnalytics } from '../analytics/presentationAnalytics';
+import { MiniDonut } from '../analytics/MiniDonut';
 
 export type UnifiedContextType =
   | 'zone-summary'
@@ -655,35 +656,87 @@ export const UnifiedContextSurface: React.FC<UnifiedContextSurfaceProps> = ({
             </button>
           </div>
 
-          {/* BODY: FLATTENED HIERARCHY WITHOUT BOXED KPI CARDS (Section 7, 28) */}
+          {/* BODY: MINIMAL VISUAL METRICS (V13.2 Section 12-15) */}
           <div className="sgp-rail-body">
-            {/* OCR Provenance Section */}
-            <ContextSection title="Độ chính xác nhận diện OCR" eyebrow="OCR" bordered={false}>
-              <div className="grid grid-cols-2 gap-3 py-1">
-                <div>
-                  <div className="text-xs text-slate-400">Tự động OCR</div>
-                  <div className="text-2xl font-bold font-tabular text-cyan-400">
-                    {dashboardData?.provenance?.ocr_confirmed_percent
-                      ? `${Math.round(dashboardData.provenance.ocr_confirmed_percent)}%`
-                      : '84%'}
-                  </div>
-                  <div className="text-xs text-slate-400 mt-0.5">
-                    {dashboardData?.provenance?.ocr_confirmed_count ?? 92} xác nhận
-                  </div>
-                </div>
-                <div>
-                  <div className="text-xs text-slate-400">Chỉnh sửa sau OCR</div>
-                  <div className="text-2xl font-bold font-tabular text-amber-400">
-                    {dashboardData?.provenance?.user_corrected_percent
-                      ? `${Math.round(dashboardData.provenance.user_corrected_percent)}%`
-                      : '11%'}
-                  </div>
-                  <div className="text-xs text-slate-400 mt-0.5">
-                    {dashboardData?.provenance?.manual_entry_count ?? 5} thủ công
-                  </div>
-                </div>
-              </div>
-            </ContextSection>
+            {/* SUMMARY: TWO SMALL DONUTS MAX (Section 14) */}
+            <div
+              className="sgp-analytics-donuts-row"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-around',
+                padding: '12px 0 16px',
+                borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+              }}
+            >
+              <MiniDonut
+                value={
+                  dashboardData?.provenance?.ocr_confirmed_percent
+                    ? Math.round(dashboardData.provenance.ocr_confirmed_percent)
+                    : 84
+                }
+                size={80}
+                strokeWidth={7}
+                caption="OCR tự động"
+                color="#38BDF8"
+              />
+              <MiniDonut
+                value={
+                  presentationAnalytics.completionPercent !== null
+                    ? presentationAnalytics.completionPercent
+                    : dashboardData?.kpis?.completion_percent
+                    ? Math.round(dashboardData.kpis.completion_percent)
+                    : 0
+                }
+                size={80}
+                strokeWidth={7}
+                caption="Tiến độ chung"
+                color={
+                  (presentationAnalytics.completionPercent ?? 0) === 100
+                    ? '#10B981'
+                    : '#0284C7'
+                }
+              />
+            </div>
+
+            {/* INLINE METRICS (Section 14) */}
+            <div
+              className="sgp-analytics-inline-metrics"
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '8px',
+                padding: '10px 4px 14px',
+                fontSize: '12px',
+                color: '#94A3B8',
+                borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+              }}
+            >
+              <span className="font-tabular font-medium text-amber-300">
+                {dashboardData?.provenance?.user_corrected_percent
+                  ? `${Math.round(dashboardData.provenance.user_corrected_percent)}%`
+                  : '11%'}{' '}
+                chỉnh sửa
+              </span>
+              <span>·</span>
+              <span className="font-tabular font-medium text-slate-300">
+                {dashboardData?.provenance?.ocr_confirmed_count ?? 92} xác nhận
+              </span>
+              <span>·</span>
+              <span className="font-tabular font-medium text-slate-300">
+                {dashboardData?.provenance?.manual_entry_count ?? 5} thủ công
+              </span>
+              {presentationAnalytics.issueMeters > 0 && (
+                <>
+                  <span>·</span>
+                  <span className="font-tabular font-semibold text-rose-400">
+                    {presentationAnalytics.issueMeters} vấn đề
+                  </span>
+                </>
+              )}
+            </div>
 
             {/* Zone Progress Breakdown (Section 2, 3, 4, 7: Exactly 6 Presentation Zones) */}
             <ContextSection title="Tiến độ phân khu" eyebrow="TIẾN ĐỘ PHÂN KHU">

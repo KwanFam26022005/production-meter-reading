@@ -1,20 +1,16 @@
 /**
- * Centralized Command Bar Model Derivation (V13.1)
+ * Centralized Command Bar Model Derivation (V13.2)
  *
- * Section 8-12: Centralized Action Registry & Absolute No-Duplication Invariant
- *
- * Invariant: primaryActionIds ∩ overflowActionIds = ∅
- *
- * Desktop Map Mode:
- * - Primary bar: Brand, Temporal, Map/List switcher, Search, Filter, Progress status, Overflow, Profile.
- * - Map Overflow: Refresh, Export CSV, Legend, Fullscreen, Calibration (Admin only).
- * - Direct icons for Analytics, Legend, and Fullscreen are REMOVED from the primary bar.
- * - Progress status opens Analytics context directly.
- *
- * Desktop List Mode:
- * - Primary bar: Brand, Temporal, Map/List switcher, Search, Filter, Progress status, Overflow, Profile.
- * - List Overflow: Refresh, Export CSV, Analytics.
- * - Map-only utilities (Legend, Fullscreen, Calibration) are strictly ABSENT from List mode.
+ * Section 4-10:
+ * - Full Collapse Mode: EXPANDED vs COLLAPSED
+ * - In COLLAPSED: toolbar collapses to single floating avatar control [P]
+ * - In EXPANDED: toolbar includes temporal, view-toggle, search, filter, status, overflow, profile, collapse
+ * - Branding REMOVED: Port logo, CẢNG TÂN THUẬN, and subtitles removed (provided by sidebar)
+ * - Legend REMOVED: Managed exclusively by bottom map info [i] button
+ * - Fullscreen REMOVED: Completely eliminated from product
+ * - Map Overflow: Refresh, Export CSV, Calibration (Admin only)
+ * - List Overflow: Refresh, Export CSV, Analytics
+ * - Invariant: primaryActionIds ∩ overflowActionIds = ∅
  */
 
 import type { MapWorkspaceView } from '../../../types';
@@ -38,6 +34,7 @@ export interface CommandBarModelInput {
   contextSurface?: { type: string; entityId?: string } | null;
   viewportWidth?: number;
   isCompact?: boolean;
+  isCollapsed?: boolean;
   activeFilterCount: number;
   analyticsOpen?: boolean;
   isCalibrationActive?: boolean;
@@ -52,7 +49,7 @@ export interface OverflowMenuItem {
 }
 
 export interface CommandBarModel {
-  // Identity
+  // Identity (Removed in V13.2 Section 5)
   showIdentity: boolean;
   compactIdentity: boolean;
 
@@ -60,14 +57,14 @@ export interface CommandBarModel {
   showTemporalGroup: boolean;
   showViewSwitch: boolean;
 
-  // Primary Tools (Section 10, 12)
+  // Primary Tools (Section 7)
   showSearch: boolean;
   showFilter: boolean;
   filterBadgeCount: number;
   showTelemetry: boolean;
   compactTelemetry: boolean;
 
-  // Removed from primary bar in V13.1 (Moved to overflow to eliminate duplication)
+  // Direct icons removed from toolbar
   showAnalyticsButton: boolean;
   showLegendButton: boolean;
   showFullscreenButton: boolean;
@@ -76,7 +73,9 @@ export interface CommandBarModel {
   showOverflowMenu: boolean;
   showProfileChip: boolean;
   showCompactToggle: boolean;
+  showCollapseToggle: boolean;
   isCompact: boolean;
+  isCollapsed: boolean;
 
   // Dynamic overflow list
   overflowItems: OverflowMenuItem[];
@@ -87,7 +86,8 @@ export interface CommandBarModel {
 }
 
 /**
- * Authoritative Command Action Registry (Section 8)
+ * Authoritative Command Action Registry (V13.2 Section 8-10)
+ * Note: 'legend' and 'fullscreen' are permanently removed from toolbar & overflow.
  */
 export const COMMAND_ACTIONS: CommandAction[] = [
   {
@@ -137,6 +137,14 @@ export const COMMAND_ACTIONS: CommandAction[] = [
     },
   },
   {
+    id: 'collapse',
+    label: 'Thu gọn thanh công cụ',
+    scopes: ['map', 'list'],
+    priority: 95,
+    preferredPlacement: 'primary',
+    canShow: (ctx) => !ctx.isCalibrationActive && ctx.viewMode !== 'calibration',
+  },
+  {
     id: 'refresh',
     label: 'Làm mới dữ liệu',
     scopes: ['map', 'list'],
@@ -155,26 +163,10 @@ export const COMMAND_ACTIONS: CommandAction[] = [
   {
     id: 'analytics',
     label: 'Phân tích vận hành',
-    scopes: ['list'], // Only in overflow for List mode (in Map mode, progress opens analytics)
+    scopes: ['list'], // Only in overflow for List mode
     priority: 60,
     preferredPlacement: 'overflow',
     canShow: (ctx) => ctx.viewMode === 'list',
-  },
-  {
-    id: 'legend',
-    label: 'Chú giải bản đồ',
-    scopes: ['map'], // Strictly Map only
-    priority: 70,
-    preferredPlacement: 'overflow',
-    canShow: (ctx) => ctx.viewMode === 'map',
-  },
-  {
-    id: 'fullscreen',
-    label: 'Toàn màn hình',
-    scopes: ['map'], // Strictly Map only
-    priority: 75,
-    preferredPlacement: 'overflow',
-    canShow: (ctx) => ctx.viewMode === 'map',
   },
   {
     id: 'calibration',
@@ -195,6 +187,7 @@ export function deriveCommandBarModel(input: CommandBarModelInput): CommandBarMo
     viewMode,
     viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 1440,
     isCompact = false,
+    isCollapsed = false,
     activeFilterCount = 0,
     isAdmin = false,
     isCalibrationActive = false,
@@ -218,9 +211,38 @@ export function deriveCommandBarModel(input: CommandBarModelInput): CommandBarMo
       showOverflowMenu: false,
       showProfileChip: false,
       showCompactToggle: false,
+      showCollapseToggle: false,
       isCompact: false,
+      isCollapsed: false,
       overflowItems: [],
       primaryActionIds: [],
+      overflowActionIds: [],
+    };
+  }
+
+  // Section 4: Full Collapse Mode (Avatar control only)
+  if (isCollapsed) {
+    return {
+      showIdentity: false,
+      compactIdentity: true,
+      showTemporalGroup: false,
+      showViewSwitch: false,
+      showSearch: false,
+      showFilter: false,
+      filterBadgeCount: 0,
+      showTelemetry: false,
+      compactTelemetry: true,
+      showAnalyticsButton: false,
+      showLegendButton: false,
+      showFullscreenButton: false,
+      showOverflowMenu: false,
+      showProfileChip: false,
+      showCompactToggle: false,
+      showCollapseToggle: false,
+      isCompact: true,
+      isCollapsed: true,
+      overflowItems: [],
+      primaryActionIds: ['profile'], // Single avatar button in collapsed state
       overflowActionIds: [],
     };
   }
@@ -228,17 +250,17 @@ export function deriveCommandBarModel(input: CommandBarModelInput): CommandBarMo
   const isNarrow = viewportWidth < 1280;
   const isTablet = viewportWidth < 1024;
   const effectiveCompact = isCompact || isTablet;
-
   const isMapMode = viewMode === 'map';
 
-  // Section 10 & 12: Primary controls
+  // Section 7: Primary controls in expanded mode
   const showSearch = true;
   const showFilter = true;
   const showTelemetry = !isTablet;
   const compactTelemetry = effectiveCompact || isNarrow;
   const showProfileChip = !isTablet;
+  const showCollapseToggle = true;
 
-  // V13.1 Simplification: Direct icons for Analytics, Legend, and Fullscreen are REMOVED from primary bar
+  // Section 7, 8, 9: Permanently removed from primary bar
   const showAnalyticsButton = false;
   const showLegendButton = false;
   const showFullscreenButton = false;
@@ -252,19 +274,17 @@ export function deriveCommandBarModel(input: CommandBarModelInput): CommandBarMo
   if (showProfileChip) {
     primaryActionIds.push('profile');
   }
+  primaryActionIds.push('collapse');
 
-  // Section 11 & 12: Build context-aware overflow menu
+  // Section 10 & 12: Build context-aware overflow menu
   const overflowItems: OverflowMenuItem[] = [
     { id: 'refresh', label: 'Làm mới dữ liệu', category: 'action' },
     { id: 'export-csv', label: 'Xuất CSV', category: 'action' },
   ];
 
   if (isMapMode) {
-    // Section 11: Map overflow includes Legend and Fullscreen
-    overflowItems.push({ id: 'legend', label: 'Chú giải bản đồ', category: 'view' });
-    overflowItems.push({ id: 'fullscreen', label: 'Toàn màn hình', category: 'view' });
-
-    // Admin-only calibration entry preserved in overflow for Map view (Section 11, 18, 19)
+    // Section 10: Legend and Fullscreen REMOVED from overflow
+    // Admin-only calibration entry preserved in overflow for Map view
     if (isAdmin) {
       overflowItems.push({ id: 'calibration', label: 'Hiệu chỉnh bản đồ', category: 'admin' });
     }
@@ -285,8 +305,8 @@ export function deriveCommandBarModel(input: CommandBarModelInput): CommandBarMo
   }
 
   return {
-    showIdentity: true,
-    compactIdentity: isNarrow || effectiveCompact,
+    showIdentity: false, // Section 5: Branding completely removed from command bar
+    compactIdentity: true,
     showTemporalGroup: true,
     showViewSwitch: true,
     showSearch,
@@ -299,8 +319,10 @@ export function deriveCommandBarModel(input: CommandBarModelInput): CommandBarMo
     showFullscreenButton,
     showOverflowMenu: true,
     showProfileChip,
-    showCompactToggle: !isTablet,
+    showCompactToggle: false, // Replaced by full collapse toggle
+    showCollapseToggle,
     isCompact: effectiveCompact,
+    isCollapsed: false,
     overflowItems,
     primaryActionIds,
     overflowActionIds,

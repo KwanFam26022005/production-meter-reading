@@ -178,11 +178,10 @@ test('V13.1 Action Registry: All canonical actions registered with valid scopes 
     'refresh',
     'export-csv',
     'analytics',
-    'legend',
-    'fullscreen',
     'calibration',
     'profile',
     'overflow',
+    'collapse',
   ];
 
   for (const req of requiredIds) {
@@ -257,8 +256,8 @@ test('V13.1 Map vs List Overflow Scope Constraints (Section 11, 12, 26)', () => 
   });
 
   const mapOverflowIds = mapAdmin.overflowItems.map((item) => item.id);
-  assert.ok(mapOverflowIds.includes('legend'), 'Map overflow must contain legend');
-  assert.ok(mapOverflowIds.includes('fullscreen'), 'Map overflow must contain fullscreen');
+  assert.equal(mapOverflowIds.includes('legend'), false, 'Map overflow must NOT contain legend in V13.2');
+  assert.equal(mapOverflowIds.includes('fullscreen'), false, 'Map overflow must NOT contain fullscreen in V13.2');
   assert.ok(mapOverflowIds.includes('calibration'), 'Map overflow must contain calibration for Admin');
   assert.equal(
     mapOverflowIds.includes('analytics'),
@@ -338,17 +337,21 @@ test('V13.1 Brand & Temporal: Deterministic branding states and command bar temp
   const cmdBarPath = path.resolve(__dirname, '../src/features/map-operations/command/AdaptiveCommandBar.tsx');
   const content = fs.readFileSync(cmdBarPath, 'utf-8');
 
-  // Section 16: No intermediate "TÂN THUẬN"
+  // Section 5: Branding completely removed from command bar in V13.2
   assert.equal(
-    content.includes('sgp-cmd-brand-compact">TÂN THUẬN<'),
+    content.includes('sgp-cmd-brand-title'),
     false,
-    'Must NOT render intermediate "TÂN THUẬN" label in compact mode'
+    'Must NOT render brand title in command bar'
   );
-
-  // Dynamic subtitle based on viewMode
-  assert.ok(
-    content.includes("viewMode === 'map' ? 'Bản đồ công tơ' : 'Danh sách công tơ'"),
-    'Command bar subtitle must be dynamic based on viewMode'
+  assert.equal(
+    content.includes('sgp-cmd-logo'),
+    false,
+    'Must NOT render logo in command bar'
+  );
+  assert.equal(
+    content.includes('sgp-cmd-brand-compact'),
+    false,
+    'Must NOT render intermediate brand in command bar'
   );
 
   // Section 17: Temporal styling in mapMotion.css
@@ -419,13 +422,15 @@ test('V13.1 Lifecycle: 10x Map <-> List switching guarantees invariants and zero
     });
 
     assert.ok(isActionPartitionDisjoint(mapModel), `Cycle ${cycle} Map partition must be disjoint`);
-    assert.ok(
+    assert.equal(
       mapModel.overflowItems.some((i) => i.id === 'legend'),
-      `Cycle ${cycle} Legend present in Map overflow`
+      false,
+      `Cycle ${cycle} Legend absent in Map overflow`
     );
-    assert.ok(
+    assert.equal(
       mapModel.overflowItems.some((i) => i.id === 'fullscreen'),
-      `Cycle ${cycle} Fullscreen present in Map overflow`
+      false,
+      `Cycle ${cycle} Fullscreen absent in Map overflow`
     );
     assert.ok(
       mapModel.overflowItems.some((i) => i.id === 'calibration'),

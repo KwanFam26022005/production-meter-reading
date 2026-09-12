@@ -2230,161 +2230,51 @@ button.sgp-telemetry-item:hover {
   background: rgba(255, 255, 255, 0.08);
 }
 
-/* Filter Popover */
-.sgp-cmd-filter-wrap {
-  position: relative;
-}
+/* ==========================================================================
+   COMMAND POPOVER PORTAL & V13.2 CONTROLS (Section 1-4, 16, 24)
+   ========================================================================== */
 
-.sgp-cmd-filter-badge {
-  position: absolute;
-  top: -4px;
-  right: -4px;
-  width: 16px;
-  height: 16px;
-  background: #0284C7;
-  color: #FFFFFF;
-  border-radius: 50%;
-  font-size: 10px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid #061D2A;
-}
-
-.sgp-cmd-filter-popover {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
-  width: 260px;
-  background: rgba(6, 29, 42, 0.96);
-  backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 12px;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
-  padding: 12px;
-  z-index: 50;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.sgp-cmd-filter-reset-btn {
-  background: transparent;
-  border: none;
-  color: #38BDF8;
-  font-size: 11px;
-  cursor: pointer;
-}
-
-.sgp-cmd-filter-body {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.sgp-cmd-filter-field {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.sgp-cmd-filter-label {
-  font-size: 11px;
-  color: #94A3B8;
-}
-
-.sgp-cmd-filter-select {
-  height: 32px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 6px;
-  color: #FFFFFF;
-  padding: 0 8px;
-  font-size: 12px;
-  outline: none;
-}
-
-/* Inline Telemetry (Section 15) */
-.sgp-cmd-telemetry-pill {
+/* Temporal Coherent Group (Section 6) */
+.sgp-cmd-temporal-group {
   display: flex;
   align-items: center;
   gap: 6px;
-  height: 36px;
-  padding: 0 12px;
   background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.10);
-  border-radius: 9999px;
-  font-size: 12px;
-  color: #F8FAFC;
-  cursor: pointer;
-  transition: all 150ms ease;
-  white-space: nowrap;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  padding: 2px 6px;
 }
 
-.sgp-cmd-telemetry-pill:hover {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.20);
-}
-
-.sgp-cmd-telemetry-divider {
-  color: rgba(255, 255, 255, 0.25);
-  font-weight: bold;
-}
-
-/* Overflow Menu */
-.sgp-cmd-overflow-wrap {
-  position: relative;
-}
-
-.sgp-cmd-overflow-menu {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
-  width: 200px;
-  background: rgba(6, 29, 42, 0.96);
-  backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 12px;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
-  padding: 6px;
-  z-index: 50;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.sgp-cmd-menu-item {
+/* Avatar trigger in Collapsed mode (Section 4) */
+.sgp-cmd-avatar-trigger {
+  min-width: 44px;
+  min-height: 44px;
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 10px;
-  border-radius: 6px;
-  background: transparent;
-  border: none;
-  color: #E2E8F0;
-  font-size: 13px;
+  justify-content: center;
+  border-radius: 12px;
+  background: rgba(6, 29, 42, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.45);
+  color: #38BDF8;
+  font-weight: 700;
+  font-size: 15px;
   cursor: pointer;
-  transition: background 120ms ease;
-  text-align: left;
-  width: 100%;
+  transition: all 180ms ease;
 }
 
-.sgp-cmd-menu-item:hover {
-  background: rgba(255, 255, 255, 0.08);
+.sgp-cmd-avatar-trigger:hover {
+  transform: scale(1.05);
+  border-color: rgba(56, 189, 248, 0.4);
+  background: rgba(6, 29, 42, 0.96);
 }
 
-.sgp-cmd-menu-item.admin-item:hover {
-  background: rgba(245, 158, 11, 0.15);
-}
-
-.sgp-cmd-menu-divider {
-  height: 1px;
-  background: rgba(255, 255, 255, 0.10);
-  margin: 4px 0;
-}
-
-.sgp-cmd-compact-toggle {
+/* Collapse Toggle Button (Section 4) */
+.sgp-cmd-collapse-btn {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2395,11 +2285,240 @@ button.sgp-telemetry-item:hover {
   color: #94A3B8;
   cursor: pointer;
   border-radius: 6px;
+  transition: all 120ms ease;
+}
+
+.sgp-cmd-collapse-btn:hover {
+  color: #FFFFFF;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Shared Command Popover Portal Layer (Section 16, 24) */
+.sgp-cmd-popover-portal {
+  background: rgba(6, 29, 42, 0.96);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.55);
+  padding: 10px;
+  color: #F8FAFC;
+  animation: sgp-popover-enter 170ms cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+}
+
+@keyframes sgp-popover-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Floating Search Box Popover (Section 2) */
+.sgp-cmd-search-box-popover {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sgp-cmd-search-input-row {
+  display: flex;
+  align-items: center;
+  height: 36px;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  border-radius: 8px;
+  padding: 0 8px;
+  gap: 6px;
+}
+
+.sgp-cmd-search-field {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: #FFFFFF;
+  font-size: 12.5px;
+  outline: none;
+  width: 100%;
+}
+
+.sgp-cmd-search-field::placeholder {
+  color: #94A3B8;
+}
+
+.sgp-cmd-search-btn-icon {
+  background: transparent;
+  border: none;
+  color: #94A3B8;
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+}
+
+.sgp-cmd-search-btn-icon:hover {
+  color: #FFFFFF;
+}
+
+.sgp-cmd-search-results-list {
+  max-height: 280px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Custom Filter Box Popover (Section 3: Custom listboxes/radios) */
+.sgp-cmd-filter-box-popover {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sgp-cmd-filter-scroll-body {
+  max-height: 320px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-right: 4px;
+}
+
+.sgp-cmd-filter-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sgp-cmd-filter-heading {
+  font-size: 11px;
+  font-weight: 600;
+  color: #94A3B8;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.sgp-cmd-filter-options-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.sgp-cmd-filter-chip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #E2E8F0;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 120ms ease;
+}
+
+.sgp-cmd-filter-chip:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+.sgp-cmd-filter-chip.active {
+  background: rgba(14, 116, 144, 0.35);
+  border-color: #38BDF8;
+  color: #38BDF8;
+  font-weight: 600;
+}
+
+.sgp-cmd-filter-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.sgp-cmd-filter-list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: transparent;
+  border: none;
+  color: #E2E8F0;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 120ms ease;
+  text-align: left;
+  width: 100%;
+}
+
+.sgp-cmd-filter-list-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.sgp-cmd-filter-list-item.active {
+  background: rgba(2, 132, 199, 0.20);
+  color: #38BDF8;
+  font-weight: 500;
+}
+
+.sgp-cmd-filter-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.sgp-cmd-filter-clear-btn {
+  background: transparent;
+  border: none;
+  color: #94A3B8;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
   transition: color 120ms ease;
 }
 
-.sgp-cmd-compact-toggle:hover {
+.sgp-cmd-filter-clear-btn:hover {
+  color: #E2E8F0;
+}
+
+.sgp-cmd-filter-apply-btn {
+  background: #0284C7;
+  border: none;
+  border-radius: 6px;
   color: #FFFFFF;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 14px;
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.sgp-cmd-filter-apply-btn:hover {
+  background: #0369A1;
+}
+
+/* Overflow Menu Popover (Section 10) */
+.sgp-cmd-overflow-menu-popover {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sgp-donut-progress-circle,
+  .sgp-cmd-popover-portal {
+    animation: none !important;
+    transition: none !important;
+  }
 }
 
 /* ==========================================================================

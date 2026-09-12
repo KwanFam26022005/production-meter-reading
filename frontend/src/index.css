@@ -8598,6 +8598,8 @@ body:has(.admin-portal-root) {
 
 /* Phase 6B — map-first direct manipulation surface (Phase U6 Full-Bleed) */
 .sgp-map-first-root {
+  position: relative !important;
+  width: 100% !important;
   height: 100% !important;
   min-height: 0 !important;
   display: flex;
@@ -8607,11 +8609,12 @@ body:has(.admin-portal-root) {
   overflow: hidden;
 }
 .sgp-map-first-workspace {
-  position: relative;
-  flex: 1;
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
   height: 100% !important;
   min-height: 0 !important;
-  overflow: hidden;
+  overflow: hidden !important;
 }
 .sgp-map-first-workspace > .sgp-operational-map-container {
   position: absolute !important;

@@ -178,9 +178,9 @@ export const ImmersiveSceneShell: React.FC<ImmersiveSceneShellProps> = ({
 
   viewport,
   onViewportChange,
-  onZoomIn,
-  onZoomOut,
-  onResetView,
+  onZoomIn: _onZoomIn,
+  onZoomOut: _onZoomOut,
+  onResetView: _onResetView,
 
   exceptionFocus,
   onToggleExceptionFocus: _onToggleExceptionFocus,
@@ -254,6 +254,24 @@ export const ImmersiveSceneShell: React.FC<ImmersiveSceneShellProps> = ({
     }
   }, [activeContextType, onSetAnalyticsOpen, onCancelPlacement, onClearSelection]);
 
+  // Global Escape priority stack (V13.2 Section 25)
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        // Priority 1 (command popovers) handles its own Escape and stopPropagation
+        // Priority 2: close active context surface
+        if (activeContextType) {
+          handleCloseContext();
+        } else if (selection.selectedZoneId || selection.selectedMeterId) {
+          // Priority 3: clear spatial selection
+          onClearSelection();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [activeContextType, handleCloseContext, selection, onClearSelection]);
+
   const { hasContextBack, contextBackLabel, handleContextBack } = useMemo(() => {
     if (activeContextType === 'zone-meters') {
       return {
@@ -284,11 +302,16 @@ export const ImmersiveSceneShell: React.FC<ImmersiveSceneShellProps> = ({
   }, [activeContextType, onBackToInspector, onClearSelection, hasMeterBack, meterBackLabel, onMeterBack, onCancelPlacement]);
 
   return (
-    <div className="sgp-map-first-root" role="main" aria-label="Trung tâm tác nghiệp công tơ Cảng Tân Thuận">
-      {/* IMMERSIVE FULL-BLEED WORKSPACE CONTAINER */}
+    <div
+      className="sgp-map-first-root"
+      role="main"
+      aria-label="Trung tâm tác nghiệp công tơ Cảng Tân Thuận"
+      style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}
+    >
+      {/* IMMERSIVE FULL-BLEED WORKSPACE CONTAINER (V13.2 Section 18) */}
       <main
         className="sgp-map-first-workspace"
-        style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}
+        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', overflow: 'hidden' }}
       >
         {/* ============================================================ */}
         {/* LAYER B: PRIMARY CENTER CANVAS (MAP OR LIST)                */}
@@ -369,16 +392,20 @@ export const ImmersiveSceneShell: React.FC<ImmersiveSceneShellProps> = ({
               isLegendOpen={isLegendOpen}
             />
 
-            {/* Viewport controls strictly unmounted in List mode (Section 5) */}
+            {/* Viewport controls strictly unmounted in List mode (Section 19-21) */}
             {viewMode === 'map' && (
-              <div className="sgp-hud-bottom-right" style={{ pointerEvents: 'auto' }}>
-                <SceneControlHUD
-                  zoom={viewport.zoom}
-                  activeLayer="STATUS"
-                  onZoomIn={onZoomIn}
-                  onZoomOut={onZoomOut}
-                  onResetView={onResetView}
-                />
+              <div
+                className="sgp-hud-bottom-right"
+                style={{
+                  position: 'absolute',
+                  bottom: '20px',
+                  right: activeContextType ? '400px' : '20px',
+                  zIndex: 35,
+                  transition: 'right 200ms cubic-bezier(0.16, 1, 0.3, 1)',
+                  pointerEvents: 'auto',
+                }}
+              >
+                <SceneControlHUD />
               </div>
             )}
           </>
