@@ -125,7 +125,7 @@ export const FilterPopover: React.FC<FilterPopoverProps> = ({
     <div className="sgp-filter-popover-wrapper" ref={containerRef}>
       <button
         type="button"
-        className={`sgp-filter-trigger-btn ${activeCount > 0 ? 'has-active' : ''}`}
+        className={`sgp-filter-trigger-btn sgp-scene-action-pill ${activeCount > 0 ? 'has-active' : ''}`}
         onClick={() => setIsOpen((prev) => !prev)}
         title="Mở bộ lọc dữ liệu"
         aria-expanded={isOpen}

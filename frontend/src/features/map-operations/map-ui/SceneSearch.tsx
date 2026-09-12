@@ -84,7 +84,7 @@ export const SceneSearch: React.FC<SceneSearchProps> = ({
     <div className="sgp-search-wrap" ref={popoverRef}>
       <button
         type="button"
-        className="sgp-map-icon-btn"
+        className="sgp-search-trigger-btn sgp-scene-action-pill sgp-map-icon-btn"
         aria-label="Tìm kiếm trong sơ đồ tác nghiệp"
         aria-expanded={isOpen}
         onClick={() => onToggle(!isOpen)}

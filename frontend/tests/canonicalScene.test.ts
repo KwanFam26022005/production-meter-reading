@@ -45,7 +45,7 @@ test('Canonical Transform: Dimensions and Aspect Ratio match canonical port map'
   assert.equal(CANONICAL_SCENE_WIDTH, 1915);
   assert.equal(CANONICAL_SCENE_HEIGHT, 821);
   assert.equal(CANONICAL_VIEWBOX, '0 0 1915 821');
-  assert.equal(CANONICAL_MAP_VERSION, 'tan-thuan-v2');
+  assert.equal(CANONICAL_MAP_VERSION, 'tan-thuan-v8');
 });
 
 test('Canonical Transform: Boundary and Center Roundtrip Projections', () => {

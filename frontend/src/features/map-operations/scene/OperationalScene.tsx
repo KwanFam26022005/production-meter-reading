@@ -5,7 +5,7 @@ import type {
   MapViewportState,
   OperationalLayerType,
 } from '../types';
-import { CANONICAL_VIEWBOX } from '../geometry/canonicalScene';
+import { CANONICAL_VIEWBOX, CANONICAL_MAP_VERSION } from '../geometry/canonicalScene';
 import type { SelectedEntity, MapMode } from '../state/useMapStateMachine';
 import { CanonicalBaseMap } from './CanonicalBaseMap';
 import { ZoneLayer } from '../layers/ZoneLayer';
@@ -89,7 +89,7 @@ export const OperationalScene: React.FC<OperationalSceneProps> = ({
   useEffect(() => {
     const operatorCount = new Set(zones.map((z) => z.assignedUser?.id).filter(Boolean)).size;
     console.log(
-      `[MapOps-H1] renderer=OperationalScene canonicalVersion=tan-thuan-v2 viewBox="${CANONICAL_VIEWBOX}" zones=${zones.length} meters=${meters.length} operators=${operatorCount}`
+      `[MapOps-H1] renderer=OperationalScene canonicalVersion=${CANONICAL_MAP_VERSION} viewBox="${CANONICAL_VIEWBOX}" zones=${zones.length} meters=${meters.length} operators=${operatorCount}`
     );
   }, [zones, meters]);
 

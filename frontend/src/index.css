@@ -8623,7 +8623,9 @@ body:has(.admin-portal-root) {
 .sgp-map-action-cluster, .sgp-search-wrap { display: flex; gap: 8px; align-items: flex-start; pointer-events: auto; position: relative; }
 .sgp-map-icon-btn {
   min-height: 38px;
-  width: 38px;
+  width: auto;
+  min-width: 38px;
+  padding: 0 10px;
   justify-content: center;
   border: 1px solid #d5e0e5;
   background: rgba(255,255,255,.95);
@@ -8634,6 +8636,10 @@ body:has(.admin-portal-root) {
   display: inline-flex;
   align-items: center;
   transition: all 0.15s ease;
+}
+.sgp-map-icon-btn:not(:has(span)) {
+  width: 38px;
+  padding: 0;
 }
 .sgp-map-icon-btn:hover { border-color: #0b4f75; background: #fff; }
 
@@ -8675,12 +8681,13 @@ body:has(.admin-portal-root) {
   left: 0;
   width: 320px;
   max-height: 420px;
-  padding: 8px;
-  background: var(--surface-popover, #ffffff);
-  border: 1px solid var(--surface-border, rgba(11, 79, 117, 0.14));
-  border-top: 3px solid var(--ops-brand, #073b5c);
-  border-radius: 10px;
-  box-shadow: 0 12px 30px rgba(7, 59, 92, 0.16);
+  padding: 10px;
+  background: var(--map-chrome-mist-strong, rgba(255, 255, 255, 0.92));
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--map-border-soft, rgba(15, 23, 42, 0.10));
+  border-radius: 14px;
+  box-shadow: 0 12px 32px -4px rgba(15, 23, 42, 0.14);
   display: flex;
   flex-direction: column;
   animation: sgp-popup-enter var(--motion-normal, 220ms) var(--ease-out-expo);
@@ -15986,12 +15993,14 @@ body:has(.admin-portal-root) {
   right: auto;
   width: 290px;
   max-width: calc(100vw - 32px);
-  background-color: #FFFFFF;
-  border: 1px solid #CBD5E1;
-  border-radius: 8px;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  background: var(--map-chrome-mist-strong, rgba(255, 255, 255, 0.92));
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--map-border-soft, rgba(15, 23, 42, 0.10));
+  border-radius: 14px;
+  box-shadow: 0 12px 32px -4px rgba(15, 23, 42, 0.14);
   z-index: var(--z-map-popovers, 40);
-  padding: 12px 14px;
+  padding: 14px;
   box-sizing: border-box;
 }
 
