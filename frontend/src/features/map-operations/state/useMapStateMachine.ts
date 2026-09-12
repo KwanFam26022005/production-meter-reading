@@ -57,6 +57,7 @@ export function useMapStateMachine(): MapUiStateMachine {
   const [detailView, setDetailView] = useState<DetailView>(null);
   const [hoveredEntity, setHoveredEntityState] = useState<SelectedEntity>(null);
   const [placementContext, setPlacementContext] = useState<PlacementContext | null>(null);
+  const [priorDetailView, setPriorDetailView] = useState<DetailView>(null);
 
   // Invariant 1: Hover never alters selectedEntity
   const setHoveredEntity = useCallback((entity: SelectedEntity) => {
@@ -127,6 +128,7 @@ export function useMapStateMachine(): MapUiStateMachine {
 
   // Invariant 4: Placement closes inspector and previous detail view
   const startPlacement = useCallback((targetZoneId: string, targetZoneName: string) => {
+    setPriorDetailView(detailView);
     setSelectedEntity({ type: 'zone', id: targetZoneId });
     setMode('placement');
     setDetailView('meter-placement');
@@ -139,10 +141,11 @@ export function useMapStateMachine(): MapUiStateMachine {
       meterType: 'LCD',
       pinnedCoords: null,
     });
-  }, []);
+  }, [detailView]);
 
   const startRelocation = useCallback(
     (meter: { id: string; meterCode: string; name: string; zoneId: string; targetZoneName?: string }) => {
+      setPriorDetailView(detailView);
       setSelectedEntity({ type: 'meter', id: meter.id });
       setMode('placement');
       setDetailView('meter-placement');
@@ -157,7 +160,7 @@ export function useMapStateMachine(): MapUiStateMachine {
         pinnedCoords: null,
       });
     },
-    []
+    [detailView]
   );
 
   const updatePlacementContext = useCallback((updates: Partial<PlacementContext>) => {
@@ -166,14 +169,18 @@ export function useMapStateMachine(): MapUiStateMachine {
 
   const cancelPlacement = useCallback(() => {
     setPlacementContext(null);
-    if (selectedEntity) {
+    if (priorDetailView) {
+      setMode('details');
+      setDetailView(priorDetailView);
+      setPriorDetailView(null);
+    } else if (selectedEntity) {
       setMode('inspect');
       setDetailView(null);
     } else {
       setMode('browse');
       setDetailView(null);
     }
-  }, [selectedEntity]);
+  }, [priorDetailView, selectedEntity]);
 
   // Invariant 5: ESC moves one level back
   const handleEsc = useCallback(() => {
@@ -206,6 +213,7 @@ export function useMapStateMachine(): MapUiStateMachine {
     setSelectedEntity(null);
     setDetailView(null);
     setPlacementContext(null);
+    setPriorDetailView(null);
   }, []);
 
   return useMemo(() => ({
