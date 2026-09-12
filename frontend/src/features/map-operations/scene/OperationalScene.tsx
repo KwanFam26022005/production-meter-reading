@@ -151,70 +151,75 @@ export const OperationalScene: React.FC<OperationalSceneProps> = ({
           }}
         >
           {/* 1. Canonical Physical Base Scene (Approved Illustration) */}
-          <CanonicalBaseMap isDimmed={exceptionFocus} />
+          <CanonicalBaseMap isDimmed={isCalibrationActive ? false : exceptionFocus} />
 
-          {/* 2. Operational Zones Layer (Transparent Polygons + Exception Badges) */}
-          <ZoneLayer
-            zones={zones}
-            meters={meters}
-            selectedZoneId={selectedZoneId}
-            hoveredZoneId={hoveredZoneId}
-            activeLayer={activeLayer}
-            exceptionsOnly={exceptionsOnly}
-            exceptionFocus={exceptionFocus}
-            selectedOperatorId={selectedOperatorId}
-            mode={mode}
-            selectedEntity={selectedEntity}
-            targetPlacementZoneId={targetPlacementZoneId}
-            onSelectZone={onSelectZone}
-            onHoverZone={onHoverZone}
-          />
+          {/* Normal Runtime Overlays: Suppressed in dedicated Calibration Workspace */}
+          {!isCalibrationActive && (
+            <>
+              {/* 2. Operational Zones Layer (Transparent Polygons + Exception Badges) */}
+              <ZoneLayer
+                zones={zones}
+                meters={meters}
+                selectedZoneId={selectedZoneId}
+                hoveredZoneId={hoveredZoneId}
+                activeLayer={activeLayer}
+                exceptionsOnly={exceptionsOnly}
+                exceptionFocus={exceptionFocus}
+                selectedOperatorId={selectedOperatorId}
+                mode={mode}
+                selectedEntity={selectedEntity}
+                targetPlacementZoneId={targetPlacementZoneId}
+                onSelectZone={onSelectZone}
+                onHoverZone={onHoverZone}
+              />
 
-          {/* 3. Operational Meter Markers Layer */}
-          <MeterLayer
-            meters={meters}
-            selectedZoneId={selectedZoneId}
-            selectedMeterId={selectedMeterId}
-            hoveredMeterId={hoveredMeterId}
-            exceptionsOnly={exceptionsOnly}
-            zoomLevel={viewport.zoom}
-            isAssetMode={isAssetMode}
-            mode={mode}
-            selectedEntity={selectedEntity}
-            targetPlacementZoneId={targetPlacementZoneId}
-            onSelectMeter={onSelectMeter}
-            onHoverMeter={onHoverMeter}
-            exceptionFocus={exceptionFocus}
-          />
+              {/* 3. Operational Meter Markers Layer */}
+              <MeterLayer
+                meters={meters}
+                selectedZoneId={selectedZoneId}
+                selectedMeterId={selectedMeterId}
+                hoveredMeterId={hoveredMeterId}
+                exceptionsOnly={exceptionsOnly}
+                zoomLevel={viewport.zoom}
+                isAssetMode={isAssetMode}
+                mode={mode}
+                selectedEntity={selectedEntity}
+                targetPlacementZoneId={targetPlacementZoneId}
+                onSelectMeter={onSelectMeter}
+                onHoverMeter={onHoverMeter}
+                exceptionFocus={exceptionFocus}
+              />
 
-          {/* 4. Spatial Operator Markers Layer */}
-          <OperatorLayer
-            zones={zones}
-            meters={meters}
-            selectedZoneId={selectedZoneId}
-            selectedOperatorId={selectedOperatorShiftId}
-            currentRoundTime={currentRoundTime}
-            mode={mode}
-            selectedEntity={selectedEntity}
-            targetPlacementZoneId={targetPlacementZoneId}
-            onSelectOperator={onSelectOperator || (() => {})}
-          />
+              {/* 4. Spatial Operator Markers Layer */}
+              <OperatorLayer
+                zones={zones}
+                meters={meters}
+                selectedZoneId={selectedZoneId}
+                selectedOperatorId={selectedOperatorShiftId}
+                currentRoundTime={currentRoundTime}
+                mode={mode}
+                selectedEntity={selectedEntity}
+                targetPlacementZoneId={targetPlacementZoneId}
+                onSelectOperator={onSelectOperator || (() => {})}
+              />
 
-          {/* 5. Alert Atmospheric Layer */}
-          <AlertLayer isActive={exceptionFocus} issueCount={issueCount} />
+              {/* 5. Alert Atmospheric Layer */}
+              <AlertLayer isActive={exceptionFocus} issueCount={issueCount} />
 
-          {/* 6. Operational Labels Layer */}
-          <LabelsLayer
-            zoomLevel={viewport.zoom}
-            selectedZoneId={selectedZoneId}
-            hoveredZoneId={hoveredZoneId}
-          />
+              {/* 6. Operational Labels Layer */}
+              <LabelsLayer
+                zoomLevel={viewport.zoom}
+                selectedZoneId={selectedZoneId}
+                hoveredZoneId={hoveredZoneId}
+              />
 
-          {/* 7. Diagnostic Debug Overlay (?mapDebug=1) */}
-          <MapDebugLayer zones={zones} meters={meters} />
+              {/* 7. Diagnostic Debug Overlay (?mapDebug=1) */}
+              <MapDebugLayer zones={zones} meters={meters} />
 
-          {/* 8. Spatial Meter Placement & Relocation Layer (GATE 8) */}
-          {placementSvgLayer}
+              {/* 8. Spatial Meter Placement & Relocation Layer (GATE 8) */}
+              {placementSvgLayer}
+            </>
+          )}
 
           {/* 9. Developer-Only Geometry Calibration Layer (?mapCalibration=1) */}
           {isCalibrationActive && (
@@ -224,7 +229,7 @@ export const OperationalScene: React.FC<OperationalSceneProps> = ({
       </svg>
 
       {/* Floating Placement Card (Outside SVG, within relative container) */}
-      {placementCard}
+      {!isCalibrationActive && placementCard}
 
       {/* Developer-Only Calibration HUD Panel (?mapCalibration=1) */}
       {isCalibrationActive && <MapCalibrationHUD calibration={calibration} />}

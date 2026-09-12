@@ -18,6 +18,7 @@ import { SceneControlHUD } from './SceneControlHUD';
 import { OperationalListView } from './OperationalListView';
 
 import { OperationalScene } from '../scene/OperationalScene';
+import { isCalibrationModeActive } from '../calibration/MapCalibrationOverlay';
 import { SpatialInspector, MapContextRail } from '../map-ui';
 import { AnalyticsDrawer } from '../context';
 import type {
@@ -204,6 +205,7 @@ export const ImmersiveSceneShell: React.FC<ImmersiveSceneShellProps> = ({
 }) => {
   const issueCount = overallKpis.overdue + overallKpis.review;
   const rounds = dashboardData?.round_progress || [];
+  const isCalibrationActive = isCalibrationModeActive();
 
   const operationalStates = useMemo(() => {
     return projectAllZonesOperationalState(mapZones, mapMeters);
@@ -259,7 +261,8 @@ export const ImmersiveSceneShell: React.FC<ImmersiveSceneShellProps> = ({
         {/* ============================================================ */}
         {/* LAYER C: INTEGRATED SCENE HUD OVERLAYS                       */}
         {/* ============================================================ */}
-        <div className="sgp-scene-hud-container" style={{ pointerEvents: 'none' }}>
+        {!isCalibrationActive && (
+          <div className="sgp-scene-hud-container" style={{ pointerEvents: 'none' }}>
           {/* TOP BAR CLUSTER — UNIFIED MARITIME HEADER */}
           <div className="sgp-hud-top-bar" style={{ pointerEvents: 'auto' }}>
             <SceneHeaderHUD />
@@ -337,91 +340,93 @@ export const ImmersiveSceneShell: React.FC<ImmersiveSceneShellProps> = ({
             </div>
           )}
         </div>
+      )}
 
-        {/* ============================================================ */}
-        {/* LAYER D: CONTEXTUAL SURFACES (FAMILY B & FAMILY C)           */}
-        {/* Invariant: At most 1 contextual surface is ever visible!     */}
-        {/* ============================================================ */}
+      {/* ============================================================ */}
+      {/* LAYER D: CONTEXTUAL SURFACES (FAMILY B & FAMILY C)           */}
+      {/* Invariant: At most 1 contextual surface is ever visible!     */}
+      {/* Suppressed in calibration workspace (?mapCalibration=1)      */}
+      {/* ============================================================ */}
 
-        {/* Family B: SpatialInspector (312px dark maritime frosted glass) */}
-        {!analyticsOpen && mapMode === 'inspect' && selectedEntity && viewMode === 'map' && (
-          selectedEntity.type === 'zone' && selectedZone ? (
-            <SpatialInspector
-              variant="zone"
-              zone={selectedZone}
-              zoneState={operationalStates[selectedZone.id]}
-              onClose={onClearSelection}
-              onOpenDetails={() => (onOpenDetails ? onOpenDetails('zone') : onSetDetailOpen(true))}
-              onAddMeter={onAddMeterToZone}
-            />
-          ) : selectedEntity.type === 'operator' && selectedOperatorSummary ? (
-            <SpatialInspector
-              variant="operator"
-              operator={availableOperators.find((u) => u.id === selectedOperatorSummary.operatorId)}
-              operatorSummary={selectedOperatorSummary}
-              onClose={onClearSelection}
-              onOpenDetails={() => (onOpenDetails ? onOpenDetails('operator') : onSetDetailOpen(true))}
-            />
-          ) : selectedEntity.type === 'meter' && selectedMeter ? (
-            <SpatialInspector
-              variant="meter"
-              meter={selectedMeter}
-              onClose={onClearSelection}
-              onOpenDetails={() => (onOpenDetails ? onOpenDetails('meter') : onSetDetailOpen(true))}
-              onRelocateMeter={onRelocateMeter}
-            />
-          ) : null
-        )}
-
-        {/* Family C: MapContextRail (360px right rail / mobile sheet) */}
-        {!analyticsOpen && (mapMode === 'details' || mapMode === 'placement') && (
-          <MapContextRail
-            variant={
-              mapMode === 'placement'
-                ? 'meter-placement'
-                : detailView === 'zone'
-                ? 'zone-detail'
-                : detailView === 'operator'
-                ? 'operator-detail'
-                : 'meter-detail'
-            }
+      {/* Family B: SpatialInspector (312px dark maritime frosted glass) */}
+      {!isCalibrationActive && !analyticsOpen && mapMode === 'inspect' && selectedEntity && viewMode === 'map' && (
+        selectedEntity.type === 'zone' && selectedZone ? (
+          <SpatialInspector
+            variant="zone"
             zone={selectedZone}
-            allMeters={mapMeters}
-            zoneState={selectedZone ? operationalStates[selectedZone.id] : undefined}
-            operator={selectedOperatorSummary ? availableOperators.find((u) => u.id === selectedOperatorSummary.operatorId) : undefined}
-            operatorSummary={selectedOperatorSummary || undefined}
-            meter={selectedMeter}
-            placementContext={placementContext}
-            zones={mapZones}
-            isSubmittingPlacement={isSubmittingPlacement}
-            placementError={placementError}
-            onBack={onBackToInspector || onClearSelection}
+            zoneState={operationalStates[selectedZone.id]}
             onClose={onClearSelection}
-            onSelectMeter={onSelectMeter}
-            onInspectReading={onInspectReading}
-            onStartPlacement={onAddMeterToZone}
-            onStartRelocation={onRelocateMeter}
-            onUpdatePlacement={onUpdatePlacementContext}
-            onResetPin={onResetPin}
-            onConfirmPlacement={onConfirmPlacement}
-            onCancelPlacement={onCancelPlacement}
+            onOpenDetails={() => (onOpenDetails ? onOpenDetails('zone') : onSetDetailOpen(true))}
+            onAddMeter={onAddMeterToZone}
           />
-        )}
+        ) : selectedEntity.type === 'operator' && selectedOperatorSummary ? (
+          <SpatialInspector
+            variant="operator"
+            operator={availableOperators.find((u) => u.id === selectedOperatorSummary.operatorId)}
+            operatorSummary={selectedOperatorSummary}
+            onClose={onClearSelection}
+            onOpenDetails={() => (onOpenDetails ? onOpenDetails('operator') : onSetDetailOpen(true))}
+          />
+        ) : selectedEntity.type === 'meter' && selectedMeter ? (
+          <SpatialInspector
+            variant="meter"
+            meter={selectedMeter}
+            onClose={onClearSelection}
+            onOpenDetails={() => (onOpenDetails ? onOpenDetails('meter') : onSetDetailOpen(true))}
+            onRelocateMeter={onRelocateMeter}
+          />
+        ) : null
+      )}
 
-        {/* Analytics Drawer (Opened exclusively from Header / Summary telemetry) */}
-        {analyticsOpen && (
-          <AnalyticsDrawer
-            dashboardData={dashboardData}
-            zones={mapZones}
-            onClose={() => onSetAnalyticsOpen(false)}
-            onInspectReading={onInspectReading}
-            onSelectZone={(zoneId) => {
-              onSetAnalyticsOpen(false);
-              onSelectZone(zoneId);
-            }}
-          />
-        )}
-      </main>
-    </div>
-  );
+      {/* Family C: MapContextRail (360px right rail / mobile sheet) */}
+      {!isCalibrationActive && !analyticsOpen && (mapMode === 'details' || mapMode === 'placement') && (
+        <MapContextRail
+          variant={
+            mapMode === 'placement'
+              ? 'meter-placement'
+              : detailView === 'zone'
+              ? 'zone-detail'
+              : detailView === 'operator'
+              ? 'operator-detail'
+              : 'meter-detail'
+          }
+          zone={selectedZone}
+          allMeters={mapMeters}
+          zoneState={selectedZone ? operationalStates[selectedZone.id] : undefined}
+          operator={selectedOperatorSummary ? availableOperators.find((u) => u.id === selectedOperatorSummary.operatorId) : undefined}
+          operatorSummary={selectedOperatorSummary || undefined}
+          meter={selectedMeter}
+          placementContext={placementContext}
+          zones={mapZones}
+          isSubmittingPlacement={isSubmittingPlacement}
+          placementError={placementError}
+          onBack={onBackToInspector || onClearSelection}
+          onClose={onClearSelection}
+          onSelectMeter={onSelectMeter}
+          onInspectReading={onInspectReading}
+          onStartPlacement={onAddMeterToZone}
+          onStartRelocation={onRelocateMeter}
+          onUpdatePlacement={onUpdatePlacementContext}
+          onResetPin={onResetPin}
+          onConfirmPlacement={onConfirmPlacement}
+          onCancelPlacement={onCancelPlacement}
+        />
+      )}
+
+      {/* Analytics Drawer (Opened exclusively from Header / Summary telemetry) */}
+      {!isCalibrationActive && analyticsOpen && (
+        <AnalyticsDrawer
+          dashboardData={dashboardData}
+          zones={mapZones}
+          onClose={() => onSetAnalyticsOpen(false)}
+          onInspectReading={onInspectReading}
+          onSelectZone={(zoneId) => {
+            onSetAnalyticsOpen(false);
+            onSelectZone(zoneId);
+          }}
+        />
+      )}
+    </main>
+  </div>
+);
 };
