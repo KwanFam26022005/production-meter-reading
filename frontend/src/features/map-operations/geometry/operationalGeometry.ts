@@ -249,7 +249,21 @@ export const ZONE_VISUAL_THEMES: Record<string, ZoneVisualTheme> = {
   },
 };
 
-export interface SpatialZonePresentation {
+/**
+ * Gate 7: Presentation Zone Model Specification
+ */
+export interface PresentationZone {
+  id: string;
+  displayIndex: number;
+  displayLabel: string;
+  businessZoneIds: string[];
+  polygonCanonical: Array<{ x: number; y: number }>;
+  labelAnchorCanonical: { x: number; y: number };
+  operatorAnchorCanonical: { x: number; y: number };
+  presentationColor: string;
+}
+
+export interface SpatialZonePresentation extends PresentationZone {
   presentationId: string;
   businessZoneId: string;
   code: string;
@@ -376,10 +390,15 @@ function pointsToNormalized(points: { x: number; y: number }[]): NormalizedPoint
  * Aligned with tan-thuan-approved-zoning.png and mapped onto 4 authoritative business zones.
  * Traced and calibrated against tan-thuan-canonical-base.png (1915x821).
  */
-export const SPATIAL_ZONE_PRESENTATIONS: SpatialZonePresentation[] = [
+const RAW_SPATIAL_ZONE_PRESENTATIONS: any[] = [
   {
     ...ZONE_VISUAL_THEMES['pres-berth'],
+    id: 'pres-berth',
     presentationId: 'pres-berth',
+    businessZoneIds: ['zone-berth'],
+    presentationColor: '#0284C7',
+    labelAnchorCanonical: { x: 920, y: 280 },
+    operatorAnchorCanonical: { x: 1060, y: 335 },
     businessZoneId: 'zone-berth',
     code: 'ZONE-BERTH',
     displayIndex: 1,
@@ -448,7 +467,12 @@ export const SPATIAL_ZONE_PRESENTATIONS: SpatialZonePresentation[] = [
   },
   {
     ...ZONE_VISUAL_THEMES['pres-container-west'],
+    id: 'pres-container-west',
     presentationId: 'pres-container-west',
+    businessZoneIds: ['zone-warehouse'],
+    presentationColor: '#EA580C',
+    labelAnchorCanonical: { x: 320, y: 470 },
+    operatorAnchorCanonical: { x: 450, y: 520 },
     businessZoneId: 'zone-warehouse',
     code: 'ZONE-CONT-WEST',
     displayIndex: 2,
@@ -502,7 +526,12 @@ export const SPATIAL_ZONE_PRESENTATIONS: SpatialZonePresentation[] = [
   },
   {
     ...ZONE_VISUAL_THEMES['pres-container-center'],
+    id: 'pres-container-center',
     presentationId: 'pres-container-center',
+    businessZoneIds: ['zone-container'],
+    presentationColor: '#E11D48',
+    labelAnchorCanonical: { x: 1180, y: 440 },
+    operatorAnchorCanonical: { x: 1300, y: 440 },
     businessZoneId: 'zone-container',
     code: 'ZONE-CONT-CENTER',
     displayIndex: 3,
@@ -553,7 +582,12 @@ export const SPATIAL_ZONE_PRESENTATIONS: SpatialZonePresentation[] = [
   },
   {
     ...ZONE_VISUAL_THEMES['pres-cfs-east'],
+    id: 'pres-cfs-east',
     presentationId: 'pres-cfs-east',
+    businessZoneIds: ['zone-warehouse'],
+    presentationColor: '#EAB308',
+    labelAnchorCanonical: { x: 1720, y: 340 },
+    operatorAnchorCanonical: { x: 1760, y: 380 },
     businessZoneId: 'zone-warehouse',
     code: 'ZONE-CFS-EAST',
     displayIndex: 4,
@@ -604,7 +638,12 @@ export const SPATIAL_ZONE_PRESENTATIONS: SpatialZonePresentation[] = [
   },
   {
     ...ZONE_VISUAL_THEMES['pres-technical'],
+    id: 'pres-technical',
     presentationId: 'pres-technical',
+    businessZoneIds: ['zone-technical'],
+    presentationColor: '#10B981',
+    labelAnchorCanonical: { x: 1100, y: 640 },
+    operatorAnchorCanonical: { x: 960, y: 680 },
     businessZoneId: 'zone-technical',
     code: 'ZONE-TECH',
     displayIndex: 5,
@@ -664,7 +703,12 @@ export const SPATIAL_ZONE_PRESENTATIONS: SpatialZonePresentation[] = [
   },
   {
     ...ZONE_VISUAL_THEMES['pres-gate'],
+    id: 'pres-gate',
     presentationId: 'pres-gate',
+    businessZoneIds: ['zone-technical'],
+    presentationColor: '#8B5CF6',
+    labelAnchorCanonical: { x: 1680, y: 670 },
+    operatorAnchorCanonical: { x: 1680, y: 690 },
     businessZoneId: 'zone-technical',
     code: 'ZONE-GATE',
     displayIndex: 6,
@@ -714,6 +758,14 @@ export const SPATIAL_ZONE_PRESENTATIONS: SpatialZonePresentation[] = [
     operatorAnchorNormalized: canonicalSceneToNormalized(1765, 615),
   },
 ];
+
+export const SPATIAL_ZONE_PRESENTATIONS: SpatialZonePresentation[] = RAW_SPATIAL_ZONE_PRESENTATIONS.map((z) => ({
+  ...z,
+  polygonCanonical: z.pointsSvg,
+}));
+
+export const PRESENTATION_ZONES: PresentationZone[] = SPATIAL_ZONE_PRESENTATIONS;
+
 
 /**
  * 4 Business Zones Geometry with backward compatibility:
@@ -958,3 +1010,4 @@ export function calculateZoneCameraFraming(
 
   return { zoom: targetZoom, panX, panY };
 }
+

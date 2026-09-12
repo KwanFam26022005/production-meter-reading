@@ -172,3 +172,63 @@ export function focusEntity(options: FocusEntityOptions): CameraFraming {
 
   return { zoom: 1.0, panX: 0, panY: 0 };
 }
+
+
+/**
+ * Gate 12: Programmatic Camera Intents Specification
+ */
+export type CameraIntent =
+  | 'PORT_OVERVIEW'
+  | 'ZONE_FOCUS'
+  | 'OPERATOR_FOCUS'
+  | 'METER_FOCUS'
+  | 'PLACEMENT_FOCUS';
+
+export interface CameraIntentPayload {
+  intent: CameraIntent;
+  targetId?: string;
+  viewportWidth?: number;
+  viewportHeight?: number;
+  entityCoords?: { x: number; y: number };
+  assignedPoints?: { x: number; y: number }[];
+}
+
+export function applyCameraIntent(payload: CameraIntentPayload): CameraFraming {
+  switch (payload.intent) {
+    case 'PORT_OVERVIEW':
+      return { zoom: 1.0, panX: 0, panY: 0 };
+    case 'ZONE_FOCUS':
+      return focusEntity({
+        entity: payload.targetId ? { type: 'zone', id: payload.targetId } : null,
+        mode: 'inspect',
+        viewportWidth: payload.viewportWidth,
+        viewportHeight: payload.viewportHeight,
+      });
+    case 'OPERATOR_FOCUS':
+      return focusEntity({
+        entity: payload.targetId ? { type: 'operator', id: payload.targetId } : null,
+        mode: 'inspect',
+        viewportWidth: payload.viewportWidth,
+        viewportHeight: payload.viewportHeight,
+        entityCoords: payload.entityCoords,
+        assignedPoints: payload.assignedPoints,
+      });
+    case 'METER_FOCUS':
+      return focusEntity({
+        entity: payload.targetId ? { type: 'meter', id: payload.targetId } : null,
+        mode: 'inspect',
+        viewportWidth: payload.viewportWidth,
+        viewportHeight: payload.viewportHeight,
+        entityCoords: payload.entityCoords,
+      });
+    case 'PLACEMENT_FOCUS':
+      return focusEntity({
+        entity: payload.targetId ? { type: 'zone', id: payload.targetId } : null,
+        mode: 'placement',
+        viewportWidth: payload.viewportWidth,
+        viewportHeight: payload.viewportHeight,
+      });
+    default:
+      return { zoom: 1.0, panX: 0, panY: 0 };
+  }
+}

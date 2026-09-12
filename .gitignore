@@ -46,6 +46,7 @@ artifacts/
 !frontend/src/assets/**
 !frontend/public/**
 !docs/design/map-operations/v7/screenshots/**
+!docs/design/map-operations/reference/**
 
 # Agent local artifacts
 .agents/

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import tanThuanMapWebp from '../../../assets/maps/tan-thuan-canonical-v2.webp';
+import { TanThuanMapSource } from '../config/tanThuanMapSource';
 import {
   CANONICAL_SCENE_WIDTH,
   CANONICAL_SCENE_HEIGHT,
@@ -30,7 +30,7 @@ export const CanonicalBaseMap: React.FC<CanonicalBaseMapProps> = ({
   useEffect(() => {
     // Preload map image asset
     const img = new Image();
-    img.src = tanThuanMapWebp;
+    img.src = TanThuanMapSource.image;
     img.onload = () => {
       setImageLoaded(true);
       onLoaded?.();
@@ -124,7 +124,7 @@ export const CanonicalBaseMap: React.FC<CanonicalBaseMapProps> = ({
 
       {/* 2. Master Canonical Physical Map Image (1915x821 Canonical Aspect Ratio Lock) */}
       <image
-        href={tanThuanMapWebp}
+        href={TanThuanMapSource.image}
         x={0}
         y={0}
         width={CANONICAL_SCENE_WIDTH}

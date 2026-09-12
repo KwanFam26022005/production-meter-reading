@@ -48,7 +48,7 @@ export interface OperationalSceneProps {
  * OperationalScene — Master Spatial Scene for Cảng Tân Thuận (Phase H1)
  *
  * Architecture:
- * - Master SVG with single viewBox="0 0 1664 932"
+ * - Master SVG with single viewBox="0 0 1915 821"
  * - Single world transform <g transform="translate(panX, panY) scale(zoom)">
  * - CanonicalBaseMap renders physical approved map image
  * - Vector operational overlays render in identical coordinate space
@@ -117,7 +117,7 @@ export const OperationalScene: React.FC<OperationalSceneProps> = ({
       <svg
         viewBox={CANONICAL_VIEWBOX}
         className="sgp-operational-svg"
-        preserveAspectRatio="xMidYMid slice"
+        preserveAspectRatio="xMidYMid meet"
         style={{
           width: '100%',
           height: '100%',

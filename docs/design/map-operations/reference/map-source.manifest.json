@@ -1,0 +1,45 @@
+{
+  "mapId": "tan-thuan-port",
+  "coordinateSystem": "tan-thuan-canonical-image-pixel-space-v1",
+  "runtimeBackgroundPolicy": "canonical-base-only",
+  "authoritativeBaseSource": {
+    "path": "docs/design/map-operations/reference/tan-thuan-canonical-base.png",
+    "role": "ONLY authoritative runtime geographical/background image",
+    "pixelWidth": 1915,
+    "pixelHeight": 821,
+    "aspectRatio": 2.33252131546894,
+    "sha256": "38f3ae3c98bf7732242780381bf1124a394f4479b623c31e48082bfa19e35b61"
+  },
+  "references": {
+    "zoningReference": {
+      "path": "docs/design/map-operations/reference/tan-thuan-approved-zoning.png",
+      "role": "REFERENCE ONLY for visual/presentation zoning geometry",
+      "pixelWidth": 1672,
+      "pixelHeight": 941,
+      "sha256": "cde3fd3d309acf457e79e7ee541c06887174c773e005fdbdd3b427d1cbc1469b"
+    },
+    "interactionReference": {
+      "path": "docs/design/map-operations/reference/tan-thuan-interaction-reference.png",
+      "role": "REFERENCE ONLY for user/meter/entity visual grammar",
+      "pixelWidth": 1672,
+      "pixelHeight": 941,
+      "sha256": "ccfc68520433df36f102b011f57a465e09cba30ab6a6c748c0cf816c31d1354c"
+    },
+    "storyboardReference": {
+      "path": "docs/design/map-operations/reference/tan-thuan-report-storyboard.png",
+      "role": "REFERENCE ONLY for interaction and placement workflow",
+      "pixelWidth": 1672,
+      "pixelHeight": 941,
+      "sha256": "ac0c0c176af4413a8c0b5a85e336aee23655dbc31f04e484cd06a132e5a27076"
+    }
+  },
+  "runtimeAsset": {
+    "identifier": "tan-thuan-port-v8",
+    "bundledWebpPath": "frontend/src/assets/maps/tan-thuan-port-v8.webp",
+    "pixelWidth": 1915,
+    "pixelHeight": 821,
+    "aspectRatio": 2.33252131546894,
+    "sha256": "13e48d4fb09e288c27cd9db0e3345514f3af7e53812c42652f23b937681bd4d6",
+    "derivedFromSha256": "38f3ae3c98bf7732242780381bf1124a394f4479b623c31e48082bfa19e35b61"
+  }
+}

@@ -1,13 +1,13 @@
 /**
  * Canonical Spatial Scene Geometry & Calibration — Cảng Tân Thuận
- * Phase H1: Authoritative Physical Map Base Scene + Vector Operational Overlay
+ * V8 Authoritative Spatial Coordinate Service
  *
  * Canvas Properties:
- * - Version: "tan-thuan-v1"
- * - Master Scene ViewBox: "0 0 1664 932"
- * - Base Map Asset Dimensions: 1664 x 932 px
- * - Aspect Ratio: 1664 / 932 (~1.7854)
- * - Single Unified Coordinate System: SVG world group transforms both base map and overlays.
+ * - Version: "tan-thuan-v8"
+ * - Master Scene ViewBox: "0 0 1915 821"
+ * - Base Map Asset Dimensions: 1915 x 821 px (tan-thuan-canonical-base.png)
+ * - Aspect Ratio: 1915 / 821 (~2.332521)
+ * - Single Unified Coordinate System: tan-thuan-canonical-image-pixel-space-v1
  */
 
 import type { NormalizedPoint } from '../types';
@@ -23,25 +23,44 @@ export const CANONICAL_ASPECT_RATIO = CANONICAL_SCENE_WIDTH / CANONICAL_SCENE_HE
  * Projects normalized coordinates [0.0, 1.0] to canonical scene coordinates [0, 1915] x [0, 821].
  * Single helper used across all layers and contextual surfaces.
  */
-export function normalizedToCanonicalScene(point: NormalizedPoint): { x: number; y: number } {
+export interface CanonicalPoint {
+  xPx: number;
+  yPx: number;
+  x: number;
+  y: number;
+}
+
+/**
+ * Gate 6: Canonical Coordinate Service
+ * Projects normalized storage coordinates [0.0, 1.0] to canonical pixel coordinates.
+ */
+export function normalizedToCanonical(point: NormalizedPoint): CanonicalPoint {
+  const xPx = point.x * CANONICAL_SCENE_WIDTH;
+  const yPx = point.y * CANONICAL_SCENE_HEIGHT;
   return {
-    x: Math.round(point.x * CANONICAL_SCENE_WIDTH),
-    y: Math.round(point.y * CANONICAL_SCENE_HEIGHT),
+    xPx,
+    yPx,
+    x: Math.round(xPx),
+    y: Math.round(yPx),
   };
 }
 
 /**
- * Inverse Presentation Transform:
- * Projects canonical scene pixel coordinates to normalized coordinates [0.0, 1.0].
+ * Projects canonical pixel coordinates to normalized storage coordinates [0.0, 1.0].
  */
-export function canonicalSceneToNormalized(x: number, y: number): NormalizedPoint {
+export function canonicalToNormalized(xPx: number, yPx: number): NormalizedPoint {
   return {
-    x: Number((x / CANONICAL_SCENE_WIDTH).toFixed(4)),
-    y: Number((y / CANONICAL_SCENE_HEIGHT).toFixed(4)),
+    x: Number((xPx / CANONICAL_SCENE_WIDTH).toFixed(4)),
+    y: Number((yPx / CANONICAL_SCENE_HEIGHT).toFixed(4)),
   };
 }
 
-// Canonical Aliases for backward-compatibility
+// Canonical aliases for backward compatibility
+export const normalizedToCanonicalScene = (point: NormalizedPoint) => {
+  const p = normalizedToCanonical(point);
+  return { x: p.x, y: p.y };
+};
+export const canonicalSceneToNormalized = canonicalToNormalized;
 export const normalizedToSvg = normalizedToCanonicalScene;
 export const svgToNormalized = canonicalSceneToNormalized;
 
@@ -380,12 +399,16 @@ export function calculateResponsiveCamera(
  * Uses exact SVG transformation matrix or uniform camera inversion.
  * Pipeline: screen pointer -> inverse camera transform -> canonical 1915x821 coordinate -> normalized map_x/map_y
  */
-export function screenPointerToCanonicalScene(
+/**
+ * Gate 6 / Gate 11: Screen to Canonical Coordinate Conversion
+ * Uses exact SVG transformation matrix inversion or uniform camera inverse fallback.
+ */
+export function screenToCanonical(
   clientX: number,
   clientY: number,
   svgElement: SVGSVGElement,
   cameraViewport?: { panX: number; panY: number; zoom: number }
-): { x: number; y: number } {
+): { xPx: number; yPx: number; x: number; y: number } {
   // Method 1: SVG DOM Matrix Inversion (Exact browser hardware transform)
   try {
     const ctm = svgElement.getScreenCTM();
@@ -402,16 +425,21 @@ export function screenPointerToCanonicalScene(
       const worldX = (svgPoint.x - panX) / zoom;
       const worldY = (svgPoint.y - panY) / zoom;
 
+      const clampedX = Math.max(0, Math.min(CANONICAL_SCENE_WIDTH, worldX));
+      const clampedY = Math.max(0, Math.min(CANONICAL_SCENE_HEIGHT, worldY));
+
       return {
-        x: Math.max(0, Math.min(CANONICAL_SCENE_WIDTH, Math.round(worldX))),
-        y: Math.max(0, Math.min(CANONICAL_SCENE_HEIGHT, Math.round(worldY))),
+        xPx: clampedX,
+        yPx: clampedY,
+        x: Math.round(clampedX),
+        y: Math.round(clampedY),
       };
     }
   } catch (_e) {
     // Fallback if SVG DOM matrix unavailable (e.g. node / mock test environments)
   }
 
-  // Method 2: Mathematical SVG slice projection with uniform scale validation
+  // Method 2: Mathematical SVG projection with uniform scale validation
   const rect = svgElement.getBoundingClientRect();
   const scale = Math.max(
     rect.width / CANONICAL_SCENE_WIDTH,
@@ -433,9 +461,68 @@ export function screenPointerToCanonicalScene(
     worldY = (worldY - panY) / zoom;
   }
 
+  const clampedX = Math.max(0, Math.min(CANONICAL_SCENE_WIDTH, worldX));
+  const clampedY = Math.max(0, Math.min(CANONICAL_SCENE_HEIGHT, worldY));
+
   return {
-    x: Math.max(0, Math.min(CANONICAL_SCENE_WIDTH, Math.round(worldX))),
-    y: Math.max(0, Math.min(CANONICAL_SCENE_HEIGHT, Math.round(worldY))),
+    xPx: clampedX,
+    yPx: clampedY,
+    x: Math.round(clampedX),
+    y: Math.round(clampedY),
+  };
+}
+
+export const screenPointerToCanonicalScene = (
+  clientX: number,
+  clientY: number,
+  svgElement: SVGSVGElement,
+  cameraViewport?: { panX: number; panY: number; zoom: number }
+) => {
+  const p = screenToCanonical(clientX, clientY, svgElement, cameraViewport);
+  return { x: p.x, y: p.y };
+};
+
+/**
+ * Gate 6: Canonical to Screen Coordinate Conversion
+ * Forward projection from canonical scene coordinates to viewport screen pixels.
+ */
+export function canonicalToScreen(
+  xPx: number,
+  yPx: number,
+  svgElement: SVGSVGElement,
+  cameraViewport?: { panX: number; panY: number; zoom: number }
+): { clientX: number; clientY: number } {
+  const panX = cameraViewport?.panX ?? 0;
+  const panY = cameraViewport?.panY ?? 0;
+  const zoom = cameraViewport?.zoom ?? 1.0;
+
+  const svgX = xPx * zoom + panX;
+  const svgY = yPx * zoom + panY;
+
+  try {
+    const ctm = svgElement.getScreenCTM();
+    if (ctm) {
+      const pt = svgElement.createSVGPoint();
+      pt.x = svgX;
+      pt.y = svgY;
+      const screenPt = pt.matrixTransform(ctm);
+      return { clientX: screenPt.x, clientY: screenPt.y };
+    }
+  } catch (_e) {
+    // Fallback if SVG CTM unavailable
+  }
+
+  const rect = svgElement.getBoundingClientRect();
+  const scale = Math.max(
+    rect.width / CANONICAL_SCENE_WIDTH,
+    rect.height / CANONICAL_SCENE_HEIGHT
+  );
+  const offsetX = (rect.width - CANONICAL_SCENE_WIDTH * scale) / 2;
+  const offsetY = (rect.height - CANONICAL_SCENE_HEIGHT * scale) / 2;
+
+  return {
+    clientX: rect.left + offsetX + svgX * scale,
+    clientY: rect.top + offsetY + svgY * scale,
   };
 }
 
