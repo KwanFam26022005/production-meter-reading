@@ -32,14 +32,15 @@ interface SceneTopControlsProps {
 }
 
 /**
- * SceneTopControls — Top Center/Right HUD Controls (Section 5 & 7)
+ * SceneTopControls — Top Command Rail (V10 Minimal HUD)
  *
- * Floating HUD toolbar:
- * - Vietnamese Date Picker (DD/MM/YYYY)
- * - Round Selector with dropdown
+ * Conceptual target:
+ * 05/08/2026 · Ca 1 — 17:00       [ Bản đồ | Danh sách ]       P
+ *
+ * - Unified temporal group (Date + Shift)
  * - Animated segmented control: [Bản đồ] [Danh sách]
- * - User profile pill: Avatar + Full Name + Role
- * - Overflow menu: Làm mới, Xuất CSV, Phân tích chất lượng
+ * - Minimal user profile avatar chip
+ * - Overflow menu icon
  */
 export const SceneTopControls: React.FC<SceneTopControlsProps> = ({
   user,
@@ -93,80 +94,88 @@ export const SceneTopControls: React.FC<SceneTopControlsProps> = ({
     ? `Ca 1 (${currentRound.scheduled_time})`
     : (currentRoundTime ? `Ca 1 (${currentRoundTime})` : 'Ca 1 (06:00 - 14:00)');
 
+  const userInitial = user?.full_name?.charAt(0)?.toUpperCase() || 'P';
+  const userRole = user ? formatUserRole(user.role) : 'Quản trị viên';
+  const userFull = user?.full_name || 'Pham Hong Dang Khoa';
+
   return (
     <div className="sgp-scene-top-controls" role="toolbar" aria-label="Điều khiển thời gian và góc nhìn">
-      {/* 1. DATE PICKER */}
-      <div className="sgp-top-date-wrap">
-        <VnDatePicker
-          value={selectedDate}
-          onChange={onDateChange}
-          disabled={isLoading}
-          size="sm"
-          title="Chọn ngày tác nghiệp"
-          ariaLabel="Chọn ngày tác nghiệp"
-        />
-      </div>
-
-      {/* 2. ROUND SELECTOR CLUSTER (Maintains compatibility with tests) */}
-      <div className="sgp-mh-round-picker" ref={roundDropdownRef}>
-        <button
-          type="button"
-          className={`sgp-mh-round-trigger ${isRoundDropdownOpen ? 'open' : ''}`}
-          onClick={() => setIsRoundDropdownOpen((prev) => !prev)}
-          disabled={isLoading || rounds.length === 0}
-          aria-haspopup="listbox"
-          aria-expanded={isRoundDropdownOpen}
-          title="Chọn ca tác nghiệp"
-        >
-          <Clock size={13} className="sgp-mh-clock-icon" aria-hidden="true" />
-          <span className="sgp-mh-round-label font-tabular">{shiftDisplayLabel}</span>
-          <ChevronDown
-            size={12}
-            className={`sgp-mh-chevron ${isRoundDropdownOpen ? 'rotate' : ''}`}
-            aria-hidden="true"
+      {/* 1. UNIFIED TEMPORAL GROUP: DATE + SHIFT */}
+      <div className="sgp-top-temporal-group" role="group" aria-label="Thời gian tác nghiệp">
+        <div className="sgp-top-date-wrap">
+          <VnDatePicker
+            value={selectedDate}
+            onChange={onDateChange}
+            disabled={isLoading}
+            size="sm"
+            title="Chọn ngày tác nghiệp"
+            ariaLabel="Chọn ngày tác nghiệp"
           />
-        </button>
+        </div>
 
-        {isRoundDropdownOpen && rounds.length > 0 && (
-          <div className="sgp-mh-round-dropdown" role="listbox" aria-label="Danh sách lượt đọc">
-            <div className="sgp-mh-dropdown-header">LƯỢT ĐỌC TRONG NGÀY</div>
-            <div className="sgp-mh-dropdown-list">
-              {rounds.map((round) => {
-                const isSelected = selectedRoundId
-                  ? round.round_id === selectedRoundId
-                  : round.timing_state === 'CURRENT';
+        <span className="sgp-temporal-divider" aria-hidden="true">·</span>
 
-                return (
-                  <button
-                    key={round.round_id}
-                    type="button"
-                    role="option"
-                    aria-selected={isSelected}
-                    className={`sgp-mh-dropdown-item ${isSelected ? 'selected' : ''}`}
-                    onClick={() => {
-                      onSelectRound(round.round_id);
-                      setIsRoundDropdownOpen(false);
-                    }}
-                  >
-                    <div className="sgp-mh-item-left">
-                      <span className="sgp-mh-item-time font-tabular">{round.scheduled_time}</span>
-                      <span className="sgp-mh-item-desc">{round.scheduled_local || 'Định kỳ'}</span>
-                    </div>
-                    <div className="sgp-mh-item-right">
-                      <span className="sgp-mh-item-pct font-tabular">
-                        {Math.round(round.completion_percent)}%
-                      </span>
-                      {isSelected && <Check size={13} className="sgp-mh-item-check" />}
-                    </div>
-                  </button>
-                );
-              })}
+        {/* ROUND / SHIFT SELECTOR */}
+        <div className="sgp-mh-round-picker" ref={roundDropdownRef}>
+          <button
+            type="button"
+            className={`sgp-mh-round-trigger ${isRoundDropdownOpen ? 'open' : ''}`}
+            onClick={() => setIsRoundDropdownOpen((prev) => !prev)}
+            disabled={isLoading || rounds.length === 0}
+            aria-haspopup="listbox"
+            aria-expanded={isRoundDropdownOpen}
+            title="Chọn ca tác nghiệp"
+          >
+            <Clock size={12} className="sgp-mh-clock-icon text-cyan-400" aria-hidden="true" />
+            <span className="sgp-mh-round-label font-tabular">{shiftDisplayLabel}</span>
+            <ChevronDown
+              size={11}
+              className={`sgp-mh-chevron ${isRoundDropdownOpen ? 'rotate' : ''}`}
+              aria-hidden="true"
+            />
+          </button>
+
+          {isRoundDropdownOpen && rounds.length > 0 && (
+            <div className="sgp-mh-round-dropdown" role="listbox" aria-label="Danh sách lượt đọc">
+              <div className="sgp-mh-dropdown-header">LƯỢT ĐỌC TRONG NGÀY</div>
+              <div className="sgp-mh-dropdown-list">
+                {rounds.map((round) => {
+                  const isSelected = selectedRoundId
+                    ? round.round_id === selectedRoundId
+                    : round.timing_state === 'CURRENT';
+
+                  return (
+                    <button
+                      key={round.round_id}
+                      type="button"
+                      role="option"
+                      aria-selected={isSelected}
+                      className={`sgp-mh-dropdown-item ${isSelected ? 'selected' : ''}`}
+                      onClick={() => {
+                        onSelectRound(round.round_id);
+                        setIsRoundDropdownOpen(false);
+                      }}
+                    >
+                      <div className="sgp-mh-item-left">
+                        <span className="sgp-mh-item-time font-tabular">{round.scheduled_time}</span>
+                        <span className="sgp-mh-item-desc">{round.scheduled_local || 'Định kỳ'}</span>
+                      </div>
+                      <div className="sgp-mh-item-right">
+                        <span className="sgp-mh-item-pct font-tabular">
+                          {Math.round(round.completion_percent)}%
+                        </span>
+                        {isSelected && <Check size={13} className="sgp-mh-item-check" />}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
-      {/* 3. SEGMENTED CONTROL: [Bản đồ] [Danh sách] (Animated Sliding Pill) */}
+      {/* 2. SEGMENTED CONTROL: [Bản đồ] [Danh sách] */}
       <div className="sgp-scene-segmented-switch" role="group" aria-label="Chế độ hiển thị">
         <div
           className={`sgp-segmented-active-pill ${viewMode === 'list' ? 'pos-list' : 'pos-map'}`}
@@ -178,7 +187,7 @@ export const SceneTopControls: React.FC<SceneTopControlsProps> = ({
           onClick={() => onViewModeChange('map')}
           aria-pressed={viewMode === 'map'}
         >
-          <Map size={14} strokeWidth={2.2} />
+          <Map size={13} strokeWidth={2.2} />
           <span>Bản đồ</span>
         </button>
         <button
@@ -187,23 +196,23 @@ export const SceneTopControls: React.FC<SceneTopControlsProps> = ({
           onClick={() => onViewModeChange('list')}
           aria-pressed={viewMode === 'list'}
         >
-          <List size={14} strokeWidth={2.2} />
+          <List size={13} strokeWidth={2.2} />
           <span>Danh sách</span>
         </button>
       </div>
 
-      {/* 4. USER PROFILE */}
-      <div className="sgp-header-user-profile" title={user ? `${user.full_name} (${formatUserRole(user.role)})` : 'Pham Hong Dang Khoa'}>
-        <div className="sgp-header-avatar">
-          {user?.full_name?.charAt(0)?.toUpperCase() || 'P'}
-        </div>
-        <div className="sgp-header-user-info">
-          <span className="sgp-header-user-name">{user?.full_name || 'Pham Hong Dang Khoa'}</span>
-          <span className="sgp-header-user-role">{user ? formatUserRole(user.role) : 'Quản trị viên'}</span>
+      {/* 3. COMPACT USER AVATAR CHIP */}
+      <div
+        className="sgp-header-user-profile"
+        title={`${userFull} (${userRole})`}
+        aria-label={`${userFull} (${userRole})`}
+      >
+        <div className="sgp-header-avatar" aria-hidden="true">
+          {userInitial}
         </div>
       </div>
 
-      {/* 5. OVERFLOW MENU */}
+      {/* 4. OVERFLOW MENU */}
       <div className="sgp-top-overflow-wrap" ref={menuRef}>
         <button
           type="button"
@@ -212,7 +221,7 @@ export const SceneTopControls: React.FC<SceneTopControlsProps> = ({
           aria-label="Tùy chọn khác"
           title="Tùy chọn khác"
         >
-          <MoreVertical size={16} />
+          <MoreVertical size={15} />
         </button>
 
         {isMenuOpen && (
@@ -226,7 +235,7 @@ export const SceneTopControls: React.FC<SceneTopControlsProps> = ({
               }}
               role="menuitem"
             >
-              <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />
+              <RefreshCw size={13} className={isLoading ? 'animate-spin' : ''} />
               <span>Làm mới dữ liệu</span>
             </button>
             <button
@@ -238,7 +247,7 @@ export const SceneTopControls: React.FC<SceneTopControlsProps> = ({
               }}
               role="menuitem"
             >
-              <Download size={14} />
+              <Download size={13} />
               <span>Xuất dữ liệu CSV</span>
             </button>
             {onOpenAnalytics && (
@@ -251,7 +260,7 @@ export const SceneTopControls: React.FC<SceneTopControlsProps> = ({
                 }}
                 role="menuitem"
               >
-                <BarChart2 size={14} />
+                <BarChart2 size={13} />
                 <span>Phân tích chất lượng</span>
               </button>
             )}

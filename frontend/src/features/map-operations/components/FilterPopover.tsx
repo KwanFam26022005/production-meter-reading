@@ -125,13 +125,13 @@ export const FilterPopover: React.FC<FilterPopoverProps> = ({
     <div className="sgp-filter-popover-wrapper" ref={containerRef}>
       <button
         type="button"
-        className={`sgp-filter-trigger-btn sgp-scene-action-pill sgp-map-action-control ${activeCount > 0 ? 'has-active' : ''}`}
+        className={`sgp-filter-trigger-btn sgp-map-icon-action ${activeCount > 0 ? 'has-active' : ''}`}
         onClick={() => setIsOpen((prev) => !prev)}
-        title="Mở bộ lọc dữ liệu"
+        title={activeCount > 0 ? `Bộ lọc (${activeCount} đang áp dụng)` : 'Bộ lọc tác nghiệp'}
+        aria-label={activeCount > 0 ? `Bộ lọc (${activeCount} đang áp dụng)` : 'Bộ lọc tác nghiệp'}
         aria-expanded={isOpen}
       >
-        <Filter size={14} />
-        <span>Bộ lọc</span>
+        <Filter size={15} />
         {activeCount > 0 && (
           <span className="sgp-filter-count-badge font-tabular">{activeCount}</span>
         )}

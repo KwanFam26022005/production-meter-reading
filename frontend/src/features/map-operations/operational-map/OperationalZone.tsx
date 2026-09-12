@@ -14,89 +14,6 @@ interface OperationalZoneProps {
   onHover: (zoneId: string | null) => void;
 }
 
-/**
- * SVG Icons matching approved zoning spec:
- * ship, container, warehouse, gear, gate
- */
-const ZoneGlyph: React.FC<{ icon: SpatialZonePresentation['icon'] }> = ({ icon }) => {
-  switch (icon) {
-    case 'ship':
-      return (
-        <g>
-          <path
-            d="M -7 2 L -5 6 L 5 6 L 7 2 L 6 0 L -6 0 Z"
-            fill="currentColor"
-          />
-          <path
-            d="M -2 0 L -2 -4 L 2 -4 L 2 0"
-            fill="currentColor"
-          />
-          <line x1="0" y1="-4" x2="0" y2="-6" stroke="currentColor" strokeWidth="1.2" />
-        </g>
-      );
-    case 'container':
-      return (
-        <g>
-          <rect
-            x="-7"
-            y="-5"
-            width="14"
-            height="10"
-            rx="1"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.2"
-          />
-          <line x1="-2.5" y1="-5" x2="-2.5" y2="5" stroke="currentColor" strokeWidth="1" />
-          <line x1="2.5" y1="-5" x2="2.5" y2="5" stroke="currentColor" strokeWidth="1" />
-        </g>
-      );
-    case 'warehouse':
-      return (
-        <g>
-          <path
-            d="M -7 4 L -7 -1 L 0 -6 L 7 -1 L 7 4 Z"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.2"
-          />
-          <path
-            d="M -2.5 4 L -2.5 0 L 2.5 0 L 2.5 4 Z"
-            fill="currentColor"
-          />
-        </g>
-      );
-    case 'gear':
-      return (
-        <g>
-          <circle cx="0" cy="0" r="2.8" fill="none" stroke="currentColor" strokeWidth="1.3" />
-          <path
-            d="M 0 -6 L 0 6 M -6 0 L 6 0 M -4.2 -4.2 L 4.2 4.2 M -4.2 4.2 L 4.2 -4.2"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-          />
-        </g>
-      );
-    case 'gate':
-      return (
-        <g>
-          <path
-            d="M -6 6 L -6 -4 L 6 -4 L 6 6"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.3"
-            strokeLinecap="round"
-          />
-          <line x1="-6" y1="0" x2="6" y2="0" stroke="currentColor" strokeWidth="1.1" />
-          <line x1="-1.5" y1="-4" x2="-1.5" y2="6" stroke="currentColor" strokeWidth="1.1" />
-          <line x1="1.5" y1="-4" x2="1.5" y2="6" stroke="currentColor" strokeWidth="1.1" />
-        </g>
-      );
-    default:
-      return <circle cx="0" cy="0" r="4" fill="currentColor" />;
-  }
-};
 
 /**
  * OperationalZone — V7 Visual Contract Implementation
@@ -126,56 +43,56 @@ export const OperationalZone: React.FC<OperationalZoneProps> = React.memo(({
   onHover,
 }) => {
   const zoneKey = geometry.presentationId || geometry.id || operationalState.zoneId;
-  const { totalMeters, overdue, review } = operationalState;
+  const { totalMeters, overdue, review, health } = operationalState;
   const issueCount = overdue + review;
-  const health = operationalState.health;
 
   // Semantic presentation color from design tokens
   const primaryColor = geometry.primaryColor || geometry.boundaryColor || '#0284C7';
   const glowColor = geometry.glowColor || '#38BDF8';
-  const badgeBg = geometry.badgeBg || 'rgba(7, 26, 43, 0.90)';
-  const badgeBorder = geometry.badgeBorder || primaryColor;
-  const badgeText = geometry.badgeText || '#E0F2FE';
 
-  // V9 Dual-Stroke & Zone Opacity States (Section 14 & 15)
-  // Layer A: Soft Halo (fill = none, stroke ~4px, stroke-opacity ~0.12-0.18)
-  // Layer B: Structural Edge & State Fill (fill 0.045-0.20, stroke ~1.4-1.8px, stroke-opacity ~0.78-0.88)
-  let haloStrokeOpacity = 0.15;
-  let haloStrokeWidth = 4.0;
+  // V10 Dual-Stroke & Zone Opacity States (Section 36 & 37)
+  // Layer A: Soft Halo (4-5px, opacity 0.10-0.16)
+  // Layer B: Structural Edge (1.4-1.8px, opacity 0.75-0.88)
+  // Fill opacities: default 0.045, hover 0.090, selected 0.160, dimmed 0.020
+  let haloStrokeOpacity = 0.14;
+  let haloStrokeWidth = 4.2;
 
-  let fillOpacity = 0.055; // Overview: 0.045–0.065
-  let structuralBorderOpacity = 0.82; // 0.78–0.88
+  let fillOpacity = 0.045; // Overview: 0.035–0.055
+  let structuralBorderOpacity = 0.82; // 0.75–0.88
   let structuralBorderWidth = 1.6; // 1.4–1.8px
 
   if (isSelected) {
     haloStrokeOpacity = 0.22;
-    haloStrokeWidth = 4.5;
-    fillOpacity = 0.18; // Selected: 0.16–0.20
+    haloStrokeWidth = 4.8;
+    fillOpacity = 0.16; // Selected: 0.14–0.18
     structuralBorderOpacity = 0.95;
     structuralBorderWidth = 2.0;
   } else if (isHovered) {
     haloStrokeOpacity = 0.18;
-    haloStrokeWidth = 4.0;
-    fillOpacity = 0.10; // Hover: 0.09–0.12
+    haloStrokeWidth = 4.4;
+    fillOpacity = 0.09; // Hover: 0.075–0.105
     structuralBorderOpacity = 0.88;
     structuralBorderWidth = 1.8;
   } else if (isDimmed) {
-    haloStrokeOpacity = 0.08;
-    haloStrokeWidth = 3.5;
-    fillOpacity = 0.035; // Inactive non-selected during focus: 0.025–0.045
-    structuralBorderOpacity = 0.35;
+    haloStrokeOpacity = 0.06;
+    haloStrokeWidth = 3.2;
+    fillOpacity = 0.020; // Inactive non-selected during focus: <= 0.025
+    structuralBorderOpacity = 0.28; // 0.20-0.35
     structuralBorderWidth = 1.4;
   }
 
-  // Pill label text (Section 12: Map renders shortLabel)
-  const labelText = geometry.shortLabel || geometry.name || operationalState.name;
-  const pillWidth = Math.max(120, labelText.length * 7.5 + 46);
+  // Cartographic label text (Section 32: tiny color dot / index / name uppercase)
+  const zoneIndex = (geometry as any).displayIndex || (operationalState as any).zoneIndex || '';
+  const rawLabel = geometry.shortLabel || geometry.name || operationalState.name;
+  const labelText = rawLabel.toUpperCase();
+  const labelTextDisplay = zoneIndex ? `${zoneIndex}  ${labelText}` : labelText;
+  const chipWidth = Math.max(90, labelTextDisplay.length * 6.6 + 26);
   const pillX = geometry.labelPositionSvg?.x ?? geometry.centroidSvg.x;
   const pillY = geometry.labelPositionSvg?.y ?? geometry.centroidSvg.y;
 
-  // Exception badge position: placed right below or next to the identity pill
+  // Exception badge position: placed right below the cartographic label
   const badgeX = geometry.exceptionBadgeSvg?.x ?? pillX;
-  const badgeY = geometry.exceptionBadgeSvg?.y ?? (pillY + 28);
+  const badgeY = geometry.exceptionBadgeSvg?.y ?? (pillY + 22);
 
   return (
     <g
@@ -193,7 +110,7 @@ export const OperationalZone: React.FC<OperationalZoneProps> = React.memo(({
         }
       }}
     >
-      {/* LAYER A — SOFT HALO (Section 14: soft exterior halo, fill=none) */}
+      {/* LAYER A — SOFT HALO (Section 36: soft exterior halo, fill=none) */}
       <path
         d={geometry.polygonSvg}
         fill="none"
@@ -209,7 +126,7 @@ export const OperationalZone: React.FC<OperationalZoneProps> = React.memo(({
         }}
       />
 
-      {/* LAYER B — STRUCTURAL EDGE & FILL (Section 14: crisp edge + calm state fill) */}
+      {/* LAYER B — STRUCTURAL EDGE & FILL (Section 36: crisp edge + calm state fill) */}
       <path
         d={geometry.polygonSvg}
         fill={primaryColor}
@@ -232,9 +149,9 @@ export const OperationalZone: React.FC<OperationalZoneProps> = React.memo(({
         onMouseLeave={() => onHover(null)}
       />
 
-      {/* 2. CENTERED ZONE IDENTITY BADGE PILL (tan-thuan-approved-zoning.png) */}
+      {/* 2. CARTOGRAPHIC ZONE LABEL (Section 32: spatial annotation chip, not button) */}
       <g
-        className="sgp-zone-identity-pill"
+        className="sgp-cartographic-zone-label"
         transform={`translate(${pillX}, ${pillY})`}
         cursor="pointer"
         onClick={(e) => {
@@ -244,46 +161,44 @@ export const OperationalZone: React.FC<OperationalZoneProps> = React.memo(({
         onMouseEnter={() => onHover(zoneKey)}
         onMouseLeave={() => onHover(null)}
       >
-        {/* Frosted glass capsule background */}
+        {/* Subtle dark translucent chip (15-25% opacity) */}
         <rect
-          x={-pillWidth / 2}
-          y={-13}
-          width={pillWidth}
-          height={26}
-          rx={13}
-          fill={badgeBg}
-          stroke={isSelected ? glowColor : isHovered ? glowColor : badgeBorder}
-          strokeWidth={isSelected ? 2 : 1.2}
+          x={-chipWidth / 2}
+          y={-11}
+          width={chipWidth}
+          height={22}
+          rx={6}
+          fill={isSelected ? 'rgba(6, 29, 42, 0.88)' : isHovered ? 'rgba(6, 29, 42, 0.65)' : 'rgba(6, 29, 42, 0.35)'}
+          stroke={isSelected ? glowColor : isHovered ? 'rgba(255, 255, 255, 0.25)' : 'rgba(255, 255, 255, 0.10)'}
+          strokeWidth={isSelected ? 1.4 : 0.8}
           filter={
             isSelected
-              ? `drop-shadow(0 0 10px ${glowColor}) drop-shadow(0 4px 10px rgba(0,0,0,0.5))`
-              : isHovered
-              ? `drop-shadow(0 0 6px ${glowColor}) drop-shadow(0 3px 8px rgba(0,0,0,0.4))`
-              : 'drop-shadow(0 2px 6px rgba(0,0,0,0.45))'
+              ? `drop-shadow(0 0 8px ${glowColor}) drop-shadow(0 2px 6px rgba(0,0,0,0.5))`
+              : 'drop-shadow(0 1px 3px rgba(0,0,0,0.45))'
           }
-          style={{ transition: 'all 200ms ease' }}
+          style={{ transition: 'all 180ms ease' }}
         />
 
-        {/* Zone Icon Glyph */}
-        <g
-          transform={`translate(${-pillWidth / 2 + 15}, 0)`}
-          style={{ color: isSelected || isHovered ? '#FFFFFF' : badgeBorder }}
-        >
-          <ZoneGlyph icon={geometry.icon} />
-        </g>
+        {/* Tiny zone-color dot */}
+        <circle
+          cx={-chipWidth / 2 + 10}
+          cy={0}
+          r={3}
+          fill={primaryColor}
+        />
 
-        {/* Zone Name Label */}
+        {/* Cartographic Title Text */}
         <text
-          x={-pillWidth / 2 + 28}
-          y={4}
-          fill={isSelected || isHovered ? '#FFFFFF' : badgeText}
-          fontSize={11.5}
+          x={-chipWidth / 2 + 18}
+          y={3.5}
+          fill={isSelected ? '#FFFFFF' : '#F1F5F9'}
+          fontSize={10}
           fontWeight={700}
           fontFamily="system-ui, -apple-system, sans-serif"
-          letterSpacing="0.02em"
+          letterSpacing="0.04em"
           pointerEvents="none"
         >
-          {labelText}
+          {labelTextDisplay}
         </text>
       </g>
 

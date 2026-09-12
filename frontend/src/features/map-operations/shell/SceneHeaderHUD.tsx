@@ -7,12 +7,11 @@ interface SceneHeaderHUDProps {
 }
 
 /**
- * SceneHeaderHUD — Top-Left Maritime Title Cluster (Approved Design)
+ * SceneHeaderHUD — Top-Left Minimal Maritime Header (V10)
  *
- * Floating contextual header embedded cleanly into the unified top bar:
- * - Official Saigon Port emblem badge
- * - Title: "Bản đồ công tơ"
- * - Subtitle: "Cảng Tân Thuận"
+ * Streamlined horizontal brand mark and identity:
+ * - Official Saigon Port emblem badge (compact 26px)
+ * - Single-line quiet brand text: "Bản đồ công tơ · Cảng Tân Thuận"
  */
 export const SceneHeaderHUD: React.FC<SceneHeaderHUDProps> = ({
   title = 'Bản đồ công tơ',
@@ -27,8 +26,9 @@ export const SceneHeaderHUD: React.FC<SceneHeaderHUDProps> = ({
       <div className="sgp-header-title-wrap">
         <div className="sgp-header-title-row">
           <h1 className="sgp-header-main-title">{title}</h1>
+          <span className="sgp-header-divider" aria-hidden="true">·</span>
+          <span className="sgp-header-sub-title">{subtitle}</span>
         </div>
-        <span className="sgp-header-sub-title">{subtitle}</span>
       </div>
     </div>
   );

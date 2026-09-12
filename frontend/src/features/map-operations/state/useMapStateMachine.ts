@@ -30,8 +30,15 @@ export interface PlacementContext {
   pinnedCoords: { x: number; y: number; normX: number; normY: number } | null;
 }
 
+export type V10WorkspaceState =
+  | 'OVERVIEW'
+  | 'ZONE_FOCUS'
+  | 'ENTITY_FOCUS'
+  | 'WORKFLOW';
+
 export interface MapUiStateMachine {
   mode: MapMode;
+  workspaceState: V10WorkspaceState;
   selectedEntity: SelectedEntity;
   detailView: DetailView;
   hoveredEntity: SelectedEntity;
@@ -49,6 +56,11 @@ export interface MapUiStateMachine {
   handleEsc: () => void;
   handleEmptyMapClick: () => void;
   resetToBrowse: () => void;
+  // Explicit V10 transitions
+  transitionToOverview: () => void;
+  transitionToZoneFocus: (zoneId: string) => void;
+  transitionToEntityFocus: (entity: { type: 'meter' | 'operator'; id: string }) => void;
+  transitionToWorkflow: (context?: Partial<PlacementContext>) => void;
 }
 
 export function useMapStateMachine(): MapUiStateMachine {
@@ -216,8 +228,42 @@ export function useMapStateMachine(): MapUiStateMachine {
     setPriorDetailView(null);
   }, []);
 
+  const workspaceState: V10WorkspaceState = useMemo(() => {
+    if (mode === 'placement' || mode === 'details') return 'WORKFLOW';
+    if (mode === 'inspect') {
+      if (selectedEntity?.type === 'zone') return 'ZONE_FOCUS';
+      if (selectedEntity?.type === 'meter' || selectedEntity?.type === 'operator') return 'ENTITY_FOCUS';
+    }
+    return 'OVERVIEW';
+  }, [mode, selectedEntity]);
+
+  const transitionToOverview = useCallback(() => {
+    resetToBrowse();
+  }, [resetToBrowse]);
+
+  const transitionToZoneFocus = useCallback((zoneId: string) => {
+    selectZone(zoneId);
+  }, [selectZone]);
+
+  const transitionToEntityFocus = useCallback((entity: { type: 'meter' | 'operator'; id: string }) => {
+    if (entity.type === 'meter') {
+      selectMeter(entity.id);
+    } else {
+      selectOperator(entity.id);
+    }
+  }, [selectMeter, selectOperator]);
+
+  const transitionToWorkflow = useCallback((context?: Partial<PlacementContext>) => {
+    setMode('placement');
+    setDetailView('meter-placement');
+    if (context) {
+      setPlacementContext((prev) => (prev ? { ...prev, ...context } : (context as PlacementContext)));
+    }
+  }, []);
+
   return useMemo(() => ({
     mode,
+    workspaceState,
     selectedEntity,
     detailView,
     hoveredEntity,
@@ -234,8 +280,13 @@ export function useMapStateMachine(): MapUiStateMachine {
     handleEsc,
     handleEmptyMapClick,
     resetToBrowse,
+    transitionToOverview,
+    transitionToZoneFocus,
+    transitionToEntityFocus,
+    transitionToWorkflow,
   }), [
     mode,
+    workspaceState,
     selectedEntity,
     detailView,
     hoveredEntity,
@@ -252,5 +303,9 @@ export function useMapStateMachine(): MapUiStateMachine {
     handleEsc,
     handleEmptyMapClick,
     resetToBrowse,
+    transitionToOverview,
+    transitionToZoneFocus,
+    transitionToEntityFocus,
+    transitionToWorkflow,
   ]);
 }

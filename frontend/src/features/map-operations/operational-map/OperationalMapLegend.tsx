@@ -98,12 +98,13 @@ export const OperationalMapLegend: React.FC<OperationalMapLegendProps> = () => {
 
       <button
         type="button"
-        className={`sgp-legend-toggle ${isOpen ? 'active' : ''}`}
+        className={`sgp-legend-toggle sgp-map-icon-action ${isOpen ? 'active' : ''}`}
         onClick={() => setIsOpen(!isOpen)}
+        title="Chú giải bản đồ"
+        aria-label="Chú giải bản đồ"
         aria-expanded={isOpen}
       >
-        <Info size={13} />
-        <span>Chú giải</span>
+        <Info size={15} />
       </button>
     </div>
   );

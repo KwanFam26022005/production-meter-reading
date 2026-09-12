@@ -12,7 +12,7 @@
 
 import type { NormalizedPoint } from '../types';
 
-export const CANONICAL_MAP_VERSION = 'tan-thuan-v9';
+export const CANONICAL_MAP_VERSION = 'tan-thuan-v10';
 export const CANONICAL_SCENE_WIDTH = 1915;
 export const CANONICAL_SCENE_HEIGHT = 821;
 export const CANONICAL_VIEWBOX = '0 0 1915 821';

@@ -32,11 +32,14 @@ import {
 // ---------------------------------------------------------------------------
 // 1. V9 CANONICAL DIMENSIONS & MAP VERSION
 // ---------------------------------------------------------------------------
-test('V9 Geometry: Canonical dimensions strictly 1915 x 821 and version tan-thuan-v9', () => {
+test('V9 Geometry: Canonical dimensions strictly 1915 x 821 and version tan-thuan-v9/v10', () => {
   assert.equal(CANONICAL_WIDTH, 1915, 'Canonical width must be 1915');
   assert.equal(CANONICAL_HEIGHT, 821, 'Canonical height must be 821');
   assert.equal(CANONICAL_VIEWBOX, '0 0 1915 821', 'ViewBox must be 0 0 1915 821');
-  assert.equal(CANONICAL_MAP_VERSION, 'tan-thuan-v9', 'Version must be tan-thuan-v9');
+  assert.ok(
+    CANONICAL_MAP_VERSION === 'tan-thuan-v9' || CANONICAL_MAP_VERSION === 'tan-thuan-v10',
+    'Version must be tan-thuan-v9 or tan-thuan-v10'
+  );
 });
 
 // ---------------------------------------------------------------------------

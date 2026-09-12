@@ -135,15 +135,30 @@ export const MeterLayer: React.FC<MeterLayerProps> = ({
           m.stateLabel || m.semanticState
         }`;
 
+        // V10 Meter Level-of-Detail (LOD) (Section 33)
+        // OVERVIEW: 10–12px simplified meter glyph/dot (scale ~0.62)
+        // ZONE_FOCUS: 16–18px meter marker (scale ~0.85)
+        // ENTITY_FOCUS: 20–24px full marker with separation halo (scale ~1.15)
+        const isSelectedMeter = m.id === selectedMeterId || activeSelectedEntity?.id === m.id;
+        const isZoneFocused = Boolean(selectedZoneId || activeSelectedEntity?.type === 'zone');
+        const meterLod: 'OVERVIEW' | 'ZONE_FOCUS' | 'ENTITY_FOCUS' = isSelectedMeter
+          ? 'ENTITY_FOCUS'
+          : isZoneFocused
+          ? 'ZONE_FOCUS'
+          : 'OVERVIEW';
+
+        const lodScale = meterLod === 'OVERVIEW' ? 0.62 : meterLod === 'ZONE_FOCUS' ? 0.85 : 1.15;
+
         return (
           <g
             key={m.id}
             id={`meter-marker-${m.id}`}
             data-meter-code={m.meterCode}
+            data-meter-lod={meterLod}
             className={`sgp-meter-point ${isSelected ? 'selected' : ''} ${
               isException ? 'exception' : ''
-            } ${isHovered ? 'hovered' : ''}`}
-            transform={`translate(${x}, ${y})`}
+            } ${isHovered ? 'hovered' : ''} lod-${meterLod.toLowerCase()}`}
+            transform={`translate(${x}, ${y}) scale(${lodScale})`}
             cursor="pointer"
             opacity={emphasis}
             style={{ transition: 'opacity 280ms ease, transform 180ms ease' }}
@@ -163,8 +178,8 @@ export const MeterLayer: React.FC<MeterLayerProps> = ({
               }
             }}
           >
-            {/* 0. 44x44 px Invisible Touch Target Area */}
-            <circle cx={0} cy={0} r={22} fill="transparent" pointerEvents="all" />
+            {/* 0. Invisible Touch Target Area (Guarantees >= 44px hit target across all LOD scales) */}
+            <circle cx={0} cy={0} r={22 / lodScale} fill="transparent" pointerEvents="all" />
 
             {/* 1. SELECTION WHITE HALO (V7 Contract: r=15, stroke=2px) */}
             {isSelected && (

@@ -46,8 +46,8 @@ test('Canonical Transform: Dimensions and Aspect Ratio match canonical port map'
   assert.equal(CANONICAL_SCENE_HEIGHT, 821);
   assert.equal(CANONICAL_VIEWBOX, '0 0 1915 821');
   assert.ok(
-    CANONICAL_MAP_VERSION === 'tan-thuan-v8' || CANONICAL_MAP_VERSION === 'tan-thuan-v9',
-    `Expected tan-thuan-v8 or tan-thuan-v9, got ${CANONICAL_MAP_VERSION}`
+    CANONICAL_MAP_VERSION === 'tan-thuan-v8' || CANONICAL_MAP_VERSION === 'tan-thuan-v9' || CANONICAL_MAP_VERSION === 'tan-thuan-v10',
+    `Expected tan-thuan-v8, tan-thuan-v9, or tan-thuan-v10, got ${CANONICAL_MAP_VERSION}`
   );
 });
 

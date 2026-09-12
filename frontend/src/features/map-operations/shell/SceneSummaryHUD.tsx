@@ -16,21 +16,22 @@ interface SceneSummaryHUDProps {
 }
 
 /**
- * SceneSummaryHUD — Right HUD: Compact Telemetry & Alert Focus (Section 5, 6 & 9)
+ * SceneSummaryHUD — Low-Surface Telemetry Rail (V10 Minimal HUD)
  *
- * Merges the large legacy overview cards into sleek, contextual HUD chips:
- * - [ 9/12 Hoàn tất ]: Completion progress
- * - [ 3 Quá hạn ]: Overdue count, click triggers overdue focus
- * - [ 1 Cần kiểm tra ]: Review count, click triggers review focus
- * - [ 2 Chưa ghi ]: Pending count, click filters pending
- * - [ Phân tích ]: Opens AnalyticsDrawer on demand
+ * Normal example:
+ * ✓ Bình thường   11/12 hoàn tất   1 quá hạn   [chart-icon]
+ *
+ * - The rail itself is very subtle/transparent smoked background
+ * - Normal metrics are neutral/muted
+ * - Only abnormal metrics receive semantic color (red overdue, amber review)
+ * - "Phân tích" is a sleek icon button with tooltip "Phân tích vận hành"
  */
 export const SceneSummaryHUD: React.FC<SceneSummaryHUDProps> = ({
   totalMeters,
   confirmedCount,
   overdueCount,
   reviewCount,
-  pendingCount,
+  pendingCount: _pendingCount,
   issueCount,
   exceptionFocus,
   activeFocusType,
@@ -40,8 +41,8 @@ export const SceneSummaryHUD: React.FC<SceneSummaryHUDProps> = ({
 }) => {
   return (
     <div className="sgp-scene-summary-hud" role="region" aria-label="Tóm tắt tác nghiệp">
-      {/* COHERENT UNIFIED TELEMETRY CLUSTER */}
-      <div className="sgp-telemetry-cluster" role="group" aria-label="Số liệu tác nghiệp nhanh">
+      {/* LOW-SURFACE TELEMETRY RAIL */}
+      <div className="sgp-telemetry-rail" role="group" aria-label="Số liệu tác nghiệp nhanh">
         {/* 1. Overall Exception / Healthy State Indicator */}
         <button
           type="button"
@@ -58,12 +59,12 @@ export const SceneSummaryHUD: React.FC<SceneSummaryHUDProps> = ({
         >
           {issueCount > 0 ? (
             <>
-              <AlertTriangle size={13} className="sgp-telemetry-icon text-amber-500 animate-pulse" />
-              <span>{issueCount} vấn đề</span>
+              <AlertTriangle size={13} className="sgp-telemetry-icon text-amber-400 animate-pulse" />
+              <span className="text-amber-300 font-semibold">{issueCount} vấn đề</span>
             </>
           ) : (
             <>
-              <CheckCircle2 size={13} className="sgp-telemetry-icon text-emerald-500" />
+              <CheckCircle2 size={13} className="sgp-telemetry-icon text-emerald-400" />
               <span>Bình thường</span>
             </>
           )}
@@ -71,58 +72,48 @@ export const SceneSummaryHUD: React.FC<SceneSummaryHUDProps> = ({
 
         <span className="sgp-telemetry-divider" aria-hidden="true" />
 
-        {/* 2. Confirmed Progress */}
-        <div className="sgp-telemetry-item item-confirmed font-tabular" title="Công tơ đã ghi nhận">
-          <span className="chip-dot dot-emerald" />
+        {/* 2. Confirmed Progress (Neutral/Muted) */}
+        <div className="sgp-telemetry-item item-confirmed font-tabular text-slate-300" title="Công tơ đã ghi nhận">
           <span>{confirmedCount}/{totalMeters} hoàn tất</span>
         </div>
 
-        {/* 3. Overdue Filter Trigger */}
+        {/* 3. Overdue Filter Trigger (Semantic Red) */}
         {overdueCount > 0 && (
-          <button
-            type="button"
-            className={`sgp-telemetry-item item-overdue font-tabular ${
-              activeFocusType === 'OVERDUE' ? 'active-focus' : ''
-            }`}
-            onClick={() => onFocusTypeChange?.(activeFocusType === 'OVERDUE' ? null : 'OVERDUE')}
-            title="Nhấn để lọc các công tơ quá hạn"
-          >
-            <span className="chip-dot dot-rose" />
-            <span>{overdueCount} quá hạn</span>
-          </button>
+          <>
+            <span className="sgp-telemetry-divider" aria-hidden="true" />
+            <button
+              type="button"
+              className={`sgp-telemetry-item item-overdue font-tabular ${
+                activeFocusType === 'OVERDUE' ? 'active-focus' : ''
+              }`}
+              onClick={() => onFocusTypeChange?.(activeFocusType === 'OVERDUE' ? null : 'OVERDUE')}
+              title="Nhấn để lọc các công tơ quá hạn"
+            >
+              <span className="chip-dot dot-rose" />
+              <span className="text-rose-400 font-semibold">{overdueCount} quá hạn</span>
+            </button>
+          </>
         )}
 
-        {/* 4. Review Filter Trigger */}
+        {/* 4. Review Filter Trigger (Semantic Amber) */}
         {reviewCount > 0 && (
-          <button
-            type="button"
-            className={`sgp-telemetry-item item-review font-tabular ${
-              activeFocusType === 'REVIEW' ? 'active-focus' : ''
-            }`}
-            onClick={() => onFocusTypeChange?.(activeFocusType === 'REVIEW' ? null : 'REVIEW')}
-            title="Nhấn để lọc các công tơ cần kiểm tra"
-          >
-            <span className="chip-dot dot-amber" />
-            <span>{reviewCount} kiểm tra</span>
-          </button>
+          <>
+            <span className="sgp-telemetry-divider" aria-hidden="true" />
+            <button
+              type="button"
+              className={`sgp-telemetry-item item-review font-tabular ${
+                activeFocusType === 'REVIEW' ? 'active-focus' : ''
+              }`}
+              onClick={() => onFocusTypeChange?.(activeFocusType === 'REVIEW' ? null : 'REVIEW')}
+              title="Nhấn để lọc các công tơ cần kiểm tra"
+            >
+              <span className="chip-dot dot-amber" />
+              <span className="text-amber-400 font-semibold">{reviewCount} kiểm tra</span>
+            </button>
+          </>
         )}
 
-        {/* 5. Pending Filter Trigger */}
-        {pendingCount > 0 && (
-          <button
-            type="button"
-            className={`sgp-telemetry-item item-pending font-tabular ${
-              activeFocusType === 'PENDING' ? 'active-focus' : ''
-            }`}
-            onClick={() => onFocusTypeChange?.(activeFocusType === 'PENDING' ? null : 'PENDING')}
-            title="Nhấn để lọc các công tơ chưa ghi"
-          >
-            <span className="chip-dot dot-slate" />
-            <span>{pendingCount} chưa ghi</span>
-          </button>
-        )}
-
-        {/* 6. Active Focus Reset Button */}
+        {/* 5. Active Focus Reset Button */}
         {(exceptionFocus || activeFocusType) && (
           <button
             type="button"
@@ -139,19 +130,18 @@ export const SceneSummaryHUD: React.FC<SceneSummaryHUDProps> = ({
           </button>
         )}
 
-        {/* 7. On-Demand Analytics Drawer Trigger */}
+        {/* 6. On-Demand Analytics Action (Icon-Only Chart Button) */}
         {onOpenAnalytics && (
           <>
             <span className="sgp-telemetry-divider" aria-hidden="true" />
             <button
               type="button"
-              className="sgp-telemetry-item item-analytics chip-analytics"
+              className="sgp-telemetry-action sgp-map-icon-action"
               onClick={onOpenAnalytics}
-              title="Mở bảng phân tích chất lượng dữ liệu OCR và tiến độ"
-              aria-label="Mở bảng phân tích"
+              title="Phân tích vận hành"
+              aria-label="Phân tích vận hành"
             >
-              <BarChart2 size={13} className="text-cyan-600" />
-              <span>Phân tích</span>
+              <BarChart2 size={15} />
             </button>
           </>
         )}
