@@ -1,0 +1,88 @@
+{
+  "schemaVersion": "1.0.0",
+  "mapVersion": "tan-thuan-v10",
+  "coordinateSystem": "tan-thuan-canonical-image-pixel-space-v1",
+  "zoneId": "pres-technical",
+  "operatorStartNodeId": "tech-op-start",
+  "meterAccess": {
+    "CT-001": "tech-acc-ct001",
+    "CT-007": "tech-acc-ct007",
+    "CT-009": "tech-acc-ct009"
+  },
+  "nodes": [
+    {
+      "id": "tech-op-start",
+      "zoneId": "pres-technical",
+      "canonical": { "x": 1100, "y": 740 },
+      "type": "operator-start",
+      "label": "Trạm xuất phát Khu Kỹ thuật"
+    },
+    {
+      "id": "tech-acc-ct007",
+      "zoneId": "pres-technical",
+      "canonical": { "x": 1068, "y": 745 },
+      "type": "meter-access",
+      "label": "Điểm tiếp cận Công tơ Trạm B"
+    },
+    {
+      "id": "tech-j1",
+      "zoneId": "pres-technical",
+      "canonical": { "x": 1148, "y": 740 },
+      "type": "junction",
+      "label": "Giao lộ đường nội bộ trạm điện"
+    },
+    {
+      "id": "tech-acc-ct001",
+      "zoneId": "pres-technical",
+      "canonical": { "x": 1148, "y": 712 },
+      "type": "meter-access",
+      "label": "Điểm tiếp cận Công tơ Trạm A"
+    },
+    {
+      "id": "tech-j2",
+      "zoneId": "pres-technical",
+      "canonical": { "x": 1200, "y": 710 },
+      "type": "road",
+      "label": "Đường sang khu xưởng cơ giới"
+    },
+    {
+      "id": "tech-acc-ct009",
+      "zoneId": "pres-technical",
+      "canonical": { "x": 1229, "y": 707 },
+      "type": "meter-access",
+      "label": "Điểm tiếp cận Công tơ Khu Kỹ thuật 1"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-tech-start-ct007",
+      "from": "tech-op-start",
+      "to": "tech-acc-ct007",
+      "bidirectional": true
+    },
+    {
+      "id": "e-tech-start-j1",
+      "from": "tech-op-start",
+      "to": "tech-j1",
+      "bidirectional": true
+    },
+    {
+      "id": "e-tech-j1-ct001",
+      "from": "tech-j1",
+      "to": "tech-acc-ct001",
+      "bidirectional": true
+    },
+    {
+      "id": "e-tech-ct001-j2",
+      "from": "tech-acc-ct001",
+      "to": "tech-j2",
+      "bidirectional": true
+    },
+    {
+      "id": "e-tech-j2-ct009",
+      "from": "tech-j2",
+      "to": "tech-acc-ct009",
+      "bidirectional": true
+    }
+  ]
+}

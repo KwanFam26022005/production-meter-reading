@@ -1,0 +1,114 @@
+{
+  "schemaVersion": "1.0.0",
+  "mapVersion": "tan-thuan-v10",
+  "coordinateSystem": "tan-thuan-canonical-image-pixel-space-v1",
+  "zoneId": "pres-berth",
+  "operatorStartNodeId": "berth-op-start",
+  "meterAccess": {
+    "CT-003": "berth-acc-ct003",
+    "CT-004": "berth-acc-ct004",
+    "CT-008": "berth-acc-ct008"
+  },
+  "nodes": [
+    {
+      "id": "berth-op-start",
+      "zoneId": "pres-berth",
+      "canonical": { "x": 1030, "y": 285 },
+      "type": "operator-start",
+      "label": "Trạm xuất phát Cầu cảng"
+    },
+    {
+      "id": "berth-w1",
+      "zoneId": "pres-berth",
+      "canonical": { "x": 830, "y": 310 },
+      "type": "road",
+      "label": "Đường hành lang cầu cảng trung tâm"
+    },
+    {
+      "id": "berth-w2",
+      "zoneId": "pres-berth",
+      "canonical": { "x": 694, "y": 330 },
+      "type": "junction",
+      "label": "Nút giao hành lang Cầu cảng 2"
+    },
+    {
+      "id": "berth-w3",
+      "zoneId": "pres-berth",
+      "canonical": { "x": 520, "y": 325 },
+      "type": "road",
+      "label": "Đường nội bộ bờ cảng phía Tây"
+    },
+    {
+      "id": "berth-acc-ct003",
+      "zoneId": "pres-berth",
+      "canonical": { "x": 365, "y": 322 },
+      "type": "meter-access",
+      "label": "Điểm tiếp cận Công tơ Cầu cảng 1"
+    },
+    {
+      "id": "berth-acc-ct004",
+      "zoneId": "pres-berth",
+      "canonical": { "x": 694, "y": 338 },
+      "type": "meter-access",
+      "label": "Điểm tiếp cận Công tơ Cầu cảng 2"
+    },
+    {
+      "id": "berth-e1",
+      "zoneId": "pres-berth",
+      "canonical": { "x": 1200, "y": 262 },
+      "type": "road",
+      "label": "Đường nội bộ bờ cảng phía Đông"
+    },
+    {
+      "id": "berth-acc-ct008",
+      "zoneId": "pres-berth",
+      "canonical": { "x": 1375, "y": 256 },
+      "type": "meter-access",
+      "label": "Điểm tiếp cận Công tơ Cầu cảng 3"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-berth-start-w1",
+      "from": "berth-op-start",
+      "to": "berth-w1",
+      "bidirectional": true
+    },
+    {
+      "id": "e-berth-w1-w2",
+      "from": "berth-w1",
+      "to": "berth-w2",
+      "bidirectional": true
+    },
+    {
+      "id": "e-berth-w2-w3",
+      "from": "berth-w2",
+      "to": "berth-w3",
+      "bidirectional": true
+    },
+    {
+      "id": "e-berth-w3-ct003",
+      "from": "berth-w3",
+      "to": "berth-acc-ct003",
+      "bidirectional": true
+    },
+    {
+      "id": "e-berth-w2-ct004",
+      "from": "berth-w2",
+      "to": "berth-acc-ct004",
+      "bidirectional": true
+    },
+    {
+      "id": "e-berth-start-e1",
+      "from": "berth-op-start",
+      "to": "berth-e1",
+      "bidirectional": true
+    },
+    {
+      "id": "e-berth-e1-ct008",
+      "from": "berth-e1",
+      "to": "berth-acc-ct008",
+      "bidirectional": true
+    }
+  ]
+}

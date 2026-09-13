@@ -1,0 +1,60 @@
+{
+  "schemaVersion": "1.0.0",
+  "mapVersion": "tan-thuan-v10",
+  "coordinateSystem": "tan-thuan-canonical-image-pixel-space-v1",
+  "zoneId": "pres-cfs-east",
+  "operatorStartNodeId": "cfseast-op-start",
+  "meterAccess": {
+    "CT-006": "cfseast-acc-ct006"
+  },
+  "nodes": [
+    {
+      "id": "cfseast-op-start",
+      "zoneId": "pres-cfs-east",
+      "canonical": { "x": 1838, "y": 445 },
+      "type": "operator-start",
+      "label": "Trạm xuất phát Kho CFS Đông"
+    },
+    {
+      "id": "cfseast-j1",
+      "zoneId": "pres-cfs-east",
+      "canonical": { "x": 1750, "y": 435 },
+      "type": "road",
+      "label": "Đường vận hành kho phía Đông"
+    },
+    {
+      "id": "cfseast-j2",
+      "zoneId": "pres-cfs-east",
+      "canonical": { "x": 1710, "y": 395 },
+      "type": "junction",
+      "label": "Lối rẽ vào cửa xuất nhập Kho D"
+    },
+    {
+      "id": "cfseast-acc-ct006",
+      "zoneId": "pres-cfs-east",
+      "canonical": { "x": 1706, "y": 380 },
+      "type": "meter-access",
+      "label": "Điểm tiếp cận Công tơ Kho D"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-cfseast-start-j1",
+      "from": "cfseast-op-start",
+      "to": "cfseast-j1",
+      "bidirectional": true
+    },
+    {
+      "id": "e-cfseast-j1-j2",
+      "from": "cfseast-j1",
+      "to": "cfseast-j2",
+      "bidirectional": true
+    },
+    {
+      "id": "e-cfseast-j2-ct006",
+      "from": "cfseast-j2",
+      "to": "cfseast-acc-ct006",
+      "bidirectional": true
+    }
+  ]
+}

@@ -1,0 +1,74 @@
+{
+  "schemaVersion": "1.0.0",
+  "mapVersion": "tan-thuan-v10",
+  "coordinateSystem": "tan-thuan-canonical-image-pixel-space-v1",
+  "zoneId": "pres-container-center",
+  "operatorStartNodeId": "ccenter-op-start",
+  "meterAccess": {
+    "CT-011": "ccenter-acc-ct011",
+    "CT-012": "ccenter-acc-ct012"
+  },
+  "nodes": [
+    {
+      "id": "ccenter-op-start",
+      "zoneId": "pres-container-center",
+      "canonical": { "x": 1278, "y": 455 },
+      "type": "operator-start",
+      "label": "Trạm xuất phát Bãi Container Trung tâm"
+    },
+    {
+      "id": "ccenter-w1",
+      "zoneId": "pres-container-center",
+      "canonical": { "x": 1200, "y": 455 },
+      "type": "road",
+      "label": "Làn xe container phân khu A"
+    },
+    {
+      "id": "ccenter-acc-ct011",
+      "zoneId": "pres-container-center",
+      "canonical": { "x": 1171, "y": 465 },
+      "type": "meter-access",
+      "label": "Điểm tiếp cận Công tơ Bãi Container 1"
+    },
+    {
+      "id": "ccenter-e1",
+      "zoneId": "pres-container-center",
+      "canonical": { "x": 1360, "y": 455 },
+      "type": "road",
+      "label": "Làn xe container phân khu B"
+    },
+    {
+      "id": "ccenter-acc-ct012",
+      "zoneId": "pres-container-center",
+      "canonical": { "x": 1402, "y": 452 },
+      "type": "meter-access",
+      "label": "Điểm tiếp cận Công tơ Bãi Container 2"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-ccenter-start-w1",
+      "from": "ccenter-op-start",
+      "to": "ccenter-w1",
+      "bidirectional": true
+    },
+    {
+      "id": "e-ccenter-w1-ct011",
+      "from": "ccenter-w1",
+      "to": "ccenter-acc-ct011",
+      "bidirectional": true
+    },
+    {
+      "id": "e-ccenter-start-e1",
+      "from": "ccenter-op-start",
+      "to": "ccenter-e1",
+      "bidirectional": true
+    },
+    {
+      "id": "e-ccenter-e1-ct012",
+      "from": "ccenter-e1",
+      "to": "ccenter-acc-ct012",
+      "bidirectional": true
+    }
+  ]
+}

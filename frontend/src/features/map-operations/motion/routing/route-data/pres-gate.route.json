@@ -1,0 +1,60 @@
+{
+  "schemaVersion": "1.0.0",
+  "mapVersion": "tan-thuan-v10",
+  "coordinateSystem": "tan-thuan-canonical-image-pixel-space-v1",
+  "zoneId": "pres-gate",
+  "operatorStartNodeId": "gate-op-start",
+  "meterAccess": {
+    "CT-010": "gate-acc-ct010"
+  },
+  "nodes": [
+    {
+      "id": "gate-op-start",
+      "zoneId": "pres-gate",
+      "canonical": { "x": 1790, "y": 580 },
+      "type": "operator-start",
+      "label": "Trạm xuất phát Cổng chính"
+    },
+    {
+      "id": "gate-j1",
+      "zoneId": "pres-gate",
+      "canonical": { "x": 1720, "y": 580 },
+      "type": "road",
+      "label": "Làn xe lưu thông cổng kiểm soát"
+    },
+    {
+      "id": "gate-j2",
+      "zoneId": "pres-gate",
+      "canonical": { "x": 1670, "y": 575 },
+      "type": "junction",
+      "label": "Lối vào bốt điều hành cổng"
+    },
+    {
+      "id": "gate-acc-ct010",
+      "zoneId": "pres-gate",
+      "canonical": { "x": 1666, "y": 560 },
+      "type": "meter-access",
+      "label": "Điểm tiếp cận Công tơ Khu Kỹ thuật 2 (Cổng chính)"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-gate-start-j1",
+      "from": "gate-op-start",
+      "to": "gate-j1",
+      "bidirectional": true
+    },
+    {
+      "id": "e-gate-j1-j2",
+      "from": "gate-j1",
+      "to": "gate-j2",
+      "bidirectional": true
+    },
+    {
+      "id": "e-gate-j2-ct010",
+      "from": "gate-j2",
+      "to": "gate-acc-ct010",
+      "bidirectional": true
+    }
+  ]
+}

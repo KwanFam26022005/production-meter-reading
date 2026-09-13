@@ -1,0 +1,74 @@
+{
+  "schemaVersion": "1.0.0",
+  "mapVersion": "tan-thuan-v10",
+  "coordinateSystem": "tan-thuan-canonical-image-pixel-space-v1",
+  "zoneId": "pres-container-west",
+  "operatorStartNodeId": "cwest-op-start",
+  "meterAccess": {
+    "CT-002": "cwest-acc-ct002",
+    "CT-005": "cwest-acc-ct005"
+  },
+  "nodes": [
+    {
+      "id": "cwest-op-start",
+      "zoneId": "pres-container-west",
+      "canonical": { "x": 525, "y": 515 },
+      "type": "operator-start",
+      "label": "Trạm xuất phát Bãi Container Tây"
+    },
+    {
+      "id": "cwest-j1",
+      "zoneId": "pres-container-west",
+      "canonical": { "x": 525, "y": 485 },
+      "type": "junction",
+      "label": "Ngã tư nội bộ kho bãi phía Tây"
+    },
+    {
+      "id": "cwest-acc-ct002",
+      "zoneId": "pres-container-west",
+      "canonical": { "x": 480, "y": 465 },
+      "type": "meter-access",
+      "label": "Điểm tiếp cận Công tơ Kho B"
+    },
+    {
+      "id": "cwest-j2",
+      "zoneId": "pres-container-west",
+      "canonical": { "x": 610, "y": 485 },
+      "type": "road",
+      "label": "Đường vận chuyển giữa Kho B và Kho C"
+    },
+    {
+      "id": "cwest-acc-ct005",
+      "zoneId": "pres-container-west",
+      "canonical": { "x": 639, "y": 502 },
+      "type": "meter-access",
+      "label": "Điểm tiếp cận Công tơ Kho C"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-cwest-start-j1",
+      "from": "cwest-op-start",
+      "to": "cwest-j1",
+      "bidirectional": true
+    },
+    {
+      "id": "e-cwest-j1-ct002",
+      "from": "cwest-j1",
+      "to": "cwest-acc-ct002",
+      "bidirectional": true
+    },
+    {
+      "id": "e-cwest-j1-j2",
+      "from": "cwest-j1",
+      "to": "cwest-j2",
+      "bidirectional": true
+    },
+    {
+      "id": "e-cwest-j2-ct005",
+      "from": "cwest-j2",
+      "to": "cwest-acc-ct005",
+      "bidirectional": true
+    }
+  ]
+}
