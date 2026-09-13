@@ -9,11 +9,13 @@ from sqlalchemy.orm import Session
 
 from . import auth, attendance, meter_logbook, admin
 from .admin import (
+    change_admin_meter_zone,
     create_admin_meter,
     create_admin_schedules,
-    get_admin_audit_logs,
+    delete_admin_meter,
     delete_admin_schedule_round,
     delete_admin_schedules_by_date,
+    get_admin_audit_logs,
     get_admin_dashboard,
     get_admin_meter_latest_reading,
     get_admin_meter_reading_detail,
@@ -21,8 +23,33 @@ from .admin import (
     get_admin_meters,
     get_admin_schedules_list,
     preview_admin_schedules,
+    relocate_admin_meter,
     set_meter_active_state,
     update_admin_meter,
+)
+from .map_config import (
+    create_map_draft,
+    delete_map_draft,
+    get_active_map_config,
+    get_current_draft,
+    get_map_version_detail,
+    list_map_versions,
+    publish_map_version,
+    rollback_map_version,
+    update_draft_zone,
+    validate_map_version_geometry,
+)
+from .schemas import (
+    AdminMeterChangeZoneRequest,
+    AdminMeterRelocateRequest,
+    MapDraftCreateRequest,
+    MapPublishResponse,
+    MapRollbackRequest,
+    MapValidationResponse,
+    MapVersionListResponse,
+    MapVersionOut,
+    MapVersionZoneOut,
+    MapZoneUpdateRequest,
 )
 from .attendance import get_local_time_str, get_today_attendance_summary, record_attendance
 from .meter_logbook import (
@@ -796,6 +823,47 @@ def activate_admin_meter_endpoint(
     return set_meter_active_state(db, admin_user, meter_id, is_active=True)
 
 
+@app.post(
+    "/api/v1/admin/meters/{meter_id}/relocate",
+    response_model=AdminMeterItem,
+    dependencies=[Depends(enforce_csrf)],
+)
+def relocate_admin_meter_endpoint(
+    meter_id: str,
+    payload: AdminMeterRelocateRequest,
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> AdminMeterItem:
+    return relocate_admin_meter(db, actor=admin_user, meter_id=meter_id, payload=payload)
+
+
+@app.post(
+    "/api/v1/admin/meters/{meter_id}/change-zone",
+    response_model=AdminMeterItem,
+    dependencies=[Depends(enforce_csrf)],
+)
+def change_admin_meter_zone_endpoint(
+    meter_id: str,
+    payload: AdminMeterChangeZoneRequest,
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> AdminMeterItem:
+    return change_admin_meter_zone(db, actor=admin_user, meter_id=meter_id, payload=payload)
+
+
+@app.delete(
+    "/api/v1/admin/meters/{meter_id}",
+    dependencies=[Depends(enforce_csrf)],
+)
+def delete_admin_meter_endpoint(
+    meter_id: str,
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    return delete_admin_meter(db, actor=admin_user, meter_id=meter_id)
+
+
+
 @app.get("/api/v1/admin/schedules", response_model=ReadingRoundListResponse)
 def get_admin_schedules_endpoint(
     date: Optional[str] = None,
@@ -1271,6 +1339,131 @@ def reassign_zone_operator_endpoint(
     db: Session = Depends(get_db),
 ) -> ZoneReassignResponse:
     return reassign_zone_operator(db, actor=admin_user, zone_id=zone_id, payload=payload)
+
+
+# ==============================================================================
+# MAP CONFIGURATION & VERSIONING ENDPOINTS (V16)
+# ==============================================================================
+@app.get("/api/v1/map-config/active", response_model=MapVersionOut)
+def get_active_map_config_endpoint(
+    db: Session = Depends(get_db),
+) -> MapVersionOut:
+    """Returns the current active PUBLISHED map version with zones and landmarks."""
+    return get_active_map_config(db)
+
+
+@app.get("/api/v1/map-config/versions", response_model=MapVersionListResponse)
+def list_map_versions_endpoint(
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> MapVersionListResponse:
+    """Lists all map versions (Draft, Published, Archived)."""
+    return list_map_versions(db)
+
+
+@app.get("/api/v1/map-config/versions/current-draft", response_model=Optional[MapVersionOut])
+def get_current_draft_endpoint(
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> Optional[MapVersionOut]:
+    """Gets the active draft version if one exists."""
+    return get_current_draft(db)
+
+
+@app.get("/api/v1/map-config/versions/{version_id}", response_model=MapVersionOut)
+def get_map_version_detail_endpoint(
+    version_id: str,
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> MapVersionOut:
+    """Gets specific version detail with zones."""
+    return get_map_version_detail(db, version_id=version_id)
+
+
+@app.post(
+    "/api/v1/map-config/drafts",
+    response_model=MapVersionOut,
+    dependencies=[Depends(enforce_csrf)],
+)
+def create_map_draft_endpoint(
+    payload: Optional[MapDraftCreateRequest] = None,
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> MapVersionOut:
+    """Creates a new draft map version cloned from published or specified version."""
+    return create_map_draft(db, actor=admin_user, payload=payload)
+
+
+@app.patch(
+    "/api/v1/map-config/versions/{version_id}/zones/{zone_id}",
+    response_model=MapVersionZoneOut,
+    dependencies=[Depends(enforce_csrf)],
+)
+def update_draft_zone_endpoint(
+    version_id: str,
+    zone_id: str,
+    payload: MapZoneUpdateRequest,
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> MapVersionZoneOut:
+    """Updates geometry of a zone inside a draft version with optimistic concurrency check."""
+    return update_draft_zone(db, actor=admin_user, version_id=version_id, zone_id=zone_id, payload=payload)
+
+
+@app.post(
+    "/api/v1/map-config/versions/{version_id}/validate",
+    response_model=MapValidationResponse,
+)
+def validate_map_version_endpoint(
+    version_id: str,
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> MapValidationResponse:
+    """Runs complete validation pipeline on a map version."""
+    return validate_map_version_geometry(db, version_id=version_id)
+
+
+@app.post(
+    "/api/v1/map-config/versions/{version_id}/publish",
+    response_model=MapPublishResponse,
+    dependencies=[Depends(enforce_csrf)],
+)
+def publish_map_version_endpoint(
+    version_id: str,
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> MapPublishResponse:
+    """Atomically validates and publishes a draft map version."""
+    return publish_map_version(db, actor=admin_user, version_id=version_id)
+
+
+@app.post(
+    "/api/v1/map-config/versions/{version_id}/rollback",
+    response_model=MapPublishResponse,
+    dependencies=[Depends(enforce_csrf)],
+)
+def rollback_map_version_endpoint(
+    version_id: str,
+    payload: Optional[MapRollbackRequest] = None,
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> MapPublishResponse:
+    """Atomically rolls back to a historical validated map version."""
+    return rollback_map_version(db, actor=admin_user, target_version_id=version_id, payload=payload)
+
+
+@app.delete(
+    "/api/v1/map-config/versions/{version_id}",
+    dependencies=[Depends(enforce_csrf)],
+)
+def delete_map_draft_endpoint(
+    version_id: str,
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Deletes an un-published draft."""
+    return delete_map_draft(db, actor=admin_user, version_id=version_id)
+
 
 
 

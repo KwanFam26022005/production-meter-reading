@@ -372,6 +372,7 @@ class AdminMeterCreateRequest(BaseModel):
     location: Optional[str] = None
     meter_type: str = "UNKNOWN"
     zone_id: Optional[str] = None
+    presentation_zone_id: Optional[str] = None
     map_x: Optional[float] = None
     map_y: Optional[float] = None
 
@@ -382,8 +383,19 @@ class AdminMeterUpdateRequest(BaseModel):
     location: Optional[str] = None
     meter_type: Optional[str] = None
     zone_id: Optional[str] = None
+    presentation_zone_id: Optional[str] = None
     map_x: Optional[float] = None
     map_y: Optional[float] = None
+
+
+class AdminMeterRelocateRequest(BaseModel):
+    map_x: float
+    map_y: float
+
+
+class AdminMeterChangeZoneRequest(BaseModel):
+    zone_id: str
+    presentation_zone_id: str
 
 
 class AdminMeterItem(BaseModel):
@@ -394,8 +406,10 @@ class AdminMeterItem(BaseModel):
     meter_type: str
     is_active: bool
     zone_id: Optional[str] = None
+    presentation_zone_id: Optional[str] = None
     map_x: Optional[float] = None
     map_y: Optional[float] = None
+    route_status: str = "VALID"
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
     has_readings: bool = False
@@ -1047,4 +1061,103 @@ class ZoneReassignResponse(BaseModel):
     zone_id: str
     user_id: str
     user_name: str
+
+
+# ==============================================================================
+# MAP CONFIGURATION & VERSIONING SCHEMAS (V16)
+# ==============================================================================
+class MapVersionZoneOut(BaseModel):
+    id: str
+    map_version_id: str
+    zone_id: str
+    business_zone_id: str
+    display_index: int
+    display_label: str
+    business_name: str
+    presentation_color: str
+    icon: str
+    polygon_canonical: list[dict[str, Any]]
+    label_anchor_canonical: dict[str, Any]
+    operator_anchor_canonical: dict[str, Any]
+    landmarks: list[dict[str, Any]] = []
+    revision: int
+
+
+class MapVersionSummary(BaseModel):
+    id: str
+    map_id: str
+    map_version: str
+    status: str
+    revision: int
+    created_by_name: Optional[str] = None
+    published_by_name: Optional[str] = None
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+    published_at: Optional[str] = None
+    zones_count: int = 0
+
+
+class MapVersionOut(BaseModel):
+    id: str
+    map_id: str
+    map_version: str
+    coordinate_system: str
+    canonical_width: int
+    canonical_height: int
+    source_asset: str
+    status: str
+    revision: int
+    parent_version_id: Optional[str] = None
+    created_by_user_id: Optional[str] = None
+    created_by_name: Optional[str] = None
+    published_by_user_id: Optional[str] = None
+    published_by_name: Optional[str] = None
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+    published_at: Optional[str] = None
+    zones: list[MapVersionZoneOut] = []
+
+
+class MapVersionListResponse(BaseModel):
+    total: int
+    versions: list[MapVersionSummary]
+
+
+class MapDraftCreateRequest(BaseModel):
+    from_version_id: Optional[str] = None
+    map_version: Optional[str] = None
+
+
+class MapZoneUpdateRequest(BaseModel):
+    polygon_canonical: Optional[list[dict[str, Any]]] = None
+    label_anchor_canonical: Optional[dict[str, Any]] = None
+    operator_anchor_canonical: Optional[dict[str, Any]] = None
+    landmarks: Optional[list[dict[str, Any]]] = None
+    revision: int
+
+
+class MapValidationResponse(BaseModel):
+    valid: bool
+    errors: list[str] = []
+    warnings: list[str] = []
+    zones_count: int
+    simple_polygons: bool
+    meters_contained: int
+    total_meters: int
+    anchors_valid: bool
+    landmarks_valid: bool
+    route_review_required: bool = False
+    route_issues: list[str] = []
+
+
+class MapPublishResponse(BaseModel):
+    status: str = "success"
+    map_version: str
+    published_at: str
+    message: str
+
+
+class MapRollbackRequest(BaseModel):
+    reason: Optional[str] = "Phục hồi phiên bản lịch sử"
+
 
