@@ -22,6 +22,8 @@ interface OperatorLayerProps {
     state?: 'idle' | 'moving' | 'arriving' | 'reading' | 'completed' | string;
     targetMeterId?: string;
   } | null;
+  getWorkflowPosition?: (operatorId: string) => { x: number; y: number } | undefined;
+  getWorkflowState?: (operatorId: string) => string | undefined;
   onSelectOperator: (operatorId: string) => void;
 }
 
@@ -48,6 +50,8 @@ export const OperatorLayer: React.FC<OperatorLayerProps> = ({
   filterTier = 'all',
   activeWorkflowState,
   operatorActivity,
+  getWorkflowPosition,
+  getWorkflowState,
   onSelectOperator,
 }) => {
   // Derive operator summary for each zone's assigned operator at its zone anchor
@@ -166,12 +170,20 @@ export const OperatorLayer: React.FC<OperatorLayerProps> = ({
           assignedZoneIds: summary.activeZoneIds,
         });
 
+        const workflowPos = getWorkflowPosition ? getWorkflowPosition(summary.operatorId) : undefined;
+        const renderX = workflowPos ? workflowPos.x : anchor.x;
+        const renderY = workflowPos ? workflowPos.y : anchor.y;
+        const workflowState = getWorkflowState ? getWorkflowState(summary.operatorId) : undefined;
+        const effectiveOperatorActivity = workflowState
+          ? { state: workflowState.toLowerCase() }
+          : operatorActivity;
+
         return (
           <OperatorMapMarker
             key={key}
             summary={summary}
-            x={anchor.x}
-            y={anchor.y}
+            x={renderX}
+            y={renderY}
             isSelected={
               selectedOperatorId === summary.operatorId ||
               activeSelectedEntity?.id === summary.operatorId
@@ -182,7 +194,7 @@ export const OperatorLayer: React.FC<OperatorLayerProps> = ({
             zoneName={zoneMap.get(zoneId)}
             isZoneFocused={isZoneFocused}
             activeWorkflowState={activeWorkflowState}
-            operatorActivity={operatorActivity}
+            operatorActivity={effectiveOperatorActivity}
             onClick={onSelectOperator}
           />
         );

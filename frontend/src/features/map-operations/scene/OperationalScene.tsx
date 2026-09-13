@@ -19,7 +19,9 @@ import { MeterLayer } from '../layers/MeterLayer';
 import { OperatorLayer } from '../layers/OperatorLayer';
 import { AlertLayer } from '../layers/AlertLayer';
 import { LabelsLayer } from '../layers/LabelsLayer';
+import { RouteLayer } from '../layers/RouteLayer';
 import { MapDebugLayer } from '../operational-map/MapDebugLayer';
+import { useOperationalMotion } from '../motion/useOperationalMotion';
 import type { MapWorkspaceView } from '../../../types';
 import type { MapCalibrationWorkspace } from '../calibration/useMapCalibrationWorkspace';
 
@@ -127,6 +129,19 @@ export const OperationalScene: React.FC<OperationalSceneProps> = ({
     (m) => m.semanticState === 'OVERDUE' || m.semanticState === 'REVIEW'
   ).length;
 
+  // Check URL debug flags for routes and demo mode
+  const debugRoutes = typeof window !== 'undefined' && window.location.search.includes('showRoutes=1');
+  const demoMode = typeof window !== 'undefined' && (window.location.search.includes('demo=1') || window.location.search.includes('motionDemo=1'));
+
+  const motion = useOperationalMotion({
+    zones,
+    meters,
+    selectedOperatorId: selectedOperatorShiftId || selectedOperatorId,
+    isCalibrationActive,
+    viewMode,
+    demoMode,
+  });
+
   return (
     <div
       ref={containerRef}
@@ -197,6 +212,15 @@ export const OperationalScene: React.FC<OperationalSceneProps> = ({
                 hoveredZoneId={hoveredZoneId}
               />
 
+              {/* 3.1. Operational Route Layer (Section 43, 62: route lines rendered beneath markers) */}
+              <RouteLayer
+                selectedZoneId={selectedZoneId}
+                selectedOperatorId={selectedOperatorShiftId || selectedOperatorId}
+                activePlannedRoute={motion.activePlannedRoute}
+                debugRoutes={debugRoutes}
+                isMoving={motion.getOperatorWorkflowState(selectedOperatorShiftId || selectedOperatorId || '') === 'MOVING'}
+              />
+
               {/* 4. Normal Meter Markers Layer (Section 17: normal meter) */}
               <MeterLayer
                 meters={meters}
@@ -213,6 +237,7 @@ export const OperationalScene: React.FC<OperationalSceneProps> = ({
                 onHoverMeter={onHoverMeter}
                 exceptionFocus={exceptionFocus}
                 filterTier="normal"
+                getMeterMotionOverride={motion.getMeterMotionOverride}
               />
 
               {/* 5. Normal Spatial Operator Markers Layer (Section 17: operator) */}
@@ -227,6 +252,8 @@ export const OperationalScene: React.FC<OperationalSceneProps> = ({
                 selectedEntity={selectedEntity}
                 targetPlacementZoneId={targetPlacementZoneId}
                 filterTier="normal"
+                getWorkflowPosition={motion.getOperatorWorkflowPosition}
+                getWorkflowState={motion.getOperatorWorkflowState}
                 onSelectOperator={onSelectOperator || (() => {})}
               />
 
@@ -246,6 +273,7 @@ export const OperationalScene: React.FC<OperationalSceneProps> = ({
                 onHoverMeter={onHoverMeter}
                 exceptionFocus={exceptionFocus}
                 filterTier="issue"
+                getMeterMotionOverride={motion.getMeterMotionOverride}
               />
               <OperatorLayer
                 zones={zones}
@@ -258,6 +286,8 @@ export const OperationalScene: React.FC<OperationalSceneProps> = ({
                 selectedEntity={selectedEntity}
                 targetPlacementZoneId={targetPlacementZoneId}
                 filterTier="issue"
+                getWorkflowPosition={motion.getOperatorWorkflowPosition}
+                getWorkflowState={motion.getOperatorWorkflowState}
                 onSelectOperator={onSelectOperator || (() => {})}
               />
 
@@ -277,6 +307,7 @@ export const OperationalScene: React.FC<OperationalSceneProps> = ({
                 onHoverMeter={onHoverMeter}
                 exceptionFocus={exceptionFocus}
                 filterTier="selected"
+                getMeterMotionOverride={motion.getMeterMotionOverride}
               />
               <OperatorLayer
                 zones={zones}
@@ -289,6 +320,8 @@ export const OperationalScene: React.FC<OperationalSceneProps> = ({
                 selectedEntity={selectedEntity}
                 targetPlacementZoneId={targetPlacementZoneId}
                 filterTier="selected"
+                getWorkflowPosition={motion.getOperatorWorkflowPosition}
+                getWorkflowState={motion.getOperatorWorkflowState}
                 onSelectOperator={onSelectOperator || (() => {})}
               />
 
@@ -315,6 +348,30 @@ export const OperationalScene: React.FC<OperationalSceneProps> = ({
 
       {/* Developer-Only Calibration HUD Panel (?mapCalibration=1) */}
       {isCalibrationActive && <MapCalibrationHUD calibration={calibration} />}
+
+      {/* Discreet Demo Mode Simulation Badge (Section 37 & 71) */}
+      {demoMode && (
+        <div
+          className="sgp-demo-motion-indicator"
+          style={{
+            position: 'absolute',
+            top: 12,
+            right: 12,
+            background: 'rgba(15, 23, 42, 0.85)',
+            border: '1px solid rgba(6, 182, 212, 0.4)',
+            color: '#38BDF8',
+            fontSize: '11px',
+            fontWeight: 600,
+            letterSpacing: '0.05em',
+            padding: '3px 8px',
+            borderRadius: '4px',
+            pointerEvents: 'none',
+            zIndex: 30,
+          }}
+        >
+          MÔ PHỎNG TÁC NGHIỆP
+        </div>
+      )}
     </div>
   );
 };

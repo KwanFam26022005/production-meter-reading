@@ -35,6 +35,7 @@ interface MeterLayerProps {
     targetMeterId?: string;
     state?: 'idle' | 'moving' | 'arriving' | 'reading' | 'completed' | string;
   } | null;
+  getMeterMotionOverride?: (meterId: string) => 'approaching' | 'reading' | 'completed' | undefined;
   currentRound?: string;
 }
 
@@ -68,6 +69,7 @@ export const MeterLayer: React.FC<MeterLayerProps> = ({
   filterTier = 'all',
   activeWorkflowState,
   operatorActivity,
+  getMeterMotionOverride,
   currentRound,
 }) => {
   const reducedMotion = usePrefersReducedMotion();
@@ -141,17 +143,20 @@ export const MeterLayer: React.FC<MeterLayerProps> = ({
           }
         }
 
-        // V15A Explicit Marker Motion State Resolution
-        const motionState: MeterMotionState = resolveMeterMotionState({
-          domainStatus: m.semanticState,
-          selectedEntity: activeSelectedEntity,
-          isSelected,
-          meterId: m.id,
-          currentRound,
-          activeWorkflowState,
-          operatorActivity,
-          issueState: { isOverdue, isReview, hasIssue: isException },
-        });
+        // V15A / V15C Explicit Marker Motion State Resolution
+        const motionOverride = getMeterMotionOverride ? getMeterMotionOverride(m.id) : undefined;
+        const motionState: MeterMotionState =
+          motionOverride ||
+          resolveMeterMotionState({
+            domainStatus: m.semanticState,
+            selectedEntity: activeSelectedEntity,
+            isSelected,
+            meterId: m.id,
+            currentRound,
+            activeWorkflowState,
+            operatorActivity,
+            issueState: { isOverdue, isReview, hasIssue: isException },
+          });
 
         // Semantic Colors per V15A Spec:
         // Reading: brighter cyan operational core (#00E5FF)
