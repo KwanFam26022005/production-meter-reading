@@ -300,11 +300,6 @@ def update_draft_zone(
     version.revision += 1
     version.updated_at = get_utc_now()
 
-    # Route integrity hook: Mark meters in this zone as REVIEW_REQUIRED
-    db.query(Meter).filter(Meter.presentation_zone_id == zone.zone_id).update(
-        {"route_status": "REVIEW_REQUIRED"}, synchronize_session=False
-    )
-
     log_admin_action(
         db=db,
         actor_user_id=actor.id,
@@ -442,7 +437,7 @@ def validate_map_version_geometry(db: Session, version_id: str) -> MapValidation
             errors.append(f"Điểm neo nhân sự của {z.display_label} ({op_anchor.get('x')}, {op_anchor.get('y')}) nằm NGOÀI ranh giới phân vùng")
             all_anchors_valid = False
 
-    # 4. Meters Containment Check
+    # 4. Decoupled Meter Informational Stats (Does not block map validation)
     active_meters = db.query(Meter).filter(Meter.is_active == True).all()
     contained_meters_count = 0
     total_meters = len(active_meters)
@@ -451,12 +446,10 @@ def validate_map_version_geometry(db: Session, version_id: str) -> MapValidation
 
     for m in active_meters:
         if not m.presentation_zone_id:
-            warnings.append(f"Công tơ {m.meter_code} chưa được gán presentation_zone_id")
             continue
 
         poly = zone_poly_map.get(m.presentation_zone_id)
         if not poly:
-            errors.append(f"Công tơ {m.meter_code} gán phân khu không tồn tại: {m.presentation_zone_id}")
             continue
 
         # Project normalized coordinates to canonical pixel space
@@ -467,11 +460,7 @@ def validate_map_version_geometry(db: Session, version_id: str) -> MapValidation
             if inside:
                 contained_meters_count += 1
             else:
-                errors.append(f"Công tơ {m.meter_code} tại ({round(cx)}, {round(cy)}) nằm NGOÀI phân khu {m.presentation_zone_id}")
-
-        if m.route_status == "REVIEW_REQUIRED":
-            route_review_required = True
-            route_issues.append(f"Công tơ {m.meter_code} cần kiểm tra lại tuyến đường di chuyển")
+                warnings.append(f"Công tơ {m.meter_code} tại ({round(cx)}, {round(cy)}) nằm ngoài phân khu {m.presentation_zone_id}")
 
     return MapValidationResponse(
         valid=(len(errors) == 0),

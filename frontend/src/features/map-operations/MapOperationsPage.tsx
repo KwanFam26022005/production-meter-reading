@@ -93,6 +93,17 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
   // Analytics Drawer (opened only via top controls or summary telemetry)
   const [analyticsOpen, setAnalyticsOpen] = useState(false);
 
+  // Placement initial coordinates for relocating meter
+  const selectedMeterCoord = useMemo(() => {
+    if (mapState.placementContext?.isRelocating && mapState.placementContext.meterId) {
+      const m = mapMeters.find((meter) => meter.id === mapState.placementContext?.meterId);
+      if (m) {
+        return normalizedToCanonicalScene(m.coordinates);
+      }
+    }
+    return null;
+  }, [mapState.placementContext, mapMeters]);
+
   // Placement hook integration
   const placement = useSpatialPlacement({
     isActive: mapState.mode === 'placement',
@@ -103,7 +114,9 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
     meterType: mapState.placementContext?.meterType,
     isRelocating: mapState.placementContext?.isRelocating || false,
     existingMeterId: mapState.placementContext?.meterId,
-    onConfirmPlacement: async (coords) => {
+    initialCoordinates: selectedMeterCoord,
+    cameraViewport: viewport,
+    onConfirmPlacement: async (coords, details) => {
       if (!mapState.placementContext) return;
       const ctx = mapState.placementContext;
       if (ctx.isRelocating && ctx.meterId) {
@@ -111,11 +124,16 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
           map_x: coords.normX,
           map_y: coords.normY,
         });
+        if (details?.name && details.name !== ctx.meterName) {
+          await updateAdminMeter(ctx.meterId, {
+            name: details.name,
+          });
+        }
       } else {
         await createAdminMeter({
-          meter_code: ctx.meterCode || 'CT-013',
-          name: ctx.meterName || 'Công tơ mới',
-          meter_type: ctx.meterType || 'LCD',
+          meter_code: details?.meterCode || ctx.meterCode || 'CT-013',
+          name: details?.name || ctx.meterName || 'Công tơ mới',
+          meter_type: details?.meterType || ctx.meterType || 'LCD',
           map_x: coords.normX,
           map_y: coords.normY,
           zone_id: ctx.targetZoneId,
@@ -415,29 +433,8 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
   );
 
   const handleConfirmPlacementFromRail = useCallback(async () => {
-    if (!placement.pinnedCoords || !mapState.placementContext) return;
-    const coords = placement.pinnedCoords;
-    const ctx = mapState.placementContext;
-    if (ctx.isRelocating && ctx.meterId) {
-      await updateAdminMeter(ctx.meterId, {
-        map_x: coords.normX,
-        map_y: coords.normY,
-        zone_id: ctx.targetZoneId,
-      });
-    } else {
-      await createAdminMeter({
-        meter_code: ctx.meterCode || 'CT-013',
-        name: ctx.meterName || 'Công tơ mới',
-        meter_type: ctx.meterType || 'LCD',
-        map_x: coords.normX,
-        map_y: coords.normY,
-        zone_id: ctx.targetZoneId,
-      });
-    }
-    mapState.resetToBrowse();
-    await refresh();
-    setViewport({ zoom: 1.0, panX: 0, panY: 0 });
-  }, [placement.pinnedCoords, mapState, refresh, setViewport]);
+    await placement.handleConfirm();
+  }, [placement]);
 
   const handleCancelPlacement = useCallback(() => {
     mapState.cancelPlacement();

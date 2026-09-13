@@ -248,21 +248,6 @@ def create_admin_meter(
 
     pres_zone_id = payload.presentation_zone_id.strip() if payload.presentation_zone_id else None
 
-    # Validate zone containment if coordinate provided
-    if pres_zone_id and map_x is not None and map_y is not None:
-        pub_map = db.query(MapVersion).filter(MapVersion.status == "PUBLISHED").order_by(MapVersion.published_at.desc()).first()
-        if pub_map:
-            target_zone = next((z for z in pub_map.zones if z.zone_id == pres_zone_id), None)
-            if target_zone:
-                poly = json.loads(target_zone.polygon_canonical) if isinstance(target_zone.polygon_canonical, str) else target_zone.polygon_canonical
-                cx = map_x * pub_map.canonical_width
-                cy = map_y * pub_map.canonical_height
-                if not is_point_in_polygon({"x": cx, "y": cy}, poly):
-                    raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        detail=f"Tọa độ chỉ định nằm ngoài ranh giới phân khu {target_zone.display_label}.",
-                    )
-
     new_meter = Meter(
         id=str(uuid.uuid4()),
         meter_code=clean_code,
@@ -273,7 +258,7 @@ def create_admin_meter(
         presentation_zone_id=pres_zone_id,
         map_x=map_x,
         map_y=map_y,
-        route_status="REVIEW_REQUIRED" if (map_x is not None and map_y is not None) else "VALID",
+        route_status="ROUTABLE",
         is_active=True,
     )
     db.add(new_meter)
@@ -414,7 +399,7 @@ def update_admin_meter(
             coords_changed = True
 
     if coords_changed:
-        meter.route_status = "REVIEW_REQUIRED"
+        meter.route_status = "ROUTABLE"
 
     meter.updated_at = datetime.now(timezone.utc)
 
@@ -509,21 +494,6 @@ def relocate_admin_meter(
     norm_x = max(0.0, min(1.0, round(float(norm_x), 4)))
     norm_y = max(0.0, min(1.0, round(float(norm_y), 4)))
 
-    # Containment validation against assigned presentation zone
-    if meter.presentation_zone_id:
-        pub_map = db.query(MapVersion).filter(MapVersion.status == "PUBLISHED").order_by(MapVersion.published_at.desc()).first()
-        if pub_map:
-            target_zone = next((z for z in pub_map.zones if z.zone_id == meter.presentation_zone_id), None)
-            if target_zone:
-                poly = json.loads(target_zone.polygon_canonical) if isinstance(target_zone.polygon_canonical, str) else target_zone.polygon_canonical
-                cx = norm_x * pub_map.canonical_width
-                cy = norm_y * pub_map.canonical_height
-                if not is_point_in_polygon({"x": cx, "y": cy}, poly):
-                    raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        detail=f"Tọa độ mới ({round(cx)}, {round(cy)}) nằm ngoài ranh giới phân khu {target_zone.display_label}.",
-                    )
-
     before_state = {
         "map_x": meter.map_x,
         "map_y": meter.map_y,
@@ -532,7 +502,7 @@ def relocate_admin_meter(
 
     meter.map_x = norm_x
     meter.map_y = norm_y
-    meter.route_status = "REVIEW_REQUIRED"
+    meter.route_status = "ROUTABLE"
     meter.updated_at = datetime.now(timezone.utc)
 
     after_state = {
@@ -599,31 +569,6 @@ def change_admin_meter_zone(
             detail="Không tìm thấy công tơ.",
         )
 
-    pub_map = db.query(MapVersion).filter(MapVersion.status == "PUBLISHED").order_by(MapVersion.published_at.desc()).first()
-    if not pub_map:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Không tìm thấy cấu hình bản đồ đang phát hành.",
-        )
-
-    target_zone = next((z for z in pub_map.zones if z.zone_id == payload.presentation_zone_id), None)
-    if not target_zone:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Phân khu {payload.presentation_zone_id} không tồn tại trên bản đồ.",
-        )
-
-    # Validate current coordinate inside target zone
-    if meter.map_x is not None and meter.map_y is not None:
-        poly = json.loads(target_zone.polygon_canonical) if isinstance(target_zone.polygon_canonical, str) else target_zone.polygon_canonical
-        cx = meter.map_x * pub_map.canonical_width
-        cy = meter.map_y * pub_map.canonical_height
-        if not is_point_in_polygon({"x": cx, "y": cy}, poly):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Tọa độ hiện tại của công tơ nằm ngoài ranh giới phân khu {target_zone.display_label}. Vui lòng đặt lại vị trí công tơ vào phân khu mới trước khi chuyển khu vực.",
-            )
-
     before_state = {
         "zone_id": meter.zone_id,
         "presentation_zone_id": meter.presentation_zone_id,
@@ -632,7 +577,7 @@ def change_admin_meter_zone(
 
     meter.zone_id = payload.zone_id
     meter.presentation_zone_id = payload.presentation_zone_id
-    meter.route_status = "REVIEW_REQUIRED"
+    meter.route_status = "ROUTABLE"
     meter.updated_at = datetime.now(timezone.utc)
 
     after_state = {
@@ -697,23 +642,8 @@ def set_meter_active_state(
         )
 
     # When reactivating, validate spatial containment
-    if is_active and meter.presentation_zone_id and meter.map_x is not None and meter.map_y is not None:
-        pub_map = db.query(MapVersion).filter(MapVersion.status == "PUBLISHED").order_by(MapVersion.published_at.desc()).first()
-        if pub_map:
-            target_zone = next((z for z in pub_map.zones if z.zone_id == meter.presentation_zone_id), None)
-            if target_zone:
-                poly = json.loads(target_zone.polygon_canonical) if isinstance(target_zone.polygon_canonical, str) else target_zone.polygon_canonical
-                cx = meter.map_x * pub_map.canonical_width
-                cy = meter.map_y * pub_map.canonical_height
-                if not is_point_in_polygon({"x": cx, "y": cy}, poly):
-                    raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        detail=f"Không thể kích hoạt lại: Vị trí công tơ không còn nằm trong phân khu {target_zone.display_label}.",
-                    )
-
     before_state = {"is_active": meter.is_active, "route_status": meter.route_status}
     meter.is_active = is_active
-    meter.route_status = "REVIEW_REQUIRED" if not is_active else meter.route_status
     meter.updated_at = datetime.now(timezone.utc)
     after_state = {"is_active": meter.is_active, "route_status": meter.route_status}
 

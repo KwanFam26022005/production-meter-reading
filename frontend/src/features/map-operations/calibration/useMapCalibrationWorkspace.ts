@@ -226,14 +226,14 @@ export function validatePrePublishGeometry(
     }
   }
 
-  // 4. 12 Canonical Meters Containment
+  // 4. Decoupled Canonical Meters Informational Check (Does not block map validation)
   let containedMetersCount = 0;
   const totalMeters = CANONICAL_12_METERS_AUDIT.length;
 
   for (const meter of CANONICAL_12_METERS_AUDIT) {
     const assignedZone = zones.find((z) => z.id === meter.presentationRegionId);
     if (!assignedZone) {
-      errors.push(
+      warnings.push(
         `Công tơ ${meter.code} (${meter.name}) chỉ định phân khu không tồn tại: ${meter.presentationRegionId}`
       );
       continue;
@@ -245,8 +245,8 @@ export function validatePrePublishGeometry(
     if (isInside) {
       containedMetersCount++;
     } else {
-      errors.push(
-        `Công tơ ${meter.code} (${meter.name}) tại (${meter.canonicalX}, ${meter.canonicalY}) nằm NGOÀI phân khu ${assignedZone.id}`
+      warnings.push(
+        `Công tơ ${meter.code} (${meter.name}) tại (${meter.canonicalX}, ${meter.canonicalY}) nằm ngoài phân khu ${assignedZone.id}`
       );
     }
   }

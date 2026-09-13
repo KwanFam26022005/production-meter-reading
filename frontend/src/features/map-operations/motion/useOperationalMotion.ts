@@ -99,25 +99,28 @@ export function useOperationalMotion({
     controller.setMode(demoMode ? 'demo' : 'operational');
   }, [demoMode, controller]);
 
-  // Resolve active planned route for selected operator
+  // Resolve active planned route for selected operator (disabled in static decoupled mode)
   const activePlannedRoute = useMemo<PlannedRoute | null>(() => {
-    if (!selectedOperatorId) return null;
+    if (!demoMode || !selectedOperatorId) return null;
     const opRecord = controller.getOperatorRecord(selectedOperatorId);
     return opRecord?.plannedRoute || null;
-  }, [selectedOperatorId, controller]);
+  }, [demoMode, selectedOperatorId, controller]);
 
   const getOperatorWorkflowPosition = (operatorId: string) => {
+    if (!demoMode) return undefined; // Keep operators static at zone anchors
     const record = controller.getOperatorRecord(operatorId);
     return record?.currentPosition;
   };
 
   const getOperatorWorkflowState = (operatorId: string) => {
+    if (!demoMode) return undefined;
     const record = controller.getOperatorRecord(operatorId);
     return record?.state;
   };
 
   // Determine if a meter is currently targeted by an operator
   const getMeterMotionOverride = (meterId: string): 'approaching' | 'reading' | 'completed' | undefined => {
+    if (!demoMode) return undefined; // Meters strictly follow real domain data
     for (const record of controller.getAllOperators()) {
       if (record.targetMeterId === meterId) {
         if (record.state === 'MOVING') return 'approaching';
@@ -131,10 +134,8 @@ export function useOperationalMotion({
   };
 
   const startOperatorMovement = (operatorId: string, meterId: string) => {
-    // Phase F: Operational Route Integrity Hook
-    // If meter has route_status === 'REVIEW_REQUIRED', safely suppress route animation and hold operator
-    const targetMeter = _meters.find((m) => m.id === meterId || m.meterCode === meterId);
-    if (targetMeter && targetMeter.routeStatus === 'REVIEW_REQUIRED') {
+    if (!demoMode) {
+      // Movement tracking disabled per operational decoupling
       return false;
     }
     return controller.startMovementToMeter(operatorId, meterId);

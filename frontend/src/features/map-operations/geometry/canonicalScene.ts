@@ -470,34 +470,55 @@ export function calculateResponsiveCamera(
 export function screenToCanonical(
   clientX: number,
   clientY: number,
-  svgElement: SVGSVGElement,
+  svgElement: SVGSVGElement | SVGGraphicsElement,
   cameraViewport?: { panX: number; panY: number; zoom: number }
 ): { xPx: number; yPx: number; x: number; y: number } {
   // Method 1: SVG DOM Matrix Inversion (Exact browser hardware transform)
   try {
-    const ctm = svgElement.getScreenCTM();
-    if (ctm) {
-      const pt = svgElement.createSVGPoint();
-      pt.x = clientX;
-      pt.y = clientY;
-      const svgPoint = pt.matrixTransform(ctm.inverse());
+    const rootSvg =
+      svgElement instanceof SVGSVGElement
+        ? svgElement
+        : ((svgElement as any).ownerSVGElement || (svgElement as any).closest?.('svg'));
 
-      const panX = cameraViewport?.panX ?? 0;
-      const panY = cameraViewport?.panY ?? 0;
-      const zoom = cameraViewport?.zoom ?? 1.0;
+    if (rootSvg && typeof (svgElement as any).getScreenCTM === 'function') {
+      const ctm = (svgElement as SVGGraphicsElement).getScreenCTM();
+      if (ctm) {
+        const pt =
+          typeof rootSvg.createSVGPoint === 'function'
+            ? rootSvg.createSVGPoint()
+            : typeof DOMPoint !== 'undefined'
+            ? new DOMPoint(clientX, clientY)
+            : null;
 
-      const worldX = (svgPoint.x - panX) / zoom;
-      const worldY = (svgPoint.y - panY) / zoom;
+        if (pt) {
+          pt.x = clientX;
+          pt.y = clientY;
+          const svgPoint = pt.matrixTransform(ctm.inverse());
 
-      const clampedX = Math.max(0, Math.min(CANONICAL_SCENE_WIDTH, worldX));
-      const clampedY = Math.max(0, Math.min(CANONICAL_SCENE_HEIGHT, worldY));
+          let worldX = svgPoint.x;
+          let worldY = svgPoint.y;
 
-      return {
-        xPx: clampedX,
-        yPx: clampedY,
-        x: Math.round(clampedX),
-        y: Math.round(clampedY),
-      };
+          // If svgElement is the root SVGSVGElement, the cameraViewport transform
+          // was not part of the root SVG's CTM, so invert it manually:
+          if (svgElement instanceof SVGSVGElement && cameraViewport) {
+            const panX = cameraViewport.panX ?? 0;
+            const panY = cameraViewport.panY ?? 0;
+            const zoom = cameraViewport.zoom ?? 1.0;
+            worldX = (worldX - panX) / zoom;
+            worldY = (worldY - panY) / zoom;
+          }
+
+          const clampedX = Math.max(0, Math.min(CANONICAL_SCENE_WIDTH, worldX));
+          const clampedY = Math.max(0, Math.min(CANONICAL_SCENE_HEIGHT, worldY));
+
+          return {
+            xPx: clampedX,
+            yPx: clampedY,
+            x: Math.round(clampedX),
+            y: Math.round(clampedY),
+          };
+        }
+      }
     }
   } catch (_e) {
     // Fallback if SVG DOM matrix unavailable (e.g. node / mock test environments)
@@ -539,7 +560,7 @@ export function screenToCanonical(
 export const screenPointerToCanonicalScene = (
   clientX: number,
   clientY: number,
-  svgElement: SVGSVGElement,
+  svgElement: SVGSVGElement | SVGGraphicsElement,
   cameraViewport?: { panX: number; panY: number; zoom: number }
 ) => {
   const p = screenToCanonical(clientX, clientY, svgElement, cameraViewport);

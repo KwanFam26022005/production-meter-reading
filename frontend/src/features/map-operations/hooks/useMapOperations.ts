@@ -151,7 +151,12 @@ export function useMapOperations(initialDate?: string) {
         coordinates: { x: 0.5, y: 0.5 },
       };
 
-      const zoneCfg = OPERATIONAL_ZONES_CONFIG.find((z) => z.id === adapter.zoneId);
+      const resolvedZoneId = rawMeter.zone_id || adapter.zoneId;
+      const zoneCfg = OPERATIONAL_ZONES_CONFIG.find((z) => z.id === resolvedZoneId);
+      const coordinates = {
+        x: typeof rawMeter.map_x === 'number' ? rawMeter.map_x : adapter.coordinates.x,
+        y: typeof rawMeter.map_y === 'number' ? rawMeter.map_y : adapter.coordinates.y,
+      };
       const { state, exception } = deriveMeterSemanticState(
         rawMeter,
         exceptions,
@@ -165,12 +170,12 @@ export function useMapOperations(initialDate?: string) {
         location: rawMeter.location || 'Chưa xác định',
         meterType: rawMeter.meter_type,
         isActive: rawMeter.is_active,
-        zoneId: adapter.zoneId,
+        zoneId: resolvedZoneId,
         zoneCode: zoneCfg?.code || 'ZONE-GEN',
         zoneName: zoneCfg?.name || 'Khu vực tác nghiệp',
         presentationZoneId: rawMeter.presentation_zone_id,
         routeStatus: rawMeter.route_status,
-        coordinates: adapter.coordinates,
+        coordinates,
         semanticState: state,
         stateLabel: getSemanticStateLabel(state),
         latestReading: rawMeter.latest_reading

@@ -332,7 +332,7 @@ def test_admin_meter_relocation_containment_and_route_status(auth_headers):
     meter_id = meter_data["id"]
 
     try:
-        # 2. Relocate to valid point within pres-container-center
+        # 2. Relocate to valid point within pres-container-center -> succeeds freely
         reloc_resp = client.post(
             f"/api/v1/admin/meters/{meter_id}/relocate",
             json={"map_x": round(avg_x, 4), "map_y": round(avg_y, 4)},
@@ -341,27 +341,27 @@ def test_admin_meter_relocation_containment_and_route_status(auth_headers):
         )
         assert reloc_resp.status_code == 200
         reloc_data = reloc_resp.json()
-        assert reloc_data["route_status"] == "REVIEW_REQUIRED"
+        assert reloc_data["route_status"] == "ROUTABLE"
 
-        # 3. Relocate to an invalid point clearly outside pres-container-center (e.g. (0.01, 0.01))
-        bad_reloc = client.post(
+        # 3. Relocate to arbitrary coordinate (0.01, 0.01) -> succeeds without being blocked by zone polygon (Decoupled)
+        arbitrary_reloc = client.post(
             f"/api/v1/admin/meters/{meter_id}/relocate",
             json={"map_x": 0.01, "map_y": 0.01},
             cookies=cookies,
             headers=headers,
         )
-        assert bad_reloc.status_code == 400
-        assert "nằm ngoài ranh giới" in bad_reloc.json()["detail"]
+        assert arbitrary_reloc.status_code == 200
+        assert arbitrary_reloc.json()["map_x"] == 0.01
 
-        # 4. Attempt to change zone to pres-berth while coordinates are in pres-container-center -> should fail 400
-        bad_zone = client.post(
+        # 4. Change zone to pres-berth -> succeeds freely without requiring coordinate containment (Decoupled)
+        change_zone_resp = client.post(
             f"/api/v1/admin/meters/{meter_id}/change-zone",
             json={"zone_id": "zone-berth", "presentation_zone_id": "pres-berth"},
             cookies=cookies,
             headers=headers,
         )
-        assert bad_zone.status_code == 400
-        assert "nằm ngoài ranh giới phân khu" in bad_zone.json()["detail"]
+        assert change_zone_resp.status_code == 200
+        assert change_zone_resp.json()["presentation_zone_id"] == "pres-berth"
 
     finally:
         # Clean up meter

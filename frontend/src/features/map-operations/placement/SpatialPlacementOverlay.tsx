@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { Crosshair, Check, AlertTriangle, X, RefreshCw } from 'lucide-react';
 import {
   CANONICAL_SCENE_WIDTH,
@@ -28,6 +28,8 @@ export interface UseSpatialPlacementOptions {
   meterType?: string;
   isRelocating?: boolean;
   existingMeterId?: string;
+  initialCoordinates?: { x: number; y: number } | null;
+  cameraViewport?: { panX: number; panY: number; zoom: number };
   onConfirmPlacement: (
     coords: SpatialPlacementCoords,
     details?: { meterCode: string; name: string; meterType: string }
@@ -53,6 +55,9 @@ export function useSpatialPlacement(options: UseSpatialPlacementOptions) {
     meterName: initialName = '',
     meterType: initialType = 'LCD',
     isRelocating = false,
+    existingMeterId,
+    initialCoordinates,
+    cameraViewport,
     onConfirmPlacement,
     onCancel,
   } = options;
@@ -66,6 +71,37 @@ export function useSpatialPlacement(options: UseSpatialPlacementOptions) {
   const [name, setName] = useState(initialName || (isRelocating ? '' : 'Công tơ mới'));
   const [meterType, setMeterType] = useState(initialType || 'LCD');
 
+  // Synchronize state whenever placement mode or active meter changes
+  useEffect(() => {
+    if (isActive) {
+      if (initialCode) setCode(initialCode);
+      else if (!isRelocating) setCode('CT-013');
+
+      if (initialName) setName(initialName);
+      else if (!isRelocating) setName('Công tơ mới');
+
+      if (initialType) setMeterType(initialType);
+
+      if (initialCoordinates) {
+        const norm = canonicalSceneToNormalized(initialCoordinates.x, initialCoordinates.y);
+        setPinnedCoords({
+          x: initialCoordinates.x,
+          y: initialCoordinates.y,
+          normX: norm.x,
+          normY: norm.y,
+        });
+      } else {
+        setPinnedCoords(null);
+      }
+      setError(null);
+      setIsSubmitting(false);
+    } else {
+      setPinnedCoords(null);
+      setError(null);
+      setIsSubmitting(false);
+    }
+  }, [isActive, existingMeterId, initialCode, initialName, initialType, isRelocating]);
+
   const activeCanonical = pinnedCoords
     ? { x: pinnedCoords.x, y: pinnedCoords.y }
     : cursorPos || { x: 958, y: 411 };
@@ -73,20 +109,20 @@ export function useSpatialPlacement(options: UseSpatialPlacementOptions) {
   const isCurrentInside = isPointInBusinessZone(activeCanonical, targetZoneId);
 
   const handleSvgMouseMove = useCallback(
-    (e: React.MouseEvent<SVGSVGElement>) => {
-      if (!isActive || pinnedCoords) return;
+    (e: React.MouseEvent<SVGSVGElement | SVGGElement>) => {
+      if (!isActive) return;
       const svgEl = e.currentTarget;
-      const coords = screenPointerToCanonicalScene(e.clientX, e.clientY, svgEl);
+      const coords = screenPointerToCanonicalScene(e.clientX, e.clientY, svgEl, cameraViewport);
       setCursorPos(coords);
     },
-    [isActive, pinnedCoords]
+    [isActive, cameraViewport]
   );
 
   const handleSvgClick = useCallback(
-    (e: React.MouseEvent<SVGSVGElement>) => {
-      if (!isActive || pinnedCoords) return;
+    (e: React.MouseEvent<SVGSVGElement | SVGGElement>) => {
+      if (!isActive) return;
       const svgEl = e.currentTarget;
-      const { x, y } = screenPointerToCanonicalScene(e.clientX, e.clientY, svgEl);
+      const { x, y } = screenPointerToCanonicalScene(e.clientX, e.clientY, svgEl, cameraViewport);
 
       const norm = canonicalSceneToNormalized(x, y);
       setPinnedCoords({
@@ -97,7 +133,7 @@ export function useSpatialPlacement(options: UseSpatialPlacementOptions) {
       });
       setError(null);
     },
-    [isActive, pinnedCoords]
+    [isActive, cameraViewport]
   );
 
   const handleResetPin = useCallback(() => {
@@ -110,13 +146,8 @@ export function useSpatialPlacement(options: UseSpatialPlacementOptions) {
       setError('Vui lòng nhấp trên bản đồ để chọn tọa độ.');
       return;
     }
-    const isInside = isPointInBusinessZone(pinnedCoords, targetZoneId);
-    if (!isInside) {
-      setError('Vị trí đang nằm ngoài khu vực đã chọn. Vui lòng chọn lại.');
-      return;
-    }
 
-    if (!code.trim()) {
+    if (!code.trim() && !isRelocating) {
       setError('Mã công tơ không được để trống.');
       return;
     }
@@ -125,8 +156,8 @@ export function useSpatialPlacement(options: UseSpatialPlacementOptions) {
     setError(null);
     try {
       await onConfirmPlacement(pinnedCoords, {
-        meterCode: code.trim(),
-        name: name.trim() || code.trim(),
+        meterCode: code.trim() || initialCode || 'CT-013',
+        name: name.trim() || initialName || code.trim(),
         meterType,
       });
     } catch (err: unknown) {
@@ -135,11 +166,13 @@ export function useSpatialPlacement(options: UseSpatialPlacementOptions) {
     } finally {
       setIsSubmitting(false);
     }
-  }, [pinnedCoords, targetZoneId, code, name, meterType, onConfirmPlacement]);
+  }, [pinnedCoords, code, name, meterType, isRelocating, initialCode, initialName, onConfirmPlacement]);
 
   return {
     cursorPos,
     pinnedCoords,
+    setPinnedCoords,
+    setError,
     activeCanonical,
     isCurrentInside,
     isSubmitting,
@@ -210,7 +243,7 @@ export const SpatialPlacementSvgLayer: React.FC<SpatialPlacementSvgLayerProps> =
 
   if (!isActive) return null;
 
-  const reticleColor = isCurrentInside ? '#10B981' : '#EF4444';
+  const reticleColor = pinnedCoords ? '#10B981' : '#38BDF8';
 
   return (
     <g
@@ -218,7 +251,7 @@ export const SpatialPlacementSvgLayer: React.FC<SpatialPlacementSvgLayerProps> =
       aria-label="Lớp lưới thiết lập vị trí công tơ"
       onMouseMove={onSvgMouseMove}
       onClick={onSvgClick}
-      style={{ cursor: pinnedCoords ? 'default' : 'crosshair' }}
+      style={{ cursor: 'crosshair' }}
     >
       <defs>
         <clipPath id="placement-zone-clip">
@@ -301,7 +334,7 @@ export const SpatialPlacementSvgLayer: React.FC<SpatialPlacementSvgLayerProps> =
               />
               <path
                 d="M 0 -8 L 6.8 -4 L 6.8 4 L 0 8 L -6.8 4 L -6.8 -4 Z"
-                fill={isCurrentInside ? '#10B981' : '#EF4444'}
+                fill="#10B981"
                 strokeLinejoin="round"
               />
             </g>
@@ -317,7 +350,7 @@ export const SpatialPlacementSvgLayer: React.FC<SpatialPlacementSvgLayerProps> =
               rx={6}
               fill="#0F172A"
               fillOpacity={0.94}
-              stroke={isCurrentInside ? '#10B981' : '#EF4444'}
+              stroke={reticleColor}
               strokeWidth={1.2}
               filter="drop-shadow(0 2px 6px rgba(0,0,0,0.4))"
             />
@@ -330,9 +363,9 @@ export const SpatialPlacementSvgLayer: React.FC<SpatialPlacementSvgLayerProps> =
               fontWeight={700}
               fontFamily="system-ui, sans-serif"
             >
-              {isCurrentInside
-                ? `✓ Tọa độ: ${canonicalSceneToNormalized(activeCanonical.x, activeCanonical.y).x.toFixed(4)}, ${canonicalSceneToNormalized(activeCanonical.x, activeCanonical.y).y.toFixed(4)}`
-                : `⚠️ Ngoài khu vực: ${targetZoneName}`}
+              {pinnedCoords
+                ? `✓ Đã chọn: ${pinnedCoords.normX.toFixed(4)}, ${pinnedCoords.normY.toFixed(4)}`
+                : `Tọa độ: ${canonicalSceneToNormalized(activeCanonical.x, activeCanonical.y).x.toFixed(4)}, ${canonicalSceneToNormalized(activeCanonical.x, activeCanonical.y).y.toFixed(4)}${isCurrentInside ? '' : ` (${targetZoneName})`}`}
             </text>
           </g>
         </g>
@@ -670,7 +703,7 @@ export const SpatialPlacementCard: React.FC<SpatialPlacementCardProps> = ({
         <button
           type="button"
           onClick={onConfirm}
-          disabled={isSubmitting || !isCurrentInside || !pinnedCoords}
+          disabled={isSubmitting || !pinnedCoords}
           style={{
             flex: 1.5,
             padding: '8px 12px',
@@ -678,9 +711,9 @@ export const SpatialPlacementCard: React.FC<SpatialPlacementCardProps> = ({
             fontWeight: 700,
             border: 'none',
             borderRadius: 8,
-            backgroundColor: isCurrentInside && pinnedCoords ? '#0284C7' : '#94A3B8',
+            backgroundColor: pinnedCoords ? '#0284C7' : '#94A3B8',
             color: '#FFFFFF',
-            cursor: isCurrentInside && pinnedCoords ? 'pointer' : 'not-allowed',
+            cursor: pinnedCoords ? 'pointer' : 'not-allowed',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',

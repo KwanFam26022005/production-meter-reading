@@ -177,10 +177,10 @@ test('V16 Geometry Gate: Pre-publish validation gate rejects incomplete or corru
 });
 
 // ===========================================================================
-// SUITE 3: METER SPATIAL MUTATION & REVIEW_REQUIRED HOOK
+// SUITE 3: DECOUPLED METER SPATIAL MUTATION
 // ===========================================================================
 
-test('V16 Spatial Mutation: Relocating meter updates coordinates and sets route_status to REVIEW_REQUIRED', () => {
+test('V16 Decoupled Spatial Mutation: Relocating meter updates coordinates freely without REVIEW_REQUIRED lock', () => {
   const initialMeter: MeterRecord = {
     id: 'm-1',
     meterCode: 'CT-001',
@@ -193,74 +193,45 @@ test('V16 Spatial Mutation: Relocating meter updates coordinates and sets route_
     isActive: true,
   };
 
-  // Simulate administrative relocation
+  // Simulate administrative relocation under decoupled policy
   const relocateMeter = (
     m: MeterRecord,
     newX: number,
     newY: number,
     newZoneId?: string
   ): MeterRecord => {
-    const isRelocated = m.mapX !== newX || m.mapY !== newY;
-    const isZoneChanged = newZoneId && m.presentationZoneId !== newZoneId;
-
     return {
       ...m,
       mapX: newX,
       mapY: newY,
       presentationZoneId: newZoneId || m.presentationZoneId,
-      routeStatus: (isRelocated || isZoneChanged) ? 'REVIEW_REQUIRED' : m.routeStatus,
+      routeStatus: 'ROUTABLE',
     };
   };
 
   const relocated = relocateMeter(initialMeter, 995, 275);
   assert.equal(relocated.mapX, 995);
   assert.equal(relocated.mapY, 275);
-  assert.equal(relocated.routeStatus, 'REVIEW_REQUIRED', 'Relocation must mark route status as REVIEW_REQUIRED');
+  assert.equal(relocated.routeStatus, 'ROUTABLE', 'Decoupled relocation retains ROUTABLE status');
 });
 
 // ===========================================================================
-// SUITE 4: OPERATIONAL ROUTE MOTION SUPPRESSION
+// SUITE 4: DISABLED ROUTE MOVEMENT (STATIC OPERATIONAL PRESENTATION)
 // ===========================================================================
 
-test('V16 Motion Suppression Hook: Meter with REVIEW_REQUIRED suppresses route animation safely', () => {
-  const mockMeters: MeterRecord[] = [
-    {
-      id: 'm-1',
-      meterCode: 'CT-001',
-      meterName: 'M1',
-      zone: 'cau_tau',
-      presentationZoneId: 'pres-berth',
-      mapX: 980,
-      mapY: 260,
-      routeStatus: 'ROUTABLE',
-      isActive: true,
-    },
-    {
-      id: 'm-2',
-      meterCode: 'CT-002',
-      meterName: 'M2',
-      zone: 'bai_container_tay',
-      presentationZoneId: 'pres-container-west',
-      mapX: 520,
-      mapY: 530,
-      routeStatus: 'REVIEW_REQUIRED',
-      isActive: true,
-    },
-  ];
+test('V16 Disabled Movement: Standard operational mode suppresses simulated route animation', () => {
+  const isDemoMode = false;
 
-  // Motion start handler mirror
-  const startOperatorMovement = (operatorId: string, meterId: string): boolean => {
-    const targetMeter = mockMeters.find((m) => m.id === meterId || m.meterCode === meterId);
-    if (targetMeter && targetMeter.routeStatus === 'REVIEW_REQUIRED') {
-      return false; // Suppressed safely
+  // Mirror useOperationalMotion decoupled policy
+  const startOperatorMovement = (_operatorId: string, _meterId: string): boolean => {
+    if (!isDemoMode) {
+      return false; // Movement disabled per operational policy
     }
-    return true; // Allowed
+    return true;
   };
 
-  // CT-001 is ROUTABLE -> starts
-  assert.equal(startOperatorMovement('op-1', 'CT-001'), true);
-
-  // CT-002 is REVIEW_REQUIRED -> suppressed
+  // Both meters reject movement in operational mode
+  assert.equal(startOperatorMovement('op-1', 'CT-001'), false);
   assert.equal(startOperatorMovement('op-1', 'CT-002'), false);
 });
 
