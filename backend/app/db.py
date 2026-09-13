@@ -521,6 +521,158 @@ def migrate_db(db_engine=None) -> None:
                             VALUES (?, ?, ?, 'PRIMARY', ?, 1, ?, ?)
                         """, (str(uuid.uuid4()), zid, uid, now_utc, now_utc, now_utc))
 
+            # 14. Map Versions, Map Version Zones & Meter Spatial Placement (V16)
+            # A. Ensure map_versions table exists
+            cursor.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='map_versions'"
+            )
+            if not cursor.fetchone():
+                cursor.execute("""
+                CREATE TABLE map_versions (
+                    id VARCHAR(36) NOT NULL,
+                    map_id VARCHAR(50) NOT NULL DEFAULT 'tan-thuan',
+                    map_version VARCHAR(50) NOT NULL,
+                    coordinate_system VARCHAR(100) NOT NULL DEFAULT 'tan-thuan-canonical-image-pixel-space-v1',
+                    canonical_width INTEGER NOT NULL DEFAULT 1915,
+                    canonical_height INTEGER NOT NULL DEFAULT 821,
+                    source_asset VARCHAR(255) NOT NULL DEFAULT 'tan-thuan-canonical-base.png',
+                    status VARCHAR(20) NOT NULL DEFAULT 'DRAFT',
+                    revision INTEGER NOT NULL DEFAULT 1,
+                    parent_version_id VARCHAR(36),
+                    created_by_user_id VARCHAR(36),
+                    published_by_user_id VARCHAR(36),
+                    created_at DATETIME NOT NULL,
+                    updated_at DATETIME NOT NULL,
+                    published_at DATETIME,
+                    PRIMARY KEY (id),
+                    FOREIGN KEY(parent_version_id) REFERENCES map_versions (id) ON DELETE SET NULL,
+                    FOREIGN KEY(created_by_user_id) REFERENCES users (id) ON DELETE SET NULL,
+                    FOREIGN KEY(published_by_user_id) REFERENCES users (id) ON DELETE SET NULL
+                )
+                """)
+                cursor.execute("CREATE INDEX IF NOT EXISTS ix_map_versions_map_id ON map_versions (map_id)")
+                cursor.execute("CREATE INDEX IF NOT EXISTS ix_map_versions_map_version ON map_versions (map_version)")
+                cursor.execute("CREATE INDEX IF NOT EXISTS ix_map_versions_status ON map_versions (status)")
+
+            # B. Ensure map_version_zones table exists
+            cursor.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='map_version_zones'"
+            )
+            if not cursor.fetchone():
+                cursor.execute("""
+                CREATE TABLE map_version_zones (
+                    id VARCHAR(36) NOT NULL,
+                    map_version_id VARCHAR(36) NOT NULL,
+                    zone_id VARCHAR(50) NOT NULL,
+                    business_zone_id VARCHAR(50) NOT NULL,
+                    display_index INTEGER NOT NULL DEFAULT 1,
+                    display_label VARCHAR(100) NOT NULL,
+                    business_name VARCHAR(200) NOT NULL,
+                    presentation_color VARCHAR(50) NOT NULL,
+                    icon VARCHAR(50) NOT NULL DEFAULT 'container',
+                    polygon_canonical TEXT NOT NULL,
+                    label_anchor_canonical TEXT NOT NULL,
+                    operator_anchor_canonical TEXT NOT NULL,
+                    landmarks_json TEXT,
+                    revision INTEGER NOT NULL DEFAULT 1,
+                    PRIMARY KEY (id),
+                    CONSTRAINT uq_map_version_zone UNIQUE (map_version_id, zone_id),
+                    FOREIGN KEY(map_version_id) REFERENCES map_versions (id) ON DELETE CASCADE
+                )
+                """)
+                cursor.execute("CREATE INDEX IF NOT EXISTS ix_map_version_zones_map_version_id ON map_version_zones (map_version_id)")
+                cursor.execute("CREATE INDEX IF NOT EXISTS ix_map_version_zones_zone_id ON map_version_zones (zone_id)")
+
+            # C. Ensure meters table has presentation_zone_id and route_status
+            cursor.execute("PRAGMA table_info(meters)")
+            meter_cols = [row[1] for row in cursor.fetchall()]
+            if "presentation_zone_id" not in meter_cols:
+                cursor.execute("ALTER TABLE meters ADD COLUMN presentation_zone_id VARCHAR(50)")
+                cursor.execute("CREATE INDEX IF NOT EXISTS ix_meters_presentation_zone_id ON meters (presentation_zone_id)")
+            if "route_status" not in meter_cols:
+                cursor.execute("ALTER TABLE meters ADD COLUMN route_status VARCHAR(50) NOT NULL DEFAULT 'VALID'")
+                cursor.execute("CREATE INDEX IF NOT EXISTS ix_meters_route_status ON meters (route_status)")
+
+            # D. Populate canonical 12 meters with canonical presentation_zone_id, coordinates, and route_status
+            canonical_meters_info = {
+                'CT-001': ('pres-technical', 0.5995, 0.8356),
+                'CT-002': ('pres-container-west', 0.2648, 0.5664),
+                'CT-003': ('pres-berth', 0.1760, 0.3849),
+                'CT-004': ('pres-berth', 0.3624, 0.3837),
+                'CT-005': ('pres-container-west', 0.3337, 0.5786),
+                'CT-006': ('pres-cfs-east', 0.8773, 0.4629),
+                'CT-007': ('pres-technical', 0.5577, 0.8770),
+                'CT-008': ('pres-berth', 0.7311, 0.3021),
+                'CT-009': ('pres-technical', 0.6418, 0.8295),
+                'CT-010': ('pres-gate', 0.8564, 0.6821),
+                'CT-011': ('pres-container-center', 0.6115, 0.5323),
+                'CT-012': ('pres-container-center', 0.7321, 0.5164),
+            }
+            for code, (pres_id, mx, my) in canonical_meters_info.items():
+                cursor.execute("""
+                    UPDATE meters
+                    SET presentation_zone_id = ?, map_x = ?, map_y = ?, route_status = 'VALID'
+                    WHERE meter_code = ?
+                """, (pres_id, mx, my, code))
+
+            # E. Seed initial PUBLISHED map version tan-thuan-v10 if empty
+            cursor.execute("SELECT count(*) FROM map_versions WHERE map_id = 'tan-thuan'")
+            if cursor.fetchone()[0] == 0:
+                import json
+                import uuid
+                from datetime import datetime, timezone
+                from pathlib import Path
+
+                now_utc = datetime.now(timezone.utc).isoformat()
+                base_json_path = Path(__file__).resolve().parent.parent.parent / "frontend" / "src" / "features" / "map-operations" / "geometry" / "tanThuanPresentationGeometry.v10.json"
+
+                if base_json_path.is_file():
+                    with open(base_json_path, "r", encoding="utf-8") as f:
+                        geo_manifest = json.load(f)
+
+                    version_id = str(uuid.uuid4())
+                    map_version = geo_manifest.get("mapVersion", "tan-thuan-v10")
+                    coord_system = geo_manifest.get("coordinateSystem", "tan-thuan-canonical-image-pixel-space-v1")
+                    c_width = geo_manifest.get("canonicalWidth", 1915)
+                    c_height = geo_manifest.get("canonicalHeight", 821)
+                    all_landmarks = geo_manifest.get("landmarks", [])
+
+                    cursor.execute("""
+                        INSERT INTO map_versions (
+                            id, map_id, map_version, coordinate_system, canonical_width, canonical_height,
+                            source_asset, status, revision, parent_version_id, created_by_user_id,
+                            published_by_user_id, created_at, updated_at, published_at
+                        ) VALUES (?, 'tan-thuan', ?, ?, ?, ?, 'tan-thuan-canonical-base.png', 'PUBLISHED', 1, NULL, NULL, NULL, ?, ?, ?)
+                    """, (version_id, map_version, coord_system, c_width, c_height, now_utc, now_utc, now_utc))
+
+                    for z in geo_manifest.get("zones", []):
+                        zone_db_id = str(uuid.uuid4())
+                        z_id = z.get("id")
+                        biz_z_ids = z.get("businessZoneIds", [])
+                        biz_z_id = biz_z_ids[0] if biz_z_ids else "zone-berth"
+                        d_idx = z.get("displayIndex", 1)
+                        d_lbl = z.get("displayLabel", z_id)
+                        b_name = z.get("businessName", d_lbl)
+                        p_color = z.get("presentationColor", "#0284C7")
+                        icon = z.get("icon", "container")
+                        poly_str = json.dumps(z.get("polygonCanonical", []), ensure_ascii=False)
+                        lbl_anchor_str = json.dumps(z.get("labelAnchorCanonical", {"x": 0, "y": 0}), ensure_ascii=False)
+                        op_anchor_str = json.dumps(z.get("operatorAnchorCanonical", {"x": 0, "y": 0}), ensure_ascii=False)
+                        z_landmarks = [lm for lm in all_landmarks if lm.get("zoneId") == z_id]
+                        lm_str = json.dumps(z_landmarks, ensure_ascii=False)
+
+                        cursor.execute("""
+                            INSERT INTO map_version_zones (
+                                id, map_version_id, zone_id, business_zone_id, display_index, display_label,
+                                business_name, presentation_color, icon, polygon_canonical,
+                                label_anchor_canonical, operator_anchor_canonical, landmarks_json, revision
+                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+                        """, (
+                            zone_db_id, version_id, z_id, biz_z_id, d_idx, d_lbl,
+                            b_name, p_color, icon, poly_str,
+                            lbl_anchor_str, op_anchor_str, lm_str
+                        ))
+
             conn.connection.commit()
         finally:
             cursor.close()

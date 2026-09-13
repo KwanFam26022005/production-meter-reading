@@ -110,6 +110,56 @@ class ZoneAssignment(Base):
     user = relationship("User")
 
 
+class MapVersion(Base):
+    __tablename__ = "map_versions"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    map_id = Column(String(50), nullable=False, default="tan-thuan", index=True)
+    map_version = Column(String(50), nullable=False, index=True)
+    coordinate_system = Column(String(100), nullable=False, default="tan-thuan-canonical-image-pixel-space-v1")
+    canonical_width = Column(Integer, nullable=False, default=1915)
+    canonical_height = Column(Integer, nullable=False, default=821)
+    source_asset = Column(String(255), nullable=False, default="tan-thuan-canonical-base.png")
+    status = Column(String(20), nullable=False, default="DRAFT", index=True)  # "DRAFT" | "PUBLISHED" | "ARCHIVED"
+    revision = Column(Integer, nullable=False, default=1)
+    parent_version_id = Column(String(36), ForeignKey("map_versions.id", ondelete="SET NULL"), nullable=True)
+    created_by_user_id = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    published_by_user_id = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=get_utc_now)
+    updated_at = Column(DateTime(timezone=True), nullable=False, default=get_utc_now, onupdate=get_utc_now)
+    published_at = Column(DateTime(timezone=True), nullable=True)
+
+    zones = relationship("MapVersionZone", back_populates="version", cascade="all, delete-orphan", order_by="MapVersionZone.display_index")
+    created_by = relationship("User", foreign_keys=[created_by_user_id])
+    published_by = relationship("User", foreign_keys=[published_by_user_id])
+    parent_version = relationship("MapVersion", remote_side=[id])
+
+
+class MapVersionZone(Base):
+    __tablename__ = "map_version_zones"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    map_version_id = Column(String(36), ForeignKey("map_versions.id", ondelete="CASCADE"), nullable=False, index=True)
+    zone_id = Column(String(50), nullable=False, index=True)
+    business_zone_id = Column(String(50), nullable=False)
+    display_index = Column(Integer, nullable=False, default=1)
+    display_label = Column(String(100), nullable=False)
+    business_name = Column(String(200), nullable=False)
+    presentation_color = Column(String(50), nullable=False)
+    icon = Column(String(50), nullable=False, default="container")
+    polygon_canonical = Column(Text, nullable=False)
+    label_anchor_canonical = Column(Text, nullable=False)
+    operator_anchor_canonical = Column(Text, nullable=False)
+    landmarks_json = Column(Text, nullable=True)
+    revision = Column(Integer, nullable=False, default=1)
+
+    version = relationship("MapVersion", back_populates="zones")
+
+    __table_args__ = (
+        UniqueConstraint("map_version_id", "zone_id", name="uq_map_version_zone"),
+    )
+
+
 class Meter(Base):
     __tablename__ = "meters"
 
@@ -119,8 +169,10 @@ class Meter(Base):
     location = Column(String(200), nullable=True)
     meter_type = Column(String(50), nullable=False, default="UNKNOWN")  # "LCD" | "MECHANICAL" | "UNKNOWN"
     zone_id = Column(String(36), ForeignKey("operational_zones.id", ondelete="SET NULL"), nullable=True, index=True)
+    presentation_zone_id = Column(String(50), nullable=True, index=True)
     map_x = Column(Float, nullable=True)
     map_y = Column(Float, nullable=True)
+    route_status = Column(String(50), nullable=False, default="VALID", index=True)  # "VALID" | "REVIEW_REQUIRED" | "INVALID"
     is_active = Column(Boolean, nullable=False, default=True, index=True)
     created_at = Column(DateTime(timezone=True), nullable=False, default=get_utc_now)
     updated_at = Column(DateTime(timezone=True), nullable=False, default=get_utc_now, onupdate=get_utc_now)
