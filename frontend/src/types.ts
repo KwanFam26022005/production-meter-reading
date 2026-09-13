@@ -431,6 +431,7 @@ export interface AdminMeterUpdatePayload {
   presentation_zone_id?: string | null;
   map_x?: number | null;
   map_y?: number | null;
+  is_active?: boolean;
 }
 
 export interface AdminMeterRelocatePayload {

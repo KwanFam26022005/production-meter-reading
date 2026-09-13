@@ -30,6 +30,8 @@ import {
   ExternalLink,
   ChevronRight,
   ChevronDown,
+  Trash2,
+  Power,
 } from 'lucide-react';
 import type { MapMeterItem, MapOperationalZone } from '../types';
 import type { User, AdminDashboardResponse } from '../../../types';
@@ -37,6 +39,12 @@ import type { ZoneOperationalState } from '../state/operationalProjection';
 import type { OperatorShiftSummary } from '../utils/deriveOperatorShiftSummary';
 import { SPATIAL_ZONE_PRESENTATIONS } from '../geometry/operationalGeometry';
 import { normalizedToCanonicalScene } from '../geometry/canonicalScene';
+import {
+  changeAdminMeterZone,
+  deleteAdminMeter,
+  deactivateAdminMeter,
+  activateAdminMeter,
+} from '../../../services/api';
 import {
   ContextSection,
   MetricLine,
@@ -112,11 +120,17 @@ export interface UnifiedContextSurfaceProps {
   onUpdatePlacement?: (updates: Partial<PlacementWorkflowContext>) => void;
   onConfirmPlacement?: () => void;
   onCancelPlacement?: () => void;
+
+  // Administrative mutations
+  user?: User;
+  onRefreshData?: () => Promise<void>;
 }
 
 export const UnifiedContextSurface: React.FC<UnifiedContextSurfaceProps> = ({
   contextType,
   theme = 'dark',
+  user: _user,
+  onRefreshData,
   zone,
   zoneState,
   allMeters = [],
@@ -167,6 +181,79 @@ export const UnifiedContextSurface: React.FC<UnifiedContextSurfaceProps> = ({
       (m) => (m.meterCode || '').toLowerCase().includes(q) || (m.name || '').toLowerCase().includes(q)
     );
   }, [zoneMeters, meterSearchQuery]);
+
+  // V16 Meter Administration State
+  const [isChangeZoneOpen, setIsChangeZoneOpen] = useState(false);
+  const [selectedNewZone, setSelectedNewZone] = useState<string>('');
+  const [adminActionError, setAdminActionError] = useState<string | null>(null);
+  const [adminActionSuccess, setAdminActionSuccess] = useState<string | null>(null);
+  const [isProcessingAdmin, setIsProcessingAdmin] = useState(false);
+  const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
+
+  const handleToggleActive = async () => {
+    if (!meter) return;
+    setIsProcessingAdmin(true);
+    setAdminActionError(null);
+    try {
+      if (meter.isActive) {
+        await deactivateAdminMeter(meter.id);
+      } else {
+        await activateAdminMeter(meter.id);
+      }
+      setAdminActionSuccess(`Đã ${meter.isActive ? 'ngừng sử dụng' : 'kích hoạt lại'} công tơ ${meter.meterCode}`);
+      if (onRefreshData) await onRefreshData();
+      setTimeout(() => setAdminActionSuccess(null), 3000);
+    } catch (err: any) {
+      setAdminActionError(err.message || 'Lỗi cập nhật trạng thái công tơ');
+      setTimeout(() => setAdminActionError(null), 4000);
+    } finally {
+      setIsProcessingAdmin(false);
+    }
+  };
+
+  const handleChangeZoneConfirm = async () => {
+    if (!meter || !selectedNewZone) return;
+    const targetPres = SPATIAL_ZONE_PRESENTATIONS.find((p) => p.presentationId === selectedNewZone);
+    if (!targetPres) return;
+    setIsProcessingAdmin(true);
+    setAdminActionError(null);
+    try {
+      await changeAdminMeterZone(meter.id, {
+        zone_id: targetPres.businessZoneId,
+        presentation_zone_id: targetPres.presentationId,
+      });
+      setAdminActionSuccess(`Đã chuyển công tơ sang phân khu ${targetPres.displayLabel}`);
+      setIsChangeZoneOpen(false);
+      if (onRefreshData) await onRefreshData();
+      setTimeout(() => setAdminActionSuccess(null), 3000);
+    } catch (err: any) {
+      setAdminActionError(err.message || 'Lỗi chuyển phân khu');
+      setTimeout(() => setAdminActionError(null), 4000);
+    } finally {
+      setIsProcessingAdmin(false);
+    }
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!meter) return;
+    setIsProcessingAdmin(true);
+    setAdminActionError(null);
+    try {
+      await deleteAdminMeter(meter.id);
+      setIsConfirmDeleteOpen(false);
+      onClose();
+      if (onRefreshData) await onRefreshData();
+    } catch (err: any) {
+      setIsConfirmDeleteOpen(false);
+      setAdminActionError(
+        err.message ||
+        'Không thể xóa công tơ vì đã có chỉ số đo lường trong lịch sử. Vui lòng chọn "Ngừng sử dụng" thay thế.'
+      );
+      setTimeout(() => setAdminActionError(null), 6000);
+    } finally {
+      setIsProcessingAdmin(false);
+    }
+  };
 
   const isAnalytics = contextType === 'analytics';
   const widthClass = isAnalytics ? 'width-analytics' : 'width-standard';
@@ -514,6 +601,31 @@ export const UnifiedContextSurface: React.FC<UnifiedContextSurfaceProps> = ({
                 Khu vực: <strong className="text-slate-200">{meter.zoneName || meter.zoneId}</strong>
               </span>
             </div>
+
+            {/* V16 Route Review Warning Badge */}
+            {meter.routeStatus === 'REVIEW_REQUIRED' && (
+              <div
+                style={{
+                  marginTop: '10px',
+                  padding: '8px 10px',
+                  borderRadius: '6px',
+                  background: 'rgba(245, 158, 11, 0.15)',
+                  border: '1px solid rgba(245, 158, 11, 0.4)',
+                  color: '#FCD34D',
+                  fontSize: '11px',
+                  lineHeight: '1.45',
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '6px',
+                }}
+              >
+                <AlertTriangle size={14} className="text-amber-400 shrink-0 mt-0.5" />
+                <span>
+                  <strong>Cần xem lại lộ trình:</strong> Tọa độ công tơ đã thay đổi. Lộ trình di chuyển tạm thời bị khóa nhằm bảo đảm an toàn.
+                </span>
+              </div>
+            )}
+
             {meter.latestReading && (
               <div className="mt-3 flex items-baseline justify-between pt-2 border-t border-slate-700/50">
                 <span className="text-xs text-slate-400">Chỉ số ghi nhận:</span>
@@ -526,7 +638,57 @@ export const UnifiedContextSurface: React.FC<UnifiedContextSurfaceProps> = ({
 
           {/* BODY */}
           <div className="sgp-rail-body">
+            {/* Feedback Alerts */}
+            {adminActionSuccess && (
+              <div
+                style={{
+                  padding: '6px 10px',
+                  borderRadius: '6px',
+                  background: 'rgba(16, 185, 129, 0.15)',
+                  border: '1px solid rgba(16, 185, 129, 0.4)',
+                  color: '#34D399',
+                  fontSize: '11px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  marginBottom: '8px',
+                }}
+              >
+                <CheckCircle2 size={13} />
+                <span>{adminActionSuccess}</span>
+              </div>
+            )}
+            {adminActionError && (
+              <div
+                style={{
+                  padding: '6px 10px',
+                  borderRadius: '6px',
+                  background: 'rgba(239, 68, 68, 0.15)',
+                  border: '1px solid rgba(239, 68, 68, 0.4)',
+                  color: '#F87171',
+                  fontSize: '11px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  marginBottom: '8px',
+                }}
+              >
+                <AlertTriangle size={13} />
+                <span>{adminActionError}</span>
+              </div>
+            )}
+
             <ContextSection title="Thông tin vận hành" bordered={false}>
+              <MetricLine
+                label="Trạng thái thiết bị"
+                value={meter.isActive ? 'Đang hoạt động' : 'Ngừng sử dụng'}
+                status={meter.isActive ? 'success' : 'normal'}
+              />
+              <MetricLine
+                label="Lộ trình di chuyển"
+                value={meter.routeStatus === 'REVIEW_REQUIRED' ? 'Cần xem lại' : 'Hợp lệ'}
+                status={meter.routeStatus === 'REVIEW_REQUIRED' ? 'warning' : 'success'}
+              />
               <MetricLine
                 label="Loại đồng hồ"
                 value={meter.meterType || 'Điện tử (LCD)'}
@@ -552,6 +714,116 @@ export const UnifiedContextSurface: React.FC<UnifiedContextSurfaceProps> = ({
                   value={meter.latestReading.roundTime}
                 />
               )}
+            </ContextSection>
+
+            {/* V16 Spatial Administration Section */}
+            <ContextSection title="Quản trị không gian">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  {onStartRelocation && (
+                    <button
+                      type="button"
+                      onClick={() => onStartRelocation(meter)}
+                      style={{
+                        flex: 1,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '5px',
+                        padding: '6px 8px',
+                        borderRadius: '6px',
+                        background: 'rgba(56, 189, 248, 0.12)',
+                        border: '1px solid rgba(56, 189, 248, 0.3)',
+                        color: '#38BDF8',
+                        fontSize: '11px',
+                        fontWeight: 500,
+                        cursor: 'pointer',
+                      }}
+                      title="Chỉnh sửa vị trí công tơ trực tiếp trên bản đồ"
+                    >
+                      <Move size={12} />
+                      <span>Đặt lại vị trí</span>
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedNewZone(meter.presentationZoneId || 'pres-berth');
+                      setIsChangeZoneOpen(true);
+                    }}
+                    style={{
+                      flex: 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '5px',
+                      padding: '6px 8px',
+                      borderRadius: '6px',
+                      background: 'rgba(255, 255, 255, 0.06)',
+                      border: '1px solid rgba(255, 255, 255, 0.15)',
+                      color: '#CBD5E1',
+                      fontSize: '11px',
+                      fontWeight: 500,
+                      cursor: 'pointer',
+                    }}
+                    title="Chuyển công tơ sang phân khu tác nghiệp khác"
+                  >
+                    <Layers size={12} />
+                    <span>Chuyển phân khu</span>
+                  </button>
+                </div>
+
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  <button
+                    type="button"
+                    onClick={handleToggleActive}
+                    disabled={isProcessingAdmin}
+                    style={{
+                      flex: 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '5px',
+                      padding: '6px 8px',
+                      borderRadius: '6px',
+                      background: meter.isActive ? 'rgba(245, 158, 11, 0.12)' : 'rgba(16, 185, 129, 0.12)',
+                      border: `1px solid ${meter.isActive ? 'rgba(245, 158, 11, 0.3)' : 'rgba(16, 185, 129, 0.3)'}`,
+                      color: meter.isActive ? '#FCD34D' : '#34D399',
+                      fontSize: '11px',
+                      fontWeight: 500,
+                      cursor: isProcessingAdmin ? 'not-allowed' : 'pointer',
+                    }}
+                    title={meter.isActive ? 'Tạm dừng sử dụng công tơ (Soft delete)' : 'Kích hoạt lại công tơ'}
+                  >
+                    <Power size={12} />
+                    <span>{meter.isActive ? 'Ngừng sử dụng' : 'Kích hoạt'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsConfirmDeleteOpen(true)}
+                    disabled={isProcessingAdmin}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '4px',
+                      padding: '6px 10px',
+                      borderRadius: '6px',
+                      background: 'rgba(239, 68, 68, 0.12)',
+                      border: '1px solid rgba(239, 68, 68, 0.3)',
+                      color: '#F87171',
+                      fontSize: '11px',
+                      fontWeight: 500,
+                      cursor: isProcessingAdmin ? 'not-allowed' : 'pointer',
+                    }}
+                    title="Xóa vĩnh viễn công tơ (Chỉ khả dụng nếu chưa có chỉ số lịch sử)"
+                  >
+                    <Trash2 size={12} />
+                    <span>Xóa</span>
+                  </button>
+                </div>
+              </div>
             </ContextSection>
           </div>
 
@@ -581,6 +853,173 @@ export const UnifiedContextSurface: React.FC<UnifiedContextSurfaceProps> = ({
               )}
             </ActionRow>
           </div>
+
+          {/* Change Zone Modal Dialog */}
+          {isChangeZoneOpen && (
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-label="Chuyển phân khu công tơ"
+              style={{
+                position: 'fixed',
+                inset: 0,
+                background: 'rgba(2, 6, 23, 0.75)',
+                backdropFilter: 'blur(8px)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 9999,
+              }}
+            >
+              <div
+                style={{
+                  background: '#0B192C',
+                  border: '1px solid rgba(255, 255, 255, 0.16)',
+                  borderRadius: '12px',
+                  padding: '20px',
+                  maxWidth: '380px',
+                  width: '90%',
+                  color: '#F8FAFC',
+                }}
+              >
+                <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', fontWeight: 700 }}>
+                  Chuyển phân khu công tơ {meter.meterCode}
+                </h3>
+                <p style={{ fontSize: '11.5px', color: '#94A3B8', marginBottom: '14px' }}>
+                  Chọn phân khu hiển thị mới. Vị trí công tơ sẽ được chuyển sang phân khu mới và chuyển trạng thái lộ trình sang <strong>Cần xem lại</strong>.
+                </p>
+                <select
+                  value={selectedNewZone}
+                  onChange={(e) => setSelectedNewZone(e.target.value)}
+                  style={{
+                    width: '100%',
+                    background: 'rgba(15, 23, 42, 0.9)',
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    color: '#FFF',
+                    padding: '7px 10px',
+                    borderRadius: '6px',
+                    fontSize: '12px',
+                    marginBottom: '16px',
+                  }}
+                >
+                  {SPATIAL_ZONE_PRESENTATIONS.map((pz) => (
+                    <option key={pz.presentationId} value={pz.presentationId}>
+                      {pz.displayLabel} ({pz.businessName})
+                    </option>
+                  ))}
+                </select>
+                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                  <button
+                    type="button"
+                    onClick={() => setIsChangeZoneOpen(false)}
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: '6px',
+                      background: 'transparent',
+                      border: '1px solid rgba(255, 255, 255, 0.15)',
+                      color: '#CBD5E1',
+                      fontSize: '11.5px',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleChangeZoneConfirm}
+                    disabled={isProcessingAdmin}
+                    style={{
+                      padding: '6px 14px',
+                      borderRadius: '6px',
+                      background: '#0284C7',
+                      border: 'none',
+                      color: '#FFF',
+                      fontSize: '11.5px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Xác nhận chuyển
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Confirm Delete Modal Dialog */}
+          {isConfirmDeleteOpen && (
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-label="Xác nhận xóa công tơ"
+              style={{
+                position: 'fixed',
+                inset: 0,
+                background: 'rgba(2, 6, 23, 0.75)',
+                backdropFilter: 'blur(8px)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 9999,
+              }}
+            >
+              <div
+                style={{
+                  background: '#0B192C',
+                  border: '1px solid rgba(255, 255, 255, 0.16)',
+                  borderRadius: '12px',
+                  padding: '20px',
+                  maxWidth: '380px',
+                  width: '90%',
+                  color: '#F8FAFC',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                  <AlertTriangle size={18} className="text-red-400" />
+                  <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 700 }}>
+                    Xác nhận xóa công tơ {meter.meterCode}?
+                  </h3>
+                </div>
+                <p style={{ fontSize: '11.5px', color: '#94A3B8', lineHeight: 1.5, marginBottom: '16px' }}>
+                  Nếu công tơ đã có chỉ số ghi nhận trong quá khứ, hệ thống sẽ ngăn chặn thao tác xóa để bảo vệ toàn vẹn lịch sử kiểm toán.
+                </p>
+                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                  <button
+                    type="button"
+                    onClick={() => setIsConfirmDeleteOpen(false)}
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: '6px',
+                      background: 'transparent',
+                      border: '1px solid rgba(255, 255, 255, 0.15)',
+                      color: '#CBD5E1',
+                      fontSize: '11.5px',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleDeleteConfirm}
+                    disabled={isProcessingAdmin}
+                    style={{
+                      padding: '6px 14px',
+                      borderRadius: '6px',
+                      background: '#EF4444',
+                      border: 'none',
+                      color: '#FFF',
+                      fontSize: '11.5px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Xóa công tơ
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

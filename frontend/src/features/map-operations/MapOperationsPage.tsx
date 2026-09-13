@@ -17,7 +17,7 @@ import {
   useSpatialPlacement,
   SpatialPlacementSvgLayer,
 } from './placement/SpatialPlacementOverlay';
-import { createAdminMeter, updateAdminMeter } from '../../services/api';
+import { createAdminMeter, updateAdminMeter, relocateAdminMeter } from '../../services/api';
 import { useMapStateMachine, DetailView } from './state/useMapStateMachine';
 import { focusEntity } from './services/mapCameraService';
 import { useMapCalibrationWorkspace } from './calibration/useMapCalibrationWorkspace';
@@ -107,10 +107,9 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
       if (!mapState.placementContext) return;
       const ctx = mapState.placementContext;
       if (ctx.isRelocating && ctx.meterId) {
-        await updateAdminMeter(ctx.meterId, {
+        await relocateAdminMeter(ctx.meterId, {
           map_x: coords.normX,
           map_y: coords.normY,
-          zone_id: ctx.targetZoneId,
         });
       } else {
         await createAdminMeter({

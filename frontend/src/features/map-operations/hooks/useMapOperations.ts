@@ -168,6 +168,8 @@ export function useMapOperations(initialDate?: string) {
         zoneId: adapter.zoneId,
         zoneCode: zoneCfg?.code || 'ZONE-GEN',
         zoneName: zoneCfg?.name || 'Khu vực tác nghiệp',
+        presentationZoneId: rawMeter.presentation_zone_id,
+        routeStatus: rawMeter.route_status,
         coordinates: adapter.coordinates,
         semanticState: state,
         stateLabel: getSemanticStateLabel(state),

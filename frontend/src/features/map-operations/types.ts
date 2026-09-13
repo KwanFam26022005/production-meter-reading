@@ -58,6 +58,8 @@ export interface MapMeterItem {
   zoneId: string;
   zoneCode: string;
   zoneName: string;
+  presentationZoneId?: string | null;
+  routeStatus?: 'VALID' | 'REVIEW_REQUIRED' | string;
   coordinates: NormalizedPoint;
   semanticState: MeterSemanticState;
   stateLabel: string;

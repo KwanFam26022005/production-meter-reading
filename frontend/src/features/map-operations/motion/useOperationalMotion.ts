@@ -131,6 +131,12 @@ export function useOperationalMotion({
   };
 
   const startOperatorMovement = (operatorId: string, meterId: string) => {
+    // Phase F: Operational Route Integrity Hook
+    // If meter has route_status === 'REVIEW_REQUIRED', safely suppress route animation and hold operator
+    const targetMeter = _meters.find((m) => m.id === meterId || m.meterCode === meterId);
+    if (targetMeter && targetMeter.routeStatus === 'REVIEW_REQUIRED') {
+      return false;
+    }
     return controller.startMovementToMeter(operatorId, meterId);
   };
 

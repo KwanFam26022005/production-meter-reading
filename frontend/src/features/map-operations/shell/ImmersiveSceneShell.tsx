@@ -439,6 +439,8 @@ export const ImmersiveSceneShell: React.FC<ImmersiveSceneShellProps> = ({
           <UnifiedContextSurface
             contextType={activeContextType}
             theme={viewMode === 'list' ? 'light' : 'dark'}
+            user={user}
+            onRefreshData={async () => onRefresh()}
             zone={selectedZone}
             zoneState={selectedZone ? operationalStates[selectedZone.id] : undefined}
             allMeters={mapMeters}
