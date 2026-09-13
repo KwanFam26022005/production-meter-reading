@@ -41,11 +41,18 @@ import {
   MapMeterOut,
   ZoneReassignRequest,
   ZoneReassignResponse,
+  AdminMeterRelocatePayload,
+  AdminMeterChangeZonePayload,
+  MapVersionZoneOut,
+  MapVersionOut,
+  MapVersionListResponse,
+  MapValidationResponse,
+  MapPublishResponse,
 } from '../types';
 
 
 const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL?.trim() || '';
+  (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_BASE_URL?.trim()) || '';
 
 let cachedCsrfToken: string | null = null;
 
@@ -1282,5 +1289,265 @@ export async function reassignZoneOperator(
   }
   return res.json();
 }
+
+// ==============================================================================
+// MAP CONFIGURATION & SPATIAL ADMINISTRATION API (V16)
+// ==============================================================================
+
+export async function getActiveMapConfig(): Promise<MapVersionOut> {
+  const res = await apiFetch('/api/v1/map-config/active');
+  if (!res.ok) {
+    let detail = 'Không thể tải cấu hình bản đồ đang hoạt động.';
+    try {
+      const err = await res.json();
+      if (err.detail) detail = err.detail;
+    } catch {}
+    throw new ApiError(res.status, detail);
+  }
+  return res.json();
+}
+
+export async function getMapVersions(): Promise<MapVersionListResponse> {
+  const res = await apiFetch('/api/v1/map-config/versions');
+  if (!res.ok) {
+    let detail = 'Không thể tải lịch sử phiên bản bản đồ.';
+    try {
+      const err = await res.json();
+      if (err.detail) detail = err.detail;
+    } catch {}
+    throw new ApiError(res.status, detail);
+  }
+  return res.json();
+}
+
+export async function getCurrentMapDraft(): Promise<MapVersionOut | null> {
+  const res = await apiFetch('/api/v1/map-config/versions/current-draft');
+  if (res.status === 404) {
+    return null;
+  }
+  if (!res.ok) {
+    let detail = 'Không thể kiểm tra bản nháp hiện tại.';
+    try {
+      const err = await res.json();
+      if (err.detail) detail = err.detail;
+    } catch {}
+    throw new ApiError(res.status, detail);
+  }
+  return res.json();
+}
+
+export async function getMapVersionDetail(versionId: string): Promise<MapVersionOut> {
+  const res = await apiFetch(`/api/v1/map-config/versions/${versionId}`);
+  if (!res.ok) {
+    let detail = 'Không thể tải chi tiết phiên bản bản đồ.';
+    try {
+      const err = await res.json();
+      if (err.detail) detail = err.detail;
+    } catch {}
+    throw new ApiError(res.status, detail);
+  }
+  return res.json();
+}
+
+export async function createMapDraft(payload?: {
+  map_version?: string;
+  from_version_id?: string;
+}): Promise<MapVersionOut> {
+  const csrfToken = await getCsrfToken();
+  const res = await apiFetch('/api/v1/map-config/drafts', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRF-Token': csrfToken,
+    },
+    body: JSON.stringify(payload || {}),
+  });
+  if (!res.ok) {
+    let detail = 'Không thể tạo bản nháp bản đồ.';
+    try {
+      const err = await res.json();
+      if (err.detail) detail = err.detail;
+    } catch {}
+    throw new ApiError(res.status, detail);
+  }
+  return res.json();
+}
+
+export async function updateDraftZone(
+  versionId: string,
+  zoneId: string,
+  payload: {
+    polygon_canonical?: any[];
+    label_anchor_canonical?: any;
+    operator_anchor_canonical?: any;
+    landmarks?: any[];
+    revision: number;
+  }
+): Promise<MapVersionZoneOut> {
+  const csrfToken = await getCsrfToken();
+  const res = await apiFetch(`/api/v1/map-config/versions/${versionId}/zones/${zoneId}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRF-Token': csrfToken,
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    let detail = 'Không thể cập nhật phân khu bản đồ.';
+    try {
+      const err = await res.json();
+      if (err.detail) detail = err.detail;
+    } catch {}
+    throw new ApiError(res.status, detail);
+  }
+  return res.json();
+}
+
+export async function validateMapVersion(versionId: string): Promise<MapValidationResponse> {
+  const res = await apiFetch(`/api/v1/map-config/versions/${versionId}/validate`, {
+    method: 'POST',
+  });
+  if (!res.ok) {
+    let detail = 'Lỗi kiểm tra tính hợp lệ của bản đồ.';
+    try {
+      const err = await res.json();
+      if (err.detail) detail = err.detail;
+    } catch {}
+    throw new ApiError(res.status, detail);
+  }
+  return res.json();
+}
+
+export async function publishMapVersion(versionId: string): Promise<MapPublishResponse> {
+  const csrfToken = await getCsrfToken();
+  const res = await apiFetch(`/api/v1/map-config/versions/${versionId}/publish`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRF-Token': csrfToken,
+    },
+  });
+  if (!res.ok) {
+    let detail = 'Không thể xuất bản bản đồ.';
+    try {
+      const err = await res.json();
+      if (err.detail) detail = typeof err.detail === 'string' ? err.detail : JSON.stringify(err.detail);
+    } catch {}
+    throw new ApiError(res.status, detail);
+  }
+  return res.json();
+}
+
+export async function rollbackMapVersion(
+  versionId: string,
+  reason?: string
+): Promise<MapPublishResponse> {
+  const csrfToken = await getCsrfToken();
+  const res = await apiFetch(`/api/v1/map-config/versions/${versionId}/rollback`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRF-Token': csrfToken,
+    },
+    body: JSON.stringify({ reason: reason || 'Phục hồi phiên bản lịch sử' }),
+  });
+  if (!res.ok) {
+    let detail = 'Không thể phục hồi phiên bản bản đồ.';
+    try {
+      const err = await res.json();
+      if (err.detail) detail = err.detail;
+    } catch {}
+    throw new ApiError(res.status, detail);
+  }
+  return res.json();
+}
+
+export async function deleteMapDraft(versionId: string): Promise<{ status: string; message: string }> {
+  const csrfToken = await getCsrfToken();
+  const res = await apiFetch(`/api/v1/map-config/versions/${versionId}`, {
+    method: 'DELETE',
+    headers: {
+      'X-CSRF-Token': csrfToken,
+    },
+  });
+  if (!res.ok) {
+    let detail = 'Không thể xóa bản nháp bản đồ.';
+    try {
+      const err = await res.json();
+      if (err.detail) detail = err.detail;
+    } catch {}
+    throw new ApiError(res.status, detail);
+  }
+  return res.json();
+}
+
+export async function relocateAdminMeter(
+  meterId: string,
+  payload: AdminMeterRelocatePayload
+): Promise<AdminMeterItem> {
+  const csrfToken = await getCsrfToken();
+  const res = await apiFetch(`/api/v1/admin/meters/${meterId}/relocate`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRF-Token': csrfToken,
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    let detail = 'Không thể đặt lại vị trí công tơ.';
+    try {
+      const err = await res.json();
+      if (err.detail) detail = err.detail;
+    } catch {}
+    throw new ApiError(res.status, detail);
+  }
+  return res.json();
+}
+
+export async function changeAdminMeterZone(
+  meterId: string,
+  payload: AdminMeterChangeZonePayload
+): Promise<AdminMeterItem> {
+  const csrfToken = await getCsrfToken();
+  const res = await apiFetch(`/api/v1/admin/meters/${meterId}/change-zone`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRF-Token': csrfToken,
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    let detail = 'Không thể chuyển phân khu công tơ.';
+    try {
+      const err = await res.json();
+      if (err.detail) detail = err.detail;
+    } catch {}
+    throw new ApiError(res.status, detail);
+  }
+  return res.json();
+}
+
+export async function deleteAdminMeter(meterId: string): Promise<{ status: string; message: string }> {
+  const csrfToken = await getCsrfToken();
+  const res = await apiFetch(`/api/v1/admin/meters/${meterId}`, {
+    method: 'DELETE',
+    headers: {
+      'X-CSRF-Token': csrfToken,
+    },
+  });
+  if (!res.ok) {
+    let detail = 'Không thể xóa công tơ.';
+    try {
+      const err = await res.json();
+      if (err.detail) detail = err.detail;
+    } catch {}
+    throw new ApiError(res.status, detail);
+  }
+  return res.json();
+}
+
 
 

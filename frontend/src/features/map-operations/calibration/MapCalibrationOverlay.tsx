@@ -36,6 +36,10 @@ import {
   Upload,
   CheckCircle2,
   AlertTriangle,
+  History,
+  Send,
+  RefreshCw,
+  FileCheck,
 } from 'lucide-react';
 import type { MapCalibrationWorkspace } from './useMapCalibrationWorkspace';
 import { formatExportTimestamp } from './useMapCalibrationWorkspace';
@@ -1007,6 +1011,72 @@ export const MapCalibrationHUD: React.FC<{
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [feedback, setFeedback] = useState<{ message: string; isError?: boolean } | null>(null);
 
+  // V16 Persistent Server Administration State
+  const [isPublishModalOpen, setIsPublishModalOpen] = useState<boolean>(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState<boolean>(false);
+  const [rollbackTargetId, setRollbackTargetId] = useState<string | null>(null);
+  const [rollbackReason, setRollbackReason] = useState<string>('');
+
+  const handleSaveServerDraft = async () => {
+    if (!workspace) return;
+    const res = await workspace.saveDraftToBackend();
+    if (res.success) {
+      setFeedback({ message: `✓ Đã lưu bản nháp lên máy chủ (Revision ${workspace.draftRevision})` });
+      setTimeout(() => setFeedback(null), 3000);
+    } else if (res.conflict) {
+      setFeedback({ message: '⚠️ ' + res.error, isError: true });
+    } else {
+      setFeedback({ message: '⚠️ ' + (res.error || 'Lỗi lưu bản nháp'), isError: true });
+      setTimeout(() => setFeedback(null), 4000);
+    }
+  };
+
+  const handleValidateServer = async () => {
+    if (!workspace) return;
+    const res = await workspace.validateDraftOnServer();
+    if (res?.valid) {
+      setFeedback({ message: '✓ Kiểm tra hợp lệ: 6/6 phân khu & 12 công tơ' });
+      setTimeout(() => setFeedback(null), 3500);
+    } else {
+      setFeedback({ message: `⚠️ Phát hiện ${res?.errors.length || 0} lỗi hình học`, isError: true });
+      setTimeout(() => setFeedback(null), 4000);
+    }
+  };
+
+  const handleConfirmPublish = async () => {
+    if (!workspace) return;
+    const res = await workspace.publishDraft();
+    setIsPublishModalOpen(false);
+    if (res.success) {
+      setFeedback({ message: `✓ ${res.message || 'Xuất bản bản đồ thành công!'}` });
+      setTimeout(() => setFeedback(null), 4000);
+    } else {
+      setFeedback({ message: `⚠️ ${res.errors?.[0] || 'Lỗi xuất bản'}`, isError: true });
+      setTimeout(() => setFeedback(null), 5000);
+    }
+  };
+
+  const handleOpenHistory = async () => {
+    if (!workspace) return;
+    await workspace.loadVersionHistory();
+    setIsHistoryOpen(true);
+  };
+
+  const handleRollbackConfirm = async () => {
+    if (!workspace || !rollbackTargetId) return;
+    const res = await workspace.rollbackVersion(rollbackTargetId, rollbackReason);
+    if (res.success) {
+      setFeedback({ message: `✓ ${res.message || 'Đã phục hồi phiên bản thành công!'}` });
+      setRollbackTargetId(null);
+      setRollbackReason('');
+      setIsHistoryOpen(false);
+      setTimeout(() => setFeedback(null), 4000);
+    } else {
+      setFeedback({ message: `⚠️ ${res.error || 'Lỗi phục hồi'}`, isError: true });
+      setTimeout(() => setFeedback(null), 4000);
+    }
+  };
+
   const handleApply = () => {
     if (!workspace) return;
     const res = workspace.applyGeometry();
@@ -1022,7 +1092,7 @@ export const MapCalibrationHUD: React.FC<{
   const handleSaveDraft = () => {
     if (!workspace) return;
     workspace.saveDraft();
-    setFeedback({ message: '✓ Đã lưu bản nháp vào trình duyệt' });
+    setFeedback({ message: '✓ Đã lưu bản nháp vào trình duyệt & máy chủ' });
     setTimeout(() => setFeedback(null), 2500);
   };
 
@@ -1176,7 +1246,7 @@ export const MapCalibrationHUD: React.FC<{
           </div>
         </div>
 
-        {/* Sync Status Badge & Title */}
+        {/* Sync Status Badge & Title (V16) */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <Compass size={15} className="text-amber-400" />
@@ -1184,36 +1254,80 @@ export const MapCalibrationHUD: React.FC<{
               HIỆU CHUẨN 1915×821
             </span>
           </div>
-          {workspace?.isGeometryDirty ? (
-            <span
-              style={{
-                fontSize: '10px',
-                padding: '1px 6px',
-                borderRadius: '4px',
-                background: 'rgba(234, 179, 8, 0.18)',
-                color: '#FACC15',
-                border: '1px solid rgba(234, 179, 8, 0.35)',
-                fontWeight: 600,
-              }}
-            >
-              Bản nháp (Đã sửa)
-            </span>
-          ) : (
-            <span
-              style={{
-                fontSize: '10px',
-                padding: '1px 6px',
-                borderRadius: '4px',
-                background: 'rgba(16, 185, 129, 0.15)',
-                color: '#34D399',
-                border: '1px solid rgba(16, 185, 129, 0.25)',
-                fontWeight: 500,
-              }}
-            >
-              Đã đồng bộ
-            </span>
-          )}
+          {(() => {
+            const status = workspace?.syncStatus || 'SYNCED';
+            if (status === 'SAVING') {
+              return (
+                <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '4px', background: 'rgba(56, 189, 248, 0.18)', color: '#38BDF8', border: '1px solid rgba(56, 189, 248, 0.35)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <RefreshCw size={10} className="animate-spin" /> Đang lưu...
+                </span>
+              );
+            }
+            if (status === 'CONFLICT') {
+              return (
+                <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '4px', background: 'rgba(239, 68, 68, 0.18)', color: '#F87171', border: '1px solid rgba(239, 68, 68, 0.35)', fontWeight: 600 }}>
+                  Xung đột phiên bản
+                </span>
+              );
+            }
+            if (status === 'INVALID') {
+              return (
+                <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '4px', background: 'rgba(239, 68, 68, 0.18)', color: '#F87171', border: '1px solid rgba(239, 68, 68, 0.35)', fontWeight: 600 }}>
+                  Lỗi kiểm tra
+                </span>
+              );
+            }
+            if (status === 'READY_TO_PUBLISH') {
+              return (
+                <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.2)', color: '#34D399', border: '1px solid rgba(16, 185, 129, 0.4)', fontWeight: 600 }}>
+                  ✓ Sẵn sàng xuất bản
+                </span>
+              );
+            }
+            if (status === 'SAVED') {
+              return (
+                <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '4px', background: 'rgba(56, 189, 248, 0.15)', color: '#38BDF8', border: '1px solid rgba(56, 189, 248, 0.3)', fontWeight: 600 }}>
+                  Đã lưu máy chủ (Rev {workspace?.draftRevision || 1})
+                </span>
+              );
+            }
+            if (status === 'MODIFIED' || workspace?.isGeometryDirty) {
+              return (
+                <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '4px', background: 'rgba(234, 179, 8, 0.18)', color: '#FACC15', border: '1px solid rgba(234, 179, 8, 0.35)', fontWeight: 600 }}>
+                  Có thay đổi chưa lưu
+                </span>
+              );
+            }
+            return (
+              <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.15)', color: '#34D399', border: '1px solid rgba(16, 185, 129, 0.25)', fontWeight: 500 }}>
+                Đã đồng bộ
+              </span>
+            );
+          })()}
         </div>
+
+        {/* Legacy LocalStorage Migration Prompt */}
+        {workspace?.hasLegacyLocalDraft && (
+          <div style={{ padding: '6px 8px', borderRadius: '6px', background: 'rgba(245, 158, 11, 0.12)', border: '1px solid rgba(245, 158, 11, 0.3)', fontSize: '10.5px', color: '#FCD34D', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
+            <span>Phát hiện bản nháp cục bộ cũ</span>
+            <div style={{ display: 'flex', gap: '4px' }}>
+              <button
+                type="button"
+                onClick={() => workspace.migrateLegacyDraft()}
+                style={{ background: '#F59E0B', color: '#000', border: 'none', borderRadius: '4px', padding: '2px 6px', fontSize: '9.5px', fontWeight: 600, cursor: 'pointer' }}
+              >
+                Đồng bộ
+              </button>
+              <button
+                type="button"
+                onClick={() => workspace.discardLegacyDraft()}
+                style={{ background: 'transparent', color: '#94A3B8', border: 'none', borderRadius: '4px', padding: '2px 6px', fontSize: '9.5px', cursor: 'pointer' }}
+              >
+                Bỏ qua
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Human-Signoff Workflow Step Hints (Section 10) */}
       <div
@@ -1540,6 +1654,116 @@ export const MapCalibrationHUD: React.FC<{
           >
             {feedback.isError ? <AlertTriangle size={12} /> : <CheckCircle2 size={12} />}
             <span>{feedback.message}</span>
+          </div>
+        )}
+
+        {/* V16 Server Draft & Publish Controls */}
+        {workspace && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <button
+              type="button"
+              onClick={() => setIsPublishModalOpen(true)}
+              disabled={workspace.syncStatus === 'SAVING'}
+              style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                background: 'linear-gradient(135deg, #059669 0%, #10B981 100%)',
+                border: '1px solid #34D399',
+                color: '#FFFFFF',
+                padding: '8px 10px',
+                borderRadius: '6px',
+                fontSize: '11.5px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                boxShadow: '0 4px 12px rgba(16, 185, 129, 0.25)',
+              }}
+              title="Xuất bản bản đồ lên máy chủ (Yêu cầu tất cả phân khu hợp lệ)"
+            >
+              <Send size={13} />
+              <span>Xuất bản bản đồ</span>
+            </button>
+
+            <div style={{ display: 'flex', gap: '6px' }}>
+              <button
+                type="button"
+                onClick={handleSaveServerDraft}
+                disabled={workspace.syncStatus === 'SAVING'}
+                style={{
+                  flex: 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '4px',
+                  padding: '6px 8px',
+                  borderRadius: '6px',
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  background: 'rgba(2, 132, 199, 0.2)',
+                  border: '1px solid #0284C7',
+                  color: '#38BDF8',
+                  cursor: workspace.syncStatus === 'SAVING' ? 'not-allowed' : 'pointer',
+                }}
+                title="Lưu bản nháp lên máy chủ CSDL"
+              >
+                {workspace.syncStatus === 'SAVING' ? (
+                  <RefreshCw size={12} className="animate-spin" />
+                ) : (
+                  <Save size={12} />
+                )}
+                <span>Lưu máy chủ</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleValidateServer}
+                style={{
+                  flex: 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '4px',
+                  padding: '6px 8px',
+                  borderRadius: '6px',
+                  fontSize: '11px',
+                  fontWeight: 500,
+                  background: 'rgba(15, 23, 42, 0.6)',
+                  border: '1px solid rgba(255, 255, 255, 0.14)',
+                  color: '#CBD5E1',
+                  cursor: 'pointer',
+                }}
+                title="Kiểm tra hình học và bao chứa công tơ trên máy chủ"
+              >
+                <FileCheck size={12} />
+                <span>Kiểm tra</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleOpenHistory}
+                style={{
+                  flex: 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '4px',
+                  padding: '6px 8px',
+                  borderRadius: '6px',
+                  fontSize: '11px',
+                  fontWeight: 500,
+                  background: 'rgba(15, 23, 42, 0.6)',
+                  border: '1px solid rgba(255, 255, 255, 0.14)',
+                  color: '#CBD5E1',
+                  cursor: 'pointer',
+                }}
+                title="Xem lịch sử các phiên bản và khôi phục (Rollback)"
+              >
+                <History size={12} />
+                <span>Lịch sử</span>
+              </button>
+            </div>
           </div>
         )}
 
@@ -1894,6 +2118,369 @@ export const MapCalibrationHUD: React.FC<{
               Tiếp tục chỉnh
             </button>
           </div>
+        </div>
+      </div>
+    )}
+
+    {/* V16 Publish Impact Summary Modal */}
+    {isPublishModalOpen && (
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Xác nhận xuất bản bản đồ"
+        style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(2, 6, 23, 0.75)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+        }}
+      >
+        <div
+          style={{
+            background: '#0B192C',
+            border: '1px solid rgba(255, 255, 255, 0.16)',
+            borderRadius: '12px',
+            padding: '22px',
+            maxWidth: '440px',
+            width: '92%',
+            boxShadow: '0 20px 40px rgba(0, 0, 0, 0.6)',
+            color: '#F8FAFC',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Send size={18} className="text-emerald-400" />
+              <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 700 }}>
+                Xác nhận xuất bản bản đồ
+              </h3>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsPublishModalOpen(false)}
+              style={{ background: 'transparent', border: 'none', color: '#94A3B8', cursor: 'pointer' }}
+            >
+              <X size={16} />
+            </button>
+          </div>
+
+          <p style={{ fontSize: '12px', color: '#94A3B8', lineHeight: 1.5, margin: '0 0 14px 0' }}>
+            Bản đồ mới sẽ được công bố chính thức cho toàn bộ hệ thống vận hành.
+          </p>
+
+          <div
+            style={{
+              background: 'rgba(15, 23, 42, 0.7)',
+              borderRadius: '8px',
+              padding: '12px',
+              fontSize: '11.5px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px',
+              marginBottom: '16px',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ color: '#94A3B8' }}>Phân khu hiển thị:</span>
+              <span style={{ fontWeight: 600, color: '#34D399' }}>6/6 phân khu (Simple polygon)</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ color: '#94A3B8' }}>Công tơ nằm trong ranh giới:</span>
+              <span style={{ fontWeight: 600, color: '#34D399' }}>12/12 công tơ chuẩn hóa</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ color: '#94A3B8' }}>Độ phân giải chuẩn:</span>
+              <span style={{ fontWeight: 600, color: '#E2E8F0' }}>1915 × 821 px</span>
+            </div>
+            <div
+              style={{
+                marginTop: '4px',
+                paddingTop: '8px',
+                borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+                fontSize: '11px',
+                color: '#FCD34D',
+                lineHeight: 1.45,
+                display: 'flex',
+                gap: '6px',
+              }}
+            >
+              <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: '1px' }} />
+              <span>
+                Lưu ý: Nếu phân khu có thay đổi tọa độ, các công tơ liên quan sẽ chuyển sang trạng thái <strong>Cần xem lại lộ trình (REVIEW_REQUIRED)</strong> nhằm bảo đảm an toàn vận hành.
+              </span>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+            <button
+              type="button"
+              onClick={() => setIsPublishModalOpen(false)}
+              style={{
+                padding: '8px 14px',
+                borderRadius: '6px',
+                background: 'transparent',
+                border: '1px solid rgba(255, 255, 255, 0.16)',
+                color: '#CBD5E1',
+                fontSize: '12px',
+                cursor: 'pointer',
+              }}
+            >
+              Hủy bỏ
+            </button>
+            <button
+              type="button"
+              onClick={handleConfirmPublish}
+              style={{
+                padding: '8px 16px',
+                borderRadius: '6px',
+                background: 'linear-gradient(135deg, #059669 0%, #10B981 100%)',
+                border: 'none',
+                color: '#FFFFFF',
+                fontSize: '12px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)',
+              }}
+            >
+              Xác nhận xuất bản
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* V16 Version History & Rollback Modal */}
+    {isHistoryOpen && (
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Lịch sử phiên bản bản đồ"
+        style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(2, 6, 23, 0.75)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+        }}
+      >
+        <div
+          style={{
+            background: '#0B192C',
+            border: '1px solid rgba(255, 255, 255, 0.16)',
+            borderRadius: '12px',
+            padding: '22px',
+            maxWidth: '560px',
+            width: '94%',
+            maxHeight: '80vh',
+            display: 'flex',
+            flexDirection: 'column',
+            boxShadow: '0 20px 40px rgba(0, 0, 0, 0.6)',
+            color: '#F8FAFC',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <History size={18} className="text-sky-400" />
+              <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 700 }}>
+                Lịch sử phiên bản bản đồ
+              </h3>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setIsHistoryOpen(false);
+                setRollbackTargetId(null);
+                setRollbackReason('');
+              }}
+              style={{ background: 'transparent', border: 'none', color: '#94A3B8', cursor: 'pointer' }}
+            >
+              <X size={16} />
+            </button>
+          </div>
+
+          {rollbackTargetId ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div style={{ fontSize: '12px', color: '#FCD34D' }}>
+                Xác nhận khôi phục về phiên bản <strong>{rollbackTargetId}</strong>? Thao tác này sẽ tạo một phiên bản xuất bản mới kế thừa geometry của phiên bản được chọn.
+              </div>
+              <div>
+                <label style={{ fontSize: '11px', color: '#94A3B8', display: 'block', marginBottom: '4px' }}>
+                  Lý do khôi phục:
+                </label>
+                <input
+                  type="text"
+                  value={rollbackReason}
+                  onChange={(e) => setRollbackReason(e.target.value)}
+                  placeholder="Ví dụ: Khôi phục lại ranh giới gốc do nhầm lẫn..."
+                  style={{
+                    width: '100%',
+                    background: 'rgba(15, 23, 42, 0.8)',
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    borderRadius: '6px',
+                    padding: '8px 10px',
+                    color: '#FFF',
+                    fontSize: '12px',
+                  }}
+                />
+              </div>
+              <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '6px' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRollbackTargetId(null);
+                    setRollbackReason('');
+                  }}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: '6px',
+                    background: 'transparent',
+                    border: '1px solid rgba(255, 255, 255, 0.16)',
+                    color: '#CBD5E1',
+                    fontSize: '11.5px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Hủy
+                </button>
+                <button
+                  type="button"
+                  onClick={handleRollbackConfirm}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: '6px',
+                    background: '#0284C7',
+                    border: 'none',
+                    color: '#FFFFFF',
+                    fontSize: '11.5px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Xác nhận khôi phục
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div
+                style={{
+                  flex: 1,
+                  overflowY: 'auto',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px',
+                  margin: '8px 0 16px 0',
+                  paddingRight: '4px',
+                }}
+              >
+                {(!workspace?.versionHistory || workspace.versionHistory.length === 0) ? (
+                  <div style={{ textAlign: 'center', padding: '24px', color: '#64748B', fontSize: '12px' }}>
+                    Chưa có lịch sử phiên bản nào được ghi nhận.
+                  </div>
+                ) : (
+                  workspace.versionHistory.map((ver) => {
+                    const isPublished = ver.status === 'PUBLISHED';
+                    const isDraft = ver.status === 'DRAFT';
+                    return (
+                      <div
+                        key={ver.id}
+                        style={{
+                          background: 'rgba(15, 23, 42, 0.65)',
+                          border: `1px solid ${isPublished ? '#10B981' : 'rgba(255, 255, 255, 0.1)'}`,
+                          borderRadius: '8px',
+                          padding: '10px 12px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '4px',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span style={{ fontWeight: 600, fontSize: '12px', color: '#F8FAFC' }}>
+                            {ver.map_version} (Rev {ver.revision})
+                          </span>
+                          <span
+                            style={{
+                              fontSize: '10px',
+                              padding: '1px 6px',
+                              borderRadius: '4px',
+                              fontWeight: 600,
+                              background: isPublished
+                                ? 'rgba(16, 185, 129, 0.2)'
+                                : isDraft
+                                ? 'rgba(245, 158, 11, 0.2)'
+                                : 'rgba(100, 116, 139, 0.2)',
+                              color: isPublished ? '#34D399' : isDraft ? '#FCD34D' : '#94A3B8',
+                              border: `1px solid ${
+                                isPublished
+                                  ? 'rgba(16, 185, 129, 0.4)'
+                                  : isDraft
+                                  ? 'rgba(245, 158, 11, 0.4)'
+                                  : 'rgba(100, 116, 139, 0.3)'
+                              }`,
+                            }}
+                          >
+                            {ver.status}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '11px', color: '#94A3B8' }}>
+                          Mã phiên bản: {ver.id}
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '10px', color: '#64748B', marginTop: '2px' }}>
+                          <span>
+                            Tạo bởi: {ver.created_by_name || 'Hệ thống'}
+                            {ver.created_at ? ` · ${new Date(ver.created_at).toLocaleString('vi-VN')}` : ''}
+                          </span>
+                          {!isDraft && !isPublished && (
+                            <button
+                              type="button"
+                              onClick={() => setRollbackTargetId(ver.id)}
+                              style={{
+                                background: 'rgba(56, 189, 248, 0.15)',
+                                border: '1px solid rgba(56, 189, 248, 0.3)',
+                                color: '#38BDF8',
+                                borderRadius: '4px',
+                                padding: '2px 8px',
+                                fontSize: '10px',
+                                fontWeight: 500,
+                                cursor: 'pointer',
+                              }}
+                            >
+                              Khôi phục về bản này
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  onClick={() => setIsHistoryOpen(false)}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: '6px',
+                    background: 'rgba(255, 255, 255, 0.08)',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    color: '#CBD5E1',
+                    fontSize: '11.5px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Đóng
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
     )}

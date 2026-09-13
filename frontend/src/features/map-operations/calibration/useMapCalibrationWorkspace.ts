@@ -1,24 +1,30 @@
 /**
- * Centralized Map Calibration Workspace Controller & State Management (V12)
+ * Centralized Map Calibration Workspace Controller & State Management (V16)
  *
  * Implements:
  * - MapWorkspaceView normalization ('map' | 'list' | 'calibration')
- * - Draft vs Published geometry state isolation
- * - isGeometryDirty tracking
- * - Local draft persistence (tan-thuan-map-calibration-draft:v10)
- * - Deterministic JSON export (tanThuanPresentationGeometry.v10.<timestamp>.json)
- * - Pre-publish structural validation gate (6 zones, 1915x821, simple polygons, meter containment, anchors)
- * - Safe JSON import with pre-validation
- * - Single source of truth for openMapCalibration() and closeMapCalibration()
+ * - Backend authoritative Draft vs Published geometry state
+ * - Optimistic concurrency via revision tracking & 409 Conflict handling
+ * - SyncStatus state machine:
+ *   'SYNCED' | 'MODIFIED' | 'SAVING' | 'SAVED' | 'CONFLICT' | 'READY_TO_PUBLISH' | 'INVALID'
+ * - Server-side validation pipeline & atomic publish transaction
+ * - Historical versioning & atomic rollback
+ * - Legacy localStorage draft migration prompt
+ * - Deterministic JSON export & import
  */
 
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import {
   CANONICAL_GEOMETRY_V10,
   V10GeometryManifest,
+  V10RawZone,
   CANONICAL_WIDTH,
   CANONICAL_HEIGHT,
 } from '../geometry/tanThuanPresentationGeometryV10';
+import {
+  CalibrationLandmark,
+  CANONICAL_V10_LANDMARKS,
+} from '../geometry/canonicalLandmarks';
 import {
   checkPolygonSimplicity,
   calculatePolygonArea,
@@ -27,8 +33,33 @@ import {
 } from './calibrationGeometryUtils';
 import { CANONICAL_12_METERS_AUDIT } from '../geometry/canonicalScene';
 import type { MapWorkspaceView } from '../../../types';
+import {
+  getActiveMapConfig,
+  getCurrentMapDraft,
+  createMapDraft,
+  updateDraftZone,
+  validateMapVersion,
+  publishMapVersion,
+  rollbackMapVersion,
+  deleteMapDraft,
+  getMapVersions,
+} from '../../../services/api';
+import type {
+  MapVersionOut,
+  MapVersionSummary,
+  MapValidationResponse,
+} from '../../../types';
 
 export const CALIBRATION_DRAFT_STORAGE_KEY = 'tan-thuan-map-calibration-draft:v10';
+
+export type DraftSyncStatus =
+  | 'SYNCED'
+  | 'MODIFIED'
+  | 'SAVING'
+  | 'SAVED'
+  | 'CONFLICT'
+  | 'READY_TO_PUBLISH'
+  | 'INVALID';
 
 export interface PrePublishValidationResult {
   valid: boolean;
@@ -54,7 +85,57 @@ export function formatExportTimestamp(d = new Date()): string {
 }
 
 /**
- * Validates a geometry manifest against the strict V12 pre-publish gate (Section 14).
+ * Converts backend MapVersionOut to frontend V10GeometryManifest.
+ */
+export function mapVersionOutToManifest(mv: MapVersionOut): V10GeometryManifest {
+  const allLandmarks: CalibrationLandmark[] = [];
+  const seenLm = new Set<string>();
+
+  const rawZones: V10RawZone[] = mv.zones.map((z) => {
+    if (Array.isArray(z.landmarks)) {
+      for (const lm of z.landmarks) {
+        if (!seenLm.has(lm.id)) {
+          seenLm.add(lm.id);
+          allLandmarks.push(lm as unknown as CalibrationLandmark);
+        }
+      }
+    }
+    const validIcons: Record<string, V10RawZone['icon']> = {
+      ship: 'ship',
+      container: 'container',
+      warehouse: 'warehouse',
+      gear: 'gear',
+      gate: 'gate',
+    };
+    const zoneIcon: V10RawZone['icon'] = validIcons[z.icon || ''] || 'container';
+
+    return {
+      id: z.zone_id,
+      displayIndex: z.display_index,
+      displayLabel: z.display_label,
+      businessName: z.business_name || '',
+      businessZoneIds: z.business_zone_id ? [z.business_zone_id] : [],
+      presentationColor: z.presentation_color,
+      icon: zoneIcon,
+      polygonCanonical: z.polygon_canonical || [],
+      labelAnchorCanonical: z.label_anchor_canonical,
+      operatorAnchorCanonical: z.operator_anchor_canonical,
+    };
+  });
+
+  return {
+    schemaVersion: '1.0',
+    mapVersion: mv.map_version,
+    coordinateSystem: mv.coordinate_system,
+    canonicalWidth: mv.canonical_width,
+    canonicalHeight: mv.canonical_height,
+    zones: rawZones,
+    landmarks: allLandmarks.length > 0 ? allLandmarks : CANONICAL_V10_LANDMARKS,
+  };
+}
+
+/**
+ * Validates a geometry manifest against the strict V12 pre-publish gate.
  */
 export function validatePrePublishGeometry(
   manifest: V10GeometryManifest
@@ -70,9 +151,6 @@ export function validatePrePublishGeometry(
   }
   if (manifest.coordinateSystem !== 'tan-thuan-canonical-image-pixel-space-v1') {
     errors.push(`Hệ tọa độ không khớp: ${manifest.coordinateSystem}`);
-  }
-  if (!manifest.mapVersion || !manifest.mapVersion.startsWith('tan-thuan-v10')) {
-    warnings.push(`Phiên bản bản đồ dự kiến tan-thuan-v10: ${manifest.mapVersion}`);
   }
 
   // 2. Exact 6 presentation zones
@@ -239,7 +317,7 @@ export function validateImportJson(
 }
 
 /**
- * LocalStorage draft persistence helpers (Section 11)
+ * LocalStorage draft persistence helpers
  */
 export function saveDraftToStorage(manifest: V10GeometryManifest): void {
   if (typeof window === 'undefined') return;
@@ -281,7 +359,7 @@ export function hasCalibrationQueryParam(): boolean {
 }
 
 /**
- * Primary Reusable Hook: useMapCalibrationWorkspace (Section 8)
+ * Primary Reusable Hook: useMapCalibrationWorkspace (V16)
  */
 export interface MapCalibrationWorkspace {
   workspaceView: MapWorkspaceView;
@@ -301,6 +379,24 @@ export interface MapCalibrationWorkspace {
   applyGeometry: () => { success: boolean; filename?: string; errors?: string[] };
   importGeometry: (jsonStr: string) => { success: boolean; error?: string };
   resetToPublished: () => void;
+
+  // V16 Persistent Server Extensions
+  backendDraftId: string | null;
+  draftRevision: number;
+  syncStatus: DraftSyncStatus;
+  isBackendSaving: boolean;
+  isPublishing: boolean;
+  isValidating: boolean;
+  lastValidationResult: MapValidationResponse | null;
+  hasLegacyLocalDraft: boolean;
+  versionHistory: MapVersionSummary[];
+  saveDraftToBackend: () => Promise<{ success: boolean; conflict?: boolean; error?: string }>;
+  validateDraftOnServer: () => Promise<MapValidationResponse | null>;
+  publishDraft: () => Promise<{ success: boolean; message?: string; errors?: string[] }>;
+  rollbackVersion: (versionId: string, reason?: string) => Promise<{ success: boolean; message?: string; error?: string }>;
+  loadVersionHistory: () => Promise<void>;
+  migrateLegacyDraft: () => Promise<void>;
+  discardLegacyDraft: () => void;
 }
 
 export function useMapCalibrationWorkspace(
@@ -320,7 +416,7 @@ export function useMapCalibrationWorkspace(
 
   const previousViewRef = useRef<MapWorkspaceView>('map');
 
-  // 1. Published geometry (current session baseline)
+  // 1. Published geometry (authoritative baseline)
   const [publishedGeometry, setPublishedGeometry] = useState<V10GeometryManifest>(() =>
     JSON.parse(JSON.stringify(CANONICAL_GEOMETRY_V10))
   );
@@ -332,10 +428,21 @@ export function useMapCalibrationWorkspace(
     return JSON.parse(JSON.stringify(CANONICAL_GEOMETRY_V10));
   });
 
+  // V16 Server Synchronization State
+  const [backendDraftId, setBackendDraftId] = useState<string | null>(null);
+  const [draftRevision, setDraftRevision] = useState<number>(1);
+  const [syncStatus, setSyncStatus] = useState<DraftSyncStatus>('SYNCED');
+  const [isBackendSaving, setIsBackendSaving] = useState<boolean>(false);
+  const [isPublishing, setIsPublishing] = useState<boolean>(false);
+  const [isValidating, setIsValidating] = useState<boolean>(false);
+  const [lastValidationResult, setLastValidationResult] = useState<MapValidationResponse | null>(null);
+  const [hasLegacyLocalDraft, setHasLegacyLocalDraft] = useState<boolean>(() => !!loadDraftFromStorage());
+  const [versionHistory, setVersionHistory] = useState<MapVersionSummary[]>([]);
+
   const [hasSavedDraft, setHasSavedDraft] = useState<boolean>(() => !!loadDraftFromStorage());
   const [showUnsavedModal, setShowUnsavedModal] = useState<boolean>(false);
 
-  // 3. Dirty state calculation (Section 10)
+  // 3. Dirty state calculation
   const isGeometryDirty = useMemo(() => {
     const pubStr = JSON.stringify(publishedGeometry.zones);
     const draftStr = JSON.stringify(draftGeometry.zones);
@@ -344,30 +451,90 @@ export function useMapCalibrationWorkspace(
     return pubStr !== draftStr || pubLmStr !== draftLmStr;
   }, [publishedGeometry, draftGeometry]);
 
-  // 4. Live Pre-Publish Validation Gate (Section 14)
+  // Update sync status to MODIFIED when user changes geometry
+  const initialLoadDone = useRef(false);
+  useEffect(() => {
+    if (!initialLoadDone.current) {
+      initialLoadDone.current = true;
+      return;
+    }
+    if (isGeometryDirty && syncStatus === 'SYNCED') {
+      setSyncStatus('MODIFIED');
+    }
+  }, [isGeometryDirty, syncStatus]);
+
+  // 4. Live Pre-Publish Validation Gate
   const validationGate = useMemo(() => {
     return validatePrePublishGeometry(draftGeometry);
   }, [draftGeometry]);
 
-  // 5. Reusable Centralized Entry Point: openMapCalibration() (Section 5, 8)
-  const openMapCalibration = useCallback(() => {
+  // 5. Load Authoritative Active Map Configuration from backend on mount
+  const loadActiveConfig = useCallback(async () => {
+    try {
+      const activeConf = await getActiveMapConfig();
+      if (activeConf && activeConf.zones?.length === 6) {
+        const manifest = mapVersionOutToManifest(activeConf);
+        setPublishedGeometry(manifest);
+      }
+    } catch {
+      // Fall back to CANONICAL_GEOMETRY_V10 gracefully
+    }
+  }, []);
+
+  useEffect(() => {
+    loadActiveConfig();
+  }, [loadActiveConfig]);
+
+  // 6. Centralized Entry Point: openMapCalibration()
+  const openMapCalibration = useCallback(async () => {
     if (workspaceView !== 'calibration') {
       previousViewRef.current = workspaceView;
     }
-    // Close open contextual surfaces
     onCloseContextSurfaces?.();
 
-    // Check if there is a saved draft in localStorage
-    const saved = loadDraftFromStorage();
-    if (saved) {
-      setDraftGeometry(saved);
-      setHasSavedDraft(true);
+    // Check backend for an existing open draft
+    try {
+      const currentDraft = await getCurrentMapDraft();
+      if (currentDraft && currentDraft.zones?.length === 6) {
+        const draftManifest = mapVersionOutToManifest(currentDraft);
+        setDraftGeometry(draftManifest);
+        setBackendDraftId(currentDraft.id);
+        setDraftRevision(currentDraft.revision);
+        setSyncStatus('SYNCED');
+        setHasSavedDraft(true);
+      } else {
+        // Check if legacy localStorage draft exists
+        const legacy = loadDraftFromStorage();
+        if (legacy) {
+          setHasLegacyLocalDraft(true);
+          setDraftGeometry(legacy);
+        } else {
+          // Initialize fresh draft on backend
+          try {
+            const newDraft = await createMapDraft();
+            setDraftGeometry(mapVersionOutToManifest(newDraft));
+            setBackendDraftId(newDraft.id);
+            setDraftRevision(newDraft.revision);
+            setSyncStatus('SYNCED');
+          } catch {
+            // Fallback to local draft
+            setDraftGeometry(JSON.parse(JSON.stringify(publishedGeometry)));
+          }
+        }
+      }
+    } catch {
+      // Offline fallback
+      const saved = loadDraftFromStorage();
+      if (saved) {
+        setDraftGeometry(saved);
+        setHasSavedDraft(true);
+      }
     }
 
     setWorkspaceViewState('calibration');
-  }, [workspaceView, onCloseContextSurfaces]);
+  }, [workspaceView, onCloseContextSurfaces, publishedGeometry]);
 
-  // 6. Centralized Exit Point: closeMapCalibration() (Section 6, 8, 10)
+  // 7. Centralized Exit Point: closeMapCalibration()
   const closeMapCalibration = useCallback(
     (force = false) => {
       if (isGeometryDirty && !force) {
@@ -376,7 +543,6 @@ export function useMapCalibrationWorkspace(
       }
 
       setShowUnsavedModal(false);
-      // Clean up URL query param without reload
       if (typeof window !== 'undefined') {
         sessionStorage.removeItem('mapCalibration');
         const url = new URL(window.location.href);
@@ -410,27 +576,197 @@ export function useMapCalibrationWorkspace(
     [workspaceView, openMapCalibration, closeMapCalibration]
   );
 
-  // 7. Save Draft Action (Section 11)
+  // 8. Save Draft Action (Saves to backend with optimistic concurrency)
+  const saveDraftToBackend = useCallback(async (): Promise<{ success: boolean; conflict?: boolean; error?: string }> => {
+    setIsBackendSaving(true);
+    setSyncStatus('SAVING');
+    try {
+      let draftId = backendDraftId;
+      let rev = draftRevision;
+
+      // If no draft on server yet, create one
+      if (!draftId) {
+        const created = await createMapDraft();
+        draftId = created.id;
+        rev = created.revision;
+        setBackendDraftId(draftId);
+      }
+
+      // Update all zones in draft
+      for (const zone of draftGeometry.zones) {
+        const updated = await updateDraftZone(draftId, zone.id, {
+          polygon_canonical: zone.polygonCanonical,
+          label_anchor_canonical: zone.labelAnchorCanonical,
+          operator_anchor_canonical: zone.operatorAnchorCanonical,
+          revision: rev,
+        });
+        rev = updated.revision;
+      }
+
+      setDraftRevision(rev);
+      setSyncStatus('SAVED');
+      setHasSavedDraft(true);
+      // Also cache in localStorage for safety
+      saveDraftToStorage(draftGeometry);
+      setIsBackendSaving(false);
+      return { success: true };
+    } catch (err: any) {
+      setIsBackendSaving(false);
+      if (err?.status === 409 || err?.message?.includes('409') || err?.message?.includes('xung đột')) {
+        setSyncStatus('CONFLICT');
+        return { success: false, conflict: true, error: 'Xung đột phiên bản: Bản nháp đã được chỉnh sửa bởi quản trị viên khác.' };
+      }
+      setSyncStatus('MODIFIED');
+      return { success: false, error: err?.message || 'Không thể lưu bản nháp lên máy chủ.' };
+    }
+  }, [backendDraftId, draftRevision, draftGeometry]);
+
   const saveDraft = useCallback(() => {
     saveDraftToStorage(draftGeometry);
     setHasSavedDraft(true);
-  }, [draftGeometry]);
+    saveDraftToBackend();
+  }, [draftGeometry, saveDraftToBackend]);
 
-  // 8. Discard Draft Action (Section 10)
-  const discardDraft = useCallback(() => {
+  // 8.5 Validate Draft on Server
+  const validateDraftOnServer = useCallback(async (): Promise<MapValidationResponse | null> => {
+    let draftId = backendDraftId;
+    if (!draftId) {
+      const saveRes = await saveDraftToBackend();
+      if (!saveRes.success) return null;
+      draftId = backendDraftId;
+    }
+    if (!draftId) return null;
+    setIsValidating(true);
+    try {
+      const res = await validateMapVersion(draftId);
+      setLastValidationResult(res);
+      setIsValidating(false);
+      if (res.valid) {
+        setSyncStatus('READY_TO_PUBLISH');
+      } else {
+        setSyncStatus('INVALID');
+      }
+      return res;
+    } catch {
+      setIsValidating(false);
+      return null;
+    }
+  }, [backendDraftId, saveDraftToBackend]);
+
+  // 9. Publish Draft Action (Server Validation Gate -> Atomic Publish Transaction)
+  const publishDraft = useCallback(async (): Promise<{ success: boolean; message?: string; errors?: string[] }> => {
+    setIsPublishing(true);
+    try {
+      let draftId = backendDraftId;
+      if (!draftId) {
+        // Save to backend first
+        const saveRes = await saveDraftToBackend();
+        if (!saveRes.success) {
+          setIsPublishing(false);
+          return { success: false, errors: [saveRes.error || 'Lỗi lưu bản nháp trước khi xuất bản'] };
+        }
+      }
+      draftId = backendDraftId!;
+
+      // 1. Server validation gate
+      setIsValidating(true);
+      const valRes = await validateMapVersion(draftId);
+      setIsValidating(false);
+
+      if (!valRes.valid) {
+        setSyncStatus('INVALID');
+        setIsPublishing(false);
+        return { success: false, errors: valRes.errors };
+      }
+
+      // 2. Publish
+      const pubRes = await publishMapVersion(draftId);
+      setSyncStatus('SYNCED');
+      setPublishedGeometry(JSON.parse(JSON.stringify(draftGeometry)));
+      setBackendDraftId(null);
+      clearDraftFromStorage();
+      setHasSavedDraft(false);
+      setIsPublishing(false);
+
+      // Reload active config across session
+      await loadActiveConfig();
+
+      return { success: true, message: pubRes.message };
+    } catch (err: any) {
+      setIsPublishing(false);
+      setIsValidating(false);
+      return { success: false, errors: [err?.message || 'Lỗi xuất bản bản đồ'] };
+    }
+  }, [backendDraftId, draftGeometry, saveDraftToBackend, loadActiveConfig]);
+
+  // 10. Discard Draft Action
+  const discardDraft = useCallback(async () => {
+    if (backendDraftId) {
+      try {
+        await deleteMapDraft(backendDraftId);
+      } catch {
+        // ignore delete failure
+      }
+      setBackendDraftId(null);
+    }
     clearDraftFromStorage();
     setDraftGeometry(JSON.parse(JSON.stringify(publishedGeometry)));
     setHasSavedDraft(false);
+    setHasLegacyLocalDraft(false);
+    setSyncStatus('SYNCED');
     setShowUnsavedModal(false);
     closeMapCalibration(true);
-  }, [publishedGeometry, closeMapCalibration]);
+  }, [backendDraftId, publishedGeometry, closeMapCalibration]);
 
-  // 9. Reset to published
-  const resetToPublished = useCallback(() => {
+  // 11. Rollback Action
+  const rollbackVersion = useCallback(async (versionId: string, reason?: string) => {
+    try {
+      const res = await rollbackMapVersion(versionId, reason);
+      await loadActiveConfig();
+      const currentDraft = await getCurrentMapDraft();
+      if (currentDraft) {
+        setDraftGeometry(mapVersionOutToManifest(currentDraft));
+        setBackendDraftId(currentDraft.id);
+        setDraftRevision(currentDraft.revision);
+      } else {
+        setDraftGeometry(JSON.parse(JSON.stringify(publishedGeometry)));
+      }
+      return { success: true, message: res.message };
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Không thể hoàn tác phiên bản.' };
+    }
+  }, [loadActiveConfig, publishedGeometry]);
+
+  // 12. Version History
+  const loadVersionHistory = useCallback(async () => {
+    try {
+      const res = await getMapVersions();
+      setVersionHistory(res.versions || []);
+    } catch {
+      setVersionHistory([]);
+    }
+  }, []);
+
+  // 13. Legacy Draft Migration
+  const migrateLegacyDraft = useCallback(async () => {
+    await saveDraftToBackend();
+    setHasLegacyLocalDraft(false);
+    clearDraftFromStorage();
+  }, [saveDraftToBackend]);
+
+  const discardLegacyDraft = useCallback(() => {
+    clearDraftFromStorage();
+    setHasLegacyLocalDraft(false);
     setDraftGeometry(JSON.parse(JSON.stringify(publishedGeometry)));
   }, [publishedGeometry]);
 
-  // 10. Apply Geometry Action (Section 13)
+  // 14. Reset to published
+  const resetToPublished = useCallback(() => {
+    setDraftGeometry(JSON.parse(JSON.stringify(publishedGeometry)));
+    setSyncStatus('MODIFIED');
+  }, [publishedGeometry]);
+
+  // 15. Apply Geometry Action (Local JSON download fallback)
   const applyGeometry = useCallback(() => {
     const gate = validatePrePublishGeometry(draftGeometry);
     if (!gate.valid) {
@@ -442,7 +778,6 @@ export function useMapCalibrationWorkspace(
     clearDraftFromStorage();
     setHasSavedDraft(false);
 
-    // Generate canonical JSON artifact for Git commit (Section 12, 13)
     const timestamp = formatExportTimestamp();
     const filename = `tanThuanPresentationGeometry.v10.${timestamp}.json`;
     const jsonStr = JSON.stringify(appliedManifest, null, 2);
@@ -460,17 +795,18 @@ export function useMapCalibrationWorkspace(
     return { success: true, filename };
   }, [draftGeometry]);
 
-  // 11. Import Geometry Action (Section 12)
+  // 16. Import Geometry Action
   const importGeometry = useCallback((jsonStr: string) => {
     const res = validateImportJson(jsonStr);
     if (!res.valid || !res.data) {
       return { success: false, error: res.error || 'Dữ liệu không hợp lệ' };
     }
     setDraftGeometry(res.data);
+    setSyncStatus('MODIFIED');
     return { success: true };
   }, []);
 
-  // Backward compatibility: ?mapCalibration=1 on initial mount (Section 7)
+  // Backward compatibility: ?mapCalibration=1 on initial mount
   useEffect(() => {
     if (hasCalibrationQueryParam() && workspaceView !== 'calibration') {
       openMapCalibration();
@@ -495,5 +831,23 @@ export function useMapCalibrationWorkspace(
     applyGeometry,
     importGeometry,
     resetToPublished,
+
+    // V16 Persistent Server Extensions
+    backendDraftId,
+    draftRevision,
+    syncStatus,
+    isBackendSaving,
+    isPublishing,
+    isValidating,
+    lastValidationResult,
+    hasLegacyLocalDraft,
+    versionHistory,
+    saveDraftToBackend,
+    validateDraftOnServer,
+    publishDraft,
+    rollbackVersion,
+    loadVersionHistory,
+    migrateLegacyDraft,
+    discardLegacyDraft,
   };
 }

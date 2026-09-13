@@ -392,8 +392,10 @@ export interface AdminMeterItem {
   meter_type: string;
   is_active: boolean;
   zone_id?: string | null;
+  presentation_zone_id?: string | null;
   map_x?: number | null;
   map_y?: number | null;
+  route_status?: 'VALID' | 'REVIEW_REQUIRED' | string;
   created_at: string | null;
   updated_at: string | null;
   has_readings: boolean;
@@ -415,6 +417,7 @@ export interface AdminMeterCreatePayload {
   location?: string | null;
   meter_type?: string;
   zone_id?: string | null;
+  presentation_zone_id?: string | null;
   map_x?: number | null;
   map_y?: number | null;
 }
@@ -425,8 +428,98 @@ export interface AdminMeterUpdatePayload {
   location?: string | null;
   meter_type?: string;
   zone_id?: string | null;
+  presentation_zone_id?: string | null;
   map_x?: number | null;
   map_y?: number | null;
+}
+
+export interface AdminMeterRelocatePayload {
+  map_x: number;
+  map_y: number;
+}
+
+export interface AdminMeterChangeZonePayload {
+  zone_id: string;
+  presentation_zone_id: string;
+}
+
+// ==============================================================================
+// MAP CONFIGURATION & SPATIAL ADMINISTRATION (V16)
+// ==============================================================================
+export interface MapVersionZoneOut {
+  id: string;
+  zone_id: string;
+  business_zone_id?: string | null;
+  display_index: number;
+  display_label: string;
+  business_name?: string | null;
+  presentation_color: string;
+  icon?: string | null;
+  polygon_canonical: Array<{ x: number; y: number; landmarkId?: string }>;
+  label_anchor_canonical: { x: number; y: number };
+  operator_anchor_canonical: { x: number; y: number };
+  landmarks?: Array<{ id: string; name: string; x: number; y: number }>;
+  revision: number;
+}
+
+export interface MapVersionSummary {
+  id: string;
+  map_id: string;
+  map_version: string;
+  status: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+  revision: number;
+  parent_version_id?: string | null;
+  created_by_name?: string | null;
+  published_by_name?: string | null;
+  created_at?: string | null;
+  published_at?: string | null;
+}
+
+export interface MapVersionOut {
+  id: string;
+  map_id: string;
+  map_version: string;
+  coordinate_system: string;
+  canonical_width: number;
+  canonical_height: number;
+  source_asset: string;
+  status: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+  revision: number;
+  parent_version_id?: string | null;
+  created_by_user_id?: string | null;
+  created_by_name?: string | null;
+  published_by_user_id?: string | null;
+  published_by_name?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  published_at?: string | null;
+  zones: MapVersionZoneOut[];
+}
+
+export interface MapVersionListResponse {
+  total: number;
+  versions: MapVersionSummary[];
+}
+
+export interface MapValidationResponse {
+  valid: boolean;
+  errors: string[];
+  warnings: string[];
+  zones_count: number;
+  simple_polygons: boolean;
+  meters_contained: number;
+  total_meters: number;
+  anchors_valid: boolean;
+  landmarks_valid: boolean;
+  route_review_required: boolean;
+  route_issues: string[];
+}
+
+export interface MapPublishResponse {
+  status: string;
+  map_version: string;
+  published_at: string;
+  message: string;
 }
 
 export interface AdminSchedulePreviewRound {
