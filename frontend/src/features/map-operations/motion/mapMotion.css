@@ -1516,6 +1516,201 @@ button.sgp-telemetry-item:hover {
   transform: scale(1.08);
 }
 
+/* ==========================================================================
+   V15A OPERATIONAL MARKER MOTION LANGUAGE
+   ========================================================================== */
+
+/* Meter Approaching: 2 expanding rings (10px -> 22px, opacity 0.60 -> 0, ~900ms, repeat 2 times only) */
+@keyframes sgpTargetWaveScale {
+  0% {
+    transform: scale(1);
+    opacity: 0.60;
+  }
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+
+.sgp-meter-target-wave {
+  transform-origin: 0 0;
+  animation: sgpTargetWaveScale 900ms ease-out 2;
+  animation-fill-mode: forwards;
+  pointer-events: none;
+}
+
+.sgp-meter-target-wave.wave-2 {
+  animation-delay: 450ms;
+}
+
+/* Meter & Operator Reading: Circular activity arc rotating continuously (1.4-1.8s, 1600ms linear) */
+@keyframes sgpActivityArcRotate {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.sgp-meter-reading-arc,
+.sgp-op-reading-arc {
+  transform-origin: 0 0;
+  animation: sgpActivityArcRotate 1600ms linear infinite;
+  pointer-events: none;
+}
+
+.sgp-meter-reading-arc-static,
+.sgp-op-reading-arc-static {
+  transform-origin: 0 0;
+  pointer-events: none;
+}
+
+/* Meter Completed: One-shot progress sweep (300-450ms) then static emerald */
+@keyframes sgpCompletedSweep {
+  0% {
+    stroke-dashoffset: 88;
+    opacity: 0.95;
+  }
+  80% {
+    stroke-dashoffset: 0;
+    opacity: 0.95;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 0;
+  }
+}
+
+.sgp-meter-completed-sweep {
+  transform-origin: 0 0;
+  animation: sgpCompletedSweep 380ms ease-out 1 forwards;
+  pointer-events: none;
+}
+
+@keyframes sgpCheckGlyphAppear {
+  0% {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.sgp-meter-check-glyph {
+  transform-origin: 0 0;
+  animation: sgpCheckGlyphAppear 300ms ease-out 1 forwards;
+}
+
+/* Meter Overdue: Slow outer halo heartbeat (scale 1 -> 1.06 -> 1, opacity 0.68 -> 0.95 -> 0.68, 1.8-2.2s). Core stable */
+@keyframes sgpOverdueHeartbeat {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.68;
+  }
+  50% {
+    transform: scale(1.06);
+    opacity: 0.95;
+  }
+}
+
+.sgp-meter-overdue-halo {
+  transform-origin: 0 0;
+  animation: sgpOverdueHeartbeat 2000ms ease-in-out infinite;
+  pointer-events: none;
+}
+
+.sgp-meter-overdue-halo-static {
+  opacity: 0.85;
+  pointer-events: none;
+}
+
+/* Meter Review: One-shot double ring on entry (450ms ease-out), static amber afterwards */
+@keyframes sgpReviewDoubleRing {
+  0% {
+    transform: scale(1);
+    opacity: 0.85;
+  }
+  100% {
+    transform: scale(1.45);
+    opacity: 0;
+  }
+}
+
+.sgp-meter-review-entry-ring {
+  transform-origin: 0 0;
+  animation: sgpReviewDoubleRing 450ms ease-out 1 forwards;
+  pointer-events: none;
+}
+
+.sgp-meter-review-entry-ring.ring-2 {
+  animation-delay: 150ms;
+}
+
+/* Operator Selected: One-shot entry emphasis (0.94 -> 1.08 -> 1, 180-220ms) */
+@keyframes sgpOpSelectedOneShot {
+  0% { transform: scale(0.94); }
+  60% { transform: scale(1.08); }
+  100% { transform: scale(1.0); }
+}
+
+.sgp-operator-map-marker.selected .sgp-op-visual-content {
+  animation: sgpOpSelectedOneShot 200ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+/* Operator Issue: One small entrance scale animation (0.75 -> 1.1 -> 1, 180-220ms), then static */
+@keyframes sgpBadgeEntrance {
+  0% {
+    transform: scale(0.75);
+  }
+  60% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.sgp-op-badge.entrance {
+  transform-origin: 0 0;
+  animation: sgpBadgeEntrance 200ms ease-out 1 forwards;
+}
+
+/* Operator Moving / Arriving subtle indicators */
+@keyframes sgpOpMovingDash {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.sgp-op-moving-ring {
+  transform-origin: 0 0;
+  animation: sgpOpMovingDash 6000ms linear infinite;
+  pointer-events: none;
+}
+
+@keyframes sgpOpArrivingPulse {
+  0%, 100% {
+    opacity: 0.4;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.04);
+  }
+}
+
+.sgp-op-arriving-ring {
+  transform-origin: 0 0;
+  animation: sgpOpArrivingPulse 1200ms ease-in-out 3 forwards;
+  pointer-events: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .sgp-pulse-ring,
   .sgp-pulse-ring-amber,
@@ -1526,7 +1721,18 @@ button.sgp-telemetry-item:hover {
   .sgp-live-indicator,
   .sgp-segmented-active-pill,
   .sgp-meter-issue-badge,
-  .sgp-meter-point.selected .sgp-meter-visual-content {
+  .sgp-meter-point.selected .sgp-meter-visual-content,
+  .sgp-meter-target-wave,
+  .sgp-meter-reading-arc,
+  .sgp-meter-completed-sweep,
+  .sgp-meter-overdue-halo,
+  .sgp-meter-review-entry-ring,
+  .sgp-op-reading-arc,
+  .sgp-op-moving-ring,
+  .sgp-op-arriving-ring,
+  .sgp-op-badge.entrance,
+  .sgp-operator-map-marker.selected .sgp-op-visual-content,
+  .sgp-meter-check-glyph {
     animation: none !important;
     transition: none !important;
   }
@@ -1540,6 +1746,12 @@ button.sgp-telemetry-item:hover {
   .sgp-op-visual-content {
     transition: none !important;
     transform: none !important;
+  }
+
+  .sgp-meter-target-wave,
+  .sgp-meter-completed-sweep,
+  .sgp-meter-review-entry-ring {
+    opacity: 0 !important;
   }
 
   .sgp-meter-issue-badge {

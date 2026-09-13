@@ -1,6 +1,12 @@
 import React, { useState } from 'react';
 import { User } from 'lucide-react';
 import type { OperatorShiftSummary } from '../utils/deriveOperatorShiftSummary';
+import {
+  resolveOperatorMotionState,
+  usePrefersReducedMotion,
+  OperatorMotionState,
+} from '../motion/motionStates';
+import { OperatorActivityEffect } from '../motion/OperatorActivityEffect';
 
 export interface OperatorMapMarkerProps {
   summary: OperatorShiftSummary;
@@ -12,6 +18,12 @@ export interface OperatorMapMarkerProps {
   zoomLevel?: number;
   zoneName?: string;
   isZoneFocused?: boolean;
+  activeWorkflowState?: string;
+  operatorActivity?: {
+    state?: 'idle' | 'moving' | 'arriving' | 'reading' | 'completed' | string;
+    targetMeterId?: string;
+  } | null;
+  motionState?: OperatorMotionState;
   onClick: (operatorId: string) => void;
 }
 
@@ -38,9 +50,13 @@ export const OperatorMapMarker: React.FC<OperatorMapMarkerProps> = React.memo(({
   zoomLevel = 1,
   zoneName,
   isZoneFocused = false,
+  activeWorkflowState,
+  operatorActivity,
+  motionState: motionStateProp,
   onClick,
 }) => {
   const [isHovered, setIsHovered] = useState(false);
+  const reducedMotion = usePrefersReducedMotion();
 
   // V13.4 Operator LOD & Sizing:
   // OVERVIEW: 30–34px (target 32px, lodScale = 1.0)
@@ -72,11 +88,36 @@ export const OperatorMapMarker: React.FC<OperatorMapMarkerProps> = React.memo(({
   const hasOverdue = summary.overdueMeters > 0;
   const issueCount = summary.overdueMeters + summary.reviewMeters;
 
-  // Accessible descriptive label per Section 19:
-  // "Nguyễn Văn An, phụ trách Cầu cảng, 67 phần trăm hoàn tất"
+  // V15A Deterministic Motion State Resolution
+  const motionState: OperatorMotionState =
+    motionStateProp ||
+    resolveOperatorMotionState({
+      operatorId: summary.operatorId,
+      isSelected,
+      issueState: issueCount,
+      activeWorkflowState,
+      operatorActivity,
+      progressPct: summary.progressPct,
+    });
+
+  // Accessible descriptive label per Section 20 (Multi-Modal State Indication):
+  let stateDesc: string;
+  if (motionState === 'reading') {
+    stateDesc = 'đang ghi';
+  } else if (motionState === 'moving') {
+    stateDesc = 'đang di chuyển';
+  } else if (motionState === 'arriving') {
+    stateDesc = 'đang đến điểm ghi';
+  } else if (motionState === 'completed') {
+    stateDesc = 'đã hoàn tất ca';
+  } else if (issueCount > 0) {
+    stateDesc = `${issueCount} vấn đề cần xử lý`;
+  } else {
+    stateDesc = `${summary.progressPct} phần trăm hoàn tất`;
+  }
   const accessibleLabel = `${summary.fullName || 'Nhân viên vận hành'}, phụ trách ${
     zoneName || 'khu vực'
-  }, ${summary.progressPct} phần trăm hoàn tất${issueCount > 0 ? `, ${issueCount} vấn đề cần xử lý` : ''}`;
+  }, ${stateDesc}${isSelected ? ', đang chọn' : ''}`;
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ' ') {
@@ -90,7 +131,8 @@ export const OperatorMapMarker: React.FC<OperatorMapMarkerProps> = React.memo(({
     <g
       className={`sgp-operator-map-marker ${isSelected ? 'selected' : ''} ${
         isHovered ? 'hovered' : ''
-      } lod-${operatorLod.toLowerCase()}`}
+      } motion-${motionState} lod-${operatorLod.toLowerCase()}`}
+      data-motion-state={motionState}
       transform={`translate(${x}, ${y}) scale(${presentationScale})`}
       role="button"
       tabIndex={0}
@@ -113,19 +155,12 @@ export const OperatorMapMarker: React.FC<OperatorMapMarkerProps> = React.memo(({
 
       {/* Visual Content Group */}
       <g className="sgp-op-visual-content">
-        {/* 1. SELECTION / FOCUS HALO */}
-        {isSelected && (
-          <circle
-            cx={0}
-            cy={0}
-            r={18.5}
-            fill="none"
-            stroke="#00E5FF"
-            strokeWidth={2}
-            filter="drop-shadow(0 0 6px rgba(0, 229, 255, 0.75))"
-            className="sgp-op-marker-halo"
-          />
-        )}
+        {/* 1. V15A REUSABLE OPERATOR ACTIVITY EFFECT (Section 17: passes motionState, selected, reducedMotion) */}
+        <OperatorActivityEffect
+          motionState={motionState}
+          selected={isSelected}
+          reducedMotion={reducedMotion}
+        />
 
         {/* 2. WHITE SEPARATION RING (Section 12: white separation ring against aerial map) */}
         <circle
@@ -160,7 +195,7 @@ export const OperatorMapMarker: React.FC<OperatorMapMarkerProps> = React.memo(({
           strokeDasharray={ringCircumference}
           strokeDashoffset={strokeOffset}
           transform="rotate(-90)"
-          style={{ transition: 'stroke-dashoffset 280ms ease-out' }}
+          style={{ transition: reducedMotion ? 'none' : 'stroke-dashoffset 280ms ease-out' }}
           role="progressbar"
           aria-valuenow={clampedProgress}
           aria-valuemin={0}
@@ -199,7 +234,7 @@ export const OperatorMapMarker: React.FC<OperatorMapMarkerProps> = React.memo(({
 
         {/* 6. ISSUE BADGE: RENDER ONLY WHEN ISSUE COUNT > 0 (Section 14: does not cover initials) */}
         {issueCount > 0 && (
-          <g transform="translate(11, -11)" className="sgp-op-badge" pointerEvents="none">
+          <g transform="translate(11, -11)" className="sgp-op-badge entrance" pointerEvents="none">
             <circle
               cx={0}
               cy={0}

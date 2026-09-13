@@ -17,6 +17,11 @@ interface OperatorLayerProps {
   selectedEntity?: SelectedEntity;
   targetPlacementZoneId?: string;
   filterTier?: 'all' | 'normal' | 'issue' | 'selected';
+  activeWorkflowState?: string;
+  operatorActivity?: {
+    state?: 'idle' | 'moving' | 'arriving' | 'reading' | 'completed' | string;
+    targetMeterId?: string;
+  } | null;
   onSelectOperator: (operatorId: string) => void;
 }
 
@@ -41,6 +46,8 @@ export const OperatorLayer: React.FC<OperatorLayerProps> = ({
   selectedEntity = null,
   targetPlacementZoneId,
   filterTier = 'all',
+  activeWorkflowState,
+  operatorActivity,
   onSelectOperator,
 }) => {
   // Derive operator summary for each zone's assigned operator at its zone anchor
@@ -174,6 +181,8 @@ export const OperatorLayer: React.FC<OperatorLayerProps> = ({
             zoomLevel={zoomLevel}
             zoneName={zoneMap.get(zoneId)}
             isZoneFocused={isZoneFocused}
+            activeWorkflowState={activeWorkflowState}
+            operatorActivity={operatorActivity}
             onClick={onSelectOperator}
           />
         );
