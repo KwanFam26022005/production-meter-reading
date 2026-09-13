@@ -2,13 +2,13 @@ import json
 from pathlib import Path
 import uuid
 from datetime import datetime, timedelta, timezone
-from typing import Optional
+from typing import Any, Optional
 
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from .config import get_settings
-from .models import AdminAuditLog, Meter, MeterReading, MeterReadingEvidence, ReadingBatch, ReadingRound, User
+from .models import AdminAuditLog, MapVersion, MapVersionZone, Meter, MeterReading, MeterReadingEvidence, ReadingBatch, ReadingRound, User
 from .schemas import (
     AdminAuditLogItem,
     AdminAuditLogListResponse,
@@ -22,12 +22,14 @@ from .schemas import (
     AdminInspectionMeter,
     AdminInspectionOperator,
     AdminInspectionRound,
+    AdminMeterChangeZoneRequest,
     AdminMeterCreateRequest,
     AdminMeterItem,
     AdminMeterLatestReadingResponse,
     AdminMeterListResponse,
     AdminMeterReadingEvidenceInfo,
     AdminMeterReadingInspectionResponse,
+    AdminMeterRelocateRequest,
     AdminMeterUpdateRequest,
     AdminScheduleCreateRequest,
     AdminScheduleCreateResponse,
@@ -40,6 +42,7 @@ from .schemas import (
     ReadingRoundOut,
 )
 from .inference import compute_recognition_crop_geometry
+from .geometry_utils import is_point_in_polygon
 
 settings = get_settings()
 
@@ -176,8 +179,10 @@ def get_admin_meters(
                 meter_type=m.meter_type,
                 is_active=m.is_active,
                 zone_id=m.zone_id,
+                presentation_zone_id=m.presentation_zone_id,
                 map_x=m.map_x,
                 map_y=m.map_y,
+                route_status=m.route_status or "VALID",
                 created_at=m.created_at.isoformat() if m.created_at else None,
                 updated_at=m.updated_at.isoformat() if m.updated_at else None,
                 has_readings=(count > 0),
@@ -231,10 +236,32 @@ def create_admin_meter(
     # Validate coordinate range if provided
     map_x = payload.map_x
     map_y = payload.map_y
+    if map_x is not None and map_x > 1.0:
+        map_x = map_x / 1915.0  # normalize if pixel provided
+    if map_y is not None and map_y > 1.0:
+        map_y = map_y / 821.0
+
     if map_x is not None:
         map_x = max(0.0, min(1.0, round(float(map_x), 4)))
     if map_y is not None:
         map_y = max(0.0, min(1.0, round(float(map_y), 4)))
+
+    pres_zone_id = payload.presentation_zone_id.strip() if payload.presentation_zone_id else None
+
+    # Validate zone containment if coordinate provided
+    if pres_zone_id and map_x is not None and map_y is not None:
+        pub_map = db.query(MapVersion).filter(MapVersion.status == "PUBLISHED").order_by(MapVersion.published_at.desc()).first()
+        if pub_map:
+            target_zone = next((z for z in pub_map.zones if z.zone_id == pres_zone_id), None)
+            if target_zone:
+                poly = json.loads(target_zone.polygon_canonical) if isinstance(target_zone.polygon_canonical, str) else target_zone.polygon_canonical
+                cx = map_x * pub_map.canonical_width
+                cy = map_y * pub_map.canonical_height
+                if not is_point_in_polygon({"x": cx, "y": cy}, poly):
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Tọa độ chỉ định nằm ngoài ranh giới phân khu {target_zone.display_label}.",
+                    )
 
     new_meter = Meter(
         id=str(uuid.uuid4()),
@@ -243,8 +270,10 @@ def create_admin_meter(
         location=clean_loc,
         meter_type=clean_type,
         zone_id=payload.zone_id,
+        presentation_zone_id=pres_zone_id,
         map_x=map_x,
         map_y=map_y,
+        route_status="REVIEW_REQUIRED" if (map_x is not None and map_y is not None) else "VALID",
         is_active=True,
     )
     db.add(new_meter)
@@ -263,6 +292,7 @@ def create_admin_meter(
             "location": new_meter.location,
             "meter_type": new_meter.meter_type,
             "zone_id": new_meter.zone_id,
+            "presentation_zone_id": new_meter.presentation_zone_id,
             "map_x": new_meter.map_x,
             "map_y": new_meter.map_y,
             "is_active": new_meter.is_active,
@@ -279,8 +309,10 @@ def create_admin_meter(
         meter_type=new_meter.meter_type,
         is_active=new_meter.is_active,
         zone_id=new_meter.zone_id,
+        presentation_zone_id=new_meter.presentation_zone_id,
         map_x=new_meter.map_x,
         map_y=new_meter.map_y,
+        route_status=new_meter.route_status,
         created_at=new_meter.created_at.isoformat() if new_meter.created_at else None,
         updated_at=new_meter.updated_at.isoformat() if new_meter.updated_at else None,
         has_readings=False,
@@ -309,6 +341,7 @@ def update_admin_meter(
         "location": meter.location,
         "meter_type": meter.meter_type,
         "zone_id": meter.zone_id,
+        "presentation_zone_id": meter.presentation_zone_id,
         "map_x": meter.map_x,
         "map_y": meter.map_y,
         "is_active": meter.is_active,
@@ -330,7 +363,6 @@ def update_admin_meter(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Không thể thay đổi mã công tơ đã có lịch sử ghi nhận chỉ số.",
                 )
-            # Check duplicate code
             dup = db.query(Meter).filter(Meter.meter_code == new_code, Meter.id != meter.id).first()
             if dup:
                 raise HTTPException(
@@ -359,11 +391,30 @@ def update_admin_meter(
     if payload.zone_id is not None:
         meter.zone_id = payload.zone_id
 
+    if payload.presentation_zone_id is not None:
+        meter.presentation_zone_id = payload.presentation_zone_id
+
+    coords_changed = False
     if payload.map_x is not None:
-        meter.map_x = max(0.0, min(1.0, round(float(payload.map_x), 4)))
+        val_x = float(payload.map_x)
+        if val_x > 1.0:
+            val_x = val_x / 1915.0
+        val_x = max(0.0, min(1.0, round(val_x, 4)))
+        if meter.map_x != val_x:
+            meter.map_x = val_x
+            coords_changed = True
 
     if payload.map_y is not None:
-        meter.map_y = max(0.0, min(1.0, round(float(payload.map_y), 4)))
+        val_y = float(payload.map_y)
+        if val_y > 1.0:
+            val_y = val_y / 821.0
+        val_y = max(0.0, min(1.0, round(val_y, 4)))
+        if meter.map_y != val_y:
+            meter.map_y = val_y
+            coords_changed = True
+
+    if coords_changed:
+        meter.route_status = "REVIEW_REQUIRED"
 
     meter.updated_at = datetime.now(timezone.utc)
 
@@ -373,6 +424,7 @@ def update_admin_meter(
         "location": meter.location,
         "meter_type": meter.meter_type,
         "zone_id": meter.zone_id,
+        "presentation_zone_id": meter.presentation_zone_id,
         "map_x": meter.map_x,
         "map_y": meter.map_y,
         "is_active": meter.is_active,
@@ -390,7 +442,6 @@ def update_admin_meter(
     db.commit()
     db.refresh(meter)
 
-    # Get reading count & latest reading
     reading_count = db.query(MeterReading).filter(MeterReading.meter_id == meter.id).count()
     latest_r = (
         db.query(MeterReading)
@@ -407,8 +458,221 @@ def update_admin_meter(
         meter_type=meter.meter_type,
         is_active=meter.is_active,
         zone_id=meter.zone_id,
+        presentation_zone_id=meter.presentation_zone_id,
         map_x=meter.map_x,
         map_y=meter.map_y,
+        route_status=meter.route_status or "VALID",
+        created_at=meter.created_at.isoformat() if meter.created_at else None,
+        updated_at=meter.updated_at.isoformat() if meter.updated_at else None,
+        has_readings=(reading_count > 0),
+        total_readings=reading_count,
+        latest_reading=latest_r.reading if latest_r else None,
+        latest_reading_time=get_local_time_str(latest_r.server_timestamp) if latest_r else None,
+    )
+
+
+def relocate_admin_meter(
+    db: Session,
+    actor: User,
+    meter_id: str,
+    payload: AdminMeterRelocateRequest,
+) -> AdminMeterItem:
+    """
+    Explicit spatial relocation of a meter:
+    1. Validates coordinate bounds.
+    2. Validates point inside assigned presentation zone in active map.
+    3. Persists canonical/normalized coordinate.
+    4. Flags route_status = 'REVIEW_REQUIRED'.
+    5. Writes METER_RELOCATED audit event.
+    """
+    meter = db.query(Meter).filter(Meter.id == meter_id).first()
+    if not meter:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Không tìm thấy công tơ.",
+        )
+
+    raw_x = payload.map_x
+    raw_y = payload.map_y
+
+    # Support canonical pixel or normalized input
+    if raw_x > 1.0:
+        norm_x = raw_x / 1915.0
+    else:
+        norm_x = raw_x
+
+    if raw_y > 1.0:
+        norm_y = raw_y / 821.0
+    else:
+        norm_y = raw_y
+
+    norm_x = max(0.0, min(1.0, round(float(norm_x), 4)))
+    norm_y = max(0.0, min(1.0, round(float(norm_y), 4)))
+
+    # Containment validation against assigned presentation zone
+    if meter.presentation_zone_id:
+        pub_map = db.query(MapVersion).filter(MapVersion.status == "PUBLISHED").order_by(MapVersion.published_at.desc()).first()
+        if pub_map:
+            target_zone = next((z for z in pub_map.zones if z.zone_id == meter.presentation_zone_id), None)
+            if target_zone:
+                poly = json.loads(target_zone.polygon_canonical) if isinstance(target_zone.polygon_canonical, str) else target_zone.polygon_canonical
+                cx = norm_x * pub_map.canonical_width
+                cy = norm_y * pub_map.canonical_height
+                if not is_point_in_polygon({"x": cx, "y": cy}, poly):
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Tọa độ mới ({round(cx)}, {round(cy)}) nằm ngoài ranh giới phân khu {target_zone.display_label}.",
+                    )
+
+    before_state = {
+        "map_x": meter.map_x,
+        "map_y": meter.map_y,
+        "route_status": meter.route_status,
+    }
+
+    meter.map_x = norm_x
+    meter.map_y = norm_y
+    meter.route_status = "REVIEW_REQUIRED"
+    meter.updated_at = datetime.now(timezone.utc)
+
+    after_state = {
+        "map_x": meter.map_x,
+        "map_y": meter.map_y,
+        "route_status": meter.route_status,
+    }
+
+    log_admin_action(
+        db=db,
+        actor_user_id=actor.id,
+        action="METER_RELOCATED",
+        resource_type="METER",
+        resource_id=meter.id,
+        before_json=before_state,
+        after_json=after_state,
+    )
+    db.commit()
+    db.refresh(meter)
+
+    reading_count = db.query(MeterReading).filter(MeterReading.meter_id == meter.id).count()
+    latest_r = (
+        db.query(MeterReading)
+        .filter(MeterReading.meter_id == meter.id, MeterReading.status == "CONFIRMED", MeterReading.reading.isnot(None))
+        .order_by(MeterReading.server_timestamp.desc())
+        .first()
+    )
+
+    return AdminMeterItem(
+        id=meter.id,
+        meter_code=meter.meter_code,
+        name=meter.name,
+        location=meter.location,
+        meter_type=meter.meter_type,
+        is_active=meter.is_active,
+        zone_id=meter.zone_id,
+        presentation_zone_id=meter.presentation_zone_id,
+        map_x=meter.map_x,
+        map_y=meter.map_y,
+        route_status=meter.route_status,
+        created_at=meter.created_at.isoformat() if meter.created_at else None,
+        updated_at=meter.updated_at.isoformat() if meter.updated_at else None,
+        has_readings=(reading_count > 0),
+        total_readings=reading_count,
+        latest_reading=latest_r.reading if latest_r else None,
+        latest_reading_time=get_local_time_str(latest_r.server_timestamp) if latest_r else None,
+    )
+
+
+def change_admin_meter_zone(
+    db: Session,
+    actor: User,
+    meter_id: str,
+    payload: AdminMeterChangeZoneRequest,
+) -> AdminMeterItem:
+    """
+    Changes a meter's zone assignment with strict containment validation:
+    Does NOT silently warp coordinates. If current coordinates are outside target zone, blocks save.
+    """
+    meter = db.query(Meter).filter(Meter.id == meter_id).first()
+    if not meter:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Không tìm thấy công tơ.",
+        )
+
+    pub_map = db.query(MapVersion).filter(MapVersion.status == "PUBLISHED").order_by(MapVersion.published_at.desc()).first()
+    if not pub_map:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Không tìm thấy cấu hình bản đồ đang phát hành.",
+        )
+
+    target_zone = next((z for z in pub_map.zones if z.zone_id == payload.presentation_zone_id), None)
+    if not target_zone:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Phân khu {payload.presentation_zone_id} không tồn tại trên bản đồ.",
+        )
+
+    # Validate current coordinate inside target zone
+    if meter.map_x is not None and meter.map_y is not None:
+        poly = json.loads(target_zone.polygon_canonical) if isinstance(target_zone.polygon_canonical, str) else target_zone.polygon_canonical
+        cx = meter.map_x * pub_map.canonical_width
+        cy = meter.map_y * pub_map.canonical_height
+        if not is_point_in_polygon({"x": cx, "y": cy}, poly):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Tọa độ hiện tại của công tơ nằm ngoài ranh giới phân khu {target_zone.display_label}. Vui lòng đặt lại vị trí công tơ vào phân khu mới trước khi chuyển khu vực.",
+            )
+
+    before_state = {
+        "zone_id": meter.zone_id,
+        "presentation_zone_id": meter.presentation_zone_id,
+        "route_status": meter.route_status,
+    }
+
+    meter.zone_id = payload.zone_id
+    meter.presentation_zone_id = payload.presentation_zone_id
+    meter.route_status = "REVIEW_REQUIRED"
+    meter.updated_at = datetime.now(timezone.utc)
+
+    after_state = {
+        "zone_id": meter.zone_id,
+        "presentation_zone_id": meter.presentation_zone_id,
+        "route_status": meter.route_status,
+    }
+
+    log_admin_action(
+        db=db,
+        actor_user_id=actor.id,
+        action="METER_ZONE_CHANGED",
+        resource_type="METER",
+        resource_id=meter.id,
+        before_json=before_state,
+        after_json=after_state,
+    )
+    db.commit()
+    db.refresh(meter)
+
+    reading_count = db.query(MeterReading).filter(MeterReading.meter_id == meter.id).count()
+    latest_r = (
+        db.query(MeterReading)
+        .filter(MeterReading.meter_id == meter.id, MeterReading.status == "CONFIRMED", MeterReading.reading.isnot(None))
+        .order_by(MeterReading.server_timestamp.desc())
+        .first()
+    )
+
+    return AdminMeterItem(
+        id=meter.id,
+        meter_code=meter.meter_code,
+        name=meter.name,
+        location=meter.location,
+        meter_type=meter.meter_type,
+        is_active=meter.is_active,
+        zone_id=meter.zone_id,
+        presentation_zone_id=meter.presentation_zone_id,
+        map_x=meter.map_x,
+        map_y=meter.map_y,
+        route_status=meter.route_status,
         created_at=meter.created_at.isoformat() if meter.created_at else None,
         updated_at=meter.updated_at.isoformat() if meter.updated_at else None,
         has_readings=(reading_count > 0),
@@ -424,6 +688,7 @@ def set_meter_active_state(
     meter_id: str,
     is_active: bool,
 ) -> AdminMeterItem:
+    """Soft-deactivates or reactivates a meter."""
     meter = db.query(Meter).filter(Meter.id == meter_id).first()
     if not meter:
         raise HTTPException(
@@ -431,12 +696,28 @@ def set_meter_active_state(
             detail="Không tìm thấy công tơ.",
         )
 
-    before_state = {"is_active": meter.is_active}
-    meter.is_active = is_active
-    meter.updated_at = datetime.now(timezone.utc)
-    after_state = {"is_active": meter.is_active}
+    # When reactivating, validate spatial containment
+    if is_active and meter.presentation_zone_id and meter.map_x is not None and meter.map_y is not None:
+        pub_map = db.query(MapVersion).filter(MapVersion.status == "PUBLISHED").order_by(MapVersion.published_at.desc()).first()
+        if pub_map:
+            target_zone = next((z for z in pub_map.zones if z.zone_id == meter.presentation_zone_id), None)
+            if target_zone:
+                poly = json.loads(target_zone.polygon_canonical) if isinstance(target_zone.polygon_canonical, str) else target_zone.polygon_canonical
+                cx = meter.map_x * pub_map.canonical_width
+                cy = meter.map_y * pub_map.canonical_height
+                if not is_point_in_polygon({"x": cx, "y": cy}, poly):
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Không thể kích hoạt lại: Vị trí công tơ không còn nằm trong phân khu {target_zone.display_label}.",
+                    )
 
-    action = "METER_DEACTIVATED" if not is_active else "METER_ACTIVATED"
+    before_state = {"is_active": meter.is_active, "route_status": meter.route_status}
+    meter.is_active = is_active
+    meter.route_status = "REVIEW_REQUIRED" if not is_active else meter.route_status
+    meter.updated_at = datetime.now(timezone.utc)
+    after_state = {"is_active": meter.is_active, "route_status": meter.route_status}
+
+    action = "METER_DEACTIVATED" if not is_active else "METER_REACTIVATED"
     log_admin_action(
         db=db,
         actor_user_id=actor.id,
@@ -464,6 +745,11 @@ def set_meter_active_state(
         location=meter.location,
         meter_type=meter.meter_type,
         is_active=meter.is_active,
+        zone_id=meter.zone_id,
+        presentation_zone_id=meter.presentation_zone_id,
+        map_x=meter.map_x,
+        map_y=meter.map_y,
+        route_status=meter.route_status or "VALID",
         created_at=meter.created_at.isoformat() if meter.created_at else None,
         updated_at=meter.updated_at.isoformat() if meter.updated_at else None,
         has_readings=(reading_count > 0),
@@ -471,6 +757,44 @@ def set_meter_active_state(
         latest_reading=latest_r.reading if latest_r else None,
         latest_reading_time=get_local_time_str(latest_r.server_timestamp) if latest_r else None,
     )
+
+
+def delete_admin_meter(db: Session, actor: User, meter_id: str) -> dict[str, Any]:
+    """
+    Hard delete protection:
+    If meter has ANY recorded readings or history, hard deletion is blocked with 409 Conflict.
+    Soft deletion ("Ngừng sử dụng") must be used instead.
+    Hard deletion is permitted only for unused test/draft meters.
+    """
+    meter = db.query(Meter).filter(Meter.id == meter_id).first()
+    if not meter:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Không tìm thấy công tơ.",
+        )
+
+    reading_count = db.query(MeterReading).filter(MeterReading.meter_id == meter.id).count()
+    if reading_count > 0:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Công tơ đã có {reading_count} bản ghi lịch sử chỉ số. Không được phép xóa vĩnh viễn. Vui lòng sử dụng tính năng Ngừng sử dụng (deactivate).",
+        )
+
+    log_admin_action(
+        db=db,
+        actor_user_id=actor.id,
+        action="METER_DELETED",
+        resource_type="METER",
+        resource_id=meter.id,
+        before_json={
+            "meter_code": meter.meter_code,
+            "name": meter.name,
+        },
+    )
+    db.delete(meter)
+    db.commit()
+
+    return {"status": "success", "message": f"Đã xóa vĩnh viễn công tơ {meter.meter_code} thành công."}
 
 
 # ==============================================================================
