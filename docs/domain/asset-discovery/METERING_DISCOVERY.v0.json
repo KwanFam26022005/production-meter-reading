@@ -1,0 +1,219 @@
+[
+  {
+    "meterCode": "MTR-001",
+    "currentName": "Cầu Tàu 1 - Trạm Đo Phía Bắc",
+    "meterType": "MECHANICAL",
+    "candidateMeasures": "UNKNOWN",
+    "candidateInstalledAt": "UNKNOWN",
+    "utility": "UNKNOWN",
+    "readingMethod": "UNKNOWN",
+    "communicationProtocol": "UNKNOWN",
+    "mobility": "UNKNOWN",
+    "confidence": "LOW",
+    "verificationStatus": "UNVERIFIED",
+    "questions": [
+      "What physical quantity does this meter measure (electricity, fresh water, fuel)?",
+      "Where is this meter physically mounted on Berth 1 infrastructure?",
+      "Does this meter serve a single vessel shore connection or fixed port equipment?",
+      "Is manual optical inspection required, or is there a pulse output?"
+    ]
+  },
+  {
+    "meterCode": "MTR-002",
+    "currentName": "Cầu Tàu 2 - Bến Xà Lan Phụ",
+    "meterType": "LCD",
+    "candidateMeasures": "UNKNOWN",
+    "candidateInstalledAt": "UNKNOWN",
+    "utility": "UNKNOWN",
+    "readingMethod": "UNKNOWN",
+    "communicationProtocol": "UNKNOWN",
+    "mobility": "UNKNOWN",
+    "confidence": "LOW",
+    "verificationStatus": "UNVERIFIED",
+    "questions": [
+      "What physical quantity does this meter measure?",
+      "Where is it installed along the barge wharf perimeter?",
+      "Is the digital LCD display directly legible under daylight conditions?"
+    ]
+  },
+  {
+    "meterCode": "MTR-003",
+    "currentName": "Bãi Cont 1 - Cẩu Khung RTG-01",
+    "meterType": "MECHANICAL",
+    "candidateMeasures": "UNKNOWN",
+    "candidateInstalledAt": "UNKNOWN",
+    "utility": "UNKNOWN",
+    "readingMethod": "UNKNOWN",
+    "communicationProtocol": "UNKNOWN",
+    "mobility": "UNKNOWN",
+    "confidence": "HIGH",
+    "verificationStatus": "UNVERIFIED",
+    "questions": [
+      "Is the meter mounted on the mobile RTG crane superstructure or at the yard plug station?",
+      "If mounted on mobile RTG, does the equipment track GPS coordinates or operational zone shifts?",
+      "What physical utility is measured (main electrical drive power, auxiliary generator, diesel consumption)?",
+      "Does this meter move across yard zones during re-stacking operations?"
+    ]
+  },
+  {
+    "meterCode": "MTR-004",
+    "currentName": "Bãi Cont 2 - Cẩu Khung RTG-02",
+    "meterType": "LCD",
+    "candidateMeasures": "UNKNOWN",
+    "candidateInstalledAt": "UNKNOWN",
+    "utility": "UNKNOWN",
+    "readingMethod": "UNKNOWN",
+    "communicationProtocol": "UNKNOWN",
+    "mobility": "UNKNOWN",
+    "confidence": "HIGH",
+    "verificationStatus": "UNVERIFIED",
+    "questions": [
+      "Is the meter installed directly on crane RTG-02 or on the yard supply pit?",
+      "Can this meter move between container yard zones?",
+      "Does the electronic LCD interface output RS-485 / Modbus or require manual visual readings?"
+    ]
+  },
+  {
+    "meterCode": "MTR-005",
+    "currentName": "Kho Hàng 1 - Tủ Phân Phối Tổng",
+    "meterType": "MECHANICAL",
+    "candidateMeasures": "UNKNOWN",
+    "candidateInstalledAt": "UNKNOWN",
+    "utility": "UNKNOWN",
+    "readingMethod": "UNKNOWN",
+    "communicationProtocol": "UNKNOWN",
+    "mobility": "UNKNOWN",
+    "confidence": "HIGH",
+    "verificationStatus": "UNVERIFIED",
+    "questions": [
+      "What sub-circuits or warehouse sections are fed downstream from this distribution panel?",
+      "Does one warehouse facility have multiple secondary meters?",
+      "Where in Warehouse 1 is the main distribution panel located?"
+    ]
+  },
+  {
+    "meterCode": "MTR-006",
+    "currentName": "Kho Hàng 2 - Cụm Bơm Nước Chữa Cháy",
+    "meterType": "MECHANICAL",
+    "candidateMeasures": "UNKNOWN",
+    "candidateInstalledAt": "UNKNOWN",
+    "utility": "UNKNOWN",
+    "readingMethod": "UNKNOWN",
+    "communicationProtocol": "UNKNOWN",
+    "mobility": "UNKNOWN",
+    "confidence": "HIGH",
+    "verificationStatus": "UNVERIFIED",
+    "questions": [
+      "CRITICAL: Does this meter measure electric pump power consumption, or water volume flow?",
+      "Is this meter inside the pump station enclosure or outdoor?",
+      "Is this system periodically tested (monthly fire drill consumption pattern)?"
+    ]
+  },
+  {
+    "meterCode": "MTR-007",
+    "currentName": "Cổng Kiểm Soát - Trạm Barie Số 1",
+    "meterType": "LCD",
+    "candidateMeasures": "UNKNOWN",
+    "candidateInstalledAt": "UNKNOWN",
+    "utility": "UNKNOWN",
+    "readingMethod": "UNKNOWN",
+    "communicationProtocol": "UNKNOWN",
+    "mobility": "UNKNOWN",
+    "confidence": "HIGH",
+    "verificationStatus": "UNVERIFIED",
+    "questions": [
+      "Does this meter measure gate barrier power, weighbridge telemetry, or booth lighting?",
+      "Is it shared across multiple barrier gates or dedicated to Inbound Lane 1?",
+      "Where is the physical meter cabinet installed?"
+    ]
+  },
+  {
+    "meterCode": "MTR-008",
+    "currentName": "Cổng Kiểm Soát - Nhà Điều Hành Phụ",
+    "meterType": "MECHANICAL",
+    "candidateMeasures": "UNKNOWN",
+    "candidateInstalledAt": "UNKNOWN",
+    "utility": "UNKNOWN",
+    "readingMethod": "UNKNOWN",
+    "communicationProtocol": "UNKNOWN",
+    "mobility": "UNKNOWN",
+    "confidence": "MEDIUM",
+    "verificationStatus": "UNVERIFIED",
+    "questions": [
+      "What facility loads are connected (HVAC, lighting, security server rack)?",
+      "Is this building considered a permanent fixed asset or modular guardhouse?"
+    ]
+  },
+  {
+    "meterCode": "MTR-009",
+    "currentName": "Trạm Biến Áp 1 - Xuất Tuyến Trung Thế",
+    "meterType": "LCD",
+    "candidateMeasures": "UNKNOWN",
+    "candidateInstalledAt": "UNKNOWN",
+    "utility": "UNKNOWN",
+    "readingMethod": "UNKNOWN",
+    "communicationProtocol": "UNKNOWN",
+    "mobility": "UNKNOWN",
+    "confidence": "MEDIUM",
+    "verificationStatus": "UNVERIFIED",
+    "questions": [
+      "What feeder line number or zone load does this medium-voltage feeder supply?",
+      "Does this meter feature SCADA or PLC Modbus integration currently?",
+      "What safety clearance protocols are required for manual inspection?"
+    ]
+  },
+  {
+    "meterCode": "MTR-010",
+    "currentName": "Trạm Biến Áp 2 - Máy Biến Áp Phụ Tải 2",
+    "meterType": "MECHANICAL",
+    "candidateMeasures": "UNKNOWN",
+    "candidateInstalledAt": "UNKNOWN",
+    "utility": "UNKNOWN",
+    "readingMethod": "UNKNOWN",
+    "communicationProtocol": "UNKNOWN",
+    "mobility": "UNKNOWN",
+    "confidence": "HIGH",
+    "verificationStatus": "UNVERIFIED",
+    "questions": [
+      "Is this meter installed on the primary (high-voltage) or secondary (low-voltage) side?",
+      "What is the transformer rated capacity and transformation ratio (CT/PT)?",
+      "Does this transformer supply single or multiple port operational zones?"
+    ]
+  },
+  {
+    "meterCode": "MTR-011",
+    "currentName": "Xưởng Cơ Khí - Tủ Động Lực Gia Công",
+    "meterType": "LCD",
+    "candidateMeasures": "UNKNOWN",
+    "candidateInstalledAt": "UNKNOWN",
+    "utility": "UNKNOWN",
+    "readingMethod": "UNKNOWN",
+    "communicationProtocol": "UNKNOWN",
+    "mobility": "UNKNOWN",
+    "confidence": "MEDIUM",
+    "verificationStatus": "UNVERIFIED",
+    "questions": [
+      "What heavy machine tools or industrial lathes are connected to this power panel?",
+      "Are there seasonal or shift-based load fluctuations?",
+      "Is the meter fixed permanently to the workshop wall?"
+    ]
+  },
+  {
+    "meterCode": "MTR-012",
+    "currentName": "Xưởng Bảo Trì - Trạm Khí Nén & Cấp Nguồn",
+    "meterType": "MECHANICAL",
+    "candidateMeasures": "UNKNOWN",
+    "candidateInstalledAt": "UNKNOWN",
+    "utility": "UNKNOWN",
+    "readingMethod": "UNKNOWN",
+    "communicationProtocol": "UNKNOWN",
+    "mobility": "UNKNOWN",
+    "confidence": "HIGH",
+    "verificationStatus": "UNVERIFIED",
+    "questions": [
+      "Does this meter measure electrical power to the compressor or compressed air flow/pressure?",
+      "Is this compressor shared across the maintenance shop and repair berth?",
+      "Where is the physical reading face oriented?"
+    ]
+  }
+]

@@ -1,0 +1,110 @@
+[
+  {
+    "candidateCode": "AST-CAND-001",
+    "candidateName": "Berth 1 North Station Infrastructure",
+    "candidateType": "BERTH_INFRASTRUCTURE",
+    "sourceMeterCode": "MTR-001",
+    "confidence": "LOW",
+    "verificationStatus": "UNVERIFIED",
+    "notes": "Associated with Cầu Tàu 1 - Trạm Đo Phía Bắc (or CT-001 Trạm A). Physical equipment, utility medium, and exact boundary unconfirmed."
+  },
+  {
+    "candidateCode": "AST-CAND-002",
+    "candidateName": "Berth 2 Auxiliary Barge Wharf",
+    "candidateType": "BERTH_INFRASTRUCTURE",
+    "sourceMeterCode": "MTR-002",
+    "confidence": "LOW",
+    "verificationStatus": "UNVERIFIED",
+    "notes": "Associated with Cầu Tàu 2 - Bến Xà Lan Phụ (or CT-002 Kho B). Specific consumer load or marine shore connection unconfirmed."
+  },
+  {
+    "candidateCode": "AST-CAND-003",
+    "candidateName": "Rubber-Tired Gantry Crane RTG-01",
+    "candidateType": "RTG",
+    "sourceMeterCode": "MTR-003",
+    "confidence": "HIGH",
+    "verificationStatus": "UNVERIFIED",
+    "notes": "Container yard crane equipment. High confidence for RTG asset class based on operational designation; mobility and telemetry unverified."
+  },
+  {
+    "candidateCode": "AST-CAND-004",
+    "candidateName": "Rubber-Tired Gantry Crane RTG-02",
+    "candidateType": "RTG",
+    "sourceMeterCode": "MTR-004",
+    "confidence": "HIGH",
+    "verificationStatus": "UNVERIFIED",
+    "notes": "Container yard crane equipment. High confidence for RTG asset class; mobility and telemetry unverified."
+  },
+  {
+    "candidateCode": "AST-CAND-005",
+    "candidateName": "Warehouse Main Distribution Board",
+    "candidateType": "SWITCHBOARD",
+    "sourceMeterCode": "MTR-005",
+    "confidence": "HIGH",
+    "verificationStatus": "UNVERIFIED",
+    "notes": "Warehouse electrical distribution panel / switchboard. High confidence for electrical switchboard asset."
+  },
+  {
+    "candidateCode": "AST-CAND-006",
+    "candidateName": "Fire Suppression Pump System",
+    "candidateType": "FIRE_PUMP_SYSTEM",
+    "sourceMeterCode": "MTR-006",
+    "confidence": "HIGH",
+    "verificationStatus": "UNVERIFIED",
+    "notes": "Dedicated firefighting pump system. High confidence for safety/pumping system; utility type (electric vs water consumption) must not be inferred."
+  },
+  {
+    "candidateCode": "AST-CAND-007",
+    "candidateName": "Main Gate Barrier Station 1",
+    "candidateType": "GATE_EQUIPMENT",
+    "sourceMeterCode": "MTR-007",
+    "confidence": "HIGH",
+    "verificationStatus": "UNVERIFIED",
+    "notes": "Port entrance gate barrier and control equipment. High confidence for gate infrastructure."
+  },
+  {
+    "candidateCode": "AST-CAND-008",
+    "candidateName": "Gate Operations Auxiliary Office",
+    "candidateType": "FACILITY",
+    "sourceMeterCode": "MTR-008",
+    "confidence": "MEDIUM",
+    "verificationStatus": "UNVERIFIED",
+    "notes": "Auxiliary operations facility building at main gate perimeter."
+  },
+  {
+    "candidateCode": "AST-CAND-009",
+    "candidateName": "Substation 1 Medium Voltage Feeder",
+    "candidateType": "FEEDER",
+    "sourceMeterCode": "MTR-009",
+    "confidence": "MEDIUM",
+    "verificationStatus": "UNVERIFIED",
+    "notes": "Substation outbound electrical feeder line."
+  },
+  {
+    "candidateCode": "AST-CAND-010",
+    "candidateName": "Substation 2 Load Transformer 2",
+    "candidateType": "TRANSFORMER",
+    "sourceMeterCode": "MTR-010",
+    "confidence": "HIGH",
+    "verificationStatus": "UNVERIFIED",
+    "notes": "Power distribution step-down transformer."
+  },
+  {
+    "candidateCode": "AST-CAND-011",
+    "candidateName": "Mechanical Workshop Machinery Feeder Panel",
+    "candidateType": "OTHER",
+    "sourceMeterCode": "MTR-011",
+    "confidence": "MEDIUM",
+    "verificationStatus": "UNVERIFIED",
+    "notes": "Workshop machining power supply panel. Classified as OTHER due to mixed machinery load."
+  },
+  {
+    "candidateCode": "AST-CAND-012",
+    "candidateName": "Maintenance Workshop Compressed Air System",
+    "candidateType": "COMPRESSOR_SYSTEM",
+    "sourceMeterCode": "MTR-012",
+    "confidence": "HIGH",
+    "verificationStatus": "UNVERIFIED",
+    "notes": "Centralized industrial compressor and air receiver system."
+  }
+]
