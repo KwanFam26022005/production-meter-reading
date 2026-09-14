@@ -17,10 +17,15 @@ import {
   useSpatialPlacement,
   SpatialPlacementSvgLayer,
 } from './placement/SpatialPlacementOverlay';
-import { createAdminMeter, updateAdminMeter, relocateAdminMeter } from '../../services/api';
 import { useMapStateMachine, DetailView } from './state/useMapStateMachine';
 import { focusEntity } from './services/mapCameraService';
 import { useMapCalibrationWorkspace } from './calibration/useMapCalibrationWorkspace';
+import { MapConfigurationProvider, useMapConfiguration } from './providers/MapConfigurationProvider';
+import {
+  createAdminMeter,
+  updateAdminMeter,
+  relocateAdminMeter,
+} from '../../services/api';
 import './motion/mapMotion.css';
 
 interface MapOperationsPageProps {
@@ -38,11 +43,13 @@ interface MapOperationsPageProps {
  * - Invariant: Max 1 selection, Max 1 contextual surface (Inspector or ContextRail)
  * - Safe viewport padding ensures camera framing keeps entities unobstructed.
  */
-export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
+const MapOperationsPageContent: React.FC<MapOperationsPageProps> = ({
   user,
   onInspectReading,
   onSwitchToLegacy: _onSwitchToLegacy,
 }) => {
+  const mapConfig = useMapConfiguration();
+
   const {
     selectedDate,
     setSelectedDate,
@@ -69,11 +76,17 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
   // Centralized UI State Machine
   const mapState = useMapStateMachine();
 
-  // Centralized Map Workspace & Calibration View (V12)
-  const calibrationWorkspace = useMapCalibrationWorkspace('map', () => {
-    setAnalyticsOpen(false);
-    mapState.resetToBrowse();
-  });
+  // Centralized Map Workspace & Calibration View (V12) with V16A Active Config invalidation
+  const calibrationWorkspace = useMapCalibrationWorkspace(
+    'map',
+    () => {
+      setAnalyticsOpen(false);
+      mapState.resetToBrowse();
+    },
+    () => {
+      mapConfig.refetch();
+    }
+  );
   const viewMode = calibrationWorkspace.workspaceView;
   const setViewMode = calibrationWorkspace.setWorkspaceView;
 
@@ -635,3 +648,10 @@ export const MapOperationsPage: React.FC<MapOperationsPageProps> = ({
     />
   );
 };
+
+export const MapOperationsPage: React.FC<MapOperationsPageProps> = (props) => (
+  <MapConfigurationProvider>
+    <MapOperationsPageContent {...props} />
+  </MapConfigurationProvider>
+);
+

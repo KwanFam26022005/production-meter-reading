@@ -2,13 +2,25 @@
  * Operational Geometry — Cảng Tân Thuận
  * V7 Spatial Operations Console (Canonical V2 Alignment: 1915x821)
  *
- * Provides:
- * - Exactly 6 calibrated visual presentation zones matching tan-thuan-approved-zoning.png
- * - Explicit mapping from 6 presentation zones to 4 authoritative database business zones
- * - Zero-overlap irregular polygons calibrated against the 1915x821 canonical V2 scene
- * - Containment guarantees for all 12 canonical meters
- * - Single presentation transform normalizedToOperationalSvg() -> 1915x821
- * - Operator anchors in verified visual whitespace
+ * ==============================================================================
+ * V16A STATUS: SEED / TEST FIXTURE / EXPLICIT FALLBACK ONLY
+ * ==============================================================================
+ * SPATIAL_ZONE_PRESENTATIONS and static geometry exports in this file are NO LONGER
+ * the authoritative production runtime geometry source as of V16A.
+ *
+ * Normal runtime spatial authority:
+ *   Database PUBLISHED MapVersion served via GET /api/v1/map-config/active
+ *   and adapted into the UI through MapConfigurationProvider.
+ *
+ * Permitted uses of static exports in this file:
+ *   1. Seed data source baseline (db.py / tanThuanPresentationGeometry.v10.json)
+ *   2. Test fixtures & verification baselines
+ *   3. Explicit degraded fallback when GET /api/v1/map-config/active is unreachable
+ *      (tagged with source="fallback", authoritative=false, and logs DEGRADED_MAP_CONFIGURATION)
+ *
+ * DO NOT import SPATIAL_ZONE_PRESENTATIONS directly for normal operational map rendering.
+ * See: docs/design/map-operations/v16a/V16A_SPATIAL_AUTHORITY.md
+ * ==============================================================================
  */
 
 import type { NormalizedPoint } from '../types';

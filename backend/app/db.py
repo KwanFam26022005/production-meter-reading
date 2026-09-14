@@ -536,6 +536,7 @@ def migrate_db(db_engine=None) -> None:
                     canonical_width INTEGER NOT NULL DEFAULT 1915,
                     canonical_height INTEGER NOT NULL DEFAULT 821,
                     source_asset VARCHAR(255) NOT NULL DEFAULT 'tan-thuan-canonical-base.png',
+                    geometry_schema_version VARCHAR(20) DEFAULT '1.0',
                     status VARCHAR(20) NOT NULL DEFAULT 'DRAFT',
                     revision INTEGER NOT NULL DEFAULT 1,
                     parent_version_id VARCHAR(36),
@@ -553,6 +554,12 @@ def migrate_db(db_engine=None) -> None:
                 cursor.execute("CREATE INDEX IF NOT EXISTS ix_map_versions_map_id ON map_versions (map_id)")
                 cursor.execute("CREATE INDEX IF NOT EXISTS ix_map_versions_map_version ON map_versions (map_version)")
                 cursor.execute("CREATE INDEX IF NOT EXISTS ix_map_versions_status ON map_versions (status)")
+            else:
+                cursor.execute("PRAGMA table_info(map_versions)")
+                mv_cols = [row[1] for row in cursor.fetchall()]
+                if "geometry_schema_version" not in mv_cols:
+                    cursor.execute("ALTER TABLE map_versions ADD COLUMN geometry_schema_version VARCHAR(20) DEFAULT '1.0'")
+                cursor.execute("UPDATE map_versions SET geometry_schema_version = '1.0' WHERE geometry_schema_version IS NULL")
 
             # B. Ensure map_version_zones table exists
             cursor.execute(
@@ -635,15 +642,16 @@ def migrate_db(db_engine=None) -> None:
                     coord_system = geo_manifest.get("coordinateSystem", "tan-thuan-canonical-image-pixel-space-v1")
                     c_width = geo_manifest.get("canonicalWidth", 1915)
                     c_height = geo_manifest.get("canonicalHeight", 821)
+                    geo_schema_ver = geo_manifest.get("schemaVersion", "1.0")
                     all_landmarks = geo_manifest.get("landmarks", [])
 
                     cursor.execute("""
                         INSERT INTO map_versions (
                             id, map_id, map_version, coordinate_system, canonical_width, canonical_height,
-                            source_asset, status, revision, parent_version_id, created_by_user_id,
+                            source_asset, geometry_schema_version, status, revision, parent_version_id, created_by_user_id,
                             published_by_user_id, created_at, updated_at, published_at
-                        ) VALUES (?, 'tan-thuan', ?, ?, ?, ?, 'tan-thuan-canonical-base.png', 'PUBLISHED', 1, NULL, NULL, NULL, ?, ?, ?)
-                    """, (version_id, map_version, coord_system, c_width, c_height, now_utc, now_utc, now_utc))
+                        ) VALUES (?, 'tan-thuan', ?, ?, ?, ?, 'tan-thuan-canonical-base.png', ?, 'PUBLISHED', 1, NULL, NULL, NULL, ?, ?, ?)
+                    """, (version_id, map_version, coord_system, c_width, c_height, geo_schema_ver, now_utc, now_utc, now_utc))
 
                     for z in geo_manifest.get("zones", []):
                         zone_db_id = str(uuid.uuid4())

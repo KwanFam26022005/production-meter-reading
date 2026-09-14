@@ -48,6 +48,7 @@ import {
   MapVersionListResponse,
   MapValidationResponse,
   MapPublishResponse,
+  ActiveMapConfiguration,
 } from '../types';
 
 
@@ -1294,7 +1295,7 @@ export async function reassignZoneOperator(
 // MAP CONFIGURATION & SPATIAL ADMINISTRATION API (V16)
 // ==============================================================================
 
-export async function getActiveMapConfig(): Promise<MapVersionOut> {
+export async function fetchActiveMapConfiguration(): Promise<ActiveMapConfiguration> {
   const res = await apiFetch('/api/v1/map-config/active');
   if (!res.ok) {
     let detail = 'Không thể tải cấu hình bản đồ đang hoạt động.';
@@ -1306,6 +1307,8 @@ export async function getActiveMapConfig(): Promise<MapVersionOut> {
   }
   return res.json();
 }
+
+export const getActiveMapConfig = fetchActiveMapConfiguration;
 
 export async function getMapVersions(): Promise<MapVersionListResponse> {
   const res = await apiFetch('/api/v1/map-config/versions');

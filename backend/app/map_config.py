@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from .admin import log_admin_action
 from .models import MapVersion, MapVersionZone, Meter, User
 from .schemas import (
+    ActiveMapConfigurationResponse,
     MapDraftCreateRequest,
     MapPublishResponse,
     MapRollbackRequest,
@@ -36,6 +37,7 @@ def zone_model_to_dto(z: MapVersionZone) -> MapVersionZoneOut:
         id=z.id,
         map_version_id=z.map_version_id,
         zone_id=z.zone_id,
+        presentation_id=z.zone_id,
         business_zone_id=z.business_zone_id,
         display_index=z.display_index,
         display_label=z.display_label,
@@ -60,6 +62,7 @@ def version_model_to_dto(v: MapVersion) -> MapVersionOut:
         canonical_width=v.canonical_width,
         canonical_height=v.canonical_height,
         source_asset=v.source_asset,
+        geometry_schema_version=getattr(v, "geometry_schema_version", "1.0") or "1.0",
         status=v.status,
         revision=v.revision,
         parent_version_id=v.parent_version_id,
@@ -77,7 +80,7 @@ def version_model_to_dto(v: MapVersion) -> MapVersionOut:
 # ==============================================================================
 # MAP CONFIGURATION SERVICE
 # ==============================================================================
-def get_active_map_config(db: Session, map_id: str = "tan-thuan") -> MapVersionOut:
+def get_active_map_config(db: Session, map_id: str = "tan-thuan") -> ActiveMapConfigurationResponse:
     """Returns the current active PUBLISHED map version with complete geometry."""
     version = (
         db.query(MapVersion)
@@ -90,7 +93,32 @@ def get_active_map_config(db: Session, map_id: str = "tan-thuan") -> MapVersionO
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Không tìm thấy cấu hình bản đồ đang phát hành (PUBLISHED).",
         )
-    return version_model_to_dto(version)
+    dto = version_model_to_dto(version)
+    all_landmarks: list[dict[str, Any]] = []
+    for z in dto.zones:
+        if z.landmarks:
+            all_landmarks.extend(z.landmarks)
+
+    return ActiveMapConfigurationResponse(
+        id=dto.id,
+        map_id=dto.map_id,
+        version_id=dto.id,
+        version_number=dto.map_version,
+        map_version=dto.map_version,
+        coordinate_system=dto.coordinate_system,
+        canonical_width=dto.canonical_width,
+        canonical_height=dto.canonical_height,
+        source_asset=dto.source_asset,
+        source_checksum=None,
+        geometry_schema_version=dto.geometry_schema_version or "1.0",
+        status=dto.status,
+        revision=dto.revision,
+        published_at=dto.published_at,
+        zones=dto.zones,
+        landmarks=all_landmarks,
+        source="db",
+        authoritative=True,
+    )
 
 
 def list_map_versions(db: Session, map_id: str = "tan-thuan") -> MapVersionListResponse:
@@ -193,6 +221,7 @@ def create_map_draft(
         canonical_width=base_version.canonical_width,
         canonical_height=base_version.canonical_height,
         source_asset=base_version.source_asset,
+        geometry_schema_version=getattr(base_version, "geometry_schema_version", "1.0") or "1.0",
         status="DRAFT",
         revision=1,
         parent_version_id=base_version.id,
@@ -548,9 +577,14 @@ def publish_map_version(db: Session, actor: User, version_id: str) -> MapPublish
 
     return MapPublishResponse(
         status="success",
+        version_id=version.id,
+        version_number=version.map_version,
         map_version=version.map_version,
         published_at=now.isoformat(),
         message=f"Đã xuất bản thành công phiên bản bản đồ {version.map_version}.",
+        coordinate_system=version.coordinate_system,
+        canonical_width=version.canonical_width,
+        canonical_height=version.canonical_height,
     )
 
 
@@ -617,7 +651,12 @@ def rollback_map_version(
 
     return MapPublishResponse(
         status="success",
+        version_id=target.id,
+        version_number=target.map_version,
         map_version=target.map_version,
         published_at=now.isoformat(),
         message=f"Đã phục hồi thành công phiên bản bản đồ {target.map_version}. Lý do: {reason}",
+        coordinate_system=target.coordinate_system,
+        canonical_width=target.canonical_width,
+        canonical_height=target.canonical_height,
     )

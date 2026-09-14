@@ -1,10 +1,13 @@
 import React from 'react';
 import { MapMeterItem } from '../types';
-import { normalizedToCanonicalScene } from '../geometry/canonicalScene';
 import {
   isPointInPresentationZone,
   resolveToBusinessZoneId,
+  isPointInPolygon,
+  type SpatialZonePresentation,
 } from '../geometry/operationalGeometry';
+import { CANONICAL_SCENE_WIDTH, CANONICAL_SCENE_HEIGHT } from '../geometry/canonicalScene';
+import { useMapConfiguration } from '../providers/useMapConfiguration';
 import { calculateSpatialEmphasis } from '../state/spatialVisualEmphasis';
 import type { SelectedEntity, MapMode } from '../state/useMapStateMachine';
 import {
@@ -16,6 +19,9 @@ import { MeterActivityEffect } from '../motion/MeterActivityEffect';
 
 interface MeterLayerProps {
   meters: MapMeterItem[];
+  canonicalWidth?: number;
+  canonicalHeight?: number;
+  presentationZones?: SpatialZonePresentation[];
   selectedZoneId?: string | null;
   selectedMeterId: string | null;
   hoveredMeterId: string | null;
@@ -55,6 +61,9 @@ interface MeterLayerProps {
  */
 export const MeterLayer: React.FC<MeterLayerProps> = ({
   meters,
+  canonicalWidth: propWidth,
+  canonicalHeight: propHeight,
+  presentationZones: propZones,
   selectedZoneId,
   selectedMeterId,
   hoveredMeterId,
@@ -74,6 +83,21 @@ export const MeterLayer: React.FC<MeterLayerProps> = ({
 }) => {
   const reducedMotion = usePrefersReducedMotion();
   const targetBusinessZoneId = resolveToBusinessZoneId(selectedZoneId);
+
+  // Safe consumption of active map configuration
+  let configWidth: number | undefined;
+  let configHeight: number | undefined;
+  let configZones: SpatialZonePresentation[] | undefined;
+  try {
+    const mapConfig = useMapConfiguration();
+    configWidth = mapConfig.canonicalWidth;
+    configHeight = mapConfig.canonicalHeight;
+    configZones = mapConfig.presentationZones;
+  } catch {}
+
+  const activeWidth = propWidth || configWidth || CANONICAL_SCENE_WIDTH;
+  const activeHeight = propHeight || configHeight || CANONICAL_SCENE_HEIGHT;
+  const activeZones = propZones || configZones;
 
   // Active entity for emphasis resolution
   const activeSelectedEntity = selectedEntity || (
@@ -126,15 +150,19 @@ export const MeterLayer: React.FC<MeterLayerProps> = ({
         const isReview = m.semanticState === 'REVIEW';
         const isException = isOverdue || isReview;
 
-        // Coordinates resolution: explicit presentation transform
-        const sceneCoord = normalizedToCanonicalScene(m.coordinates);
-        const { x, y } = sceneCoord;
+        // Coordinates resolution: explicit presentation transform using active canonical dimensions
+        const x = Math.round(m.coordinates.x * activeWidth);
+        const y = Math.round(m.coordinates.y * activeHeight);
+        const sceneCoord = { x, y };
 
         // Zone selection dimming logic per V7 Visual Contract:
         let isInsideSelectedZone = true;
         const effectiveZoneId = targetPlacementZoneId || (activeSelectedEntity?.type === 'zone' ? activeSelectedEntity.id : selectedZoneId);
         if (effectiveZoneId) {
-          if (isPointInPresentationZone(sceneCoord, effectiveZoneId)) {
+          const matchedZone = activeZones?.find((z) => z.presentationId === effectiveZoneId || z.businessZoneId === effectiveZoneId);
+          if (matchedZone) {
+            isInsideSelectedZone = isPointInPolygon(sceneCoord, matchedZone.pointsSvg);
+          } else if (isPointInPresentationZone(sceneCoord, effectiveZoneId)) {
             isInsideSelectedZone = true;
           } else if (m.zoneId === effectiveZoneId || m.zoneId === targetBusinessZoneId) {
             isInsideSelectedZone = true;

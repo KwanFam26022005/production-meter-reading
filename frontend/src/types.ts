@@ -484,6 +484,7 @@ export interface MapVersionOut {
   canonical_width: number;
   canonical_height: number;
   source_asset: string;
+  geometry_schema_version?: string;
   status: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
   revision: number;
   parent_version_id?: string | null;
@@ -518,9 +519,14 @@ export interface MapValidationResponse {
 
 export interface MapPublishResponse {
   status: string;
+  version_id?: string;
+  version_number?: string;
   map_version: string;
   published_at: string;
   message: string;
+  coordinate_system?: string;
+  canonical_width?: number;
+  canonical_height?: number;
 }
 
 export interface AdminSchedulePreviewRound {
@@ -1146,3 +1152,10 @@ export interface ZoneReassignResponse {
   user_id: string;
   user_name: string;
 }
+
+export type {
+  ActiveMapConfiguration,
+  ActiveMapZoneGeometry,
+  ActiveMapLandmark,
+} from './features/map-operations/types/activeMapConfiguration';
+

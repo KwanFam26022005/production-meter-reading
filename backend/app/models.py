@@ -120,6 +120,7 @@ class MapVersion(Base):
     canonical_width = Column(Integer, nullable=False, default=1915)
     canonical_height = Column(Integer, nullable=False, default=821)
     source_asset = Column(String(255), nullable=False, default="tan-thuan-canonical-base.png")
+    geometry_schema_version = Column(String(20), nullable=True, default="1.0")
     status = Column(String(20), nullable=False, default="DRAFT", index=True)  # "DRAFT" | "PUBLISHED" | "ARCHIVED"
     revision = Column(Integer, nullable=False, default=1)
     parent_version_id = Column(String(36), ForeignKey("map_versions.id", ondelete="SET NULL"), nullable=True)

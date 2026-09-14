@@ -1070,6 +1070,7 @@ class MapVersionZoneOut(BaseModel):
     id: str
     map_version_id: str
     zone_id: str
+    presentation_id: Optional[str] = None
     business_zone_id: str
     display_index: int
     display_label: str
@@ -1105,6 +1106,7 @@ class MapVersionOut(BaseModel):
     canonical_width: int
     canonical_height: int
     source_asset: str
+    geometry_schema_version: Optional[str] = "1.0"
     status: str
     revision: int
     parent_version_id: Optional[str] = None
@@ -1116,6 +1118,27 @@ class MapVersionOut(BaseModel):
     updated_at: Optional[str] = None
     published_at: Optional[str] = None
     zones: list[MapVersionZoneOut] = []
+
+
+class ActiveMapConfigurationResponse(BaseModel):
+    id: str
+    map_id: str
+    version_id: str
+    version_number: str
+    map_version: str
+    coordinate_system: str
+    canonical_width: int
+    canonical_height: int
+    source_asset: str
+    source_checksum: Optional[str] = None
+    geometry_schema_version: str = "1.0"
+    status: str
+    revision: int
+    published_at: Optional[str] = None
+    zones: list[MapVersionZoneOut] = []
+    landmarks: list[dict[str, Any]] = []
+    source: Literal["db", "fallback"] = "db"
+    authoritative: bool = True
 
 
 class MapVersionListResponse(BaseModel):
@@ -1152,9 +1175,14 @@ class MapValidationResponse(BaseModel):
 
 class MapPublishResponse(BaseModel):
     status: str = "success"
+    version_id: Optional[str] = None
+    version_number: Optional[str] = None
     map_version: str
     published_at: str
     message: str
+    coordinate_system: Optional[str] = None
+    canonical_width: Optional[int] = None
+    canonical_height: Optional[int] = None
 
 
 class MapRollbackRequest(BaseModel):

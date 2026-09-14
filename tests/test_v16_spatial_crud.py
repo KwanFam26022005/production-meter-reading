@@ -24,12 +24,14 @@ from backend.app.models import (
     MapVersionZone,
     Meter,
     MeterReading,
+    ReadingBatch,
     ReadingRound,
     AdminAuditLog,
 )
 from backend.app.auth import hash_password, hash_session_token, generate_csrf_token
 
 client = TestClient(app)
+init_db()
 
 
 def create_test_admin_session():
@@ -380,7 +382,43 @@ def test_soft_delete_vs_hard_delete_protection(auth_headers):
     db = SessionLocal()
     try:
         ct001 = db.query(Meter).filter(Meter.meter_code == "CT-001").first()
-        assert ct001 is not None
+        if not ct001:
+            ct001 = Meter(
+                id=str(uuid.uuid4()),
+                meter_code="CT-001",
+                name="Công tơ Trạm A",
+                meter_type="LCD",
+                is_active=True,
+            )
+            db.add(ct001)
+            db.commit()
+            db.refresh(ct001)
+
+        reading = db.query(MeterReading).filter(MeterReading.meter_id == ct001.id).first()
+        if not reading:
+            batch = db.query(ReadingBatch).first()
+            if not batch:
+                batch = ReadingBatch(id=str(uuid.uuid4()), name="Batch Test", period_key="2026-08", status="OPEN")
+                db.add(batch)
+                db.commit()
+            round_obj = db.query(ReadingRound).filter(ReadingRound.batch_id == batch.id).first()
+            if not round_obj:
+                round_obj = ReadingRound(id=str(uuid.uuid4()), batch_id=batch.id, scheduled_at=datetime.now(timezone.utc), status="OPEN")
+                db.add(round_obj)
+                db.commit()
+            user_obj = db.query(User).first()
+            reading = MeterReading(
+                id=str(uuid.uuid4()),
+                meter_id=ct001.id,
+                batch_id=batch.id,
+                reading_round_id=round_obj.id,
+                user_id=user_obj.id,
+                reading="12345",
+                status="CONFIRMED",
+            )
+            db.add(reading)
+            db.commit()
+
         ct001_id = ct001.id
     finally:
         db.close()

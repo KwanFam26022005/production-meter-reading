@@ -31,23 +31,24 @@ def setup_test_db():
     init_db()
     db = SessionLocal()
     try:
-        if db.query(Meter).count() == 0:
-            meter_coords = {
-                'CT-001': ('zone-technical', 0.18, 0.74),
-                'CT-002': ('zone-warehouse', 0.20, 0.24),
-                'CT-003': ('zone-berth', 0.72, 0.24),
-                'CT-004': ('zone-berth', 0.73, 0.50),
-                'CT-005': ('zone-warehouse', 0.21, 0.38),
-                'CT-006': ('zone-warehouse', 0.22, 0.52),
-                'CT-007': ('zone-technical', 0.36, 0.84),
-                'CT-008': ('zone-berth', 0.74, 0.78),
-                'CT-009': ('zone-technical', 0.40, 0.20),
-                'CT-010': ('zone-technical', 0.52, 0.20),
-                'CT-011': ('zone-container', 0.44, 0.46),
-                'CT-012': ('zone-container', 0.49, 0.62),
-            }
-            for dm in DEFAULT_DEMO_METERS:
-                code = dm["meter_code"]
+        existing_codes = {m.meter_code for m in db.query(Meter).all()}
+        meter_coords = {
+            'CT-001': ('zone-technical', 0.18, 0.74),
+            'CT-002': ('zone-warehouse', 0.20, 0.24),
+            'CT-003': ('zone-berth', 0.72, 0.24),
+            'CT-004': ('zone-berth', 0.73, 0.50),
+            'CT-005': ('zone-warehouse', 0.21, 0.38),
+            'CT-006': ('zone-warehouse', 0.22, 0.52),
+            'CT-007': ('zone-technical', 0.36, 0.84),
+            'CT-008': ('zone-berth', 0.74, 0.78),
+            'CT-009': ('zone-technical', 0.40, 0.20),
+            'CT-010': ('zone-technical', 0.52, 0.20),
+            'CT-011': ('zone-container', 0.44, 0.46),
+            'CT-012': ('zone-container', 0.49, 0.62),
+        }
+        for dm in DEFAULT_DEMO_METERS:
+            code = dm["meter_code"]
+            if code not in existing_codes:
                 zid, mx, my = meter_coords.get(code, ("zone-technical", 0.5, 0.5))
                 m = Meter(
                     id=str(uuid.uuid4()),
@@ -61,7 +62,7 @@ def setup_test_db():
                     is_active=True,
                 )
                 db.add(m)
-            db.commit()
+        db.commit()
     finally:
         db.close()
 

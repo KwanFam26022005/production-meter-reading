@@ -5,10 +5,12 @@ import { deriveOperatorShiftSummary, OperatorShiftSummary } from '../utils/deriv
 import { OperatorMapMarker } from '../operational-map/OperatorMapMarker';
 import { calculateSpatialEmphasis } from '../state/spatialVisualEmphasis';
 import type { SelectedEntity, MapMode } from '../state/useMapStateMachine';
+import { useMapConfiguration } from '../providers/useMapConfiguration';
 
 interface OperatorLayerProps {
   zones: MapOperationalZone[];
   meters: MapMeterItem[];
+  operatorAnchors?: Record<string, { x: number; y: number }>;
   selectedZoneId?: string | null;
   selectedOperatorId?: string | null;
   currentRoundTime?: string;
@@ -40,6 +42,7 @@ interface OperatorLayerProps {
 export const OperatorLayer: React.FC<OperatorLayerProps> = ({
   zones,
   meters,
+  operatorAnchors: propOperatorAnchors,
   selectedZoneId,
   selectedOperatorId,
   currentRoundTime,
@@ -54,6 +57,15 @@ export const OperatorLayer: React.FC<OperatorLayerProps> = ({
   getWorkflowState,
   onSelectOperator,
 }) => {
+  // Safe consumption of active configuration operator anchors
+  let configAnchors: Record<string, { x: number; y: number }> | undefined;
+  try {
+    const mapConfig = useMapConfiguration();
+    configAnchors = mapConfig.operatorAnchors;
+  } catch {}
+
+  const effectiveAnchors = propOperatorAnchors || configAnchors;
+
   // Derive operator summary for each zone's assigned operator at its zone anchor
   const operatorSummaries = useMemo(() => {
     const summaries: {
@@ -73,7 +85,7 @@ export const OperatorLayer: React.FC<OperatorLayerProps> = ({
         );
 
         if (summary) {
-          const anchor = getZoneOperatorAnchor(z.id);
+          const anchor = effectiveAnchors?.[z.id] || getZoneOperatorAnchor(z.id);
           summaries.push({
             key: `${z.id}-${z.assignedUser.id}`,
             zoneId: z.id,
@@ -85,7 +97,7 @@ export const OperatorLayer: React.FC<OperatorLayerProps> = ({
     }
 
     return summaries;
-  }, [zones, meters, currentRoundTime]);
+  }, [zones, meters, currentRoundTime, effectiveAnchors]);
 
   const targetBusinessZoneId = resolveToBusinessZoneId(selectedZoneId);
 

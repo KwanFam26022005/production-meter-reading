@@ -48,6 +48,7 @@ import type {
   MapVersionOut,
   MapVersionSummary,
   MapValidationResponse,
+  ActiveMapConfiguration,
 } from '../../../types';
 
 export const CALIBRATION_DRAFT_STORAGE_KEY = 'tan-thuan-map-calibration-draft:v10';
@@ -131,6 +132,58 @@ export function mapVersionOutToManifest(mv: MapVersionOut): V10GeometryManifest 
     canonicalHeight: mv.canonical_height,
     zones: rawZones,
     landmarks: allLandmarks.length > 0 ? allLandmarks : CANONICAL_V10_LANDMARKS,
+  };
+}
+
+/**
+ * Converts backend ActiveMapConfiguration to frontend V10GeometryManifest.
+ */
+export function activeConfigToManifest(active: ActiveMapConfiguration): V10GeometryManifest {
+  const allLandmarks: CalibrationLandmark[] = [];
+  const seenLm = new Set<string>();
+
+  const rawZones: V10RawZone[] = active.zones.map((z) => {
+    if (Array.isArray(z.landmarks)) {
+      for (const lm of z.landmarks) {
+        if (!seenLm.has(lm.id)) {
+          seenLm.add(lm.id);
+          allLandmarks.push(lm as unknown as CalibrationLandmark);
+        }
+      }
+    }
+    const validIcons: Record<string, V10RawZone['icon']> = {
+      ship: 'ship',
+      container: 'container',
+      warehouse: 'warehouse',
+      gear: 'gear',
+      gate: 'gate',
+    };
+    const zoneIcon: V10RawZone['icon'] = validIcons[z.icon || ''] || 'container';
+
+    return {
+      id: z.zoneId,
+      displayIndex: z.displayIndex,
+      displayLabel: z.displayLabel,
+      businessName: z.businessName || '',
+      businessZoneIds: z.businessZoneId ? [z.businessZoneId] : [],
+      presentationColor: z.presentationColor || '#00E5FF',
+      icon: zoneIcon,
+      polygonCanonical: z.polygonCanonical || [],
+      labelAnchorCanonical: z.labelAnchorCanonical,
+      operatorAnchorCanonical: z.operatorAnchorCanonical,
+    };
+  });
+
+  return {
+    schemaVersion: active.geometrySchemaVersion || '1.0',
+    mapVersion: active.versionNumber,
+    coordinateSystem: active.coordinateSystem,
+    canonicalWidth: active.canonicalWidth,
+    canonicalHeight: active.canonicalHeight,
+    zones: rawZones,
+    landmarks: (active.landmarks && active.landmarks.length > 0)
+      ? (active.landmarks as unknown as CalibrationLandmark[])
+      : (allLandmarks.length > 0 ? allLandmarks : CANONICAL_V10_LANDMARKS),
   };
 }
 
@@ -401,7 +454,8 @@ export interface MapCalibrationWorkspace {
 
 export function useMapCalibrationWorkspace(
   initialView: MapWorkspaceView = 'map',
-  onCloseContextSurfaces?: () => void
+  onCloseContextSurfaces?: () => void,
+  onPublishSuccess?: () => void
 ): MapCalibrationWorkspace {
   const [workspaceView, setWorkspaceViewState] = useState<MapWorkspaceView>(() => {
     if (hasCalibrationQueryParam()) return 'calibration';
@@ -473,7 +527,7 @@ export function useMapCalibrationWorkspace(
     try {
       const activeConf = await getActiveMapConfig();
       if (activeConf && activeConf.zones?.length === 6) {
-        const manifest = mapVersionOutToManifest(activeConf);
+        const manifest = activeConfigToManifest(activeConf);
         setPublishedGeometry(manifest);
       }
     } catch {
@@ -691,13 +745,17 @@ export function useMapCalibrationWorkspace(
       // Reload active config across session
       await loadActiveConfig();
 
+      if (onPublishSuccess) {
+        onPublishSuccess();
+      }
+
       return { success: true, message: pubRes.message };
     } catch (err: any) {
       setIsPublishing(false);
       setIsValidating(false);
       return { success: false, errors: [err?.message || 'Lỗi xuất bản bản đồ'] };
     }
-  }, [backendDraftId, draftGeometry, saveDraftToBackend, loadActiveConfig]);
+  }, [backendDraftId, draftGeometry, saveDraftToBackend, loadActiveConfig, onPublishSuccess]);
 
   // 10. Discard Draft Action
   const discardDraft = useCallback(async () => {
@@ -723,6 +781,9 @@ export function useMapCalibrationWorkspace(
     try {
       const res = await rollbackMapVersion(versionId, reason);
       await loadActiveConfig();
+      if (onPublishSuccess) {
+        onPublishSuccess();
+      }
       const currentDraft = await getCurrentMapDraft();
       if (currentDraft) {
         setDraftGeometry(mapVersionOutToManifest(currentDraft));
@@ -735,7 +796,7 @@ export function useMapCalibrationWorkspace(
     } catch (err: any) {
       return { success: false, error: err?.message || 'Không thể hoàn tác phiên bản.' };
     }
-  }, [loadActiveConfig, publishedGeometry]);
+  }, [loadActiveConfig, publishedGeometry, onPublishSuccess]);
 
   // 12. Version History
   const loadVersionHistory = useCallback(async () => {

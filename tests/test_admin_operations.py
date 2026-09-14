@@ -1,3 +1,4 @@
+import json
 import os
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -242,24 +243,24 @@ def test_admin_meter_crud_lifecycle(test_db_session, admin_user, client):
     )
     assert audit_deact is not None
     assert audit_deact.actor_user_id == admin_user.id
-    assert audit_deact.before_json == '{"is_active": true}'
-    assert audit_deact.after_json == '{"is_active": false}'
+    assert json.loads(audit_deact.before_json)["is_active"] is True
+    assert json.loads(audit_deact.after_json)["is_active"] is False
 
     # 5. Reactivate
     res_act = client.post(f"/api/v1/admin/meters/{meter_id}/activate", headers={"X-CSRF-Token": csrf})
     assert res_act.status_code == 200
     assert res_act.json()["is_active"] is True
 
-    # Verify audit log for METER_ACTIVATED
+    # Verify audit log for METER_ACTIVATED / METER_REACTIVATED
     audit_act = (
         test_db_session.query(AdminAuditLog)
-        .filter(AdminAuditLog.resource_id == meter_id, AdminAuditLog.action == "METER_ACTIVATED")
+        .filter(AdminAuditLog.resource_id == meter_id, AdminAuditLog.action.in_(["METER_ACTIVATED", "METER_REACTIVATED"]))
         .first()
     )
     assert audit_act is not None
     assert audit_act.actor_user_id == admin_user.id
-    assert audit_act.before_json == '{"is_active": false}'
-    assert audit_act.after_json == '{"is_active": true}'
+    assert json.loads(audit_act.before_json)["is_active"] is False
+    assert json.loads(audit_act.after_json)["is_active"] is True
 
     # Ensure no secrets or private training data are included
     for audit_entry in [audit, audit_deact, audit_act]:

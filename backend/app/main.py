@@ -40,6 +40,7 @@ from .map_config import (
     validate_map_version_geometry,
 )
 from .schemas import (
+    ActiveMapConfigurationResponse,
     AdminMeterChangeZoneRequest,
     AdminMeterRelocateRequest,
     MapDraftCreateRequest,
@@ -1344,10 +1345,10 @@ def reassign_zone_operator_endpoint(
 # ==============================================================================
 # MAP CONFIGURATION & VERSIONING ENDPOINTS (V16)
 # ==============================================================================
-@app.get("/api/v1/map-config/active", response_model=MapVersionOut)
+@app.get("/api/v1/map-config/active", response_model=ActiveMapConfigurationResponse)
 def get_active_map_config_endpoint(
     db: Session = Depends(get_db),
-) -> MapVersionOut:
+) -> ActiveMapConfigurationResponse:
     """Returns the current active PUBLISHED map version with zones and landmarks."""
     return get_active_map_config(db)
 

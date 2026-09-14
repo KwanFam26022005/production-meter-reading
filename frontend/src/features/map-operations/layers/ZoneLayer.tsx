@@ -1,14 +1,17 @@
 import React, { useMemo } from 'react';
-import { SPATIAL_ZONE_PRESENTATIONS } from '../geometry/operationalGeometry';
 import { projectAllZonesOperationalState } from '../state/operationalProjection';
 import { MapMeterItem, MapOperationalZone, OperationalLayerType } from '../types';
 import { OperationalZone } from '../operational-map/OperationalZone';
 import { calculateSpatialEmphasis } from '../state/spatialVisualEmphasis';
 import type { SelectedEntity, MapMode } from '../state/useMapStateMachine';
+import type { SpatialZonePresentation } from '../geometry/operationalGeometry';
+import { useMapConfiguration } from '../providers/useMapConfiguration';
+import { createDegradedFallbackConfiguration, adaptMapConfiguration } from '../adapters/mapConfigurationAdapter';
 
 interface ZoneLayerProps {
   zones: MapOperationalZone[];
   meters: MapMeterItem[];
+  presentationZones?: SpatialZonePresentation[];
   selectedZoneId: string | null;
   hoveredZoneId: string | null;
   activeLayer: OperationalLayerType;
@@ -23,19 +26,17 @@ interface ZoneLayerProps {
 }
 
 /**
- * ZoneLayer — 6-Zone Spatial Operations Layer (V7 Visual Contract)
+ * ZoneLayer — Spatial Operations Layer (V16A Published Authority Contract)
  *
- * Renders the 6 approved presentation zones matching tan-thuan-approved-zoning.png:
- * 1. Cầu cảng (Blue/cyan)
- * 2. Bãi container phía Tây (Orange)
- * 3. Bãi container trung tâm (Coral/red)
- * 4. Kho / CFS phía Đông (Yellow)
- * 5. Khu kỹ thuật / Dịch vụ (Teal/green)
- * 6. Cổng chính (Purple)
+ * Renders presentation zones derived from the active published MapVersion
+ * served by MapConfigurationProvider.
+ *
+ * Decoupled from static TypeScript bundled geometry.
  */
 export const ZoneLayer: React.FC<ZoneLayerProps> = ({
   zones,
   meters,
+  presentationZones: propPresentationZones,
   selectedZoneId,
   hoveredZoneId,
   activeLayer,
@@ -48,6 +49,26 @@ export const ZoneLayer: React.FC<ZoneLayerProps> = ({
   onSelectZone,
   onHoverZone,
 }) => {
+  // Safe consumption of authoritative configuration provider
+  let contextPresentationZones: SpatialZonePresentation[] | undefined;
+  try {
+    const mapConfig = useMapConfiguration();
+    contextPresentationZones = mapConfig.presentationZones;
+  } catch {
+    // Provider not mounted in current hierarchy (e.g. isolated test)
+  }
+
+  const effectiveZones = useMemo(() => {
+    if (propPresentationZones && propPresentationZones.length > 0) {
+      return propPresentationZones;
+    }
+    if (contextPresentationZones && contextPresentationZones.length > 0) {
+      return contextPresentationZones;
+    }
+    const fallbackConfig = createDegradedFallbackConfiguration();
+    return adaptMapConfiguration(fallbackConfig).presentationZones;
+  }, [propPresentationZones, contextPresentationZones]);
+
   const operationalStates = useMemo(() => {
     return projectAllZonesOperationalState(zones, meters);
   }, [zones, meters]);
@@ -63,7 +84,7 @@ export const ZoneLayer: React.FC<ZoneLayerProps> = ({
 
   return (
     <g className="sgp-zone-layer" aria-label="Lớp khu vực tác nghiệp">
-      {SPATIAL_ZONE_PRESENTATIONS.map((geom) => {
+      {effectiveZones.map((geom) => {
         const opState = operationalStates[geom.presentationId] || operationalStates[geom.businessZoneId];
         if (!opState) return null;
 
