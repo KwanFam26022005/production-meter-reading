@@ -1159,10 +1159,19 @@ class MapZoneUpdateRequest(BaseModel):
     revision: int
 
 
+class ValidationIssue(BaseModel):
+    code: str
+    severity: Literal["ERROR", "WARNING", "INFO"]
+    entity_type: Literal["ZONE", "METER", "ANCHOR", "LANDMARK", "MAP"]
+    entity_id: Optional[str] = None
+    message: str
+
+
 class MapValidationResponse(BaseModel):
     valid: bool
     errors: list[str] = []
     warnings: list[str] = []
+    issues: list[ValidationIssue] = []
     zones_count: int
     simple_polygons: bool
     meters_contained: int

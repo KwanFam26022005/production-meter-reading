@@ -40,6 +40,7 @@ import {
   Send,
   RefreshCw,
   FileCheck,
+  Eye,
 } from 'lucide-react';
 import type { MapCalibrationWorkspace } from './useMapCalibrationWorkspace';
 import { formatExportTimestamp } from './useMapCalibrationWorkspace';
@@ -80,7 +81,12 @@ export interface CalibrationState {
     operatorInside: boolean;
     meterContainment: Array<{ code: string; name: string; x: number; y: number; isInside: boolean }>;
     allMetersInside: boolean;
+    containedMetersCount: number;
+    totalMetersCount: number;
+    uncontainedMetersCount: number;
   };
+  highlightUncontainedMeters: boolean;
+  setHighlightUncontainedMeters: React.Dispatch<React.SetStateAction<boolean>>;
   bounds: {
     minX: number;
     maxX: number;
@@ -175,6 +181,8 @@ export function useMapCalibration(
   const [isPanelCollapsed, setIsPanelCollapsed] = useState<boolean>(false);// Default expanded (Section 7)
   const [showTechDetails, setShowTechDetails] = useState<boolean>(false);  // Default collapsed (Section 6)
 
+  const [highlightUncontainedMeters, setHighlightUncontainedMeters] = useState<boolean>(false);
+
   const [dragTarget, setDragTarget] = useState<
     | { type: 'vertex'; index: number }
     | { type: 'labelAnchor' }
@@ -227,8 +235,10 @@ export function useMapCalibration(
       };
     });
 
-    const allMetersInside =
-      meterContainment.length === 0 || meterContainment.every((m) => m.isInside);
+    const containedMetersCount = meterContainment.filter((m) => m.isInside).length;
+    const totalMetersCount = meterContainment.length;
+    const uncontainedMetersCount = totalMetersCount - containedMetersCount;
+    const allMetersInside = uncontainedMetersCount === 0;
 
     return {
       isSimple: simplicity.isSimple,
@@ -240,6 +250,9 @@ export function useMapCalibration(
       operatorInside,
       meterContainment,
       allMetersInside,
+      containedMetersCount,
+      totalMetersCount,
+      uncontainedMetersCount,
     };
   }, [activeZone, assignedMeters]);
 
@@ -613,6 +626,8 @@ export function useMapCalibration(
     activeZone,
     validation,
     bounds,
+    highlightUncontainedMeters,
+    setHighlightUncontainedMeters,
     setSelectedZoneId,
     setSelectedVertexIdx,
     setSelectedLandmarkId,
@@ -668,6 +683,7 @@ export const MapCalibrationSvgLayer: React.FC<{
     showOtherZones,
     showMeters,
     activeZone,
+    highlightUncontainedMeters,
     setSelectedZoneId,
     setSelectedLandmarkId,
     handleEdgeClick,
@@ -939,9 +955,28 @@ export const MapCalibrationSvgLayer: React.FC<{
               transform={`translate(${m.canonicalX}, ${m.canonicalY})`}
               pointerEvents="none"
             >
+              {/* Amber warning ring for uncontained meters needing reconciliation */}
+              {!isInside && (
+                <circle
+                  r={highlightUncontainedMeters ? 12 / zoom : 8.5 / zoom}
+                  fill={highlightUncontainedMeters ? 'rgba(245, 158, 11, 0.25)' : 'none'}
+                  stroke="#F59E0B"
+                  strokeWidth={highlightUncontainedMeters ? 2 / zoom : 1.5 / zoom}
+                  strokeDasharray={highlightUncontainedMeters ? '3 3' : undefined}
+                >
+                  {highlightUncontainedMeters && (
+                    <animate
+                      attributeName="r"
+                      values={`${8.5 / zoom};${14 / zoom};${8.5 / zoom}`}
+                      dur="1.5s"
+                      repeatCount="indefinite"
+                    />
+                  )}
+                </circle>
+              )}
               <circle
                 r={5.5 / zoom}
-                fill={isInside ? '#10B981' : '#EF4444'}
+                fill={isInside ? '#10B981' : '#F59E0B'}
                 stroke="#FFFFFF"
                 strokeWidth={1.5 / zoom}
                 filter="drop-shadow(0 1px 3px rgba(0,0,0,0.7))"
@@ -986,6 +1021,8 @@ export const MapCalibrationHUD: React.FC<{
     activeZone,
     validation,
     bounds,
+    highlightUncontainedMeters,
+    setHighlightUncontainedMeters,
     setSelectedZoneId,
     setSelectedVertexIdx,
     setSelectedLandmarkId,
@@ -1016,6 +1053,23 @@ export const MapCalibrationHUD: React.FC<{
   const [isHistoryOpen, setIsHistoryOpen] = useState<boolean>(false);
   const [rollbackTargetId, setRollbackTargetId] = useState<string | null>(null);
   const [rollbackReason, setRollbackReason] = useState<string>('');
+
+  const totalUncontainedCount = useMemo(() => {
+    if (workspace?.validationGate.warningIssues) {
+      return workspace.validationGate.warningIssues.filter(
+        (i) => i.code === 'METER_OUTSIDE_PRESENTATION_ZONE'
+      ).length;
+    }
+    if (!workspace?.draftGeometry?.zones) return 0;
+    let count = 0;
+    for (const meter of CANONICAL_12_METERS_AUDIT) {
+      const zone = workspace.draftGeometry.zones.find((z) => z.id === meter.presentationRegionId);
+      if (zone && !isPointInPolygon2D({ x: meter.canonicalX, y: meter.canonicalY }, zone.polygonCanonical)) {
+        count++;
+      }
+    }
+    return count;
+  }, [workspace?.validationGate.warningIssues, workspace?.draftGeometry?.zones]);
 
   const handleSaveServerDraft = async () => {
     if (!workspace) return;
@@ -1600,39 +1654,126 @@ export const MapCalibrationHUD: React.FC<{
         </div>
       </div>
 
-      {/* 5. Validation Summary (Section 6) */}
-      <div
-        style={{
-          background: 'rgba(15, 23, 42, 0.65)',
-          borderRadius: '8px',
-          padding: '8px 10px',
-          fontSize: '11px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '4px',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span>Hình học:</span>
-          <span style={{ color: validation.isSimple ? '#10B981' : '#EF4444', fontWeight: 600 }}>
-            {validation.isSimple ? '✓ Simple polygon' : '⚠️ Cắt cạnh'}
-          </span>
+      {/* 5. Validation & Reconciliation Section: Cleanly Split (Geometry vs Meter Reconciliation) */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        {/* 5A. HÌNH HỌC (Geometry Validity) */}
+        <div
+          style={{
+            background: 'rgba(15, 23, 42, 0.65)',
+            borderRadius: '8px',
+            padding: '8px 10px',
+            fontSize: '11px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '5px',
+            border: `1px solid ${validation.isSimple && validation.boundsValid ? 'rgba(16, 185, 129, 0.25)' : 'rgba(239, 68, 68, 0.35)'}`,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255, 255, 255, 0.06)', paddingBottom: '4px' }}>
+            <span style={{ fontWeight: 700, color: '#94A3B8', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              Hình học phân khu
+            </span>
+            <span
+              style={{
+                fontSize: '10px',
+                fontWeight: 700,
+                color: validation.isSimple && validation.boundsValid ? '#34D399' : '#F87171',
+                background: validation.isSimple && validation.boundsValid ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                padding: '1px 6px',
+                borderRadius: '4px',
+              }}
+            >
+              {validation.isSimple && validation.boundsValid ? 'HỢP LỆ' : 'LỖI'}
+            </span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ color: '#94A3B8' }}>Trạng thái:</span>
+            <span style={{ color: validation.isSimple ? '#10B981' : '#EF4444', fontWeight: 600 }}>
+              {validation.isSimple ? '✓ Simple polygon' : '⚠️ Cắt cạnh'}
+            </span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ color: '#94A3B8' }}>Số đỉnh:</span>
+            <span className="font-tabular" style={{ color: '#E2E8F0', fontWeight: 600 }}>
+              {validation.vertexCount} đỉnh
+            </span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ color: '#94A3B8' }}>Phạm vi bản đồ:</span>
+            <span style={{ color: validation.boundsValid ? '#10B981' : '#EF4444', fontWeight: 600 }}>
+              {validation.boundsValid ? '✓ Trong phạm vi' : '⚠️ Vượt biên'}
+            </span>
+          </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span>Công tơ chỉ định:</span>
-          <span
-            className="font-tabular"
-            style={{ color: validation.allMetersInside ? '#10B981' : '#EF4444', fontWeight: 600 }}
-          >
-            {validation.allMetersInside ? '✓' : '⚠️'}{' '}
-            {validation.meterContainment.filter((m) => m.isInside).length}/{validation.meterContainment.length} bên trong
-          </span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span>Số đỉnh:</span>
-          <span className="font-tabular" style={{ color: '#E2E8F0', fontWeight: 600 }}>
-            {validation.vertexCount} đỉnh
-          </span>
+
+        {/* 5B. ĐỐI SOÁT (Meter Reconciliation) */}
+        <div
+          style={{
+            background: 'rgba(15, 23, 42, 0.65)',
+            borderRadius: '8px',
+            padding: '8px 10px',
+            fontSize: '11px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '5px',
+            border: `1px solid ${validation.allMetersInside ? 'rgba(16, 185, 129, 0.25)' : 'rgba(245, 158, 11, 0.35)'}`,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255, 255, 255, 0.06)', paddingBottom: '4px' }}>
+            <span style={{ fontWeight: 700, color: '#94A3B8', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              Đối soát công tơ
+            </span>
+            <span
+              style={{
+                fontSize: '10px',
+                fontWeight: 700,
+                color: validation.allMetersInside ? '#34D399' : '#F59E0B',
+                background: validation.allMetersInside ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)',
+                padding: '1px 6px',
+                borderRadius: '4px',
+              }}
+            >
+              {validation.allMetersInside ? 'HOÀN TẤT' : `${validation.uncontainedMetersCount} CẦN ĐỐI SOÁT`}
+            </span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ color: '#94A3B8' }}>Trong ranh giới:</span>
+            <span
+              className="font-tabular"
+              style={{ color: validation.allMetersInside ? '#10B981' : '#F59E0B', fontWeight: 600 }}
+            >
+              {validation.containedMetersCount}/{validation.totalMetersCount} công tơ
+            </span>
+          </div>
+
+          {!validation.allMetersInside && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '2px', paddingTop: '4px', borderTop: '1px solid rgba(255, 255, 255, 0.04)' }}>
+              <span style={{ color: '#FCD34D', fontSize: '10.5px' }}>
+                ⚠ {validation.uncontainedMetersCount} công tơ cần kiểm tra
+              </span>
+              <button
+                type="button"
+                onClick={() => setHighlightUncontainedMeters((prev) => !prev)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '3px',
+                  background: highlightUncontainedMeters ? 'rgba(245, 158, 11, 0.3)' : 'rgba(245, 158, 11, 0.12)',
+                  border: `1px solid ${highlightUncontainedMeters ? '#F59E0B' : 'rgba(245, 158, 11, 0.3)'}`,
+                  color: '#FDE047',
+                  borderRadius: '4px',
+                  padding: '2px 6px',
+                  fontSize: '10px',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                }}
+                title="Bật/tắt làm nổi bật công tơ nằm ngoài ranh giới vùng hiển thị"
+              >
+                <Eye size={11} />
+                <span>{highlightUncontainedMeters ? 'Tắt' : 'Xem công tơ'}</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -1663,27 +1804,54 @@ export const MapCalibrationHUD: React.FC<{
             <button
               type="button"
               onClick={() => setIsPublishModalOpen(true)}
-              disabled={workspace.syncStatus === 'SAVING'}
+              disabled={workspace.syncStatus === 'SAVING' || !workspace.validationGate.valid}
               style={{
                 width: '100%',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '6px',
-                background: 'linear-gradient(135deg, #059669 0%, #10B981 100%)',
-                border: '1px solid #34D399',
-                color: '#FFFFFF',
+                background: workspace.validationGate.valid
+                  ? 'linear-gradient(135deg, #059669 0%, #10B981 100%)'
+                  : 'rgba(255, 255, 255, 0.05)',
+                border: `1px solid ${workspace.validationGate.valid ? '#34D399' : 'rgba(255, 255, 255, 0.1)'}`,
+                color: workspace.validationGate.valid ? '#FFFFFF' : '#64748B',
                 padding: '8px 10px',
                 borderRadius: '6px',
                 fontSize: '11.5px',
                 fontWeight: 700,
-                cursor: 'pointer',
-                boxShadow: '0 4px 12px rgba(16, 185, 129, 0.25)',
+                cursor:
+                  workspace.syncStatus === 'SAVING' || !workspace.validationGate.valid
+                    ? 'not-allowed'
+                    : 'pointer',
+                boxShadow: workspace.validationGate.valid
+                  ? '0 4px 12px rgba(16, 185, 129, 0.25)'
+                  : 'none',
               }}
-              title="Xuất bản bản đồ lên máy chủ (Yêu cầu tất cả phân khu hợp lệ)"
+              title={
+                workspace.validationGate.valid
+                  ? 'Xuất bản bản đồ lên máy chủ (Yêu cầu tất cả phân khu hợp lệ)'
+                  : `Không thể xuất bản: còn ${workspace.validationGate.errors.length} lỗi hình học`
+              }
             >
               <Send size={13} />
               <span>Xuất bản bản đồ</span>
+              {workspace.validationGate.valid && workspace.validationGate.warnings.length > 0 && (
+                <span
+                  style={{
+                    marginLeft: '4px',
+                    padding: '1px 5px',
+                    borderRadius: '10px',
+                    fontSize: '9.5px',
+                    fontWeight: 700,
+                    background: 'rgba(245, 158, 11, 0.25)',
+                    border: '1px solid #F59E0B',
+                    color: '#FDE047',
+                  }}
+                >
+                  ⚠ {workspace.validationGate.warnings.length}
+                </span>
+              )}
             </button>
 
             <div style={{ display: 'flex', gap: '6px' }}>
@@ -1800,6 +1968,22 @@ export const MapCalibrationHUD: React.FC<{
                 ? 'Áp dụng geometry'
                 : `Áp dụng (${workspace.validationGate.errors.length} lỗi)`}
             </span>
+            {workspace.validationGate.valid && workspace.validationGate.warnings.length > 0 && (
+              <span
+                style={{
+                  marginLeft: '4px',
+                  padding: '1px 5px',
+                  borderRadius: '10px',
+                  fontSize: '9.5px',
+                  fontWeight: 700,
+                  background: 'rgba(245, 158, 11, 0.25)',
+                  border: '1px solid #F59E0B',
+                  color: '#FDE047',
+                }}
+              >
+                ⚠ {workspace.validationGate.warnings.length}
+              </span>
+            )}
           </button>
         )}
 
@@ -2189,30 +2373,56 @@ export const MapCalibrationHUD: React.FC<{
               <span style={{ fontWeight: 600, color: '#34D399' }}>6/6 phân khu (Simple polygon)</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: '#94A3B8' }}>Công tơ nằm trong ranh giới:</span>
-              <span style={{ fontWeight: 600, color: '#34D399' }}>12/12 công tơ chuẩn hóa</span>
+              <span style={{ color: '#94A3B8' }}>Đối soát vị trí công tơ:</span>
+              <span
+                style={{
+                  fontWeight: 600,
+                  color: totalUncontainedCount === 0 ? '#34D399' : '#F59E0B',
+                }}
+              >
+                {12 - totalUncontainedCount}/12 trong vùng
+                {totalUncontainedCount > 0 ? ` (${totalUncontainedCount} cần đối soát)` : ''}
+              </span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               <span style={{ color: '#94A3B8' }}>Độ phân giải chuẩn:</span>
               <span style={{ fontWeight: 600, color: '#E2E8F0' }}>1915 × 821 px</span>
             </div>
-            <div
-              style={{
-                marginTop: '4px',
-                paddingTop: '8px',
-                borderTop: '1px solid rgba(255, 255, 255, 0.08)',
-                fontSize: '11px',
-                color: '#FCD34D',
-                lineHeight: 1.45,
-                display: 'flex',
-                gap: '6px',
-              }}
-            >
-              <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: '1px' }} />
-              <span>
-                Lưu ý: Nếu phân khu có thay đổi tọa độ, các công tơ liên quan sẽ chuyển sang trạng thái <strong>Cần xem lại lộ trình (REVIEW_REQUIRED)</strong> nhằm bảo đảm an toàn vận hành.
-              </span>
-            </div>
+            {totalUncontainedCount > 0 ? (
+              <div
+                style={{
+                  marginTop: '4px',
+                  paddingTop: '8px',
+                  borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+                  fontSize: '11px',
+                  color: '#FCD34D',
+                  lineHeight: 1.45,
+                  display: 'flex',
+                  gap: '6px',
+                }}
+              >
+                <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: '1px', color: '#F59E0B' }} />
+                <span>
+                  Bản đồ hợp lệ để xuất bản. <strong>{totalUncontainedCount} công tơ</strong> nằm ngoài vùng hiện tại và sẽ được đánh dấu cần đối soát. <em>Công tơ sẽ không bị di chuyển hoặc thay đổi khu vực.</em>
+                </span>
+              </div>
+            ) : (
+              <div
+                style={{
+                  marginTop: '4px',
+                  paddingTop: '8px',
+                  borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+                  fontSize: '11px',
+                  color: '#34D399',
+                  lineHeight: 1.45,
+                  display: 'flex',
+                  gap: '6px',
+                }}
+              >
+                <CheckCircle2 size={14} style={{ flexShrink: 0, marginTop: '1px' }} />
+                <span>Bản đồ hợp lệ để xuất bản. Toàn bộ 12 công tơ đều nằm trọn trong ranh giới phân khu.</span>
+              </div>
+            )}
           </div>
 
           <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>

@@ -503,10 +503,21 @@ export interface MapVersionListResponse {
   versions: MapVersionSummary[];
 }
 
+export type ValidationSeverity = 'ERROR' | 'WARNING' | 'INFO';
+
+export interface ValidationIssue {
+  code: string;
+  severity: ValidationSeverity;
+  entityType: 'ZONE' | 'METER' | 'ANCHOR' | 'LANDMARK' | 'MAP';
+  entityId?: string;
+  message: string;
+}
+
 export interface MapValidationResponse {
   valid: boolean;
   errors: string[];
   warnings: string[];
+  issues?: ValidationIssue[];
   zones_count: number;
   simple_polygons: boolean;
   meters_contained: number;

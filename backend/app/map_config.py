@@ -19,6 +19,7 @@ from .schemas import (
     MapVersionSummary,
     MapVersionZoneOut,
     MapZoneUpdateRequest,
+    ValidationIssue,
 )
 
 
@@ -388,8 +389,8 @@ def validate_map_version_geometry(db: Session, version_id: str) -> MapValidation
     - Polygon simplicity (no self-intersections).
     - Polygon bounds within [0, 1915] x [0, 821].
     - Non-zero area (area >= 1000 px^2).
-    - Label and operator anchors contained within polygon.
-    - 12 canonical meters containment check in assigned presentation zones.
+    - Label and operator anchors present (structural ERROR) and contained (semantic WARNING).
+    - 12 canonical meters containment check in assigned presentation zones (semantic WARNING).
     - Route integrity impact assessment.
     """
     version = db.query(MapVersion).filter(MapVersion.id == version_id).first()
@@ -401,15 +402,41 @@ def validate_map_version_geometry(db: Session, version_id: str) -> MapValidation
 
     errors: list[str] = []
     warnings: list[str] = []
+    issues: list[ValidationIssue] = []
+
+    def add_issue(code: str, severity: str, entity_type: str, message: str, entity_id: str | None = None):
+        issues.append(ValidationIssue(
+            code=code,
+            severity=severity,  # type: ignore
+            entity_type=entity_type,  # type: ignore
+            entity_id=entity_id,
+            message=message
+        ))
+        if severity == "ERROR":
+            errors.append(message)
+        elif severity == "WARNING":
+            warnings.append(message)
 
     # 1. Dimensions and coordinate system
     if version.canonical_width != 1915 or version.canonical_height != 821:
-        errors.append(f"Kích thước chuẩn phải là 1915x821 px (hiện tại: {version.canonical_width}x{version.canonical_height})")
+        add_issue(
+            code="CANONICAL_DIMENSIONS_MISMATCH",
+            severity="ERROR",
+            entity_type="MAP",
+            entity_id=version_id,
+            message=f"Kích thước chuẩn phải là 1915x821 px (hiện tại: {version.canonical_width}x{version.canonical_height})"
+        )
 
     # 2. Exactly 6 Presentation Zones
     zones = version.zones
     if len(zones) != 6:
-        errors.append(f"Số lượng phân vùng hiển thị phải đúng bằng 6 (hiện tại: {len(zones)})")
+        add_issue(
+            code="INVALID_ZONE_COUNT",
+            severity="ERROR",
+            entity_type="MAP",
+            entity_id=version_id,
+            message=f"Số lượng phân vùng hiển thị phải đúng bằng 6 (hiện tại: {len(zones)})"
+        )
 
     expected_zone_ids = [
         "pres-berth",
@@ -422,7 +449,13 @@ def validate_map_version_geometry(db: Session, version_id: str) -> MapValidation
     existing_zone_ids = {z.zone_id for z in zones}
     for exp_id in expected_zone_ids:
         if exp_id not in existing_zone_ids:
-            errors.append(f"Thiếu phân vùng bắt buộc: {exp_id}")
+            add_issue(
+                code="MISSING_REQUIRED_ZONE",
+                severity="ERROR",
+                entity_type="ZONE",
+                entity_id=exp_id,
+                message=f"Thiếu phân vùng bắt buộc: {exp_id}"
+            )
 
     # 3. Simple polygons, bounds, areas, anchors
     all_simple = True
@@ -435,35 +468,91 @@ def validate_map_version_geometry(db: Session, version_id: str) -> MapValidation
         zone_poly_map[z.zone_id] = poly
 
         if len(poly) < 3:
-            errors.append(f"Phân vùng {z.zone_id} ({z.display_label}) có ít hơn 3 đỉnh ({len(poly)})")
+            add_issue(
+                code="POLYGON_TOO_FEW_VERTICES",
+                severity="ERROR",
+                entity_type="ZONE",
+                entity_id=z.zone_id,
+                message=f"Phân vùng {z.zone_id} ({z.display_label}) có ít hơn 3 đỉnh ({len(poly)})"
+            )
             all_simple = False
             continue
 
         if not check_polygon_simplicity(poly):
-            errors.append(f"Phân vùng {z.zone_id} ({z.display_label}) tự cắt cạnh (không phải simple polygon)")
+            add_issue(
+                code="POLYGON_SELF_INTERSECTION",
+                severity="ERROR",
+                entity_type="ZONE",
+                entity_id=z.zone_id,
+                message=f"Phân vùng {z.zone_id} ({z.display_label}) tự cắt cạnh (không phải simple polygon)"
+            )
             all_simple = False
 
         # Bounds check
         for pt in poly:
-            if pt["x"] < 0 or pt["x"] > version.canonical_width or pt["y"] < 0 or pt["y"] > version.canonical_height:
-                errors.append(f"Phân vùng {z.zone_id} có đỉnh ({pt['x']}, {pt['y']}) nằm ngoài giới hạn [0, {version.canonical_width}] x [0, {version.canonical_height}]")
+            px = pt.get("x", 0)
+            py = pt.get("y", 0)
+            if px < 0 or px > version.canonical_width or py < 0 or py > version.canonical_height:
+                add_issue(
+                    code="VERTEX_OUT_OF_BOUNDS",
+                    severity="ERROR",
+                    entity_type="ZONE",
+                    entity_id=z.zone_id,
+                    message=f"Phân vùng {z.zone_id} có đỉnh ({px}, {py}) nằm ngoài giới hạn [0, {version.canonical_width}] x [0, {version.canonical_height}]"
+                )
                 break
 
         # Area check
         area = calculate_polygon_area(poly)
         if area < 1000:
-            errors.append(f"Phân vùng {z.zone_id} ({z.display_label}) có diện tích quá nhỏ ({round(area)} px²)")
+            add_issue(
+                code="POLYGON_ZERO_AREA",
+                severity="ERROR",
+                entity_type="ZONE",
+                entity_id=z.zone_id,
+                message=f"Phân vùng {z.zone_id} ({z.display_label}) có diện tích quá nhỏ ({round(area)} px²)"
+            )
 
         # Anchors check
         label_anchor = json.loads(z.label_anchor_canonical) if isinstance(z.label_anchor_canonical, str) else z.label_anchor_canonical
         op_anchor = json.loads(z.operator_anchor_canonical) if isinstance(z.operator_anchor_canonical, str) else z.operator_anchor_canonical
 
-        if not is_point_in_polygon(label_anchor, poly):
-            errors.append(f"Điểm neo nhãn của {z.display_label} ({label_anchor.get('x')}, {label_anchor.get('y')}) nằm NGOÀI ranh giới phân vùng")
+        if not label_anchor or "x" not in label_anchor or "y" not in label_anchor:
+            add_issue(
+                code="ANCHOR_MISSING",
+                severity="ERROR",
+                entity_type="ANCHOR",
+                entity_id=z.zone_id,
+                message=f"Phân vùng {z.zone_id} thiếu điểm neo nhãn"
+            )
+            all_anchors_valid = False
+        elif not is_point_in_polygon(label_anchor, poly):
+            add_issue(
+                code="ANCHOR_OUTSIDE_POLYGON",
+                severity="WARNING",
+                entity_type="ANCHOR",
+                entity_id=z.zone_id,
+                message=f"Điểm neo nhãn của {z.display_label} ({label_anchor.get('x')}, {label_anchor.get('y')}) nằm NGOÀI ranh giới phân vùng"
+            )
             all_anchors_valid = False
 
-        if not is_point_in_polygon(op_anchor, poly):
-            errors.append(f"Điểm neo nhân sự của {z.display_label} ({op_anchor.get('x')}, {op_anchor.get('y')}) nằm NGOÀI ranh giới phân vùng")
+        if not op_anchor or "x" not in op_anchor or "y" not in op_anchor:
+            add_issue(
+                code="ANCHOR_MISSING",
+                severity="ERROR",
+                entity_type="ANCHOR",
+                entity_id=z.zone_id,
+                message=f"Phân vùng {z.zone_id} thiếu điểm neo nhân sự"
+            )
+            all_anchors_valid = False
+        elif not is_point_in_polygon(op_anchor, poly):
+            add_issue(
+                code="ANCHOR_OUTSIDE_POLYGON",
+                severity="WARNING",
+                entity_type="ANCHOR",
+                entity_id=z.zone_id,
+                message=f"Điểm neo nhân sự của {z.display_label} ({op_anchor.get('x')}, {op_anchor.get('y')}) nằm NGOÀI ranh giới phân vùng"
+            )
             all_anchors_valid = False
 
     # 4. Decoupled Meter Informational Stats (Does not block map validation)
@@ -489,12 +578,19 @@ def validate_map_version_geometry(db: Session, version_id: str) -> MapValidation
             if inside:
                 contained_meters_count += 1
             else:
-                warnings.append(f"Công tơ {m.meter_code} tại ({round(cx)}, {round(cy)}) nằm ngoài phân khu {m.presentation_zone_id}")
+                add_issue(
+                    code="METER_OUTSIDE_PRESENTATION_ZONE",
+                    severity="WARNING",
+                    entity_type="METER",
+                    entity_id=m.meter_code,
+                    message=f"Công tơ {m.meter_code} tại ({round(cx)}, {round(cy)}) nằm ngoài phân khu {m.presentation_zone_id}"
+                )
 
     return MapValidationResponse(
         valid=(len(errors) == 0),
         errors=errors,
         warnings=warnings,
+        issues=issues,
         zones_count=len(zones),
         simple_polygons=all_simple,
         meters_contained=contained_meters_count,

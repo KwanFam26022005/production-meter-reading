@@ -150,7 +150,7 @@ test('V12 Pre-Publish Gate: Rejects malformed dimensions, missing zones, or non-
   assert.equal(resBadPoly.valid, false, 'Must fail for self-intersecting polygon');
   assert.equal(resBadPoly.simplePolygons, false);
 
-  // Test 4: Label anchor placed outside polygon
+  // Test 4: Label anchor placed outside polygon (V16A-R1: Warning, non-blocking)
   const outsideLabelZone = {
     ...CANONICAL_GEOMETRY_V10.zones[0],
     labelAnchorCanonical: { x: 50, y: 50 }, // outside pres-berth
@@ -160,11 +160,11 @@ test('V12 Pre-Publish Gate: Rejects malformed dimensions, missing zones, or non-
     zones: [outsideLabelZone, ...CANONICAL_GEOMETRY_V10.zones.slice(1)],
   };
   const resBadLabel = validatePrePublishGeometry(badLabelManifest);
-  assert.equal(resBadLabel.valid, false, 'Must fail when label anchor is outside');
   assert.equal(resBadLabel.anchorsValid, false);
-  assert.ok(resBadLabel.errors.some((e) => e.includes('Điểm neo nhãn')));
+  assert.equal(resBadLabel.valid, true, 'V16A-R1: anchor outside is warning and does not block publish');
+  assert.ok(resBadLabel.warnings.some((w) => w.includes('Điểm neo nhãn')));
 
-  // Test 5: Operator anchor placed outside polygon
+  // Test 5: Operator anchor placed outside polygon (V16A-R1: Warning, non-blocking)
   const outsideOpZone = {
     ...CANONICAL_GEOMETRY_V10.zones[0],
     operatorAnchorCanonical: { x: 0, y: 0 },
@@ -174,9 +174,9 @@ test('V12 Pre-Publish Gate: Rejects malformed dimensions, missing zones, or non-
     zones: [outsideOpZone, ...CANONICAL_GEOMETRY_V10.zones.slice(1)],
   };
   const resBadOp = validatePrePublishGeometry(badOpManifest);
-  assert.equal(resBadOp.valid, false, 'Must fail when operator anchor is outside');
   assert.equal(resBadOp.anchorsValid, false);
-  assert.ok(resBadOp.errors.some((e) => e.includes('Điểm neo nhân sự')));
+  assert.equal(resBadOp.valid, true, 'V16A-R1: anchor outside is warning and does not block publish');
+  assert.ok(resBadOp.warnings.some((w) => w.includes('Điểm neo nhân sự')));
 });
 
 // ---------------------------------------------------------------------------

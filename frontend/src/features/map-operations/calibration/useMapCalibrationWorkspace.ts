@@ -49,6 +49,7 @@ import type {
   MapVersionSummary,
   MapValidationResponse,
   ActiveMapConfiguration,
+  ValidationIssue,
 } from '../../../types';
 
 export const CALIBRATION_DRAFT_STORAGE_KEY = 'tan-thuan-map-calibration-draft:v10';
@@ -66,6 +67,9 @@ export interface PrePublishValidationResult {
   valid: boolean;
   errors: string[];
   warnings: string[];
+  issues: ValidationIssue[];
+  blockingErrors: ValidationIssue[];
+  warningIssues: ValidationIssue[];
   zonesCount: number;
   simplePolygons: boolean;
   metersContained: number;
@@ -195,21 +199,61 @@ export function validatePrePublishGeometry(
 ): PrePublishValidationResult {
   const errors: string[] = [];
   const warnings: string[] = [];
+  const issues: ValidationIssue[] = [];
+  const blockingErrors: ValidationIssue[] = [];
+  const warningIssues: ValidationIssue[] = [];
+
+  const addIssue = (
+    code: string,
+    severity: 'ERROR' | 'WARNING' | 'INFO',
+    entityType: 'ZONE' | 'METER' | 'ANCHOR' | 'LANDMARK' | 'MAP',
+    message: string,
+    entityId?: string
+  ) => {
+    const issue: ValidationIssue = {
+      code,
+      severity,
+      entityType,
+      entityId,
+      message,
+    };
+    issues.push(issue);
+    if (severity === 'ERROR') {
+      errors.push(message);
+      blockingErrors.push(issue);
+    } else if (severity === 'WARNING') {
+      warnings.push(message);
+      warningIssues.push(issue);
+    }
+  };
 
   // 1. Dimensions and metadata
   if (manifest.canonicalWidth !== 1915 || manifest.canonicalHeight !== 821) {
-    errors.push(
+    addIssue(
+      'CANONICAL_DIMENSIONS_MISMATCH',
+      'ERROR',
+      'MAP',
       `Kích thước chuẩn phải là 1915x821 px (hiện tại: ${manifest.canonicalWidth}x${manifest.canonicalHeight})`
     );
   }
   if (manifest.coordinateSystem !== 'tan-thuan-canonical-image-pixel-space-v1') {
-    errors.push(`Hệ tọa độ không khớp: ${manifest.coordinateSystem}`);
+    addIssue(
+      'COORDINATE_SYSTEM_MISMATCH',
+      'ERROR',
+      'MAP',
+      `Hệ tọa độ không khớp: ${manifest.coordinateSystem}`
+    );
   }
 
   // 2. Exact 6 presentation zones
   const zones = manifest.zones || [];
   if (zones.length !== 6) {
-    errors.push(`Số lượng phân vùng hiển thị phải đúng bằng 6 (hiện tại: ${zones.length})`);
+    addIssue(
+      'INVALID_ZONE_COUNT',
+      'ERROR',
+      'MAP',
+      `Số lượng phân vùng hiển thị phải đúng bằng 6 (hiện tại: ${zones.length})`
+    );
   }
 
   const expectedZoneIds = [
@@ -222,7 +266,13 @@ export function validatePrePublishGeometry(
   ];
   for (const expId of expectedZoneIds) {
     if (!zones.some((z) => z.id === expId)) {
-      errors.push(`Thiếu phân vùng bắt buộc: ${expId}`);
+      addIssue(
+        'MISSING_REQUIRED_ZONE',
+        'ERROR',
+        'ZONE',
+        `Thiếu phân vùng bắt buộc: ${expId}`,
+        expId
+      );
     }
   }
 
@@ -233,47 +283,89 @@ export function validatePrePublishGeometry(
   for (const zone of zones) {
     const poly = zone.polygonCanonical || [];
     if (poly.length < 3) {
-      errors.push(`Phân vùng ${zone.id} có ít hơn 3 đỉnh (${poly.length})`);
+      addIssue(
+        'POLYGON_TOO_FEW_VERTICES',
+        'ERROR',
+        'ZONE',
+        `Phân vùng ${zone.id} có ít hơn 3 đỉnh (${poly.length})`,
+        zone.id
+      );
       allSimple = false;
       continue;
     }
 
     const simplicity = checkPolygonSimplicity(poly);
     if (!simplicity.isSimple) {
-      errors.push(
-        `Phân vùng ${zone.id} (${zone.displayLabel}) tự cắt cạnh tại [${simplicity.intersection?.edge1}, ${simplicity.intersection?.edge2}]`
+      addIssue(
+        'POLYGON_SELF_INTERSECTION',
+        'ERROR',
+        'ZONE',
+        `Phân vùng ${zone.id} (${zone.displayLabel}) tự cắt cạnh tại [${simplicity.intersection?.edge1}, ${simplicity.intersection?.edge2}]`,
+        zone.id
       );
       allSimple = false;
     }
 
     const inBounds = checkVerticesBounds(poly, CANONICAL_WIDTH, CANONICAL_HEIGHT);
     if (!inBounds) {
-      errors.push(`Phân vùng ${zone.id} có đỉnh nằm ngoài giới hạn [0, 1915] x [0, 821]`);
+      addIssue(
+        'VERTEX_OUT_OF_BOUNDS',
+        'ERROR',
+        'ZONE',
+        `Phân vùng ${zone.id} có đỉnh nằm ngoài giới hạn [0, 1915] x [0, 821]`,
+        zone.id
+      );
     }
 
     const area = calculatePolygonArea(poly);
     if (area < 1000) {
-      errors.push(`Phân vùng ${zone.id} có diện tích quá nhỏ (${Math.round(area)} px²)`);
+      addIssue(
+        'POLYGON_ZERO_AREA',
+        'ERROR',
+        'ZONE',
+        `Phân vùng ${zone.id} có diện tích quá nhỏ (${Math.round(area)} px²)`,
+        zone.id
+      );
     }
 
     // Label anchor
-    if (!zone.labelAnchorCanonical) {
-      errors.push(`Phân vùng ${zone.id} thiếu điểm neo nhãn (labelAnchorCanonical)`);
+    if (!zone.labelAnchorCanonical || typeof zone.labelAnchorCanonical.x !== 'number' || typeof zone.labelAnchorCanonical.y !== 'number') {
+      addIssue(
+        'ANCHOR_MISSING',
+        'ERROR',
+        'ANCHOR',
+        `Phân vùng ${zone.id} thiếu điểm neo nhãn (labelAnchorCanonical)`,
+        zone.id
+      );
       allAnchorsValid = false;
     } else if (!isPointInPolygon2D(zone.labelAnchorCanonical, poly)) {
-      errors.push(
-        `Điểm neo nhãn của ${zone.id} (${zone.labelAnchorCanonical.x}, ${zone.labelAnchorCanonical.y}) nằm NGOÀI ranh giới phân vùng`
+      addIssue(
+        'ANCHOR_OUTSIDE_POLYGON',
+        'WARNING',
+        'ANCHOR',
+        `Điểm neo nhãn của ${zone.id} (${zone.labelAnchorCanonical.x}, ${zone.labelAnchorCanonical.y}) nằm NGOÀI ranh giới phân vùng`,
+        zone.id
       );
       allAnchorsValid = false;
     }
 
     // Operator anchor
-    if (!zone.operatorAnchorCanonical) {
-      errors.push(`Phân vùng ${zone.id} thiếu điểm neo nhân sự (operatorAnchorCanonical)`);
+    if (!zone.operatorAnchorCanonical || typeof zone.operatorAnchorCanonical.x !== 'number' || typeof zone.operatorAnchorCanonical.y !== 'number') {
+      addIssue(
+        'ANCHOR_MISSING',
+        'ERROR',
+        'ANCHOR',
+        `Phân vùng ${zone.id} thiếu điểm neo nhân sự (operatorAnchorCanonical)`,
+        zone.id
+      );
       allAnchorsValid = false;
     } else if (!isPointInPolygon2D(zone.operatorAnchorCanonical, poly)) {
-      errors.push(
-        `Điểm neo nhân sự của ${zone.id} (${zone.operatorAnchorCanonical.x}, ${zone.operatorAnchorCanonical.y}) nằm NGOÀI ranh giới phân vùng`
+      addIssue(
+        'ANCHOR_OUTSIDE_POLYGON',
+        'WARNING',
+        'ANCHOR',
+        `Điểm neo nhân sự của ${zone.id} (${zone.operatorAnchorCanonical.x}, ${zone.operatorAnchorCanonical.y}) nằm NGOÀI ranh giới phân vùng`,
+        zone.id
       );
       allAnchorsValid = false;
     }
@@ -286,8 +378,12 @@ export function validatePrePublishGeometry(
   for (const meter of CANONICAL_12_METERS_AUDIT) {
     const assignedZone = zones.find((z) => z.id === meter.presentationRegionId);
     if (!assignedZone) {
-      warnings.push(
-        `Công tơ ${meter.code} (${meter.name}) chỉ định phân khu không tồn tại: ${meter.presentationRegionId}`
+      addIssue(
+        'METER_ZONE_MISMATCH',
+        'WARNING',
+        'METER',
+        `Công tơ ${meter.code} (${meter.name}) chỉ định phân khu không tồn tại: ${meter.presentationRegionId}`,
+        meter.code
       );
       continue;
     }
@@ -298,8 +394,12 @@ export function validatePrePublishGeometry(
     if (isInside) {
       containedMetersCount++;
     } else {
-      warnings.push(
-        `Công tơ ${meter.code} (${meter.name}) tại (${meter.canonicalX}, ${meter.canonicalY}) nằm ngoài phân khu ${assignedZone.id}`
+      addIssue(
+        'METER_OUTSIDE_PRESENTATION_ZONE',
+        'WARNING',
+        'METER',
+        `Công tơ ${meter.code} (${meter.name}) tại (${meter.canonicalX}, ${meter.canonicalY}) nằm ngoài phân khu ${assignedZone.id}`,
+        meter.code
       );
     }
   }
@@ -311,8 +411,12 @@ export function validatePrePublishGeometry(
     for (let i = 0; i < (zone.polygonCanonical || []).length; i++) {
       const v = zone.polygonCanonical[i];
       if (v.landmarkId && !lmPool.has(v.landmarkId)) {
-        warnings.push(
-          `Đỉnh [${i}] của ${zone.id} tham chiếu mốc không tồn tại trong danh mục: ${v.landmarkId}`
+        addIssue(
+          'LANDMARK_UNKNOWN_REFERENCE',
+          'WARNING',
+          'LANDMARK',
+          `Đỉnh [${i}] của ${zone.id} tham chiếu mốc không tồn tại trong danh mục: ${v.landmarkId}`,
+          v.landmarkId
         );
         landmarksValid = false;
       }
@@ -320,9 +424,12 @@ export function validatePrePublishGeometry(
   }
 
   return {
-    valid: errors.length === 0,
+    valid: blockingErrors.length === 0,
     errors,
     warnings,
+    issues,
+    blockingErrors,
+    warningIssues,
     zonesCount: zones.length,
     simplePolygons: allSimple,
     metersContained: containedMetersCount,
