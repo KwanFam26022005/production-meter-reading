@@ -22,7 +22,9 @@ import {
   getAdminMeterLatestReading,
   getAdminMeters,
   updateAdminMeter,
+  getAdminMeterRelations,
 } from '../../services/api';
+import { MeterAssetRelation } from '../../features/assets/types';
 import { LoadingState } from '../ui/LoadingState';
 import { ErrorState } from '../ui/ErrorState';
 import { MapOperationsPage } from '../../features/map-operations/MapOperationsPage';
@@ -67,6 +69,7 @@ export const AdminMeters: React.FC<AdminMetersProps> = ({ onInspectReading }) =>
   const [formType, setFormType] = useState<string>('LCD');
   const [formSubmitting, setFormSubmitting] = useState<boolean>(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [meterRelations, setMeterRelations] = useState<MeterAssetRelation[]>([]);
 
   // Deactivation / Activation modal state
   const [deactivatingMeter, setDeactivatingMeter] = useState<AdminMeterItem | null>(null);
@@ -125,6 +128,7 @@ export const AdminMeters: React.FC<AdminMetersProps> = ({ onInspectReading }) =>
     setFormLocation('');
     setFormType('LCD');
     setFormError(null);
+    setMeterRelations([]);
     setIsDrawerOpen(true);
     setOpenMenuId(null);
   };
@@ -136,6 +140,10 @@ export const AdminMeters: React.FC<AdminMetersProps> = ({ onInspectReading }) =>
     setFormLocation(m.location || '');
     setFormType(m.meter_type === 'MECHANICAL' ? 'MECHANICAL' : 'LCD');
     setFormError(null);
+    setMeterRelations([]);
+    getAdminMeterRelations(m.id)
+      .then((res) => setMeterRelations(res.relations))
+      .catch(() => setMeterRelations([]));
     setIsDrawerOpen(true);
     setOpenMenuId(null);
   };
@@ -145,6 +153,7 @@ export const AdminMeters: React.FC<AdminMetersProps> = ({ onInspectReading }) =>
       setIsDrawerOpen(false);
       setEditingMeter(null);
       setFormError(null);
+      setMeterRelations([]);
     }
   };
 
@@ -692,6 +701,40 @@ export const AdminMeters: React.FC<AdminMetersProps> = ({ onInspectReading }) =>
                   <option value="UNKNOWN">Khác / Chưa xác định</option>
                 </select>
               </div>
+
+              {editingMeter && (
+                <div className="admin-form-group border-t border-slate-200 pt-4 mt-2">
+                  <label className="admin-form-label flex items-center justify-between text-xs font-bold text-slate-700 mb-2">
+                    <span>Liên kết thiết bị (V16C)</span>
+                  </label>
+                  <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 space-y-2 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-500 font-medium">Lắp tại:</span>
+                      {meterRelations.find((r) => r.relation_type === 'INSTALLED_AT' && !r.valid_to) ? (
+                        <span className="font-semibold text-slate-800">
+                          {meterRelations.find((r) => r.relation_type === 'INSTALLED_AT' && !r.valid_to)?.asset_name}
+                        </span>
+                      ) : (
+                        <span className="text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200 text-[11px] font-medium">
+                          Chưa xác minh
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-500 font-medium">Đo:</span>
+                      {meterRelations.find((r) => r.relation_type === 'MEASURES' && !r.valid_to) ? (
+                        <span className="font-semibold text-slate-800">
+                          {meterRelations.find((r) => r.relation_type === 'MEASURES' && !r.valid_to)?.asset_name}
+                        </span>
+                      ) : (
+                        <span className="text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200 text-[11px] font-medium">
+                          Chưa xác minh
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="admin-drawer-footer">
                 <button

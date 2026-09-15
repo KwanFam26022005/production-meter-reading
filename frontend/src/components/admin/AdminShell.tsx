@@ -10,10 +10,11 @@ import {
   ShieldCheck,
   ChevronLeft,
   Map,
+  Boxes,
 } from 'lucide-react';
 import { User, formatUserRole } from '../../types';
 
-export type AdminTab = 'dashboard' | 'schedules' | 'staff_roster' | 'meters' | 'reports' | 'audit';
+export type AdminTab = 'dashboard' | 'schedules' | 'staff_roster' | 'meters' | 'assets' | 'reports' | 'audit';
 
 interface AdminShellProps {
   user: User;
@@ -50,9 +51,10 @@ export const AdminShell: React.FC<AdminShellProps> = ({
     return () => document.removeEventListener('keydown', handleKeyDown, true);
   }, [sidebarOpen]);
 
-  // Visible navigation in V13: "Công tơ" integrated into "Bản đồ" (Map / List switch)
+  // Visible navigation: "Thiết bị" added in V16C
   const navItems: { id: AdminTab; label: string; icon: React.ReactNode }[] = [
     { id: 'dashboard', label: 'Bản đồ', icon: <Map size={22} /> },
+    { id: 'assets', label: 'Thiết bị', icon: <Boxes size={22} /> },
     { id: 'schedules', label: 'Lịch ghi', icon: <Calendar size={22} /> },
     { id: 'staff_roster', label: 'Phân ca', icon: <Users size={22} /> },
     { id: 'reports', label: 'Báo cáo', icon: <BarChart3 size={22} /> },

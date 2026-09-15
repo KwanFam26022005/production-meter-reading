@@ -39,6 +39,7 @@ import { AdminMeters } from './components/admin/AdminMeters';
 import { AdminAudit } from './components/admin/AdminAudit';
 import { AdminReports } from './components/admin/AdminReports';
 import { AdminReadingInspection } from './components/admin/AdminReadingInspection';
+import { AdminAssets } from './components/admin/AdminAssets';
 
 const MAX_IMAGE_SIZE_BYTES = 12 * 1024 * 1024; // 12MB
 const MAX_READING_LENGTH = 12;
@@ -583,6 +584,7 @@ export default function App() {
             {adminActiveTab === 'dashboard' && (
               <AdminDashboard user={currentUser} onInspectReading={(rId) => setInspectingReadingId(rId)} />
             )}
+            {adminActiveTab === 'assets' && <AdminAssets />}
             {adminActiveTab === 'schedules' && <AdminSchedules />}
             {adminActiveTab === 'staff_roster' && <AdminStaffRoster user={currentUser} />}
             {adminActiveTab === 'meters' && (

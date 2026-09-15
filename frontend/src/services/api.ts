@@ -1602,5 +1602,383 @@ export async function deleteAdminMeter(meterId: string): Promise<{ status: strin
   return res.json();
 }
 
+// ==============================================================================
+// ASSET DOMAIN FOUNDATION & TOPOLOGY (V16C)
+// ==============================================================================
+import {
+  Asset,
+  AssetListResponse,
+  MeterAssetRelation,
+  MeterAssetRelationListResponse,
+  AssetConnection,
+  AssetConnectionListResponse,
+  TopologyTraceResponse,
+} from '../features/assets/types';
+
+export async function getAdminAssets(params?: {
+  asset_type?: string;
+  zone_id?: string;
+  lifecycle_status?: string;
+  verification_status?: string;
+  mobility_type?: string;
+  search?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<AssetListResponse> {
+  const query = new URLSearchParams();
+  if (params?.asset_type) query.append('asset_type', params.asset_type);
+  if (params?.zone_id) query.append('zone_id', params.zone_id);
+  if (params?.lifecycle_status) query.append('lifecycle_status', params.lifecycle_status);
+  if (params?.verification_status) query.append('verification_status', params.verification_status);
+  if (params?.mobility_type) query.append('mobility_type', params.mobility_type);
+  if (params?.search) query.append('search', params.search);
+  if (params?.limit) query.append('limit', String(params.limit));
+  if (params?.offset) query.append('offset', String(params.offset));
+
+  const qs = query.toString();
+  const res = await apiFetch(`/api/v1/admin/assets${qs ? `?${qs}` : ''}`);
+  if (!res.ok) {
+    throw new ApiError(res.status, 'Không thể tải danh sách thiết bị.');
+  }
+  return res.json();
+}
+
+export async function getAdminAssetById(assetId: string): Promise<Asset> {
+  const res = await apiFetch(`/api/v1/admin/assets/${assetId}`);
+  if (!res.ok) {
+    throw new ApiError(res.status, 'Không thể tải thông tin thiết bị.');
+  }
+  return res.json();
+}
+
+export async function createAdminAsset(payload: {
+  code: string;
+  name: string;
+  asset_type: string;
+  parent_asset_id?: string | null;
+  zone_id?: string | null;
+  mobility_type?: string;
+  position_source?: string;
+  map_x?: number | null;
+  map_y?: number | null;
+  verification_status?: string;
+  metadata_json?: string | null;
+}): Promise<Asset> {
+  const csrfToken = await getCsrfToken();
+  const res = await apiFetch('/api/v1/admin/assets', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRF-Token': csrfToken,
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    let detail = 'Không thể tạo thiết bị.';
+    try {
+      const err = await res.json();
+      if (err.detail) detail = err.detail;
+    } catch {}
+    throw new ApiError(res.status, detail);
+  }
+  return res.json();
+}
+
+export async function updateAdminAsset(
+  assetId: string,
+  payload: {
+    name?: string;
+    asset_type?: string;
+    parent_asset_id?: string | null;
+    zone_id?: string | null;
+    mobility_type?: string;
+    position_source?: string;
+    map_x?: number | null;
+    map_y?: number | null;
+    lifecycle_status?: string;
+    verification_status?: string;
+    metadata_json?: string | null;
+  }
+): Promise<Asset> {
+  const csrfToken = await getCsrfToken();
+  const res = await apiFetch(`/api/v1/admin/assets/${assetId}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRF-Token': csrfToken,
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    let detail = 'Không thể cập nhật thiết bị.';
+    try {
+      const err = await res.json();
+      if (err.detail) detail = err.detail;
+    } catch {}
+    throw new ApiError(res.status, detail);
+  }
+  return res.json();
+}
+
+export async function relocateAdminAsset(
+  assetId: string,
+  payload: { map_x: number; map_y: number; position_source?: string }
+): Promise<Asset> {
+  const csrfToken = await getCsrfToken();
+  const res = await apiFetch(`/api/v1/admin/assets/${assetId}/relocate`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRF-Token': csrfToken,
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    let detail = 'Không thể định vị thiết bị.';
+    try {
+      const err = await res.json();
+      if (err.detail) detail = err.detail;
+    } catch {}
+    throw new ApiError(res.status, detail);
+  }
+  return res.json();
+}
+
+export async function setAdminAssetParent(
+  assetId: string,
+  payload: { parent_asset_id?: string | null }
+): Promise<Asset> {
+  const csrfToken = await getCsrfToken();
+  const res = await apiFetch(`/api/v1/admin/assets/${assetId}/set-parent`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRF-Token': csrfToken,
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    let detail = 'Không thể gán thiết bị cha.';
+    try {
+      const err = await res.json();
+      if (err.detail) detail = err.detail;
+    } catch {}
+    throw new ApiError(res.status, detail);
+  }
+  return res.json();
+}
+
+export async function retireAdminAsset(assetId: string, reason?: string): Promise<Asset> {
+  const csrfToken = await getCsrfToken();
+  const res = await apiFetch(`/api/v1/admin/assets/${assetId}/retire`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRF-Token': csrfToken,
+    },
+    body: JSON.stringify({ reason }),
+  });
+  if (!res.ok) {
+    let detail = 'Không thể thu hồi thiết bị.';
+    try {
+      const err = await res.json();
+      if (err.detail) detail = err.detail;
+    } catch {}
+    throw new ApiError(res.status, detail);
+  }
+  return res.json();
+}
+
+export async function getAdminMeterAssetRelations(params?: {
+  meter_id?: string;
+  asset_id?: string;
+  relation_type?: string;
+  active_only?: boolean;
+  verification_status?: string;
+}): Promise<MeterAssetRelationListResponse> {
+  const query = new URLSearchParams();
+  if (params?.meter_id) query.append('meter_id', params.meter_id);
+  if (params?.asset_id) query.append('asset_id', params.asset_id);
+  if (params?.relation_type) query.append('relation_type', params.relation_type);
+  if (params?.active_only !== undefined) query.append('active_only', String(params.active_only));
+  if (params?.verification_status) query.append('verification_status', params.verification_status);
+
+  const qs = query.toString();
+  const res = await apiFetch(`/api/v1/admin/meter-asset-relations${qs ? `?${qs}` : ''}`);
+  if (!res.ok) {
+    throw new ApiError(res.status, 'Không thể tải quan hệ công tơ - thiết bị.');
+  }
+  return res.json();
+}
+
+export async function getAdminMeterRelations(meterId: string): Promise<MeterAssetRelationListResponse> {
+  const res = await apiFetch(`/api/v1/admin/meters/${meterId}/relations`);
+  if (!res.ok) {
+    throw new ApiError(res.status, 'Không thể tải liên kết công tơ.');
+  }
+  return res.json();
+}
+
+export async function createAdminMeterAssetRelation(payload: {
+  meter_id: string;
+  asset_id: string;
+  relation_type: string;
+  mount_point?: string | null;
+  is_primary?: boolean;
+  verification_status?: string;
+}): Promise<MeterAssetRelation> {
+  const csrfToken = await getCsrfToken();
+  const res = await apiFetch('/api/v1/admin/meter-asset-relations', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRF-Token': csrfToken,
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    let detail = 'Không thể liên kết công tơ với thiết bị.';
+    try {
+      const err = await res.json();
+      if (err.detail) detail = err.detail;
+    } catch {}
+    throw new ApiError(res.status, detail);
+  }
+  return res.json();
+}
+
+export async function closeAdminMeterAssetRelation(relationId: string): Promise<MeterAssetRelation> {
+  const csrfToken = await getCsrfToken();
+  const res = await apiFetch(`/api/v1/admin/meter-asset-relations/${relationId}/close`, {
+    method: 'POST',
+    headers: {
+      'X-CSRF-Token': csrfToken,
+    },
+  });
+  if (!res.ok) {
+    let detail = 'Không thể đóng liên kết công tơ.';
+    try {
+      const err = await res.json();
+      if (err.detail) detail = err.detail;
+    } catch {}
+    throw new ApiError(res.status, detail);
+  }
+  return res.json();
+}
+
+export async function transferAdminMeterAssetRelation(
+  relationId: string,
+  payload: { new_asset_id: string; mount_point?: string | null; is_primary?: boolean }
+): Promise<MeterAssetRelation> {
+  const csrfToken = await getCsrfToken();
+  const res = await apiFetch(`/api/v1/admin/meter-asset-relations/${relationId}/transfer`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRF-Token': csrfToken,
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    let detail = 'Không thể chuyển đổi liên kết thiết bị.';
+    try {
+      const err = await res.json();
+      if (err.detail) detail = err.detail;
+    } catch {}
+    throw new ApiError(res.status, detail);
+  }
+  return res.json();
+}
+
+export async function verifyAdminMeterAssetRelation(relationId: string): Promise<MeterAssetRelation> {
+  const csrfToken = await getCsrfToken();
+  const res = await apiFetch(`/api/v1/admin/meter-asset-relations/${relationId}/verify`, {
+    method: 'POST',
+    headers: {
+      'X-CSRF-Token': csrfToken,
+    },
+  });
+  if (!res.ok) {
+    let detail = 'Không thể xác minh liên kết.';
+    try {
+      const err = await res.json();
+      if (err.detail) detail = err.detail;
+    } catch {}
+    throw new ApiError(res.status, detail);
+  }
+  return res.json();
+}
+
+export async function getAdminAssetConnections(params?: {
+  source_asset_id?: string;
+  target_asset_id?: string;
+  utility_type?: string;
+  connection_type?: string;
+  active_only?: boolean;
+  verification_status?: string;
+}): Promise<AssetConnectionListResponse> {
+  const query = new URLSearchParams();
+  if (params?.source_asset_id) query.append('source_asset_id', params.source_asset_id);
+  if (params?.target_asset_id) query.append('target_asset_id', params.target_asset_id);
+  if (params?.utility_type) query.append('utility_type', params.utility_type);
+  if (params?.connection_type) query.append('connection_type', params.connection_type);
+  if (params?.active_only !== undefined) query.append('active_only', String(params.active_only));
+  if (params?.verification_status) query.append('verification_status', params.verification_status);
+
+  const qs = query.toString();
+  const res = await apiFetch(`/api/v1/admin/asset-connections${qs ? `?${qs}` : ''}`);
+  if (!res.ok) {
+    throw new ApiError(res.status, 'Không thể tải kết nối thiết bị.');
+  }
+  return res.json();
+}
+
+export async function createAdminAssetConnection(payload: {
+  source_asset_id: string;
+  target_asset_id: string;
+  utility_type: string;
+  connection_type?: string;
+  verification_status?: string;
+  metadata_json?: string | null;
+}): Promise<AssetConnection> {
+  const csrfToken = await getCsrfToken();
+  const res = await apiFetch('/api/v1/admin/asset-connections', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRF-Token': csrfToken,
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    let detail = 'Không thể tạo kết nối mạng lưới.';
+    try {
+      const err = await res.json();
+      if (err.detail) detail = err.detail;
+    } catch {}
+    throw new ApiError(res.status, detail);
+  }
+  return res.json();
+}
+
+export async function traceAdminAssetTopology(params: {
+  asset_id: string;
+  direction?: 'downstream' | 'upstream' | 'connected' | 'both';
+  utility_type?: string;
+  include_unverified?: boolean;
+}): Promise<TopologyTraceResponse> {
+  const query = new URLSearchParams();
+  query.append('asset_id', params.asset_id);
+  if (params.direction) query.append('direction', params.direction);
+  if (params.utility_type) query.append('utility_type', params.utility_type);
+  if (params.include_unverified !== undefined) query.append('include_unverified', String(params.include_unverified));
+
+  const res = await apiFetch(`/api/v1/admin/asset-topology/trace?${query.toString()}`);
+  if (!res.ok) {
+    throw new ApiError(res.status, 'Không thể truy vết mạng lưới hạ tầng.');
+  }
+  return res.json();
+}
+
 
 
