@@ -4,40 +4,45 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy.orm import Session
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.pool import StaticPool
 
-from backend.app.db import SessionLocal, init_db
+from backend.app.db import Base, get_db
 from backend.app.main import app
 from backend.app.models import Meter, MeterReading, ReadingBatch, ReadingRound, User
 from backend.app.auth import hash_password
 
 
-@pytest.fixture(scope="module", autouse=True)
-def setup_database():
-    init_db()
-    db = SessionLocal()
-    try:
-        db.query(MeterReading).delete()
-        db.query(ReadingRound).delete()
-        db.query(ReadingBatch).delete()
-        db.query(Meter).delete()
-        db.commit()
-    finally:
-        db.close()
-
-
 @pytest.fixture
 def test_db_session():
-    db = SessionLocal()
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    Base.metadata.create_all(bind=engine)
+    db = TestingSessionLocal()
     try:
         yield db
     finally:
-        db.query(MeterReading).delete()
-        db.query(ReadingRound).delete()
-        db.query(ReadingBatch).delete()
-        db.query(Meter).delete()
-        db.commit()
         db.close()
+        Base.metadata.drop_all(bind=engine)
+
+
+@pytest.fixture
+def client(test_db_session):
+    def override_get_db():
+        try:
+            yield test_db_session
+        finally:
+            pass
+
+    app.dependency_overrides[get_db] = override_get_db
+    with TestClient(app) as test_client:
+        yield test_client
+    app.dependency_overrides.clear()
 
 
 @pytest.fixture
@@ -54,11 +59,6 @@ def sample_user(test_db_session: Session):
         test_db_session.commit()
         test_db_session.refresh(user)
     return user
-
-
-@pytest.fixture
-def client():
-    return TestClient(app)
 
 
 def login_and_get_csrf(client: TestClient, employee_code: str = "REP001", password: str = "Password123"):

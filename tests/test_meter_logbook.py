@@ -554,7 +554,7 @@ def test_same_meter_confirmed_in_multiple_rounds(client, test_db_session, sample
 # 11. FUTURE ROUND & CLOSED ROUND REJECTIONS
 # ==============================================================================
 def test_future_and_closed_round_rejections(client, test_db_session, sample_user):
-    meter = Meter(meter_code="CT-201", name="Công tơ A", is_active=True)
+    meter = Meter(meter_code="CT-201", name="Công tơ A", is_active=True, lifecycle_status="ACTIVE")
     test_db_session.add(meter)
     test_db_session.commit()
 
@@ -589,7 +589,7 @@ def test_future_and_closed_round_rejections(client, test_db_session, sample_user
 # ==============================================================================
 def test_closed_batch_and_inactive_meter_rejections(client, test_db_session, sample_user):
     m_active = Meter(meter_code="CT-201", name="Công tơ A", is_active=True)
-    m_inactive = Meter(meter_code="CT-202", name="Công tơ B", is_active=False)
+    m_inactive = Meter(meter_code="CT-202", name="Công tơ B", is_active=False, lifecycle_status="INACTIVE")
     test_db_session.add_all([m_active, m_inactive])
     test_db_session.commit()
 
@@ -604,7 +604,7 @@ def test_closed_batch_and_inactive_meter_rejections(client, test_db_session, sam
         json={"meter_id": m_inactive.id, "reading_round_id": round_obj.id, "reading": "000100.0"},
     )
     assert res_inactive.status_code == 400
-    assert "không hoạt động" in res_inactive.json()["detail"]
+    assert "INACTIVE" in res_inactive.json()["detail"] or "tạm ngừng" in res_inactive.json()["detail"]
 
     # Close batch
     close_reading_batch(test_db_session, batch.id)

@@ -622,7 +622,7 @@ def migrate_db(db_engine=None) -> None:
                     WHERE meter_code = ?
                 """, (pres_id, mx, my, code))
 
-            # E. Seed initial PUBLISHED map version tan-thuan-v10 if empty
+            # E. Seed initial PUBLISHED map version from frozen baseline if available, otherwise tan-thuan-v10
             cursor.execute("SELECT count(*) FROM map_versions WHERE map_id = 'tan-thuan'")
             if cursor.fetchone()[0] == 0:
                 import json
@@ -631,18 +631,21 @@ def migrate_db(db_engine=None) -> None:
                 from pathlib import Path
 
                 now_utc = datetime.now(timezone.utc).isoformat()
+                freeze_path = Path(__file__).resolve().parent.parent.parent / "docs" / "design" / "map-operations" / "v16a-r2" / "tan-thuan-spatial-baseline.freeze.json"
                 base_json_path = Path(__file__).resolve().parent.parent.parent / "frontend" / "src" / "features" / "map-operations" / "geometry" / "tanThuanPresentationGeometry.v10.json"
 
-                if base_json_path.is_file():
-                    with open(base_json_path, "r", encoding="utf-8") as f:
+                target_json_path = freeze_path if freeze_path.is_file() else base_json_path
+
+                if target_json_path.is_file():
+                    with open(target_json_path, "r", encoding="utf-8") as f:
                         geo_manifest = json.load(f)
 
-                    version_id = str(uuid.uuid4())
-                    map_version = geo_manifest.get("mapVersion", "tan-thuan-v10")
+                    version_id = geo_manifest.get("versionId") or str(uuid.uuid4())
+                    map_version = geo_manifest.get("mapVersion", "tan-thuan-v16a-r2-frozen")
                     coord_system = geo_manifest.get("coordinateSystem", "tan-thuan-canonical-image-pixel-space-v1")
                     c_width = geo_manifest.get("canonicalWidth", 1915)
                     c_height = geo_manifest.get("canonicalHeight", 821)
-                    geo_schema_ver = geo_manifest.get("schemaVersion", "1.0")
+                    geo_schema_ver = geo_manifest.get("geometrySchemaVersion", geo_manifest.get("schemaVersion", "1.0"))
                     all_landmarks = geo_manifest.get("landmarks", [])
 
                     cursor.execute("""

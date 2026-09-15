@@ -390,10 +390,35 @@ def test_v16b_reading_creation_rejection_for_non_active_meters(auth_headers):
 
         db = SessionLocal()
         try:
-            batch = db.query(ReadingBatch).first()
-            round_obj = db.query(ReadingRound).filter(ReadingRound.batch_id == batch.id).first()
-            round_id = round_obj.id
-            batch_id = batch.id
+            batch = db.query(ReadingBatch).filter(ReadingBatch.status == "OPEN").first()
+            if not batch:
+                batch = db.query(ReadingBatch).first()
+                if batch:
+                    batch.status = "OPEN"
+                    db.commit()
+            now_utc = datetime.now(timezone.utc)
+            round_obj = (
+                db.query(ReadingRound)
+                .filter(
+                    ReadingRound.batch_id == batch.id,
+                    ReadingRound.status == "OPEN",
+                    ReadingRound.scheduled_at <= now_utc,
+                )
+                .first()
+                if batch else None
+            )
+            if not round_obj and batch:
+                round_obj = ReadingRound(
+                    id=str(uuid.uuid4()),
+                    batch_id=batch.id,
+                    round_number=999,
+                    scheduled_at=now_utc - timedelta(minutes=5),
+                    status="OPEN",
+                )
+                db.add(round_obj)
+                db.commit()
+            round_id = round_obj.id if round_obj else ""
+            batch_id = batch.id if batch else ""
         finally:
             db.close()
 

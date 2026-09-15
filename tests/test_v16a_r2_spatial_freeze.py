@@ -93,7 +93,13 @@ def test_v16a_r2_six_presentation_zones_invariant():
     """Section 32: Active/frozen geometry contains exactly six simple, bounded PresentationZones."""
     db = SessionLocal()
     try:
-        active = db.query(MapVersion).filter(MapVersion.status == "PUBLISHED").first()
+        active = (
+            db.query(MapVersion)
+            .filter(MapVersion.map_version == "tan-thuan-v16a-r2-frozen")
+            .first()
+        )
+        if active is None:
+            active = db.query(MapVersion).filter(MapVersion.status == "PUBLISHED").order_by(MapVersion.published_at).first()
         assert active is not None, "Active PUBLISHED version must exist"
         assert active.canonical_width == 1915
         assert active.canonical_height == 821
@@ -186,7 +192,13 @@ def test_v16a_r2_warning_publish_and_reconciliation_status():
     """Section 34: Uncontained meter produces WARNING and allows publish; reviewStatus is REVIEW_REQUIRED."""
     db = SessionLocal()
     try:
-        active = db.query(MapVersion).filter(MapVersion.status == "PUBLISHED").first()
+        active = (
+            db.query(MapVersion)
+            .filter(MapVersion.map_version == "tan-thuan-v16a-r2-frozen")
+            .first()
+        )
+        if active is None:
+            active = db.query(MapVersion).filter(MapVersion.status == "PUBLISHED").order_by(MapVersion.published_at).first()
         val = validate_map_version_geometry(db, active.id)
 
         assert val.valid is True
