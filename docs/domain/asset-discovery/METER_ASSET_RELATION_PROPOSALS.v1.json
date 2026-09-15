@@ -1,0 +1,164 @@
+[
+  {
+    "meterCode": "MTR-001",
+    "proposedRelationType": "MEASURES",
+    "proposedAssetCode": "AST-CAND-001",
+    "candidateInstalledAt": null,
+    "confidence": "LOW",
+    "evidenceSource": "Meter name 'Cầu Tàu 1 - Trạm Đo Phía Bắc'",
+    "verificationStatus": "UNVERIFIED",
+    "questions": [
+      "What physical quantity is measured (electricity, water, fuel)?",
+      "Where is the meter physically mounted along Berth 1?",
+      "Does this meter measure a vessel shore connection or fixed wharf infrastructure?"
+    ]
+  },
+  {
+    "meterCode": "MTR-002",
+    "proposedRelationType": "MEASURES",
+    "proposedAssetCode": "AST-CAND-002",
+    "candidateInstalledAt": null,
+    "confidence": "LOW",
+    "evidenceSource": "Meter name 'Cầu Tàu 2 - Bến Xà Lan Phụ'",
+    "verificationStatus": "UNVERIFIED",
+    "questions": [
+      "What physical quantity is measured?",
+      "Where is the physical installation mounted along the auxiliary barge wharf?",
+      "Is the measured load perimeter floodlighting or vessel power supply?"
+    ]
+  },
+  {
+    "meterCode": "MTR-003",
+    "proposedRelationType": "MEASURES",
+    "proposedAssetCode": "AST-CAND-003",
+    "candidateInstalledAt": null,
+    "confidence": "HIGH",
+    "evidenceSource": "Meter name 'Bãi Cont 1 - Cẩu Khung RTG-01'",
+    "verificationStatus": "UNVERIFIED",
+    "questions": [
+      "Is the meter installed directly on crane RTG-01 chassis or in the yard supply pit?",
+      "If installed on crane, does the mobile asset log zone transitions during stacking?",
+      "What physical medium is measured (electric drive motor vs diesel consumption)?"
+    ]
+  },
+  {
+    "meterCode": "MTR-004",
+    "proposedRelationType": "MEASURES",
+    "proposedAssetCode": "AST-CAND-004",
+    "candidateInstalledAt": null,
+    "confidence": "HIGH",
+    "evidenceSource": "Meter name 'Bãi Cont 2 - Cẩu Khung RTG-02'",
+    "verificationStatus": "UNVERIFIED",
+    "questions": [
+      "Is the meter mounted on crane RTG-02 or at the yard plug kiosk?",
+      "Can this mobile crane relocate across container yard presentation zones?",
+      "Does the LCD unit provide digital pulse/telemetry output?"
+    ]
+  },
+  {
+    "meterCode": "MTR-005",
+    "proposedRelationType": "MEASURES",
+    "proposedAssetCode": "AST-CAND-005",
+    "candidateInstalledAt": null,
+    "confidence": "HIGH",
+    "evidenceSource": "Meter name 'Kho Hàng 1 - Tủ Phân Phối Tổng'",
+    "verificationStatus": "UNVERIFIED",
+    "questions": [
+      "What sub-circuits or warehouse rooms are fed downstream from this switchboard?",
+      "Where in Warehouse 1 is the physical switchboard located?"
+    ]
+  },
+  {
+    "meterCode": "MTR-006",
+    "proposedRelationType": "MEASURES",
+    "proposedAssetCode": "AST-CAND-006",
+    "candidateInstalledAt": null,
+    "confidence": "HIGH",
+    "evidenceSource": "Meter name 'Kho Hàng 2 - Cụm Bơm Nước Chữa Cháy'",
+    "verificationStatus": "UNVERIFIED",
+    "questions": [
+      "CRITICAL: Does this meter measure electric motor kWh or water volume m3?",
+      "Where is the meter physically mounted (pump room wall vs motor conduit)?",
+      "Is consumption periodic (monthly test drills) or continuous?"
+    ]
+  },
+  {
+    "meterCode": "MTR-007",
+    "proposedRelationType": "MEASURES",
+    "proposedAssetCode": "AST-CAND-007",
+    "candidateInstalledAt": null,
+    "confidence": "HIGH",
+    "evidenceSource": "Meter name 'Cổng Kiểm Soát - Trạm Barie Số 1'",
+    "verificationStatus": "UNVERIFIED",
+    "questions": [
+      "Does this meter measure barrier drive motor, weighbridge, or lane lighting?",
+      "Where is the physical meter cabinet installed?"
+    ]
+  },
+  {
+    "meterCode": "MTR-008",
+    "proposedRelationType": "MEASURES",
+    "proposedAssetCode": "AST-CAND-008",
+    "candidateInstalledAt": null,
+    "confidence": "MEDIUM",
+    "evidenceSource": "Meter name 'Cổng Kiểm Soát - Nhà Điều Hành Phụ'",
+    "verificationStatus": "UNVERIFIED",
+    "questions": [
+      "What loads are connected (lighting, HVAC, access control computers)?",
+      "Is the auxiliary office a fixed permanent structure or modular guard cabin?"
+    ]
+  },
+  {
+    "meterCode": "MTR-009",
+    "proposedRelationType": "MEASURES",
+    "proposedAssetCode": "AST-CAND-009",
+    "candidateInstalledAt": null,
+    "confidence": "MEDIUM",
+    "evidenceSource": "Meter name 'Trạm Biến Áp 1 - Xuất Tuyến Trung Thế'",
+    "verificationStatus": "UNVERIFIED",
+    "questions": [
+      "Which feeder line or port section does this medium voltage feeder supply?",
+      "What safety procedures and clearance are required for operator manual reads?"
+    ]
+  },
+  {
+    "meterCode": "MTR-010",
+    "proposedRelationType": "MEASURES",
+    "proposedAssetCode": "AST-CAND-010",
+    "candidateInstalledAt": null,
+    "confidence": "HIGH",
+    "evidenceSource": "Meter name 'Trạm Biến Áp 2 - Máy Biến Áp Phụ Tải 2'",
+    "verificationStatus": "UNVERIFIED",
+    "questions": [
+      "Is the meter installed on primary MV or secondary LV side of Transformer 2?",
+      "What transformation ratio and CT multiplier are used for kWh calculation?",
+      "Which downstream distribution panels does Transformer 2 supply?"
+    ]
+  },
+  {
+    "meterCode": "MTR-011",
+    "proposedRelationType": "MEASURES",
+    "proposedAssetCode": "AST-CAND-011",
+    "candidateInstalledAt": null,
+    "confidence": "MEDIUM",
+    "evidenceSource": "Meter name 'Xưởng Cơ Khí - Tủ Động Lực Gia Công'",
+    "verificationStatus": "UNVERIFIED",
+    "questions": [
+      "What machine tools (lathes, milling machines, welders) are powered by this panel?",
+      "Is the meter mounted on the workshop wall or switchboard panel front?"
+    ]
+  },
+  {
+    "meterCode": "MTR-012",
+    "proposedRelationType": "MEASURES",
+    "proposedAssetCode": "AST-CAND-012",
+    "candidateInstalledAt": null,
+    "confidence": "HIGH",
+    "evidenceSource": "Meter name 'Xưởng Bảo Trì - Trạm Khí Nén & Cấp Nguồn'",
+    "verificationStatus": "UNVERIFIED",
+    "questions": [
+      "Does this meter measure electric compressor power or compressed air pressure/flow?",
+      "Where is the physical reading register face oriented?"
+    ]
+  }
+]
