@@ -318,7 +318,7 @@ export function validatePrePublishGeometry(
     }
 
     const area = calculatePolygonArea(poly);
-    if (area < 1000) {
+    if (area < 500) {
       addIssue(
         'POLYGON_ZERO_AREA',
         'ERROR',

@@ -504,7 +504,7 @@ def validate_map_version_geometry(db: Session, version_id: str) -> MapValidation
 
         # Area check
         area = calculate_polygon_area(poly)
-        if area < 1000:
+        if area < 500:
             add_issue(
                 code="POLYGON_ZERO_AREA",
                 severity="ERROR",
