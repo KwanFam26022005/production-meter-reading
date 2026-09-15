@@ -1,0 +1,146 @@
+[
+  {
+    "meterId": "4557d411-4bef-445e-b045-1ead2e242948",
+    "meterCode": "CT-001",
+    "presentationZoneId": "pres-technical",
+    "canonicalPosition": {
+      "x": 1148.0,
+      "y": 686.0
+    },
+    "insideAssignedPresentationZone": false,
+    "reviewStatus": "REVIEW_REQUIRED",
+    "notes": "Physical meter position (1148.0, 686.0) is outside the human-calibrated pres-technical boundary. Important domain distinction: presentationZone assignment != physical meter position != future measured Asset != future installedAt Asset. No geometry or meter coordinates were mutated; retained as reconciliation warning for future asset alignment."
+  },
+  {
+    "meterId": "fed0d7d8-bc2d-4c1d-a8f8-262fa3ac396e",
+    "meterCode": "CT-002",
+    "presentationZoneId": "pres-container-west",
+    "canonicalPosition": {
+      "x": 507.1,
+      "y": 465.0
+    },
+    "insideAssignedPresentationZone": true,
+    "reviewStatus": "VALID",
+    "notes": "Meter canonical position is fully contained within the human-calibrated presentation zone boundary."
+  },
+  {
+    "meterId": "e0654f54-c401-49f2-8d79-38f6fbf50ef6",
+    "meterCode": "CT-003",
+    "presentationZoneId": "pres-berth",
+    "canonicalPosition": {
+      "x": 337.0,
+      "y": 316.0
+    },
+    "insideAssignedPresentationZone": true,
+    "reviewStatus": "VALID",
+    "notes": "Meter canonical position is fully contained within the human-calibrated presentation zone boundary."
+  },
+  {
+    "meterId": "bb0d2e8d-67ab-47eb-b36e-26448152c7e4",
+    "meterCode": "CT-004",
+    "presentationZoneId": "pres-berth",
+    "canonicalPosition": {
+      "x": 694.0,
+      "y": 315.0
+    },
+    "insideAssignedPresentationZone": true,
+    "reviewStatus": "VALID",
+    "notes": "Meter canonical position is fully contained within the human-calibrated presentation zone boundary."
+  },
+  {
+    "meterId": "0ca43793-5158-46e7-a796-431f2cfd7ecf",
+    "meterCode": "CT-005",
+    "presentationZoneId": "pres-container-west",
+    "canonicalPosition": {
+      "x": 639.0,
+      "y": 475.0
+    },
+    "insideAssignedPresentationZone": true,
+    "reviewStatus": "VALID",
+    "notes": "Meter canonical position is fully contained within the human-calibrated presentation zone boundary."
+  },
+  {
+    "meterId": "8b56445b-7da9-4bce-91fc-388f3f7a2737",
+    "meterCode": "CT-006",
+    "presentationZoneId": "pres-cfs-east",
+    "canonicalPosition": {
+      "x": 1680.0,
+      "y": 380.0
+    },
+    "insideAssignedPresentationZone": true,
+    "reviewStatus": "VALID",
+    "notes": "Meter canonical position is fully contained within the human-calibrated presentation zone boundary."
+  },
+  {
+    "meterId": "5abcdc9c-bda7-403d-99e1-0d1733af3417",
+    "meterCode": "CT-007",
+    "presentationZoneId": "pres-technical",
+    "canonicalPosition": {
+      "x": 1068.0,
+      "y": 720.0
+    },
+    "insideAssignedPresentationZone": false,
+    "reviewStatus": "REVIEW_REQUIRED",
+    "notes": "Physical meter position (1068.0, 720.0) is outside the human-calibrated pres-technical boundary. Important domain distinction: presentationZone assignment != physical meter position != future measured Asset != future installedAt Asset. No geometry or meter coordinates were mutated; retained as reconciliation warning for future asset alignment."
+  },
+  {
+    "meterId": "50167b00-47da-4c35-9733-5c534188ca32",
+    "meterCode": "CT-008",
+    "presentationZoneId": "pres-berth",
+    "canonicalPosition": {
+      "x": 1400.1,
+      "y": 248.0
+    },
+    "insideAssignedPresentationZone": false,
+    "reviewStatus": "REVIEW_REQUIRED",
+    "notes": "Physical meter position (1400.1, 248.0) is outside the human-calibrated pres-berth boundary. Important domain distinction: presentationZone assignment != physical meter position != future measured Asset != future installedAt Asset. No geometry or meter coordinates were mutated; retained as reconciliation warning for future asset alignment."
+  },
+  {
+    "meterId": "eacc7434-4dd3-41d8-88f4-cccf84635295",
+    "meterCode": "CT-009",
+    "presentationZoneId": "pres-technical",
+    "canonicalPosition": {
+      "x": 1229.0,
+      "y": 681.0
+    },
+    "insideAssignedPresentationZone": false,
+    "reviewStatus": "REVIEW_REQUIRED",
+    "notes": "Physical meter position (1229.0, 681.0) is outside the human-calibrated pres-technical boundary. Important domain distinction: presentationZone assignment != physical meter position != future measured Asset != future installedAt Asset. No geometry or meter coordinates were mutated; retained as reconciliation warning for future asset alignment."
+  },
+  {
+    "meterId": "171d8959-492a-413c-bb07-6b72d59db796",
+    "meterCode": "CT-010",
+    "presentationZoneId": "pres-gate",
+    "canonicalPosition": {
+      "x": 1640.0,
+      "y": 560.0
+    },
+    "insideAssignedPresentationZone": false,
+    "reviewStatus": "REVIEW_REQUIRED",
+    "notes": "Physical meter position (1640.0, 560.0) is outside the human-calibrated pres-gate boundary. Important domain distinction: presentationZone assignment != physical meter position != future measured Asset != future installedAt Asset. No geometry or meter coordinates were mutated; retained as reconciliation warning for future asset alignment."
+  },
+  {
+    "meterId": "00142f61-7c44-42b6-8e57-e4a6c9302557",
+    "meterCode": "CT-011",
+    "presentationZoneId": "pres-container-center",
+    "canonicalPosition": {
+      "x": 1171.0,
+      "y": 437.0
+    },
+    "insideAssignedPresentationZone": true,
+    "reviewStatus": "VALID",
+    "notes": "Meter canonical position is fully contained within the human-calibrated presentation zone boundary."
+  },
+  {
+    "meterId": "8908e259-d48d-4fef-aef7-2da41e1466e2",
+    "meterCode": "CT-012",
+    "presentationZoneId": "pres-container-center",
+    "canonicalPosition": {
+      "x": 1402.0,
+      "y": 424.0
+    },
+    "insideAssignedPresentationZone": true,
+    "reviewStatus": "VALID",
+    "notes": "Meter canonical position is fully contained within the human-calibrated presentation zone boundary."
+  }
+]

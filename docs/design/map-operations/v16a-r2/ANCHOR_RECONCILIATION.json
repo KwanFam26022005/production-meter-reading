@@ -1,0 +1,110 @@
+[
+  {
+    "zoneId": "pres-berth",
+    "displayLabel": "Cầu cảng",
+    "businessZoneId": "zone-berth",
+    "labelAnchorCanonical": {
+      "x": 930,
+      "y": 302
+    },
+    "labelAnchorInside": false,
+    "labelAnchorStatus": "REVIEW_REQUIRED",
+    "operatorAnchorCanonical": {
+      "x": 1030,
+      "y": 285
+    },
+    "operatorAnchorInside": false,
+    "operatorAnchorStatus": "REVIEW_REQUIRED",
+    "notes": "Retained exactly as calibrated without automatic snapping or artificial relocation."
+  },
+  {
+    "zoneId": "pres-container-west",
+    "displayLabel": "Bãi container phía Tây",
+    "businessZoneId": "zone-warehouse",
+    "labelAnchorCanonical": {
+      "x": 410,
+      "y": 480
+    },
+    "labelAnchorInside": true,
+    "labelAnchorStatus": "VALID",
+    "operatorAnchorCanonical": {
+      "x": 525,
+      "y": 515
+    },
+    "operatorAnchorInside": true,
+    "operatorAnchorStatus": "VALID",
+    "notes": "Retained exactly as calibrated without automatic snapping or artificial relocation."
+  },
+  {
+    "zoneId": "pres-container-center",
+    "displayLabel": "Bãi container trung tâm",
+    "businessZoneId": "zone-container",
+    "labelAnchorCanonical": {
+      "x": 1090,
+      "y": 438
+    },
+    "labelAnchorInside": true,
+    "labelAnchorStatus": "VALID",
+    "operatorAnchorCanonical": {
+      "x": 1278,
+      "y": 455
+    },
+    "operatorAnchorInside": true,
+    "operatorAnchorStatus": "VALID",
+    "notes": "Retained exactly as calibrated without automatic snapping or artificial relocation."
+  },
+  {
+    "zoneId": "pres-cfs-east",
+    "displayLabel": "Kho / CFS phía Đông",
+    "businessZoneId": "zone-warehouse",
+    "labelAnchorCanonical": {
+      "x": 1750,
+      "y": 335
+    },
+    "labelAnchorInside": true,
+    "labelAnchorStatus": "VALID",
+    "operatorAnchorCanonical": {
+      "x": 1838,
+      "y": 445
+    },
+    "operatorAnchorInside": false,
+    "operatorAnchorStatus": "REVIEW_REQUIRED",
+    "notes": "Retained exactly as calibrated without automatic snapping or artificial relocation."
+  },
+  {
+    "zoneId": "pres-technical",
+    "displayLabel": "Khu kỹ thuật / Dịch vụ",
+    "businessZoneId": "zone-technical",
+    "labelAnchorCanonical": {
+      "x": 1145,
+      "y": 575
+    },
+    "labelAnchorInside": true,
+    "labelAnchorStatus": "VALID",
+    "operatorAnchorCanonical": {
+      "x": 1100,
+      "y": 740
+    },
+    "operatorAnchorInside": false,
+    "operatorAnchorStatus": "REVIEW_REQUIRED",
+    "notes": "Retained exactly as calibrated without automatic snapping or artificial relocation."
+  },
+  {
+    "zoneId": "pres-gate",
+    "displayLabel": "Cổng chính",
+    "businessZoneId": "zone-technical",
+    "labelAnchorCanonical": {
+      "x": 1742,
+      "y": 550
+    },
+    "labelAnchorInside": false,
+    "labelAnchorStatus": "REVIEW_REQUIRED",
+    "operatorAnchorCanonical": {
+      "x": 1790,
+      "y": 580
+    },
+    "operatorAnchorInside": false,
+    "operatorAnchorStatus": "REVIEW_REQUIRED",
+    "notes": "Retained exactly as calibrated without automatic snapping or artificial relocation."
+  }
+]

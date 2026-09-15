@@ -1,0 +1,21 @@
+{
+  "mapId": "tan-thuan",
+  "publishedVersionId": "7176b67f-37b8-4a62-98c1-02943dd98e7d",
+  "publishedVersionNumber": "tan-thuan-v16a-r2-frozen",
+  "previousPublishedVersionId": "b1449568-706e-4c6a-b8e1-cec3930d11ff",
+  "geometrySchemaVersion": "1.0",
+  "coordinateSystem": "tan-thuan-canonical-image-pixel-space-v1",
+  "canonicalWidth": 1915,
+  "canonicalHeight": 821,
+  "zoneCount": 6,
+  "landmarkCount": 49,
+  "geometrySha256": "ed5fd8bfa4b0e8a2b59937a418de787c57c6d072f3f790f3dbe84df5299177d3",
+  "meterTotal": 12,
+  "meterContained": 7,
+  "meterReviewRequired": 5,
+  "anchorWarnings": 6,
+  "landmarkWarnings": 43,
+  "deferredRouteWork": "ROUTE_REVIEW_DEFERRED_TO_V16H",
+  "deferredAssetWork": "ASSET_CANDIDATE_REGISTRY_PRESERVED",
+  "status": "SPATIAL_BASELINE_FROZEN"
+}

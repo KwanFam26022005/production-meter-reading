@@ -1,0 +1,29 @@
+{
+  "mapId": "tan-thuan-port",
+  "coordinateSystem": "tan-thuan-canonical-image-pixel-space-v1",
+  "canonicalWidth": 1915,
+  "canonicalHeight": 821,
+  "zones": {
+    "required": 6,
+    "valid": 6
+  },
+  "humanGeometryStatus": "APPROVED",
+  "signoffClassification": "HUMAN_GEOMETRY_APPROVED",
+  "reviewedBy": "USER_CONFIRMED",
+  "meterReconciliation": {
+    "total": 12,
+    "valid": 7,
+    "reviewRequired": 5
+  },
+  "anchorReconciliation": {
+    "total": 12,
+    "valid": 6,
+    "reviewRequired": 6
+  },
+  "landmarkReconciliation": {
+    "total": 49,
+    "valid": 49,
+    "reviewRequired": 43
+  },
+  "freezeStatus": "READY_TO_PUBLISH"
+}

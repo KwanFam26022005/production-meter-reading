@@ -955,24 +955,23 @@ export const MapCalibrationSvgLayer: React.FC<{
               transform={`translate(${m.canonicalX}, ${m.canonicalY})`}
               pointerEvents="none"
             >
-              {/* Amber warning ring for uncontained meters needing reconciliation */}
+              {/* Static amber review ring with one-shot emphasis on activation (Maritime Operational Minimalism) */}
               {!isInside && (
                 <circle
+                  className="sgp-reconciliation-review-ring"
                   r={highlightUncontainedMeters ? 12 / zoom : 8.5 / zoom}
                   fill={highlightUncontainedMeters ? 'rgba(245, 158, 11, 0.25)' : 'none'}
                   stroke="#F59E0B"
                   strokeWidth={highlightUncontainedMeters ? 2 / zoom : 1.5 / zoom}
                   strokeDasharray={highlightUncontainedMeters ? '3 3' : undefined}
-                >
-                  {highlightUncontainedMeters && (
-                    <animate
-                      attributeName="r"
-                      values={`${8.5 / zoom};${14 / zoom};${8.5 / zoom}`}
-                      dur="1.5s"
-                      repeatCount="indefinite"
-                    />
-                  )}
-                </circle>
+                  style={{
+                    transition:
+                      typeof window !== 'undefined' &&
+                      window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+                        ? 'none'
+                        : 'r 220ms ease-out, fill 220ms ease-out, stroke-width 220ms ease-out',
+                  }}
+                />
               )}
               <circle
                 r={5.5 / zoom}
@@ -1324,7 +1323,7 @@ export const MapCalibrationHUD: React.FC<{
                 </span>
               );
             }
-            if (status === 'INVALID') {
+            if (status === 'INVALID' && (workspace?.validationGate?.blockingErrors?.length ?? 0) > 0) {
               return (
                 <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '4px', background: 'rgba(239, 68, 68, 0.18)', color: '#F87171', border: '1px solid rgba(239, 68, 68, 0.35)', fontWeight: 600 }}>
                   Lỗi kiểm tra
@@ -1352,9 +1351,21 @@ export const MapCalibrationHUD: React.FC<{
                 </span>
               );
             }
+
+            // Published / Synced baseline state
+            const warningCount =
+              (workspace?.validationGate?.warningIssues?.length ?? 0) ||
+              validation.uncontainedMetersCount;
+            if (warningCount > 0) {
+              return (
+                <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '4px', background: 'rgba(245, 158, 11, 0.18)', color: '#F59E0B', border: '1px solid rgba(245, 158, 11, 0.35)', fontWeight: 600 }}>
+                  Đã xuất bản · {warningCount} mục cần đối soát
+                </span>
+              );
+            }
             return (
               <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.15)', color: '#34D399', border: '1px solid rgba(16, 185, 129, 0.25)', fontWeight: 500 }}>
-                Đã đồng bộ
+                Đã xuất bản
               </span>
             );
           })()}

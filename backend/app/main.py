@@ -131,16 +131,25 @@ settings = get_settings()
 reader = MeterReader(settings)
 
 
+import logging
+
+logger = logging.getLogger(__name__)
+is_production = settings.environment.lower() == "production"
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Initialize database tables
     init_db()
     # Eagerly load AI models so model/config errors surface at startup
-    reader.load()
+    try:
+        reader.load()
+    except Exception as e:
+        if is_production:
+            raise
+        logger.warning(f"Could not load ML models on startup: {e}")
     yield
 
-
-is_production = settings.environment.lower() == "production"
 
 app = FastAPI(
     title="Production Meter Reading & Attendance API",

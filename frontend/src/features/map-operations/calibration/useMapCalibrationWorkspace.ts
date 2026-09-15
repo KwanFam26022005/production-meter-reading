@@ -61,7 +61,8 @@ export type DraftSyncStatus =
   | 'SAVED'
   | 'CONFLICT'
   | 'READY_TO_PUBLISH'
-  | 'INVALID';
+  | 'INVALID'
+  | 'PUBLISHED';
 
 export interface PrePublishValidationResult {
   valid: boolean;
@@ -842,7 +843,7 @@ export function useMapCalibrationWorkspace(
 
       // 2. Publish
       const pubRes = await publishMapVersion(draftId);
-      setSyncStatus('SYNCED');
+      setSyncStatus('PUBLISHED');
       setPublishedGeometry(JSON.parse(JSON.stringify(draftGeometry)));
       setBackendDraftId(null);
       clearDraftFromStorage();

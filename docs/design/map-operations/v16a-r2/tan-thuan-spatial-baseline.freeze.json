@@ -1,0 +1,944 @@
+{
+  "mapId": "tan-thuan",
+  "mapVersion": "tan-thuan-v16a-r2-frozen",
+  "versionId": "7176b67f-37b8-4a62-98c1-02943dd98e7d",
+  "geometrySchemaVersion": "1.0",
+  "coordinateSystem": "tan-thuan-canonical-image-pixel-space-v1",
+  "canonicalWidth": 1915,
+  "canonicalHeight": 821,
+  "sourceAsset": "tan-thuan-canonical-base.png",
+  "zones": [
+    {
+      "id": "pres-berth",
+      "businessZoneIds": [
+        "zone-berth"
+      ],
+      "displayIndex": 1,
+      "displayLabel": "Cầu cảng",
+      "businessName": "Khu vực Cầu cảng (Berths 1–3)",
+      "presentationColor": "#0284C7",
+      "icon": "ship",
+      "polygonCanonical": [
+        {
+          "x": 233,
+          "y": 259,
+          "landmarkId": "berth-west-start"
+        },
+        {
+          "x": 376,
+          "y": 267
+        },
+        {
+          "x": 521,
+          "y": 275,
+          "landmarkId": "quay-west-bend"
+        },
+        {
+          "x": 643,
+          "y": 277
+        },
+        {
+          "x": 647,
+          "y": 290,
+          "landmarkId": "quay-central-break"
+        },
+        {
+          "x": 918,
+          "y": 244,
+          "landmarkId": "berth-central-junction"
+        },
+        {
+          "x": 1169,
+          "y": 206
+        },
+        {
+          "x": 1502,
+          "y": 147,
+          "landmarkId": "east-crane-transition"
+        },
+        {
+          "x": 1508,
+          "y": 160
+        },
+        {
+          "x": 1594,
+          "y": 138
+        },
+        {
+          "x": 1799,
+          "y": 7,
+          "landmarkId": "berth-east-end"
+        },
+        {
+          "x": 1810,
+          "y": 37
+        },
+        {
+          "x": 1604,
+          "y": 167,
+          "landmarkId": "southern-service-road-east"
+        },
+        {
+          "x": 1519,
+          "y": 201
+        },
+        {
+          "x": 1187,
+          "y": 254
+        },
+        {
+          "x": 825,
+          "y": 312
+        },
+        {
+          "x": 671,
+          "y": 335
+        },
+        {
+          "x": 432,
+          "y": 329
+        },
+        {
+          "x": 227,
+          "y": 321,
+          "landmarkId": "southern-service-road-west"
+        }
+      ],
+      "labelAnchorCanonical": {
+        "x": 930,
+        "y": 302
+      },
+      "operatorAnchorCanonical": {
+        "x": 1030,
+        "y": 285
+      }
+    },
+    {
+      "id": "pres-container-west",
+      "businessZoneIds": [
+        "zone-warehouse"
+      ],
+      "displayIndex": 2,
+      "displayLabel": "Bãi container phía Tây",
+      "businessName": "Khu vực Kho & Bãi Container Phía Tây",
+      "presentationColor": "#EA580C",
+      "icon": "container",
+      "polygonCanonical": [
+        {
+          "x": 73,
+          "y": 314,
+          "landmarkId": "west-yard-northwest"
+        },
+        {
+          "x": 199,
+          "y": 332
+        },
+        {
+          "x": 430,
+          "y": 342
+        },
+        {
+          "x": 680,
+          "y": 354
+        },
+        {
+          "x": 800,
+          "y": 333,
+          "landmarkId": "west-central-road-north"
+        },
+        {
+          "x": 820,
+          "y": 548,
+          "landmarkId": "west-central-road-south"
+        },
+        {
+          "x": 666,
+          "y": 550
+        },
+        {
+          "x": 471,
+          "y": 544,
+          "landmarkId": "south-road-east-curve"
+        },
+        {
+          "x": 324,
+          "y": 537,
+          "landmarkId": "south-road-mid-curve"
+        },
+        {
+          "x": 186,
+          "y": 524,
+          "landmarkId": "south-road-west-curve"
+        },
+        {
+          "x": 101,
+          "y": 501
+        },
+        {
+          "x": 10,
+          "y": 464,
+          "landmarkId": "west-yard-southwest"
+        },
+        {
+          "x": 44,
+          "y": 376,
+          "landmarkId": "west-yard-west-mid"
+        }
+      ],
+      "labelAnchorCanonical": {
+        "x": 410,
+        "y": 480
+      },
+      "operatorAnchorCanonical": {
+        "x": 525,
+        "y": 515
+      }
+    },
+    {
+      "id": "pres-container-center",
+      "businessZoneIds": [
+        "zone-container"
+      ],
+      "displayIndex": 3,
+      "displayLabel": "Bãi container trung tâm",
+      "businessName": "Khu vực Bãi Container Trung Tâm (CY)",
+      "presentationColor": "#E11D48",
+      "icon": "container",
+      "polygonCanonical": [
+        {
+          "x": 820,
+          "y": 328,
+          "landmarkId": "central-yard-nw"
+        },
+        {
+          "x": 1190,
+          "y": 280
+        },
+        {
+          "x": 1483,
+          "y": 225,
+          "landmarkId": "central-yard-ne"
+        },
+        {
+          "x": 1523,
+          "y": 327
+        },
+        {
+          "x": 1553,
+          "y": 429
+        },
+        {
+          "x": 1486,
+          "y": 440,
+          "landmarkId": "central-yard-se"
+        },
+        {
+          "x": 1204,
+          "y": 491,
+          "landmarkId": "central-yard-south-road-east"
+        },
+        {
+          "x": 842,
+          "y": 542,
+          "landmarkId": "central-yard-south-road-west"
+        }
+      ],
+      "labelAnchorCanonical": {
+        "x": 1090,
+        "y": 438
+      },
+      "operatorAnchorCanonical": {
+        "x": 1278,
+        "y": 455
+      }
+    },
+    {
+      "id": "pres-cfs-east",
+      "businessZoneIds": [
+        "zone-warehouse"
+      ],
+      "displayIndex": 4,
+      "displayLabel": "Kho / CFS phía Đông",
+      "businessName": "Khu vực Kho & CFS Phía Đông",
+      "presentationColor": "#EAB308",
+      "icon": "warehouse",
+      "polygonCanonical": [
+        {
+          "x": 1505,
+          "y": 222,
+          "landmarkId": "east-cfs-northwest"
+        },
+        {
+          "x": 1694,
+          "y": 134,
+          "landmarkId": "east-cfs-north"
+        },
+        {
+          "x": 1730,
+          "y": 196
+        },
+        {
+          "x": 1784,
+          "y": 277,
+          "landmarkId": "east-cfs-northeast"
+        },
+        {
+          "x": 1826,
+          "y": 345,
+          "landmarkId": "east-cfs-east"
+        },
+        {
+          "x": 1862,
+          "y": 415
+        },
+        {
+          "x": 1795,
+          "y": 450,
+          "landmarkId": "east-cfs-southeast"
+        },
+        {
+          "x": 1738,
+          "y": 474
+        },
+        {
+          "x": 1620,
+          "y": 511,
+          "landmarkId": "east-cfs-south"
+        },
+        {
+          "x": 1591,
+          "y": 453
+        },
+        {
+          "x": 1566,
+          "y": 393,
+          "landmarkId": "east-cfs-southwest"
+        },
+        {
+          "x": 1543,
+          "y": 333
+        }
+      ],
+      "labelAnchorCanonical": {
+        "x": 1750,
+        "y": 335
+      },
+      "operatorAnchorCanonical": {
+        "x": 1838,
+        "y": 445
+      }
+    },
+    {
+      "id": "pres-technical",
+      "businessZoneIds": [
+        "zone-technical"
+      ],
+      "displayIndex": 5,
+      "displayLabel": "Khu kỹ thuật / Dịch vụ",
+      "businessName": "Khu vực Kỹ thuật, Trạm điện & Dịch vụ",
+      "presentationColor": "#10B981",
+      "icon": "gear",
+      "polygonCanonical": [
+        {
+          "x": 1171,
+          "y": 505,
+          "landmarkId": "technical-north-road-east"
+        },
+        {
+          "x": 1555,
+          "y": 446
+        },
+        {
+          "x": 1597,
+          "y": 553
+        },
+        {
+          "x": 1465,
+          "y": 591,
+          "landmarkId": "technical-east-road"
+        },
+        {
+          "x": 1369,
+          "y": 616,
+          "landmarkId": "technical-southeast"
+        },
+        {
+          "x": 1270,
+          "y": 632,
+          "landmarkId": "workshop-east"
+        },
+        {
+          "x": 1173,
+          "y": 651,
+          "landmarkId": "technical-south-road"
+        },
+        {
+          "x": 972,
+          "y": 683
+        },
+        {
+          "x": 956,
+          "y": 636,
+          "landmarkId": "technical-southwest"
+        },
+        {
+          "x": 850,
+          "y": 592,
+          "landmarkId": "workshop-west"
+        },
+        {
+          "x": 846,
+          "y": 573
+        },
+        {
+          "x": 843,
+          "y": 561
+        },
+        {
+          "x": 1016,
+          "y": 537
+        }
+      ],
+      "labelAnchorCanonical": {
+        "x": 1145,
+        "y": 575
+      },
+      "operatorAnchorCanonical": {
+        "x": 1100,
+        "y": 740
+      }
+    },
+    {
+      "id": "pres-gate",
+      "businessZoneIds": [
+        "zone-technical"
+      ],
+      "displayIndex": 6,
+      "displayLabel": "Cổng chính",
+      "businessName": "Khu vực Cổng chính & Trạm cân",
+      "presentationColor": "#8B5CF6",
+      "icon": "gate",
+      "polygonCanonical": [
+        {
+          "x": 825,
+          "y": 564,
+          "landmarkId": "gate-entry-road"
+        },
+        {
+          "x": 850,
+          "y": 562,
+          "landmarkId": "gate-internal-junction"
+        },
+        {
+          "x": 856,
+          "y": 604
+        },
+        {
+          "x": 829,
+          "y": 598,
+          "landmarkId": "gate-east-boundary"
+        }
+      ],
+      "labelAnchorCanonical": {
+        "x": 1742,
+        "y": 550
+      },
+      "operatorAnchorCanonical": {
+        "x": 1790,
+        "y": 580
+      }
+    }
+  ],
+  "landmarks": [
+    {
+      "id": "berth-central-junction",
+      "zoneId": "pres-berth",
+      "label": "Ngã ba đường công vụ cầu cảng",
+      "category": "intersection",
+      "canonical": {
+        "x": 930,
+        "y": 268
+      }
+    },
+    {
+      "id": "berth-east-end",
+      "zoneId": "pres-berth",
+      "label": "Điểm kết thúc cầu cảng phía Đông",
+      "category": "quay-edge",
+      "canonical": {
+        "x": 1915,
+        "y": 56
+      }
+    },
+    {
+      "id": "berth-west-start",
+      "zoneId": "pres-berth",
+      "label": "Bến Tây - Khởi đầu cầu tàu",
+      "category": "quay-edge",
+      "canonical": {
+        "x": 192,
+        "y": 296
+      }
+    },
+    {
+      "id": "central-yard-east-mid",
+      "zoneId": "pres-container-center",
+      "label": "Ranh giới Đông CY trung tâm",
+      "category": "internal-road",
+      "canonical": {
+        "x": 1545,
+        "y": 380
+      }
+    },
+    {
+      "id": "central-yard-ne",
+      "zoneId": "pres-container-center",
+      "label": "Góc Đông Bắc CY trung tâm",
+      "category": "yard-edge",
+      "canonical": {
+        "x": 1505,
+        "y": 245
+      }
+    },
+    {
+      "id": "central-yard-nw",
+      "zoneId": "pres-container-center",
+      "label": "Góc Tây Bắc CY trung tâm",
+      "category": "yard-edge",
+      "canonical": {
+        "x": 820,
+        "y": 328
+      }
+    },
+    {
+      "id": "central-yard-se",
+      "zoneId": "pres-container-center",
+      "label": "Góc Đông Nam CY trung tâm",
+      "category": "yard-edge",
+      "canonical": {
+        "x": 1546,
+        "y": 515
+      }
+    },
+    {
+      "id": "central-yard-south-road-east",
+      "zoneId": "pres-container-center",
+      "label": "Đường phân cách Nam - Đông CY",
+      "category": "internal-road",
+      "canonical": {
+        "x": 1200,
+        "y": 525
+      }
+    },
+    {
+      "id": "central-yard-south-road-west",
+      "zoneId": "pres-container-center",
+      "label": "Đường phân cách Nam - Tây CY",
+      "category": "internal-road",
+      "canonical": {
+        "x": 836,
+        "y": 525
+      }
+    },
+    {
+      "id": "central-yard-sw",
+      "zoneId": "pres-container-center",
+      "label": "Góc Tây Nam CY trung tâm",
+      "category": "yard-edge",
+      "canonical": {
+        "x": 830,
+        "y": 500
+      }
+    },
+    {
+      "id": "central-yard-west-mid",
+      "zoneId": "pres-container-center",
+      "label": "Ranh giới Tây CY trung tâm",
+      "category": "internal-road",
+      "canonical": {
+        "x": 820,
+        "y": 420
+      }
+    },
+    {
+      "id": "east-cfs-east",
+      "zoneId": "pres-cfs-east",
+      "label": "Bờ rào phía Đông kho CFS",
+      "category": "fence",
+      "canonical": {
+        "x": 1915,
+        "y": 350
+      }
+    },
+    {
+      "id": "east-cfs-north",
+      "zoneId": "pres-cfs-east",
+      "label": "Đỉnh cụm kho CFS phía Bắc",
+      "category": "warehouse-edge",
+      "canonical": {
+        "x": 1765,
+        "y": 195
+      }
+    },
+    {
+      "id": "east-cfs-northeast",
+      "zoneId": "pres-cfs-east",
+      "label": "Góc Đông Bắc kho CFS",
+      "category": "warehouse-edge",
+      "canonical": {
+        "x": 1905,
+        "y": 215
+      }
+    },
+    {
+      "id": "east-cfs-northwest",
+      "zoneId": "pres-cfs-east",
+      "label": "Lối vào cụm kho phía Bắc",
+      "category": "internal-road",
+      "canonical": {
+        "x": 1505,
+        "y": 245
+      }
+    },
+    {
+      "id": "east-cfs-south",
+      "zoneId": "pres-cfs-east",
+      "label": "Ranh giới đường Nam kho CFS",
+      "category": "service-road",
+      "canonical": {
+        "x": 1690,
+        "y": 485
+      }
+    },
+    {
+      "id": "east-cfs-southeast",
+      "zoneId": "pres-cfs-east",
+      "label": "Góc Đông Nam cụm kho CFS",
+      "category": "warehouse-edge",
+      "canonical": {
+        "x": 1850,
+        "y": 465
+      }
+    },
+    {
+      "id": "east-cfs-southwest",
+      "zoneId": "pres-cfs-east",
+      "label": "Góc Tây Nam kho CFS",
+      "category": "warehouse-edge",
+      "canonical": {
+        "x": 1555,
+        "y": 428
+      }
+    },
+    {
+      "id": "east-crane-transition",
+      "zoneId": "pres-berth",
+      "label": "Chuyển tiếp ray cẩu giàn phía Đông",
+      "category": "quay-edge",
+      "canonical": {
+        "x": 1480,
+        "y": 220
+      }
+    },
+    {
+      "id": "gate-east-boundary",
+      "zoneId": "pres-gate",
+      "label": "Ranh rào chắn an ninh Đông cổng",
+      "category": "fence",
+      "canonical": {
+        "x": 1790,
+        "y": 488
+      }
+    },
+    {
+      "id": "gate-entry-road",
+      "zoneId": "pres-gate",
+      "label": "Lối nhập làn từ đường nội bộ",
+      "category": "internal-road",
+      "canonical": {
+        "x": 1500,
+        "y": 515
+      }
+    },
+    {
+      "id": "gate-internal-junction",
+      "zoneId": "pres-gate",
+      "label": "Nút giao thông phân luồng vào bãi",
+      "category": "intersection",
+      "canonical": {
+        "x": 1595,
+        "y": 485
+      }
+    },
+    {
+      "id": "inbound-lane",
+      "zoneId": "pres-gate",
+      "label": "Làn xe container vào cảng",
+      "category": "gate",
+      "canonical": {
+        "x": 1678,
+        "y": 617
+      }
+    },
+    {
+      "id": "outbound-lane",
+      "zoneId": "pres-gate",
+      "label": "Làn xe container ra cảng",
+      "category": "gate",
+      "canonical": {
+        "x": 1564,
+        "y": 564
+      }
+    },
+    {
+      "id": "outer-gate",
+      "zoneId": "pres-gate",
+      "label": "Trụ barie cổng chính Tân Thuận",
+      "category": "gate",
+      "canonical": {
+        "x": 1900,
+        "y": 606
+      }
+    },
+    {
+      "id": "quay-central-break",
+      "zoneId": "pres-berth",
+      "label": "Cầu cảng giữa - Điểm nối bến",
+      "category": "quay-edge",
+      "canonical": {
+        "x": 695,
+        "y": 284
+      }
+    },
+    {
+      "id": "quay-west-bend",
+      "zoneId": "pres-berth",
+      "label": "Bờ kè Tây - Góc uốn",
+      "category": "quay-edge",
+      "canonical": {
+        "x": 440,
+        "y": 305
+      }
+    },
+    {
+      "id": "security-post",
+      "zoneId": "pres-gate",
+      "label": "Bốt bảo vệ & kiểm soát chứng từ",
+      "category": "security",
+      "canonical": {
+        "x": 1664,
+        "y": 562
+      }
+    },
+    {
+      "id": "south-road-east-curve",
+      "zoneId": "pres-container-west",
+      "label": "Đoạn cong Đông đường Nam",
+      "category": "perimeter-road",
+      "canonical": {
+        "x": 450,
+        "y": 555
+      }
+    },
+    {
+      "id": "south-road-mid-curve",
+      "zoneId": "pres-container-west",
+      "label": "Đoạn cong giữa đường Nam",
+      "category": "perimeter-road",
+      "canonical": {
+        "x": 280,
+        "y": 545
+      }
+    },
+    {
+      "id": "south-road-west-curve",
+      "zoneId": "pres-container-west",
+      "label": "Khúc cua đường Nam phía Tây",
+      "category": "perimeter-road",
+      "canonical": {
+        "x": 134,
+        "y": 537
+      }
+    },
+    {
+      "id": "southern-service-road-center",
+      "zoneId": "pres-berth",
+      "label": "Đường công vụ phía Nam - Giữa",
+      "category": "service-road",
+      "canonical": {
+        "x": 930,
+        "y": 310
+      }
+    },
+    {
+      "id": "southern-service-road-east",
+      "zoneId": "pres-berth",
+      "label": "Đường công vụ phía Nam - Đông",
+      "category": "service-road",
+      "canonical": {
+        "x": 1505,
+        "y": 245
+      }
+    },
+    {
+      "id": "southern-service-road-west",
+      "zoneId": "pres-berth",
+      "label": "Đường công vụ phía Nam - Tây",
+      "category": "service-road",
+      "canonical": {
+        "x": 192,
+        "y": 338
+      }
+    },
+    {
+      "id": "technical-east-road",
+      "zoneId": "pres-technical",
+      "label": "Đường giao cắt kỹ thuật Đông",
+      "category": "service-road",
+      "canonical": {
+        "x": 1474,
+        "y": 625
+      }
+    },
+    {
+      "id": "technical-north-road-east",
+      "zoneId": "pres-technical",
+      "label": "Đường dịch vụ Bắc - Đông",
+      "category": "internal-road",
+      "canonical": {
+        "x": 1200,
+        "y": 525
+      }
+    },
+    {
+      "id": "technical-north-road-west",
+      "zoneId": "pres-technical",
+      "label": "Đường dịch vụ Bắc - Tây",
+      "category": "internal-road",
+      "canonical": {
+        "x": 950,
+        "y": 525
+      }
+    },
+    {
+      "id": "technical-nw",
+      "zoneId": "pres-technical",
+      "label": "Góc Tây Bắc khu kỹ thuật",
+      "category": "yard-edge",
+      "canonical": {
+        "x": 836,
+        "y": 525
+      }
+    },
+    {
+      "id": "technical-south-road",
+      "zoneId": "pres-technical",
+      "label": "Tuyến đường biên phía Nam",
+      "category": "perimeter-road",
+      "canonical": {
+        "x": 1100,
+        "y": 768
+      }
+    },
+    {
+      "id": "technical-southeast",
+      "zoneId": "pres-technical",
+      "label": "Góc Đông Nam trạm kỹ thuật B",
+      "category": "yard-edge",
+      "canonical": {
+        "x": 1380,
+        "y": 710
+      }
+    },
+    {
+      "id": "technical-southwest",
+      "zoneId": "pres-technical",
+      "label": "Góc Tây Nam trạm A",
+      "category": "yard-edge",
+      "canonical": {
+        "x": 939,
+        "y": 656
+      }
+    },
+    {
+      "id": "weigh-station-entry",
+      "zoneId": "pres-gate",
+      "label": "Bàn cân tải trọng xe container",
+      "category": "weigh-station",
+      "canonical": {
+        "x": 1525,
+        "y": 560
+      }
+    },
+    {
+      "id": "west-central-road-north",
+      "zoneId": "pres-container-west",
+      "label": "Ngã ba đường ranh Tây - Trung tâm Bắc",
+      "category": "intersection",
+      "canonical": {
+        "x": 820,
+        "y": 328
+      }
+    },
+    {
+      "id": "west-central-road-south",
+      "zoneId": "pres-container-west",
+      "label": "Ngã tư đường ranh Tây - Trung tâm Nam",
+      "category": "intersection",
+      "canonical": {
+        "x": 820,
+        "y": 548
+      }
+    },
+    {
+      "id": "west-yard-northwest",
+      "zoneId": "pres-container-west",
+      "label": "Góc Tây Bắc bãi Tây",
+      "category": "yard-edge",
+      "canonical": {
+        "x": 27,
+        "y": 315
+      }
+    },
+    {
+      "id": "west-yard-southwest",
+      "zoneId": "pres-container-west",
+      "label": "Góc Tây Nam bãi Tây",
+      "category": "yard-edge",
+      "canonical": {
+        "x": 9,
+        "y": 467
+      }
+    },
+    {
+      "id": "west-yard-west-mid",
+      "zoneId": "pres-container-west",
+      "label": "Ranh giới bờ rào phía Tây",
+      "category": "fence",
+      "canonical": {
+        "x": 15,
+        "y": 380
+      }
+    },
+    {
+      "id": "workshop-east",
+      "zoneId": "pres-technical",
+      "label": "Mép Đông trạm điện trung thế",
+      "category": "warehouse-edge",
+      "canonical": {
+        "x": 1320,
+        "y": 765
+      }
+    },
+    {
+      "id": "workshop-west",
+      "zoneId": "pres-technical",
+      "label": "Mép Tây xưởng bảo dưỡng cơ giới",
+      "category": "warehouse-edge",
+      "canonical": {
+        "x": 812,
+        "y": 586
+      }
+    }
+  ]
+}
