@@ -681,6 +681,31 @@ def migrate_db(db_engine=None) -> None:
                             lbl_anchor_str, op_anchor_str, lm_str
                         ))
 
+            # 15. Meter Lifecycle Safety & History Preservation (V16B)
+            cursor.execute("PRAGMA table_info(meters)")
+            m_cols = [row[1] for row in cursor.fetchall()]
+            if "lifecycle_status" not in m_cols:
+                cursor.execute("ALTER TABLE meters ADD COLUMN lifecycle_status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE'")
+                cursor.execute("CREATE INDEX IF NOT EXISTS ix_meters_lifecycle_status ON meters (lifecycle_status)")
+            if "retired_at" not in m_cols:
+                cursor.execute("ALTER TABLE meters ADD COLUMN retired_at DATETIME")
+            if "retired_by" not in m_cols:
+                cursor.execute("ALTER TABLE meters ADD COLUMN retired_by VARCHAR(36) REFERENCES users(id) ON DELETE SET NULL")
+            if "retirement_reason" not in m_cols:
+                cursor.execute("ALTER TABLE meters ADD COLUMN retirement_reason TEXT")
+
+            # Deterministic backfill: ensure all existing meters have a valid lifecycle_status aligned with is_active
+            cursor.execute("""
+                UPDATE meters
+                SET lifecycle_status = 'ACTIVE'
+                WHERE (lifecycle_status IS NULL OR lifecycle_status = '') AND is_active = 1
+            """)
+            cursor.execute("""
+                UPDATE meters
+                SET lifecycle_status = 'INACTIVE'
+                WHERE (lifecycle_status IS NULL OR lifecycle_status = '') AND is_active = 0
+            """)
+
             conn.connection.commit()
         finally:
             cursor.close()

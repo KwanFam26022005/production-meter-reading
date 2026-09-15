@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Any, Literal, Optional
 from pydantic import BaseModel
 
@@ -78,6 +79,10 @@ class MeterOut(BaseModel):
     location: Optional[str] = None
     meter_type: str = "UNKNOWN"
     is_active: bool = True
+    lifecycle_status: str = "ACTIVE"
+    retired_at: Optional[str] = None
+    retired_by: Optional[str] = None
+    retirement_reason: Optional[str] = None
 
 
 class BatchProgress(BaseModel):
@@ -398,6 +403,10 @@ class AdminMeterChangeZoneRequest(BaseModel):
     presentation_zone_id: str
 
 
+class AdminMeterRetireRequest(BaseModel):
+    reason: Optional[str] = None
+
+
 class AdminMeterItem(BaseModel):
     id: str
     meter_code: str
@@ -405,6 +414,10 @@ class AdminMeterItem(BaseModel):
     location: Optional[str] = None
     meter_type: str
     is_active: bool
+    lifecycle_status: str = "ACTIVE"
+    retired_at: Optional[str] = None
+    retired_by: Optional[str] = None
+    retirement_reason: Optional[str] = None
     zone_id: Optional[str] = None
     presentation_zone_id: Optional[str] = None
     map_x: Optional[float] = None
@@ -422,6 +435,7 @@ class AdminMeterListResponse(BaseModel):
     total: int
     active_count: int
     inactive_count: int
+    retired_count: int = 0
     meters: list[AdminMeterItem]
 
 
@@ -1021,6 +1035,10 @@ class MapMeterOut(BaseModel):
     map_x: Optional[float] = None
     map_y: Optional[float] = None
     is_active: bool
+    lifecycle_status: str = "ACTIVE"
+    retired_at: Optional[str] = None
+    retired_by: Optional[str] = None
+    retirement_reason: Optional[str] = None
     semantic_state: str
     latest_reading_value: Optional[str] = None
     latest_reading_time: Optional[str] = None

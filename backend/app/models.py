@@ -175,11 +175,16 @@ class Meter(Base):
     map_y = Column(Float, nullable=True)
     route_status = Column(String(50), nullable=False, default="VALID", index=True)  # "VALID" | "REVIEW_REQUIRED" | "INVALID"
     is_active = Column(Boolean, nullable=False, default=True, index=True)
+    lifecycle_status = Column(String(20), nullable=False, default="ACTIVE", index=True)  # "ACTIVE" | "INACTIVE" | "RETIRED"
+    retired_at = Column(DateTime(timezone=True), nullable=True)
+    retired_by = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    retirement_reason = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False, default=get_utc_now)
     updated_at = Column(DateTime(timezone=True), nullable=False, default=get_utc_now, onupdate=get_utc_now)
 
     readings = relationship("MeterReading", back_populates="meter", cascade="all, delete-orphan")
     zone = relationship("OperationalZone", back_populates="meters")
+    retired_by_user = relationship("User", foreign_keys=[retired_by])
 
 
 class ReadingBatch(Base):

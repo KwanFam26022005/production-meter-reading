@@ -603,10 +603,12 @@ def confirm_meter_reading(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Không tìm thấy thông tin công tơ.",
         )
-    if not meter.is_active:
+    lifecycle_status = getattr(meter, "lifecycle_status", None) or ("ACTIVE" if meter.is_active else "INACTIVE")
+    if lifecycle_status != "ACTIVE":
+        detail_msg = "Công tơ đã ngừng sử dụng vĩnh viễn (RETIRED)." if lifecycle_status == "RETIRED" else "Công tơ đang ở trạng thái tạm ngừng (INACTIVE)."
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Công tơ đang ở trạng thái không hoạt động.",
+            detail=f"{detail_msg} Không thể ghi nhận chỉ số mới.",
         )
 
     # 5. Validate reading format (canonical dot form ^\d+(\.\d+)?$)
@@ -828,10 +830,12 @@ def mark_meter_review(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Không tìm thấy thông tin công tơ.",
         )
-    if not meter.is_active:
+    lifecycle_status = getattr(meter, "lifecycle_status", None) or ("ACTIVE" if meter.is_active else "INACTIVE")
+    if lifecycle_status != "ACTIVE":
+        detail_msg = "Công tơ đã ngừng sử dụng vĩnh viễn (RETIRED)." if lifecycle_status == "RETIRED" else "Công tơ đang ở trạng thái tạm ngừng (INACTIVE)."
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Công tơ đang ở trạng thái không hoạt động.",
+            detail=f"{detail_msg} Không thể ghi nhận chỉ số mới.",
         )
 
     existing = (
