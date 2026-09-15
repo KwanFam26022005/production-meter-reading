@@ -128,6 +128,40 @@ from .schemas import (
     RoundMeterListResponse,
     TodayOperationsResponse,
     UserOut,
+    AssetCreateRequest,
+    AssetUpdateRequest,
+    AssetRelocateRequest,
+    AssetSetParentRequest,
+    AssetRetireRequest,
+    AssetResponse,
+    AssetListResponse,
+    MeterAssetRelationCreateRequest,
+    MeterAssetRelationTransferRequest,
+    MeterAssetRelationResponse,
+    MeterAssetRelationListResponse,
+    AssetConnectionCreateRequest,
+    AssetConnectionResponse,
+    AssetConnectionListResponse,
+    TopologyTraceResponse,
+)
+from .asset_operations import (
+    list_assets,
+    get_asset_by_id,
+    create_asset,
+    update_asset,
+    relocate_asset,
+    set_asset_parent,
+    set_asset_lifecycle_state,
+    create_meter_asset_relation,
+    list_meter_asset_relations,
+    close_meter_asset_relation,
+    transfer_meter_asset_relation,
+    verify_meter_asset_relation,
+    create_asset_connection,
+    list_asset_connections,
+    close_asset_connection,
+    verify_asset_connection,
+    trace_asset_topology,
 )
 
 settings = get_settings()
@@ -1513,5 +1547,248 @@ def delete_map_draft_endpoint(
     return delete_map_draft(db, actor=admin_user, version_id=version_id)
 
 
+# ==============================================================================
+# ASSET-CENTRIC DOMAIN & TOPOLOGY MANAGEMENT (V16C)
+# ==============================================================================
+
+@app.get("/api/v1/admin/assets", response_model=AssetListResponse)
+def get_admin_assets_endpoint(
+    asset_type: Optional[str] = None,
+    zone_id: Optional[str] = None,
+    lifecycle_status: Optional[str] = None,
+    verification_status: Optional[str] = None,
+    mobility_type: Optional[str] = None,
+    search: Optional[str] = None,
+    limit: int = 100,
+    offset: int = 0,
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> AssetListResponse:
+    return list_assets(
+        db,
+        asset_type=asset_type,
+        zone_id=zone_id,
+        lifecycle_status=lifecycle_status,
+        verification_status=verification_status,
+        mobility_type=mobility_type,
+        search=search,
+        limit=limit,
+        offset=offset,
+    )
 
 
+@app.post("/api/v1/admin/assets", response_model=AssetResponse, dependencies=[Depends(enforce_csrf)])
+def create_admin_asset_endpoint(
+    payload: AssetCreateRequest,
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> AssetResponse:
+    return create_asset(db, actor=admin_user, payload=payload)
+
+
+@app.get("/api/v1/admin/assets/{asset_id}", response_model=AssetResponse)
+def get_admin_asset_endpoint(
+    asset_id: str,
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> AssetResponse:
+    return get_asset_by_id(db, asset_id=asset_id)
+
+
+@app.patch("/api/v1/admin/assets/{asset_id}", response_model=AssetResponse, dependencies=[Depends(enforce_csrf)])
+def update_admin_asset_endpoint(
+    asset_id: str,
+    payload: AssetUpdateRequest,
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> AssetResponse:
+    return update_asset(db, actor=admin_user, asset_id=asset_id, payload=payload)
+
+
+@app.post("/api/v1/admin/assets/{asset_id}/relocate", response_model=AssetResponse, dependencies=[Depends(enforce_csrf)])
+def relocate_admin_asset_endpoint(
+    asset_id: str,
+    payload: AssetRelocateRequest,
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> AssetResponse:
+    return relocate_asset(db, actor=admin_user, asset_id=asset_id, payload=payload)
+
+
+@app.post("/api/v1/admin/assets/{asset_id}/set-parent", response_model=AssetResponse, dependencies=[Depends(enforce_csrf)])
+def set_admin_asset_parent_endpoint(
+    asset_id: str,
+    payload: AssetSetParentRequest,
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> AssetResponse:
+    return set_asset_parent(db, actor=admin_user, asset_id=asset_id, payload=payload)
+
+
+@app.post("/api/v1/admin/assets/{asset_id}/deactivate", response_model=AssetResponse, dependencies=[Depends(enforce_csrf)])
+def deactivate_admin_asset_endpoint(
+    asset_id: str,
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> AssetResponse:
+    return set_asset_lifecycle_state(db, actor=admin_user, asset_id=asset_id, new_status="INACTIVE")
+
+
+@app.post("/api/v1/admin/assets/{asset_id}/reactivate", response_model=AssetResponse, dependencies=[Depends(enforce_csrf)])
+def reactivate_admin_asset_endpoint(
+    asset_id: str,
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> AssetResponse:
+    return set_asset_lifecycle_state(db, actor=admin_user, asset_id=asset_id, new_status="ACTIVE")
+
+
+@app.post("/api/v1/admin/assets/{asset_id}/retire", response_model=AssetResponse, dependencies=[Depends(enforce_csrf)])
+def retire_admin_asset_endpoint(
+    asset_id: str,
+    payload: Optional[AssetRetireRequest] = None,
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> AssetResponse:
+    reason = payload.reason if payload else None
+    return set_asset_lifecycle_state(db, actor=admin_user, asset_id=asset_id, new_status="RETIRED", reason=reason)
+
+
+# Meter-Asset Relations
+@app.get("/api/v1/admin/meter-asset-relations", response_model=MeterAssetRelationListResponse)
+def list_meter_asset_relations_endpoint(
+    meter_id: Optional[str] = None,
+    asset_id: Optional[str] = None,
+    relation_type: Optional[str] = None,
+    active_only: bool = True,
+    verification_status: Optional[str] = None,
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> MeterAssetRelationListResponse:
+    return list_meter_asset_relations(
+        db,
+        meter_id=meter_id,
+        asset_id=asset_id,
+        relation_type=relation_type,
+        active_only=active_only,
+        verification_status=verification_status,
+    )
+
+
+@app.get("/api/v1/admin/meters/{meter_id}/relations", response_model=MeterAssetRelationListResponse)
+def get_meter_relations_endpoint(
+    meter_id: str,
+    active_only: bool = False,
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> MeterAssetRelationListResponse:
+    return list_meter_asset_relations(
+        db,
+        meter_id=meter_id,
+        active_only=active_only,
+    )
+
+
+@app.post("/api/v1/admin/meter-asset-relations", response_model=MeterAssetRelationResponse, dependencies=[Depends(enforce_csrf)])
+def create_meter_asset_relation_endpoint(
+    payload: MeterAssetRelationCreateRequest,
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> MeterAssetRelationResponse:
+    return create_meter_asset_relation(db, actor=admin_user, payload=payload)
+
+
+@app.post("/api/v1/admin/meter-asset-relations/{relation_id}/close", response_model=MeterAssetRelationResponse, dependencies=[Depends(enforce_csrf)])
+def close_meter_asset_relation_endpoint(
+    relation_id: str,
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> MeterAssetRelationResponse:
+    return close_meter_asset_relation(db, actor=admin_user, relation_id=relation_id)
+
+
+@app.post("/api/v1/admin/meter-asset-relations/{relation_id}/transfer", response_model=MeterAssetRelationResponse, dependencies=[Depends(enforce_csrf)])
+def transfer_meter_asset_relation_endpoint(
+    relation_id: str,
+    payload: MeterAssetRelationTransferRequest,
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> MeterAssetRelationResponse:
+    return transfer_meter_asset_relation(db, actor=admin_user, relation_id=relation_id, payload=payload)
+
+
+@app.post("/api/v1/admin/meter-asset-relations/{relation_id}/verify", response_model=MeterAssetRelationResponse, dependencies=[Depends(enforce_csrf)])
+def verify_meter_asset_relation_endpoint(
+    relation_id: str,
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> MeterAssetRelationResponse:
+    return verify_meter_asset_relation(db, actor=admin_user, relation_id=relation_id, new_status="VERIFIED")
+
+
+# Asset Connections (Topology)
+@app.get("/api/v1/admin/asset-connections", response_model=AssetConnectionListResponse)
+def list_asset_connections_endpoint(
+    source_asset_id: Optional[str] = None,
+    target_asset_id: Optional[str] = None,
+    utility_type: Optional[str] = None,
+    connection_type: Optional[str] = None,
+    active_only: bool = True,
+    verification_status: Optional[str] = None,
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> AssetConnectionListResponse:
+    return list_asset_connections(
+        db,
+        source_asset_id=source_asset_id,
+        target_asset_id=target_asset_id,
+        utility_type=utility_type,
+        connection_type=connection_type,
+        active_only=active_only,
+        verification_status=verification_status,
+    )
+
+
+@app.post("/api/v1/admin/asset-connections", response_model=AssetConnectionResponse, dependencies=[Depends(enforce_csrf)])
+def create_asset_connection_endpoint(
+    payload: AssetConnectionCreateRequest,
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> AssetConnectionResponse:
+    return create_asset_connection(db, actor=admin_user, payload=payload)
+
+
+@app.post("/api/v1/admin/asset-connections/{connection_id}/close", response_model=AssetConnectionResponse, dependencies=[Depends(enforce_csrf)])
+def close_asset_connection_endpoint(
+    connection_id: str,
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> AssetConnectionResponse:
+    return close_asset_connection(db, actor=admin_user, connection_id=connection_id)
+
+
+@app.post("/api/v1/admin/asset-connections/{connection_id}/verify", response_model=AssetConnectionResponse, dependencies=[Depends(enforce_csrf)])
+def verify_asset_connection_endpoint(
+    connection_id: str,
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> AssetConnectionResponse:
+    return verify_asset_connection(db, actor=admin_user, connection_id=connection_id, new_status="VERIFIED")
+
+
+@app.get("/api/v1/admin/asset-topology/trace", response_model=TopologyTraceResponse)
+def trace_asset_topology_endpoint(
+    asset_id: str,
+    direction: str = "downstream",
+    utility_type: Optional[str] = None,
+    include_unverified: bool = False,
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> TopologyTraceResponse:
+    return trace_asset_topology(
+        db,
+        asset_id=asset_id,
+        direction=direction,
+        utility_type=utility_type,
+        include_unverified=include_unverified,
+    )

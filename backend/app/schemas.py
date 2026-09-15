@@ -1216,3 +1216,199 @@ class MapRollbackRequest(BaseModel):
     reason: Optional[str] = "Phục hồi phiên bản lịch sử"
 
 
+# ==============================================================================
+# ASSET-CENTRIC DOMAIN & TOPOLOGY SCHEMAS (V16C)
+# ==============================================================================
+
+AssetType = Literal[
+    "SUBSTATION",
+    "TRANSFORMER",
+    "FEEDER",
+    "SWITCHBOARD",
+    "QUAY_CRANE",
+    "RTG",
+    "VEHICLE",
+    "PUMP",
+    "COMPRESSOR",
+    "MACHINE",
+    "WAREHOUSE",
+    "WORKSHOP",
+    "OFFICE",
+    "WATER_POINT",
+    "FIRE_WATER_POINT",
+    "SHORE_POWER_POINT",
+    "OTHER",
+]
+
+AssetMobilityType = Literal["FIXED", "MOBILE"]
+AssetPositionSource = Literal["STATIC_MAP", "ASSIGNED", "LAST_KNOWN", "GPS", "UNKNOWN"]
+AssetLifecycleStatus = Literal["ACTIVE", "INACTIVE", "RETIRED"]
+AssetVerificationStatus = Literal["UNVERIFIED", "VERIFIED", "REJECTED"]
+
+MeterAssetRelationType = Literal["INSTALLED_AT", "MEASURES"]
+UtilityType = Literal["ELECTRICITY", "WATER", "OTHER"]
+AssetConnectionType = Literal["SUPPLIES", "CONNECTED_TO"]
+
+
+class AssetCreateRequest(BaseModel):
+    code: str
+    name: str
+    asset_type: str
+    parent_asset_id: Optional[str] = None
+    zone_id: Optional[str] = None
+    mobility_type: Optional[str] = "FIXED"
+    position_source: Optional[str] = "UNKNOWN"
+    map_x: Optional[float] = None
+    map_y: Optional[float] = None
+    verification_status: Optional[str] = "UNVERIFIED"
+    metadata_json: Optional[str] = None
+
+
+class AssetUpdateRequest(BaseModel):
+    name: Optional[str] = None
+    asset_type: Optional[str] = None
+    parent_asset_id: Optional[str] = None
+    zone_id: Optional[str] = None
+    mobility_type: Optional[str] = None
+    position_source: Optional[str] = None
+    map_x: Optional[float] = None
+    map_y: Optional[float] = None
+    lifecycle_status: Optional[str] = None
+    verification_status: Optional[str] = None
+    metadata_json: Optional[str] = None
+
+
+class AssetRelocateRequest(BaseModel):
+    map_x: float
+    map_y: float
+    position_source: Optional[str] = "STATIC_MAP"
+
+
+class AssetSetParentRequest(BaseModel):
+    parent_asset_id: Optional[str] = None
+
+
+class AssetRetireRequest(BaseModel):
+    reason: Optional[str] = None
+
+
+class AssetSummary(BaseModel):
+    id: str
+    code: str
+    name: str
+    asset_type: str
+    lifecycle_status: str
+    verification_status: str
+
+
+class AssetResponse(BaseModel):
+    id: str
+    code: str
+    name: str
+    asset_type: str
+    parent_asset_id: Optional[str] = None
+    parent_asset: Optional[AssetSummary] = None
+    zone_id: Optional[str] = None
+    zone_code: Optional[str] = None
+    zone_name: Optional[str] = None
+    mobility_type: str
+    position_source: str
+    map_x: Optional[float] = None
+    map_y: Optional[float] = None
+    lifecycle_status: str
+    verification_status: str
+    metadata_json: Optional[str] = None
+    child_count: int = 0
+    attached_meters_count: int = 0
+    created_at: str
+    updated_at: str
+    created_by: Optional[str] = None
+    updated_by: Optional[str] = None
+
+
+class AssetListResponse(BaseModel):
+    total: int
+    assets: list[AssetResponse]
+
+
+# Meter-Asset Relations
+class MeterAssetRelationCreateRequest(BaseModel):
+    meter_id: str
+    asset_id: str
+    relation_type: str  # INSTALLED_AT | MEASURES
+    mount_point: Optional[str] = None
+    is_primary: bool = True
+    verification_status: Optional[str] = "UNVERIFIED"
+
+
+class MeterAssetRelationTransferRequest(BaseModel):
+    new_asset_id: str
+    mount_point: Optional[str] = None
+    is_primary: bool = True
+
+
+class MeterAssetRelationResponse(BaseModel):
+    id: str
+    meter_id: str
+    meter_code: str
+    meter_name: str
+    asset_id: str
+    asset_code: str
+    asset_name: str
+    relation_type: str
+    mount_point: Optional[str] = None
+    is_primary: bool
+    verification_status: str
+    valid_from: str
+    valid_to: Optional[str] = None
+    created_at: str
+    created_by: Optional[str] = None
+
+
+class MeterAssetRelationListResponse(BaseModel):
+    total: int
+    relations: list[MeterAssetRelationResponse]
+
+
+# Asset Connections (Topology)
+class AssetConnectionCreateRequest(BaseModel):
+    source_asset_id: str
+    target_asset_id: str
+    utility_type: str  # ELECTRICITY | WATER | OTHER
+    connection_type: Optional[str] = "SUPPLIES"  # SUPPLIES | CONNECTED_TO
+    verification_status: Optional[str] = "UNVERIFIED"
+    metadata_json: Optional[str] = None
+
+
+class AssetConnectionResponse(BaseModel):
+    id: str
+    source_asset_id: str
+    source_asset_code: str
+    source_asset_name: str
+    target_asset_id: str
+    target_asset_code: str
+    target_asset_name: str
+    utility_type: str
+    connection_type: str
+    verification_status: str
+    valid_from: str
+    valid_to: Optional[str] = None
+    metadata_json: Optional[str] = None
+    created_at: str
+    created_by: Optional[str] = None
+
+
+class AssetConnectionListResponse(BaseModel):
+    total: int
+    connections: list[AssetConnectionResponse]
+
+
+class TopologyTraceResponse(BaseModel):
+    root_asset_id: str
+    direction: str
+    utility_type: Optional[str] = None
+    include_unverified: bool
+    nodes: list[AssetResponse]
+    edges: list[AssetConnectionResponse]
+
+

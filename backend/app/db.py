@@ -709,6 +709,92 @@ def migrate_db(db_engine=None) -> None:
                 WHERE (lifecycle_status IS NULL OR lifecycle_status = '') AND is_active = 0
             """)
 
+            # 16. Asset Domain Foundation (V16C)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS assets (
+                    id VARCHAR(36) NOT NULL,
+                    code VARCHAR(64) NOT NULL UNIQUE,
+                    name VARCHAR(200) NOT NULL,
+                    asset_type VARCHAR(64) NOT NULL,
+                    parent_asset_id VARCHAR(36),
+                    zone_id VARCHAR(36),
+                    mobility_type VARCHAR(32) NOT NULL DEFAULT 'FIXED',
+                    position_source VARCHAR(32) NOT NULL DEFAULT 'UNKNOWN',
+                    map_x REAL,
+                    map_y REAL,
+                    lifecycle_status VARCHAR(32) NOT NULL DEFAULT 'ACTIVE',
+                    verification_status VARCHAR(32) NOT NULL DEFAULT 'UNVERIFIED',
+                    metadata_json TEXT,
+                    created_at DATETIME NOT NULL,
+                    updated_at DATETIME NOT NULL,
+                    created_by VARCHAR(36),
+                    updated_by VARCHAR(36),
+                    PRIMARY KEY (id),
+                    FOREIGN KEY(parent_asset_id) REFERENCES assets (id) ON DELETE SET NULL,
+                    FOREIGN KEY(zone_id) REFERENCES operational_zones (id) ON DELETE SET NULL,
+                    FOREIGN KEY(created_by) REFERENCES users (id) ON DELETE SET NULL,
+                    FOREIGN KEY(updated_by) REFERENCES users (id) ON DELETE SET NULL
+                )
+            """)
+            cursor.execute("CREATE INDEX IF NOT EXISTS ix_assets_code ON assets (code)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS ix_assets_asset_type ON assets (asset_type)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS ix_assets_zone_id ON assets (zone_id)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS ix_assets_parent_asset_id ON assets (parent_asset_id)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS ix_assets_lifecycle_status ON assets (lifecycle_status)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS ix_assets_verification_status ON assets (verification_status)")
+
+            # 17. Meter-Asset Relationships (V16C)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS meter_asset_relations (
+                    id VARCHAR(36) NOT NULL,
+                    meter_id VARCHAR(36) NOT NULL,
+                    asset_id VARCHAR(36) NOT NULL,
+                    relation_type VARCHAR(32) NOT NULL,
+                    mount_point VARCHAR(255),
+                    is_primary BOOLEAN NOT NULL DEFAULT 1,
+                    verification_status VARCHAR(32) NOT NULL DEFAULT 'UNVERIFIED',
+                    valid_from DATETIME NOT NULL,
+                    valid_to DATETIME,
+                    created_at DATETIME NOT NULL,
+                    created_by VARCHAR(36),
+                    PRIMARY KEY (id),
+                    FOREIGN KEY(meter_id) REFERENCES meters (id) ON DELETE RESTRICT,
+                    FOREIGN KEY(asset_id) REFERENCES assets (id) ON DELETE RESTRICT,
+                    FOREIGN KEY(created_by) REFERENCES users (id) ON DELETE SET NULL
+                )
+            """)
+            cursor.execute("CREATE INDEX IF NOT EXISTS ix_meter_asset_relations_meter_id ON meter_asset_relations (meter_id)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS ix_meter_asset_relations_asset_id ON meter_asset_relations (asset_id)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS ix_meter_asset_relations_relation_type ON meter_asset_relations (relation_type)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS ix_meter_asset_relations_verification_status ON meter_asset_relations (verification_status)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS ix_meter_asset_rel_active ON meter_asset_relations (meter_id, relation_type, valid_to)")
+
+            # 18. Asset Connections / Topology Ready Model (V16C)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS asset_connections (
+                    id VARCHAR(36) NOT NULL,
+                    source_asset_id VARCHAR(36) NOT NULL,
+                    target_asset_id VARCHAR(36) NOT NULL,
+                    utility_type VARCHAR(32) NOT NULL,
+                    connection_type VARCHAR(32) NOT NULL DEFAULT 'SUPPLIES',
+                    verification_status VARCHAR(32) NOT NULL DEFAULT 'UNVERIFIED',
+                    valid_from DATETIME NOT NULL,
+                    valid_to DATETIME,
+                    metadata_json TEXT,
+                    created_at DATETIME NOT NULL,
+                    created_by VARCHAR(36),
+                    PRIMARY KEY (id),
+                    FOREIGN KEY(source_asset_id) REFERENCES assets (id) ON DELETE RESTRICT,
+                    FOREIGN KEY(target_asset_id) REFERENCES assets (id) ON DELETE RESTRICT,
+                    FOREIGN KEY(created_by) REFERENCES users (id) ON DELETE SET NULL
+                )
+            """)
+            cursor.execute("CREATE INDEX IF NOT EXISTS ix_asset_connections_source_asset_id ON asset_connections (source_asset_id)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS ix_asset_connections_target_asset_id ON asset_connections (target_asset_id)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS ix_asset_connections_utility_type ON asset_connections (utility_type)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS ix_asset_connections_verification_status ON asset_connections (verification_status)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS ix_asset_conn_src_tgt ON asset_connections (source_asset_id, target_asset_id, utility_type)")
+
             conn.connection.commit()
         finally:
             cursor.close()

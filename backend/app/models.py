@@ -185,6 +185,7 @@ class Meter(Base):
     readings = relationship("MeterReading", back_populates="meter", cascade="all, delete-orphan")
     zone = relationship("OperationalZone", back_populates="meters")
     retired_by_user = relationship("User", foreign_keys=[retired_by])
+    asset_relations = relationship("MeterAssetRelation", back_populates="meter")
 
 
 class ReadingBatch(Base):
@@ -359,4 +360,82 @@ class LeaveRequest(Base):
     __table_args__ = (
         Index("ix_leave_requests_user_status", "user_id", "status"),
         Index("ix_leave_requests_dates", "start_date", "end_date"),
+    )
+
+
+class Asset(Base):
+    __tablename__ = "assets"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    code = Column(String(64), unique=True, index=True, nullable=False)
+    name = Column(String(200), nullable=False)
+    asset_type = Column(String(64), nullable=False, index=True)
+    parent_asset_id = Column(String(36), ForeignKey("assets.id", ondelete="SET NULL"), nullable=True, index=True)
+    zone_id = Column(String(36), ForeignKey("operational_zones.id", ondelete="SET NULL"), nullable=True, index=True)
+    mobility_type = Column(String(32), nullable=False, default="FIXED")  # "FIXED" | "MOBILE"
+    position_source = Column(String(32), nullable=False, default="UNKNOWN")  # "STATIC_MAP" | "ASSIGNED" | "LAST_KNOWN" | "GPS" | "UNKNOWN"
+    map_x = Column(Float, nullable=True)
+    map_y = Column(Float, nullable=True)
+    lifecycle_status = Column(String(32), nullable=False, default="ACTIVE", index=True)  # "ACTIVE" | "INACTIVE" | "RETIRED"
+    verification_status = Column(String(32), nullable=False, default="UNVERIFIED", index=True)  # "UNVERIFIED" | "VERIFIED" | "REJECTED"
+    metadata_json = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=get_utc_now)
+    updated_at = Column(DateTime(timezone=True), nullable=False, default=get_utc_now, onupdate=get_utc_now)
+    created_by = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    updated_by = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+
+    parent_asset = relationship("Asset", remote_side=[id], backref="child_assets")
+    zone = relationship("OperationalZone")
+    created_by_user = relationship("User", foreign_keys=[created_by])
+    updated_by_user = relationship("User", foreign_keys=[updated_by])
+    meter_relations = relationship("MeterAssetRelation", back_populates="asset")
+    outbound_connections = relationship("AssetConnection", foreign_keys="AssetConnection.source_asset_id", back_populates="source_asset")
+    inbound_connections = relationship("AssetConnection", foreign_keys="AssetConnection.target_asset_id", back_populates="target_asset")
+
+
+class MeterAssetRelation(Base):
+    __tablename__ = "meter_asset_relations"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    meter_id = Column(String(36), ForeignKey("meters.id", ondelete="RESTRICT"), nullable=False, index=True)
+    asset_id = Column(String(36), ForeignKey("assets.id", ondelete="RESTRICT"), nullable=False, index=True)
+    relation_type = Column(String(32), nullable=False, index=True)  # "INSTALLED_AT" | "MEASURES"
+    mount_point = Column(String(255), nullable=True)
+    is_primary = Column(Boolean, nullable=False, default=True)
+    verification_status = Column(String(32), nullable=False, default="UNVERIFIED", index=True)  # "UNVERIFIED" | "VERIFIED" | "REJECTED"
+    valid_from = Column(DateTime(timezone=True), nullable=False, default=get_utc_now)
+    valid_to = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=get_utc_now)
+    created_by = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+
+    meter = relationship("Meter", back_populates="asset_relations")
+    asset = relationship("Asset", back_populates="meter_relations")
+    created_by_user = relationship("User", foreign_keys=[created_by])
+
+    __table_args__ = (
+        Index("ix_meter_asset_rel_active", "meter_id", "relation_type", "valid_to"),
+    )
+
+
+class AssetConnection(Base):
+    __tablename__ = "asset_connections"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    source_asset_id = Column(String(36), ForeignKey("assets.id", ondelete="RESTRICT"), nullable=False, index=True)
+    target_asset_id = Column(String(36), ForeignKey("assets.id", ondelete="RESTRICT"), nullable=False, index=True)
+    utility_type = Column(String(32), nullable=False, index=True)  # "ELECTRICITY" | "WATER" | "OTHER"
+    connection_type = Column(String(32), nullable=False, default="SUPPLIES")  # "SUPPLIES" | "CONNECTED_TO"
+    verification_status = Column(String(32), nullable=False, default="UNVERIFIED", index=True)  # "UNVERIFIED" | "VERIFIED" | "REJECTED"
+    valid_from = Column(DateTime(timezone=True), nullable=False, default=get_utc_now)
+    valid_to = Column(DateTime(timezone=True), nullable=True)
+    metadata_json = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=get_utc_now)
+    created_by = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+
+    source_asset = relationship("Asset", foreign_keys=[source_asset_id], back_populates="outbound_connections")
+    target_asset = relationship("Asset", foreign_keys=[target_asset_id], back_populates="inbound_connections")
+    created_by_user = relationship("User", foreign_keys=[created_by])
+
+    __table_args__ = (
+        Index("ix_asset_conn_src_tgt", "source_asset_id", "target_asset_id", "utility_type"),
     )
