@@ -24,6 +24,7 @@ from .admin import (
     get_admin_schedules_list,
     preview_admin_schedules,
     relocate_admin_meter,
+    retire_admin_meter,
     set_meter_active_state,
     update_admin_meter,
 )
@@ -95,6 +96,8 @@ from .schemas import (
     AdminMeterLatestReadingResponse,
     AdminMeterListResponse,
     AdminMeterReadingInspectionResponse,
+    AdminMeterRelocateRequest,
+    AdminMeterRetireRequest,
     AdminMeterUpdateRequest,
     AdminScheduleCreateRequest,
     AdminScheduleCreateResponse,
@@ -651,6 +654,8 @@ def get_meter_detail(
             detail="Không tìm thấy công tơ.",
         )
     history = get_meter_history(db, meter.id)
+    ls = getattr(meter, "lifecycle_status", None) or ("ACTIVE" if meter.is_active else "INACTIVE")
+    ret_at = meter.retired_at.isoformat() if getattr(meter, "retired_at", None) else None
     return MeterDetailResponse(
         meter=MeterOut(
             id=meter.id,
@@ -659,6 +664,10 @@ def get_meter_detail(
             location=meter.location,
             meter_type=meter.meter_type,
             is_active=meter.is_active,
+            lifecycle_status=ls,
+            retired_at=ret_at,
+            retired_by=getattr(meter, "retired_by", None),
+            retirement_reason=getattr(meter, "retirement_reason", None),
         ),
         history=history,
     )
@@ -831,6 +840,33 @@ def activate_admin_meter_endpoint(
     db: Session = Depends(get_db),
 ) -> AdminMeterItem:
     return set_meter_active_state(db, admin_user, meter_id, is_active=True)
+
+
+@app.post(
+    "/api/v1/admin/meters/{meter_id}/reactivate",
+    response_model=AdminMeterItem,
+    dependencies=[Depends(enforce_csrf)],
+)
+def reactivate_admin_meter_endpoint(
+    meter_id: str,
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> AdminMeterItem:
+    return set_meter_active_state(db, admin_user, meter_id, is_active=True)
+
+
+@app.post(
+    "/api/v1/admin/meters/{meter_id}/retire",
+    response_model=AdminMeterItem,
+    dependencies=[Depends(enforce_csrf)],
+)
+def retire_admin_meter_endpoint(
+    meter_id: str,
+    payload: Optional[AdminMeterRetireRequest] = None,
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> AdminMeterItem:
+    return retire_admin_meter(db, actor=admin_user, meter_id=meter_id, payload=payload)
 
 
 @app.post(
@@ -1299,10 +1335,11 @@ from .schemas import (
 def get_map_overview_endpoint(
     date: Optional[str] = None,
     round_id: Optional[str] = None,
+    include_inactive: bool = False,
     admin_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ) -> MapOverviewResponse:
-    return get_map_overview(db, date_str=date, round_id=round_id)
+    return get_map_overview(db, date_str=date, round_id=round_id, include_inactive=include_inactive)
 
 
 @app.get("/api/v1/map/zones", response_model=list[OperationalZoneOut])
@@ -1327,10 +1364,11 @@ def get_map_meters_endpoint(
     date: Optional[str] = None,
     round_id: Optional[str] = None,
     zone_id: Optional[str] = None,
+    include_inactive: bool = False,
     admin_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ) -> list[MapMeterOut]:
-    overview = get_map_overview(db, date_str=date, round_id=round_id)
+    overview = get_map_overview(db, date_str=date, round_id=round_id, include_inactive=include_inactive)
     meters = overview.meters
     if zone_id and zone_id != "ALL":
         meters = [m for m in meters if m.zone_id == zone_id]

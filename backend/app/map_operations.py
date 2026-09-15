@@ -82,6 +82,7 @@ def get_map_overview(
     db: Session,
     date_str: Optional[str] = None,
     round_id: Optional[str] = None,
+    include_inactive: bool = False,
 ) -> MapOverviewResponse:
     """
     Consolidated map operational overview projection.
@@ -163,6 +164,14 @@ def get_map_overview(
     meters_out: list[MapMeterOut] = []
 
     for m in all_meters:
+        ls = getattr(m, "lifecycle_status", None) or ("ACTIVE" if m.is_active else "INACTIVE")
+        if ls == "RETIRED":
+            # Section 21: RETIRED meters are permanently excluded from operational map
+            continue
+        if ls == "INACTIVE" and not include_inactive:
+            # Section 21: INACTIVE meters default hidden on operational map
+            continue
+
         r = readings_map.get(m.id)
         exc = exc_by_meter_id.get(m.id) or exc_by_meter_code.get(m.meter_code)
 
@@ -173,7 +182,7 @@ def get_map_overview(
         reading_time = None
         reading_id = None
 
-        if not m.is_active:
+        if ls == "INACTIVE" or not m.is_active:
             state = "INACTIVE"
         elif r:
             reading_id = r.id
@@ -241,6 +250,10 @@ def get_map_overview(
                 map_x=m.map_x,
                 map_y=m.map_y,
                 is_active=m.is_active,
+                lifecycle_status=ls,
+                retired_at=m.retired_at.isoformat() if getattr(m, "retired_at", None) else None,
+                retired_by=getattr(m, "retired_by", None),
+                retirement_reason=getattr(m, "retirement_reason", None),
                 semantic_state=state,
                 latest_reading_value=reading_val,
                 latest_reading_time=reading_time,
@@ -289,7 +302,7 @@ def get_map_overview(
             )
         )
 
-    total_active = sum(1 for m in all_meters if m.is_active)
+    total_active = sum(1 for m in all_meters if (getattr(m, "lifecycle_status", None) or ("ACTIVE" if m.is_active else "INACTIVE")) == "ACTIVE")
     confirmed_tot = sum(1 for m in meters_out if m.semantic_state == "CONFIRMED")
     review_tot = sum(1 for m in meters_out if m.semantic_state == "REVIEW")
     overdue_tot = sum(1 for m in meters_out if m.semantic_state == "OVERDUE")

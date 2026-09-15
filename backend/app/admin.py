@@ -8,7 +8,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from .config import get_settings
-from .models import AdminAuditLog, MapVersion, MapVersionZone, Meter, MeterReading, MeterReadingEvidence, ReadingBatch, ReadingRound, User
+from .models import AdminAuditLog, MapVersion, MapVersionZone, Meter, MeterReading, MeterReadingEvidence, MeterTrainingSample, OperationalZone, ReadingBatch, ReadingRound, User
 from .schemas import (
     AdminAuditLogItem,
     AdminAuditLogListResponse,
@@ -30,6 +30,7 @@ from .schemas import (
     AdminMeterReadingEvidenceInfo,
     AdminMeterReadingInspectionResponse,
     AdminMeterRelocateRequest,
+    AdminMeterRetireRequest,
     AdminMeterUpdateRequest,
     AdminScheduleCreateRequest,
     AdminScheduleCreateResponse,
@@ -110,8 +111,63 @@ def log_admin_action(
 
 
 # ==============================================================================
-# ADMIN METER MANAGEMENT
+# ADMIN METER MANAGEMENT & LIFECYCLE (V16B)
 # ==============================================================================
+VALID_LIFECYCLE_TRANSITIONS = {
+    "ACTIVE": {"INACTIVE", "RETIRED"},
+    "INACTIVE": {"ACTIVE", "RETIRED"},
+    "RETIRED": set(),  # Terminal state for normal admin operations
+}
+
+
+def validate_lifecycle_transition(from_status: str, to_status: str) -> None:
+    if from_status == to_status:
+        return
+    allowed = VALID_LIFECYCLE_TRANSITIONS.get(from_status, set())
+    if to_status not in allowed:
+        if from_status == "RETIRED":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Công tơ đã ở trạng thái ngừng sử dụng vĩnh viễn ({from_status}). Không thể chuyển sang trạng thái {to_status}.",
+            )
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Chuyển trạng thái vòng đời từ {from_status} sang {to_status} không hợp lệ.",
+        )
+
+
+def build_admin_meter_item(
+    m: Meter,
+    count: int = 0,
+    latest_r: Optional[MeterReading] = None,
+) -> AdminMeterItem:
+    ls = getattr(m, "lifecycle_status", None) or ("ACTIVE" if m.is_active else "INACTIVE")
+    ret_at = m.retired_at.isoformat() if getattr(m, "retired_at", None) else None
+    return AdminMeterItem(
+        id=m.id,
+        meter_code=m.meter_code,
+        name=m.name,
+        location=m.location,
+        meter_type=m.meter_type,
+        is_active=m.is_active,
+        lifecycle_status=ls,
+        retired_at=ret_at,
+        retired_by=getattr(m, "retired_by", None),
+        retirement_reason=getattr(m, "retirement_reason", None),
+        zone_id=m.zone_id,
+        presentation_zone_id=m.presentation_zone_id,
+        map_x=m.map_x,
+        map_y=m.map_y,
+        route_status=m.route_status or "VALID",
+        created_at=m.created_at.isoformat() if m.created_at else None,
+        updated_at=m.updated_at.isoformat() if m.updated_at else None,
+        has_readings=(count > 0),
+        total_readings=count,
+        latest_reading=latest_r.reading if latest_r else None,
+        latest_reading_time=get_local_time_str(latest_r.server_timestamp) if latest_r else None,
+    )
+
+
 def get_admin_meters(
     db: Session,
     search: Optional[str] = None,
@@ -121,11 +177,13 @@ def get_admin_meters(
     query = db.query(Meter)
 
     if status_filter:
-        sf = status_filter.strip().lower()
-        if sf == "active":
-            query = query.filter(Meter.is_active == True)
-        elif sf == "inactive":
-            query = query.filter(Meter.is_active == False)
+        sf = status_filter.strip().upper()
+        if sf == "ACTIVE":
+            query = query.filter(Meter.lifecycle_status == "ACTIVE")
+        elif sf == "INACTIVE":
+            query = query.filter(Meter.lifecycle_status == "INACTIVE")
+        elif sf == "RETIRED":
+            query = query.filter(Meter.lifecycle_status == "RETIRED")
 
     if meter_type and meter_type.strip() and meter_type.strip().upper() != "ALL":
         query = query.filter(Meter.meter_type.ilike(meter_type.strip()))
@@ -158,44 +216,28 @@ def get_admin_meters(
     items: list[AdminMeterItem] = []
     active_cnt = 0
     inactive_cnt = 0
+    retired_cnt = 0
 
     all_db_meters = db.query(Meter).all()
     for m in all_db_meters:
-        if m.is_active:
+        ls = getattr(m, "lifecycle_status", None) or ("ACTIVE" if m.is_active else "INACTIVE")
+        if ls == "ACTIVE":
             active_cnt += 1
-        else:
+        elif ls == "INACTIVE":
             inactive_cnt += 1
+        elif ls == "RETIRED":
+            retired_cnt += 1
 
     for m in meters:
         count = reading_counts.get(m.id, 0)
         latest_r = latest_readings.get(m.id)
-
-        items.append(
-            AdminMeterItem(
-                id=m.id,
-                meter_code=m.meter_code,
-                name=m.name,
-                location=m.location,
-                meter_type=m.meter_type,
-                is_active=m.is_active,
-                zone_id=m.zone_id,
-                presentation_zone_id=m.presentation_zone_id,
-                map_x=m.map_x,
-                map_y=m.map_y,
-                route_status=m.route_status or "VALID",
-                created_at=m.created_at.isoformat() if m.created_at else None,
-                updated_at=m.updated_at.isoformat() if m.updated_at else None,
-                has_readings=(count > 0),
-                total_readings=count,
-                latest_reading=latest_r.reading if latest_r else None,
-                latest_reading_time=get_local_time_str(latest_r.server_timestamp) if latest_r else None,
-            )
-        )
+        items.append(build_admin_meter_item(m, count, latest_r))
 
     return AdminMeterListResponse(
         total=len(items),
         active_count=active_cnt,
         inactive_count=inactive_cnt,
+        retired_count=retired_cnt,
         meters=items,
     )
 
@@ -260,6 +302,7 @@ def create_admin_meter(
         map_y=map_y,
         route_status="ROUTABLE",
         is_active=True,
+        lifecycle_status="ACTIVE",
     )
     db.add(new_meter)
     db.flush()
@@ -281,30 +324,13 @@ def create_admin_meter(
             "map_x": new_meter.map_x,
             "map_y": new_meter.map_y,
             "is_active": new_meter.is_active,
+            "lifecycle_status": new_meter.lifecycle_status,
         },
     )
     db.commit()
     db.refresh(new_meter)
 
-    return AdminMeterItem(
-        id=new_meter.id,
-        meter_code=new_meter.meter_code,
-        name=new_meter.name,
-        location=new_meter.location,
-        meter_type=new_meter.meter_type,
-        is_active=new_meter.is_active,
-        zone_id=new_meter.zone_id,
-        presentation_zone_id=new_meter.presentation_zone_id,
-        map_x=new_meter.map_x,
-        map_y=new_meter.map_y,
-        route_status=new_meter.route_status,
-        created_at=new_meter.created_at.isoformat() if new_meter.created_at else None,
-        updated_at=new_meter.updated_at.isoformat() if new_meter.updated_at else None,
-        has_readings=False,
-        total_readings=0,
-        latest_reading=None,
-        latest_reading_time=None,
-    )
+    return build_admin_meter_item(new_meter, 0, None)
 
 
 def update_admin_meter(
@@ -320,6 +346,13 @@ def update_admin_meter(
             detail="Không tìm thấy công tơ.",
         )
 
+    current_status = getattr(meter, "lifecycle_status", None) or ("ACTIVE" if meter.is_active else "INACTIVE")
+    if current_status == "RETIRED":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Công tơ đã ngừng sử dụng vĩnh viễn (RETIRED). Không thể cập nhật thông tin.",
+        )
+
     before_state = {
         "meter_code": meter.meter_code,
         "name": meter.name,
@@ -330,6 +363,7 @@ def update_admin_meter(
         "map_x": meter.map_x,
         "map_y": meter.map_y,
         "is_active": meter.is_active,
+        "lifecycle_status": current_status,
     }
 
     # Check if meter has readings
@@ -413,6 +447,7 @@ def update_admin_meter(
         "map_x": meter.map_x,
         "map_y": meter.map_y,
         "is_active": meter.is_active,
+        "lifecycle_status": meter.lifecycle_status,
     }
 
     log_admin_action(
@@ -435,25 +470,7 @@ def update_admin_meter(
         .first()
     )
 
-    return AdminMeterItem(
-        id=meter.id,
-        meter_code=meter.meter_code,
-        name=meter.name,
-        location=meter.location,
-        meter_type=meter.meter_type,
-        is_active=meter.is_active,
-        zone_id=meter.zone_id,
-        presentation_zone_id=meter.presentation_zone_id,
-        map_x=meter.map_x,
-        map_y=meter.map_y,
-        route_status=meter.route_status or "VALID",
-        created_at=meter.created_at.isoformat() if meter.created_at else None,
-        updated_at=meter.updated_at.isoformat() if meter.updated_at else None,
-        has_readings=(reading_count > 0),
-        total_readings=reading_count,
-        latest_reading=latest_r.reading if latest_r else None,
-        latest_reading_time=get_local_time_str(latest_r.server_timestamp) if latest_r else None,
-    )
+    return build_admin_meter_item(meter, reading_count, latest_r)
 
 
 def relocate_admin_meter(
@@ -477,6 +494,13 @@ def relocate_admin_meter(
             detail="Không tìm thấy công tơ.",
         )
 
+    current_status = getattr(meter, "lifecycle_status", None) or ("ACTIVE" if meter.is_active else "INACTIVE")
+    if current_status == "RETIRED":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Công tơ đã ngừng sử dụng vĩnh viễn (RETIRED). Không thể thay đổi vị trí.",
+        )
+
     raw_x = payload.map_x
     raw_y = payload.map_y
 
@@ -498,6 +522,7 @@ def relocate_admin_meter(
         "map_x": meter.map_x,
         "map_y": meter.map_y,
         "route_status": meter.route_status,
+        "lifecycle_status": current_status,
     }
 
     meter.map_x = norm_x
@@ -509,6 +534,7 @@ def relocate_admin_meter(
         "map_x": meter.map_x,
         "map_y": meter.map_y,
         "route_status": meter.route_status,
+        "lifecycle_status": meter.lifecycle_status,
     }
 
     log_admin_action(
@@ -531,25 +557,7 @@ def relocate_admin_meter(
         .first()
     )
 
-    return AdminMeterItem(
-        id=meter.id,
-        meter_code=meter.meter_code,
-        name=meter.name,
-        location=meter.location,
-        meter_type=meter.meter_type,
-        is_active=meter.is_active,
-        zone_id=meter.zone_id,
-        presentation_zone_id=meter.presentation_zone_id,
-        map_x=meter.map_x,
-        map_y=meter.map_y,
-        route_status=meter.route_status,
-        created_at=meter.created_at.isoformat() if meter.created_at else None,
-        updated_at=meter.updated_at.isoformat() if meter.updated_at else None,
-        has_readings=(reading_count > 0),
-        total_readings=reading_count,
-        latest_reading=latest_r.reading if latest_r else None,
-        latest_reading_time=get_local_time_str(latest_r.server_timestamp) if latest_r else None,
-    )
+    return build_admin_meter_item(meter, reading_count, latest_r)
 
 
 def change_admin_meter_zone(
@@ -569,10 +577,18 @@ def change_admin_meter_zone(
             detail="Không tìm thấy công tơ.",
         )
 
+    current_status = getattr(meter, "lifecycle_status", None) or ("ACTIVE" if meter.is_active else "INACTIVE")
+    if current_status == "RETIRED":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Công tơ đã ngừng sử dụng vĩnh viễn (RETIRED). Không thể chuyển phân khu.",
+        )
+
     before_state = {
         "zone_id": meter.zone_id,
         "presentation_zone_id": meter.presentation_zone_id,
         "route_status": meter.route_status,
+        "lifecycle_status": current_status,
     }
 
     meter.zone_id = payload.zone_id
@@ -584,6 +600,7 @@ def change_admin_meter_zone(
         "zone_id": meter.zone_id,
         "presentation_zone_id": meter.presentation_zone_id,
         "route_status": meter.route_status,
+        "lifecycle_status": meter.lifecycle_status,
     }
 
     log_admin_action(
@@ -606,25 +623,7 @@ def change_admin_meter_zone(
         .first()
     )
 
-    return AdminMeterItem(
-        id=meter.id,
-        meter_code=meter.meter_code,
-        name=meter.name,
-        location=meter.location,
-        meter_type=meter.meter_type,
-        is_active=meter.is_active,
-        zone_id=meter.zone_id,
-        presentation_zone_id=meter.presentation_zone_id,
-        map_x=meter.map_x,
-        map_y=meter.map_y,
-        route_status=meter.route_status,
-        created_at=meter.created_at.isoformat() if meter.created_at else None,
-        updated_at=meter.updated_at.isoformat() if meter.updated_at else None,
-        has_readings=(reading_count > 0),
-        total_readings=reading_count,
-        latest_reading=latest_r.reading if latest_r else None,
-        latest_reading_time=get_local_time_str(latest_r.server_timestamp) if latest_r else None,
-    )
+    return build_admin_meter_item(meter, reading_count, latest_r)
 
 
 def set_meter_active_state(
@@ -641,11 +640,50 @@ def set_meter_active_state(
             detail="Không tìm thấy công tơ.",
         )
 
-    # When reactivating, validate spatial containment
-    before_state = {"is_active": meter.is_active, "route_status": meter.route_status}
+    current_status = getattr(meter, "lifecycle_status", None) or ("ACTIVE" if meter.is_active else "INACTIVE")
+    target_status = "ACTIVE" if is_active else "INACTIVE"
+
+    if current_status == "RETIRED":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Công tơ đã ngừng sử dụng vĩnh viễn (RETIRED). Không thể kích hoạt lại hoặc thay đổi trạng thái.",
+        )
+
+    validate_lifecycle_transition(current_status, target_status)
+
+    # When reactivating, validate spatial integrity
+    if is_active:
+        if meter.zone_id:
+            zone = db.query(OperationalZone).filter(OperationalZone.id == meter.zone_id).first()
+            if not zone:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Khu vực hoạt động của công tơ không còn tồn tại.",
+                )
+        if meter.map_x is not None and not (0.0 <= meter.map_x <= 1.0):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Tọa độ map_x của công tơ không hợp lệ.",
+            )
+        if meter.map_y is not None and not (0.0 <= meter.map_y <= 1.0):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Tọa độ map_y của công tơ không hợp lệ.",
+            )
+
+    before_state = {
+        "is_active": meter.is_active,
+        "lifecycle_status": current_status,
+        "route_status": meter.route_status,
+    }
     meter.is_active = is_active
+    meter.lifecycle_status = target_status
     meter.updated_at = datetime.now(timezone.utc)
-    after_state = {"is_active": meter.is_active, "route_status": meter.route_status}
+    after_state = {
+        "is_active": meter.is_active,
+        "lifecycle_status": meter.lifecycle_status,
+        "route_status": meter.route_status,
+    }
 
     action = "METER_DEACTIVATED" if not is_active else "METER_REACTIVATED"
     log_admin_action(
@@ -668,32 +706,89 @@ def set_meter_active_state(
         .first()
     )
 
-    return AdminMeterItem(
-        id=meter.id,
-        meter_code=meter.meter_code,
-        name=meter.name,
-        location=meter.location,
-        meter_type=meter.meter_type,
-        is_active=meter.is_active,
-        zone_id=meter.zone_id,
-        presentation_zone_id=meter.presentation_zone_id,
-        map_x=meter.map_x,
-        map_y=meter.map_y,
-        route_status=meter.route_status or "VALID",
-        created_at=meter.created_at.isoformat() if meter.created_at else None,
-        updated_at=meter.updated_at.isoformat() if meter.updated_at else None,
-        has_readings=(reading_count > 0),
-        total_readings=reading_count,
-        latest_reading=latest_r.reading if latest_r else None,
-        latest_reading_time=get_local_time_str(latest_r.server_timestamp) if latest_r else None,
+    return build_admin_meter_item(meter, reading_count, latest_r)
+
+
+def retire_admin_meter(
+    db: Session,
+    actor: User,
+    meter_id: str,
+    payload: Optional[AdminMeterRetireRequest] = None,
+) -> AdminMeterItem:
+    """
+    Permanently retires an operational meter (ACTIVE or INACTIVE -> RETIRED).
+    Non-destructive: preserves all readings, alerts, audit logs, and spatial coordinates.
+    """
+    meter = db.query(Meter).filter(Meter.id == meter_id).first()
+    if not meter:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Không tìm thấy công tơ.",
+        )
+
+    current_status = getattr(meter, "lifecycle_status", None) or ("ACTIVE" if meter.is_active else "INACTIVE")
+    if current_status == "RETIRED":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Công tơ đã ở trạng thái ngừng sử dụng vĩnh viễn (RETIRED).",
+        )
+
+    validate_lifecycle_transition(current_status, "RETIRED")
+
+    now_utc = datetime.now(timezone.utc)
+    reason = payload.reason.strip() if (payload and payload.reason and payload.reason.strip()) else None
+
+    before_state = {
+        "lifecycle_status": current_status,
+        "is_active": meter.is_active,
+        "retired_at": meter.retired_at.isoformat() if meter.retired_at else None,
+        "retired_by": meter.retired_by,
+        "retirement_reason": meter.retirement_reason,
+    }
+
+    meter.lifecycle_status = "RETIRED"
+    meter.is_active = False
+    meter.retired_at = now_utc
+    meter.retired_by = actor.id
+    meter.retirement_reason = reason
+    meter.updated_at = now_utc
+
+    after_state = {
+        "lifecycle_status": meter.lifecycle_status,
+        "is_active": meter.is_active,
+        "retired_at": meter.retired_at.isoformat(),
+        "retired_by": meter.retired_by,
+        "retirement_reason": meter.retirement_reason,
+    }
+
+    log_admin_action(
+        db=db,
+        actor_user_id=actor.id,
+        action="METER_RETIRED",
+        resource_type="METER",
+        resource_id=meter.id,
+        before_json=before_state,
+        after_json=after_state,
     )
+    db.commit()
+    db.refresh(meter)
+
+    reading_count = db.query(MeterReading).filter(MeterReading.meter_id == meter.id).count()
+    latest_r = (
+        db.query(MeterReading)
+        .filter(MeterReading.meter_id == meter.id, MeterReading.status == "CONFIRMED", MeterReading.reading.isnot(None))
+        .order_by(MeterReading.server_timestamp.desc())
+        .first()
+    )
+
+    return build_admin_meter_item(meter, reading_count, latest_r)
 
 
 def delete_admin_meter(db: Session, actor: User, meter_id: str) -> dict[str, Any]:
     """
     Hard delete protection:
-    If meter has ANY recorded readings or history, hard deletion is blocked with 409 Conflict.
-    Soft deletion ("Ngừng sử dụng") must be used instead.
+    If meter has ANY recorded readings, training samples, or historical records, hard deletion is blocked with 409 Conflict.
+    Non-destructive retirement ("Ngừng sử dụng") must be used instead.
     Hard deletion is permitted only for unused test/draft meters.
     """
     meter = db.query(Meter).filter(Meter.id == meter_id).first()
@@ -707,18 +802,26 @@ def delete_admin_meter(db: Session, actor: User, meter_id: str) -> dict[str, Any
     if reading_count > 0:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=f"Công tơ đã có {reading_count} bản ghi lịch sử chỉ số. Không được phép xóa vĩnh viễn. Vui lòng sử dụng tính năng Ngừng sử dụng (deactivate).",
+            detail=f"Công tơ đã có {reading_count} bản ghi lịch sử chỉ số. Không được phép xóa vĩnh viễn. Vui lòng sử dụng tính năng Ngừng sử dụng (retire/deactivate).",
+        )
+
+    sample_count = db.query(MeterTrainingSample).filter(MeterTrainingSample.meter_id == meter.id).count()
+    if sample_count > 0:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Công tơ đã có {sample_count} mẫu huấn luyện học máy liên kết. Không được phép xóa vĩnh viễn.",
         )
 
     log_admin_action(
         db=db,
         actor_user_id=actor.id,
-        action="METER_DELETED",
+        action="METER_HARD_DELETED",
         resource_type="METER",
         resource_id=meter.id,
         before_json={
             "meter_code": meter.meter_code,
             "name": meter.name,
+            "lifecycle_status": getattr(meter, "lifecycle_status", "ACTIVE"),
         },
     )
     db.delete(meter)

@@ -93,6 +93,10 @@ export interface Meter {
   location: string | null;
   meter_type: string;
   is_active: boolean;
+  lifecycle_status?: 'ACTIVE' | 'INACTIVE' | 'RETIRED';
+  retired_at?: string | null;
+  retired_by?: string | null;
+  retirement_reason?: string | null;
 }
 
 export interface BatchProgress {
@@ -391,6 +395,10 @@ export interface AdminMeterItem {
   location: string | null;
   meter_type: string;
   is_active: boolean;
+  lifecycle_status?: 'ACTIVE' | 'INACTIVE' | 'RETIRED';
+  retired_at?: string | null;
+  retired_by?: string | null;
+  retirement_reason?: string | null;
   zone_id?: string | null;
   presentation_zone_id?: string | null;
   map_x?: number | null;
@@ -408,7 +416,12 @@ export interface AdminMeterListResponse {
   total: number;
   active_count: number;
   inactive_count: number;
+  retired_count?: number;
   meters: AdminMeterItem[];
+}
+
+export interface AdminMeterRetirePayload {
+  reason?: string;
 }
 
 export interface AdminMeterCreatePayload {
@@ -1122,6 +1135,10 @@ export interface MapMeterOut {
   map_x?: number | null;
   map_y?: number | null;
   is_active: boolean;
+  lifecycle_status?: 'ACTIVE' | 'INACTIVE' | 'RETIRED';
+  retired_at?: string | null;
+  retired_by?: string | null;
+  retirement_reason?: string | null;
   semantic_state: 'CONFIRMED' | 'PENDING' | 'DUE' | 'OVERDUE' | 'REVIEW' | 'INACTIVE';
   latest_reading_value?: string | null;
   latest_reading_time?: string | null;

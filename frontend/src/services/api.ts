@@ -6,6 +6,7 @@ import {
   AdminMeterLatestReadingResponse,
   AdminMeterListResponse,
   AdminMeterReadingInspectionResponse,
+  AdminMeterRetirePayload,
   AdminMeterUpdatePayload,
   AdminScheduleCreateResponse,
   AdminScheduleDeleteResponse,
@@ -640,6 +641,55 @@ export async function activateAdminMeter(meterId: string): Promise<AdminMeterIte
 
   if (!res.ok) {
     let detail = 'Không thể kích hoạt lại công tơ.';
+    try {
+      const err = await res.json();
+      if (err.detail) detail = err.detail;
+    } catch {
+      // ignore
+    }
+    throw new ApiError(res.status, detail);
+  }
+  return res.json();
+}
+
+export async function reactivateAdminMeter(meterId: string): Promise<AdminMeterItem> {
+  const csrfToken = await getCsrfToken();
+  const res = await apiFetch(`/api/v1/admin/meters/${meterId}/reactivate`, {
+    method: 'POST',
+    headers: {
+      'X-CSRF-Token': csrfToken,
+    },
+  });
+
+  if (!res.ok) {
+    let detail = 'Không thể kích hoạt lại công tơ.';
+    try {
+      const err = await res.json();
+      if (err.detail) detail = err.detail;
+    } catch {
+      // ignore
+    }
+    throw new ApiError(res.status, detail);
+  }
+  return res.json();
+}
+
+export async function retireAdminMeter(
+  meterId: string,
+  payload?: AdminMeterRetirePayload
+): Promise<AdminMeterItem> {
+  const csrfToken = await getCsrfToken();
+  const res = await apiFetch(`/api/v1/admin/meters/${meterId}/retire`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRF-Token': csrfToken,
+    },
+    body: JSON.stringify(payload || {}),
+  });
+
+  if (!res.ok) {
+    let detail = 'Không thể ngừng sử dụng vĩnh viễn công tơ.';
     try {
       const err = await res.json();
       if (err.detail) detail = err.detail;

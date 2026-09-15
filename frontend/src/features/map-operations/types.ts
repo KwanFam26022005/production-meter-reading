@@ -55,6 +55,10 @@ export interface MapMeterItem {
   location: string;
   meterType: string;
   isActive: boolean;
+  lifecycleStatus?: 'ACTIVE' | 'INACTIVE' | 'RETIRED' | string;
+  retiredAt?: string | null;
+  retiredBy?: string | null;
+  retirementReason?: string | null;
   zoneId: string;
   zoneCode: string;
   zoneName: string;
