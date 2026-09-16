@@ -19,6 +19,7 @@ import {
   User as UserIcon,
   Zap,
   Check,
+  Share2,
 } from 'lucide-react';
 import { VnDatePicker } from '../../../components/ui/VnDatePicker';
 import type {
@@ -424,16 +425,12 @@ export const AdaptiveCommandBar: React.FC<AdaptiveCommandBarProps> = ({
 
           <span className="sgp-cmd-divider" aria-hidden="true">·</span>
 
-          {/* View Switch: [Bản đồ] | [Danh sách] */}
+          {/* View Switch: [Bản đồ] | [Mạng lưới] | [Danh sách] */}
           <div
             className="sgp-cmd-view-switch"
             role="radiogroup"
             aria-label="Chế độ hiển thị tác nghiệp"
           >
-            <div
-              className={`sgp-cmd-switch-pill ${viewMode === 'list' ? 'right' : 'left'}`}
-              aria-hidden="true"
-            />
             <button
               type="button"
               className={`sgp-cmd-switch-btn ${viewMode === 'map' ? 'active' : ''}`}
@@ -444,6 +441,17 @@ export const AdaptiveCommandBar: React.FC<AdaptiveCommandBarProps> = ({
             >
               <MapIcon size={14} aria-hidden="true" />
               <span>Bản đồ</span>
+            </button>
+            <button
+              type="button"
+              className={`sgp-cmd-switch-btn ${viewMode === 'network' ? 'active' : ''}`}
+              onClick={() => onViewModeChange('network')}
+              role="radio"
+              aria-checked={viewMode === 'network'}
+              title="Chuyển sang chế độ Sơ đồ mạng lưới tiện ích"
+            >
+              <Share2 size={14} aria-hidden="true" />
+              <span>Mạng lưới</span>
             </button>
             <button
               type="button"

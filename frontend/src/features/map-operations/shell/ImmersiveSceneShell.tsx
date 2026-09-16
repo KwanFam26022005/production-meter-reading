@@ -16,6 +16,9 @@ import { OperationalScene } from '../scene/OperationalScene';
 import { isCalibrationModeActive } from '../calibration/MapCalibrationOverlay';
 import type { MapCalibrationWorkspace } from '../calibration/useMapCalibrationWorkspace';
 import { UnifiedContextSurface, type UnifiedContextType } from '../context/UnifiedContextSurface';
+import { UtilityNetworkView } from '../network/UtilityNetworkView';
+import { AssetContextSurface } from '../context/AssetContextSurface';
+import type { Asset, AssetConnection, UtilityType } from '../../assets/types';
 import type {
   MapMode,
   SelectedEntity,
@@ -123,6 +126,22 @@ interface ImmersiveSceneShellProps {
   onResetPin?: () => void;
   isSubmittingPlacement?: boolean;
   placementError?: string | null;
+
+  // Infrastructure Assets & Network Topology (Phase V16E)
+  assets?: Asset[];
+  assetConnections?: AssetConnection[];
+  selectedAssetId?: string | null;
+  onSelectAsset?: (assetId: string) => void;
+  onClearSelectedAsset?: () => void;
+  selectedUtility?: UtilityType | 'ALL';
+  onSelectUtility?: (utility: UtilityType | 'ALL') => void;
+  showUnverifiedAssets?: boolean;
+  onToggleShowUnverifiedAssets?: (show: boolean) => void;
+  isNetworkLoading?: boolean;
+  onRefreshNetwork?: () => void;
+  canManageVerification?: boolean;
+  onOpenVerificationReview?: (assetId?: string) => void;
+  onSwitchToMapAndCenterAsset?: (asset: Asset) => void;
 }
 
 /**
@@ -213,6 +232,21 @@ export const ImmersiveSceneShell: React.FC<ImmersiveSceneShellProps> = ({
   isSubmittingPlacement = false,
   placementError = null,
 
+  // Infrastructure Assets & Network Topology (Phase V16E)
+  assets,
+  assetConnections,
+  selectedAssetId,
+  onSelectAsset,
+  onClearSelectedAsset,
+  selectedUtility = 'ALL',
+  onSelectUtility,
+  showUnverifiedAssets = false,
+  onToggleShowUnverifiedAssets,
+  isNetworkLoading = false,
+  onRefreshNetwork,
+  canManageVerification = false,
+  onOpenVerificationReview,
+  onSwitchToMapAndCenterAsset,
 }) => {
   const [isLegendOpen, setIsLegendOpen] = React.useState(false);
   const [isToolbarCollapsed, setIsToolbarCollapsed] = React.useState<boolean>(() => {
@@ -238,17 +272,18 @@ export const ImmersiveSceneShell: React.FC<ImmersiveSceneShellProps> = ({
   }, [mapZones, mapMeters]);
 
   // Derive single active contextual surface type (Invariant: at most 1 visible)
-  const activeContextType: UnifiedContextType | null = useMemo(() => {
+  const activeContextType: UnifiedContextType | 'asset-detail' | null = useMemo(() => {
     if (isCalibrationActive) return null;
     if (analyticsOpen) return 'analytics';
     if (mapMode === 'placement') return 'workflow';
+    if (selectedAssetId) return 'asset-detail';
     if (selectedEntity?.type === 'zone') {
       return detailView === 'zone' ? 'zone-meters' : 'zone-summary';
     }
     if (selectedEntity?.type === 'meter') return 'meter-detail';
     if (selectedEntity?.type === 'operator') return 'operator-detail';
     return null;
-  }, [isCalibrationActive, analyticsOpen, mapMode, selectedEntity, detailView]);
+  }, [isCalibrationActive, analyticsOpen, mapMode, selectedAssetId, selectedEntity, detailView]);
 
   const handleCloseContext = React.useCallback(() => {
     if (activeContextType === 'analytics') {
@@ -256,10 +291,13 @@ export const ImmersiveSceneShell: React.FC<ImmersiveSceneShellProps> = ({
     } else if (activeContextType === 'workflow') {
       if (onCancelPlacement) onCancelPlacement();
       else onClearSelection();
+    } else if (activeContextType === 'asset-detail') {
+      if (onClearSelectedAsset) onClearSelectedAsset();
+      else onClearSelection();
     } else {
       onClearSelection();
     }
-  }, [activeContextType, onSetAnalyticsOpen, onCancelPlacement, onClearSelection]);
+  }, [activeContextType, onSetAnalyticsOpen, onCancelPlacement, onClearSelectedAsset, onClearSelection]);
 
   // Global Escape priority stack (V13.2 Section 25)
   React.useEffect(() => {
@@ -329,38 +367,60 @@ export const ImmersiveSceneShell: React.FC<ImmersiveSceneShellProps> = ({
         style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', overflow: 'hidden' }}
       >
         {/* ============================================================ */}
-        {/* LAYER B: PRIMARY CENTER CANVAS (MAP OR LIST)                */}
+        {/* LAYER B: PRIMARY CENTER CANVAS (MAP, NETWORK, OR LIST)       */}
         {/* ============================================================ */}
         {viewMode !== 'list' ? (
-          <OperationalScene
-            zones={mapZones}
-            meters={filteredMeters}
-            selectedZoneId={selection.selectedZoneId}
-            selectedMeterId={selection.selectedMeterId}
-            hoveredZoneId={selection.hoveredZoneId}
-            hoveredMeterId={selection.hoveredMeterId}
-            activeLayer="STATUS"
-            exceptionsOnly={false}
-            exceptionFocus={exceptionFocus || Boolean(activeFocusType)}
-            selectedOperatorId={filters.operatorId === 'ALL' ? undefined : filters.operatorId}
-            selectedOperatorShiftId={selectedOperatorShiftId}
-            currentRoundTime={overallKpis.currentRoundTime || undefined}
-            viewport={viewport}
-            mode={mapMode}
-            selectedEntity={selectedEntity}
-            targetPlacementZoneId={placementContext?.targetZoneId}
-            onSelectZone={onSelectZone}
-            onSelectMeter={onSelectMeter}
-            onSelectOperator={onSelectOperator}
-            onHoverZone={onHoverZone}
-            onHoverMeter={onHoverMeter}
-            onClearSelection={onClearSelection}
-            onViewportChange={onViewportChange}
-            placementSvgLayer={placementSvgLayer}
-            viewMode={viewMode}
-            isCalibrationActive={isCalibrationActive}
-            calibrationWorkspace={calibrationWorkspace}
-          />
+          viewMode === 'network' ? (
+            <UtilityNetworkView
+              nodes={assets || []}
+              edges={assetConnections || []}
+              selectedAssetId={selectedAssetId}
+              onSelectAsset={onSelectAsset}
+              selectedUtility={selectedUtility}
+              onSelectUtility={onSelectUtility}
+              showUnverified={showUnverifiedAssets}
+              onToggleShowUnverified={onToggleShowUnverifiedAssets}
+              isLoading={isNetworkLoading}
+              onRefresh={onRefreshNetwork}
+              canManageVerification={canManageVerification}
+              onOpenVerificationReview={onOpenVerificationReview}
+              onSwitchToMap={() => onViewModeChange('map')}
+            />
+          ) : (
+            <OperationalScene
+              zones={mapZones}
+              meters={filteredMeters}
+              selectedZoneId={selection.selectedZoneId}
+              selectedMeterId={selection.selectedMeterId}
+              hoveredZoneId={selection.hoveredZoneId}
+              hoveredMeterId={selection.hoveredMeterId}
+              activeLayer="STATUS"
+              exceptionsOnly={false}
+              exceptionFocus={exceptionFocus || Boolean(activeFocusType)}
+              selectedOperatorId={filters.operatorId === 'ALL' ? undefined : filters.operatorId}
+              selectedOperatorShiftId={selectedOperatorShiftId}
+              currentRoundTime={overallKpis.currentRoundTime || undefined}
+              viewport={viewport}
+              mode={mapMode}
+              selectedEntity={selectedEntity}
+              targetPlacementZoneId={placementContext?.targetZoneId}
+              onSelectZone={onSelectZone}
+              onSelectMeter={onSelectMeter}
+              onSelectOperator={onSelectOperator}
+              onHoverZone={onHoverZone}
+              onHoverMeter={onHoverMeter}
+              onClearSelection={onClearSelection}
+              onViewportChange={onViewportChange}
+              placementSvgLayer={placementSvgLayer}
+              viewMode={viewMode}
+              isCalibrationActive={isCalibrationActive}
+              calibrationWorkspace={calibrationWorkspace}
+              assets={assets}
+              selectedAssetId={selectedAssetId}
+              onSelectAsset={onSelectAsset}
+              showUnverifiedAssets={showUnverifiedAssets}
+            />
+          )
         ) : (
           <OperationalListView
             meters={filteredMeters}
@@ -435,7 +495,30 @@ export const ImmersiveSceneShell: React.FC<ImmersiveSceneShellProps> = ({
         {/* Invariant: At most 1 contextual surface is ever visible!     */}
         {/* Suppressed in calibration workspace (?mapCalibration=1)      */}
         {/* ============================================================ */}
-        {!isCalibrationActive && activeContextType && (
+        {!isCalibrationActive && activeContextType === 'asset-detail' && selectedAssetId && (
+          <AssetContextSurface
+            assetId={selectedAssetId}
+            initialAsset={assets?.find((a) => a.id === selectedAssetId)}
+            onClose={handleCloseContext}
+            onSelectMeter={onSelectMeter}
+            onSelectAsset={onSelectAsset}
+            onSwitchToMapAndCenter={(asset) => {
+              if (onSwitchToMapAndCenterAsset) {
+                onSwitchToMapAndCenterAsset(asset);
+              } else {
+                onViewModeChange('map');
+              }
+            }}
+            onSwitchToNetworkAndFocus={(id) => {
+              onViewModeChange('network');
+              if (onSelectAsset) onSelectAsset(id);
+            }}
+            onOpenVerificationReview={onOpenVerificationReview}
+            canManageVerification={canManageVerification}
+          />
+        )}
+
+        {!isCalibrationActive && activeContextType && activeContextType !== 'asset-detail' && (
           <UnifiedContextSurface
             contextType={activeContextType}
             theme={viewMode === 'list' ? 'light' : 'dark'}

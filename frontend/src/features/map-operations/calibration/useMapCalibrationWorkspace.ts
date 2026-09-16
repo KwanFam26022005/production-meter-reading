@@ -569,8 +569,9 @@ export function useMapCalibrationWorkspace(
     if (hasCalibrationQueryParam()) return 'calibration';
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
-      if (params.get('view') === 'list' || sessionStorage.getItem('map_workspace_view') === 'list') {
-        return 'list';
+      const v = params.get('view') || sessionStorage.getItem('map_workspace_view');
+      if (v === 'list' || v === 'network') {
+        return v;
       }
     }
     return initialView;

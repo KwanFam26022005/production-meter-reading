@@ -25,7 +25,10 @@ import {
   createAdminMeter,
   updateAdminMeter,
   relocateAdminMeter,
+  getAdminAssetNetwork,
 } from '../../services/api';
+import type { Asset, AssetConnection, UtilityType } from '../assets/types';
+import { canAdministerMapConfiguration } from '../../types';
 import './motion/mapMotion.css';
 
 interface MapOperationsPageProps {
@@ -105,6 +108,116 @@ const MapOperationsPageContent: React.FC<MapOperationsPageProps> = ({
 
   // Analytics Drawer (opened only via top controls or summary telemetry)
   const [analyticsOpen, setAnalyticsOpen] = useState(false);
+
+  // Phase V16E: Infrastructure Asset & Utility Network Topology State
+  const [selectedAssetId, setSelectedAssetId] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('asset') || null;
+    }
+    return null;
+  });
+
+  const [selectedUtility, setSelectedUtility] = useState<UtilityType | 'ALL'>(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const u = params.get('utility');
+      if (u === 'ELECTRICITY' || u === 'WATER') return u;
+    }
+    return 'ALL';
+  });
+
+  const [showUnverifiedAssets, setShowUnverifiedAssets] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('showUnverified') === '1';
+    }
+    return false;
+  });
+
+  const [assets, setAssets] = useState<Asset[]>([]);
+  const [assetConnections, setAssetConnections] = useState<AssetConnection[]>([]);
+  const [networkLoading, setNetworkLoading] = useState(false);
+
+  // Network & Asset data fetching
+  const fetchNetworkData = useCallback(async () => {
+    try {
+      setNetworkLoading(true);
+      const data = await getAdminAssetNetwork({
+        utility_type: selectedUtility !== 'ALL' ? selectedUtility : undefined,
+        verified_only: !showUnverifiedAssets,
+      });
+      setAssets(data.nodes);
+      setAssetConnections(data.edges);
+    } catch (err) {
+      console.warn('[MapOps] Failed to fetch asset network data:', err);
+    } finally {
+      setNetworkLoading(false);
+    }
+  }, [selectedUtility, showUnverifiedAssets]);
+
+  useEffect(() => {
+    fetchNetworkData();
+  }, [fetchNetworkData]);
+
+  // URL synchronization for viewMode, asset, utility, showUnverified
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (viewMode === 'map') {
+        params.delete('view');
+      } else {
+        params.set('view', viewMode);
+      }
+
+      if (selectedAssetId) {
+        params.set('asset', selectedAssetId);
+      } else {
+        params.delete('asset');
+      }
+
+      if (selectedUtility === 'ALL') {
+        params.delete('utility');
+      } else {
+        params.set('utility', selectedUtility);
+      }
+
+      if (showUnverifiedAssets) {
+        params.set('showUnverified', '1');
+      } else {
+        params.delete('showUnverified');
+      }
+
+      const newQuery = params.toString();
+      const newUrl = window.location.pathname + (newQuery ? `?${newQuery}` : '');
+      window.history.replaceState(null, '', newUrl);
+    }
+  }, [viewMode, selectedAssetId, selectedUtility, showUnverifiedAssets]);
+
+  const handleSelectAsset = useCallback((assetId: string) => {
+    setSelectedAssetId(assetId);
+    mapState.resetToBrowse();
+    setAnalyticsOpen(false);
+  }, [mapState]);
+
+  const handleClearSelectedAsset = useCallback(() => {
+    setSelectedAssetId(null);
+  }, []);
+
+  const handleSwitchToMapAndCenterAsset = useCallback((targetAsset: Asset) => {
+    setViewMode('map');
+    if (targetAsset.map_x !== null && targetAsset.map_y !== null) {
+      const sceneCoord = normalizedToCanonicalScene({ x: targetAsset.map_x, y: targetAsset.map_y });
+      const framing = focusEntity({
+        entity: { type: 'meter', id: targetAsset.id },
+        mode: 'inspect',
+        viewportWidth: typeof window !== 'undefined' ? window.innerWidth : 1440,
+        viewportHeight: typeof window !== 'undefined' ? window.innerHeight : 900,
+        entityCoords: sceneCoord,
+      });
+      setViewport(framing);
+    }
+  }, [setViewMode, setViewport]);
 
   // Placement initial coordinates for relocating meter
   const selectedMeterCoord = useMemo(() => {
@@ -256,6 +369,7 @@ const MapOperationsPageContent: React.FC<MapOperationsPageProps> = ({
   }, [mapState.selectedEntity, mapZones, mapMeters, availableOperators, overallKpis.currentRoundTime]);
 
   const clearSelection = useCallback(() => {
+    setSelectedAssetId(null);
     setPreviousContext(null);
     mapState.resetToBrowse();
     setAnalyticsOpen(false);
@@ -265,6 +379,7 @@ const MapOperationsPageContent: React.FC<MapOperationsPageProps> = ({
   const handleSelectOperator = useCallback(
     (operatorId: string) => {
       if (mapState.mode === 'placement') return;
+      setSelectedAssetId(null);
       setPreviousContext(null);
       mapState.selectOperator(operatorId);
       setAnalyticsOpen(false);
@@ -285,6 +400,7 @@ const MapOperationsPageContent: React.FC<MapOperationsPageProps> = ({
   const focusMeter = useCallback(
     (id: string) => {
       if (mapState.mode === 'placement') return;
+      setSelectedAssetId(null);
       if (mapState.selectedEntity?.type === 'zone') {
         setPreviousContext({
           type: mapState.detailView === 'zone' ? 'zone-meters' : 'zone-summary',
@@ -310,6 +426,7 @@ const MapOperationsPageContent: React.FC<MapOperationsPageProps> = ({
   const focusZone = useCallback(
     (id: string) => {
       if (mapState.mode === 'placement') return;
+      setSelectedAssetId(null);
       setPreviousContext(null);
       mapState.selectZone(id);
       setAnalyticsOpen(false);
@@ -645,6 +762,24 @@ const MapOperationsPageContent: React.FC<MapOperationsPageProps> = ({
       }
       onAddMeterToZone={handleStartPlacement}
       onRelocateMeter={handleStartRelocation}
+
+      // Infrastructure Assets & Network Topology (Phase V16E)
+      assets={assets}
+      assetConnections={assetConnections}
+      selectedAssetId={selectedAssetId}
+      onSelectAsset={handleSelectAsset}
+      onClearSelectedAsset={handleClearSelectedAsset}
+      selectedUtility={selectedUtility}
+      onSelectUtility={setSelectedUtility}
+      showUnverifiedAssets={showUnverifiedAssets}
+      onToggleShowUnverifiedAssets={setShowUnverifiedAssets}
+      isNetworkLoading={networkLoading}
+      onRefreshNetwork={fetchNetworkData}
+      canManageVerification={canAdministerMapConfiguration(user)}
+      onOpenVerificationReview={(id) => {
+        window.location.href = `/admin?tab=verification${id ? '&asset=' + id : ''}`;
+      }}
+      onSwitchToMapAndCenterAsset={handleSwitchToMapAndCenterAsset}
     />
   );
 };
