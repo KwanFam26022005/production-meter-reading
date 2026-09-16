@@ -1536,4 +1536,49 @@ class MeterReviewMatrixItem(BaseModel):
     is_spatial_review_required: bool
 
 
+# ==============================================================================
+# V16E — ASSET-CENTRIC MAP & UTILITY NETWORK TOPOLOGY SCHEMAS
+# ==============================================================================
 
+class AssetNetworkStats(BaseModel):
+    total_nodes: int
+    total_edges: int
+    verified_nodes: int
+    verified_edges: int
+    unverified_nodes: int
+    unverified_edges: int
+
+
+class AssetNetworkResponse(BaseModel):
+    utility_type: Optional[str] = None
+    focus_asset_id: Optional[str] = None
+    verified_only: bool = True
+    nodes: list[AssetResponse]
+    edges: list[AssetConnectionResponse]
+    stats: AssetNetworkStats
+
+
+class AssetAttachedMeterContext(BaseModel):
+    relation_id: str
+    relation_type: str  # INSTALLED_AT | MEASURES
+    is_primary: bool
+    verification_status: str
+    meter_id: str
+    meter_code: str
+    meter_name: str
+    meter_type: Optional[str] = None
+    utility_type: Optional[str] = None
+    lifecycle_status: str
+    latest_reading_value: Optional[str] = None
+    latest_reading_status: Optional[str] = None
+    latest_reading_time: Optional[str] = None
+
+
+class AssetOperationalContextResponse(BaseModel):
+    asset: AssetResponse
+    meters: list[AssetAttachedMeterContext]
+    upstream_connections: list[AssetConnectionResponse]
+    downstream_connections: list[AssetConnectionResponse]
+    presentation_zone_id: Optional[str] = None
+    presentation_zone_name: Optional[str] = None
+    spatial_status: str  # VERIFIED | UNVERIFIED | MISSING_COORDINATES

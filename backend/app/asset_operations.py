@@ -25,6 +25,7 @@ from .models import (
     AssetConnection,
     Meter,
     MeterAssetRelation,
+    MeterReading,
     OperationalZone,
     MapVersion,
     MapVersionZone,
@@ -33,11 +34,15 @@ from .models import (
     get_utc_now,
 )
 from .schemas import (
+    AssetAttachedMeterContext,
     AssetConnectionCreateRequest,
     AssetConnectionListResponse,
     AssetConnectionResponse,
     AssetCreateRequest,
     AssetListResponse,
+    AssetNetworkResponse,
+    AssetNetworkStats,
+    AssetOperationalContextResponse,
     AssetRejectRequest,
     AssetRelocateRequest,
     AssetResponse,
@@ -2006,4 +2011,170 @@ def get_entity_verification_evidences(
         .all()
     )
     return [_serialize_evidence(e) for e in evs]
+
+
+# ==============================================================================
+# V16E — ASSET-CENTRIC MAP & UTILITY NETWORK TOPOLOGY
+# ==============================================================================
+
+def get_asset_network(
+    db: Session,
+    utility_type: Optional[str] = None,
+    focus_asset_id: Optional[str] = None,
+    verified_only: bool = True,
+) -> AssetNetworkResponse:
+    """
+    Returns the network topology graph (nodes and edges) for the utility network view.
+    Default: verified_only=True. Does NOT leak unverified edges unless explicitly requested.
+    """
+    clean_util = utility_type.strip().upper() if utility_type and utility_type.strip().upper() != "ALL" else None
+
+    # Base connection query (active connections only)
+    conn_query = db.query(AssetConnection).filter(AssetConnection.valid_to.is_(None))
+    if clean_util:
+        conn_query = conn_query.filter(AssetConnection.utility_type == clean_util)
+    if verified_only:
+        conn_query = conn_query.filter(AssetConnection.verification_status == "VERIFIED")
+
+    connections = conn_query.all()
+
+    # Asset nodes query
+    if focus_asset_id:
+        focus_asset = db.query(Asset).filter(Asset.id == focus_asset_id).first()
+        if not focus_asset:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Focus asset '{focus_asset_id}' not found")
+        # Get connected subgraph
+        connected_assets, _ = get_connected(
+            db, focus_asset_id, utility_type=clean_util, include_unverified=not verified_only
+        )
+        node_map = {focus_asset.id: focus_asset}
+        for a in connected_assets:
+            if not verified_only or a.verification_status == "VERIFIED":
+                node_map[a.id] = a
+        nodes = list(node_map.values())
+        # Filter connections to those between the subgraph nodes
+        node_ids = set(node_map.keys())
+        connections = [c for c in connections if c.source_asset_id in node_ids and c.target_asset_id in node_ids]
+    else:
+        asset_query = db.query(Asset).filter(Asset.lifecycle_status != "RETIRED")
+        if verified_only:
+            asset_query = asset_query.filter(Asset.verification_status == "VERIFIED")
+        nodes = asset_query.all()
+
+    # Calculate global stats
+    total_nodes = db.query(Asset).filter(Asset.lifecycle_status != "RETIRED").count()
+    total_edges = db.query(AssetConnection).filter(AssetConnection.valid_to.is_(None)).count()
+    verified_nodes = (
+        db.query(Asset)
+        .filter(Asset.lifecycle_status != "RETIRED", Asset.verification_status == "VERIFIED")
+        .count()
+    )
+    verified_edges = (
+        db.query(AssetConnection)
+        .filter(AssetConnection.valid_to.is_(None), AssetConnection.verification_status == "VERIFIED")
+        .count()
+    )
+
+    stats = AssetNetworkStats(
+        total_nodes=total_nodes,
+        total_edges=total_edges,
+        verified_nodes=verified_nodes,
+        verified_edges=verified_edges,
+        unverified_nodes=total_nodes - verified_nodes,
+        unverified_edges=total_edges - verified_edges,
+    )
+
+    return AssetNetworkResponse(
+        utility_type=clean_util,
+        focus_asset_id=focus_asset_id,
+        verified_only=verified_only,
+        nodes=[_serialize_asset(a, db) for a in nodes],
+        edges=[_serialize_connection(c) for c in connections],
+        stats=stats,
+    )
+
+
+def get_asset_operational_context(db: Session, asset_id: str) -> AssetOperationalContextResponse:
+    """
+    Returns full operational context for an asset:
+    - Base asset metadata
+    - Attached meters (both INSTALLED_AT and MEASURES) with latest readings
+    - Upstream / downstream topology connections
+    - Spatial position verification status
+    """
+    asset = db.query(Asset).filter(Asset.id == asset_id).first()
+    if not asset:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Asset '{asset_id}' not found")
+
+    # 1. Attached meters
+    relations = (
+        db.query(MeterAssetRelation)
+        .filter(MeterAssetRelation.asset_id == asset.id, MeterAssetRelation.valid_to.is_(None))
+        .all()
+    )
+
+    attached_meters: list[AssetAttachedMeterContext] = []
+    for rel in relations:
+        m = rel.meter
+        if not m:
+            continue
+        # Fetch latest reading
+        latest_reading = (
+            db.query(MeterReading)
+            .filter(MeterReading.meter_id == m.id)
+            .order_by(MeterReading.server_timestamp.desc())
+            .first()
+        )
+        attached_meters.append(
+            AssetAttachedMeterContext(
+                relation_id=rel.id,
+                relation_type=rel.relation_type,
+                is_primary=rel.is_primary,
+                verification_status=rel.verification_status,
+                meter_id=m.id,
+                meter_code=m.meter_code,
+                meter_name=m.name,
+                meter_type=m.meter_type,
+                utility_type=m.utility_type,
+                lifecycle_status=m.lifecycle_status,
+                latest_reading_value=latest_reading.reading if latest_reading else None,
+                latest_reading_status=latest_reading.status if latest_reading else None,
+                latest_reading_time=latest_reading.server_timestamp.isoformat() if latest_reading else None,
+            )
+        )
+
+    # 2. Topology connections
+    upstream_conns = (
+        db.query(AssetConnection)
+        .filter(AssetConnection.target_asset_id == asset.id, AssetConnection.valid_to.is_(None))
+        .all()
+    )
+    downstream_conns = (
+        db.query(AssetConnection)
+        .filter(AssetConnection.source_asset_id == asset.id, AssetConnection.valid_to.is_(None))
+        .all()
+    )
+
+    # 3. Spatial status
+    if asset.map_x is None or asset.map_y is None:
+        spatial_status = "MISSING_COORDINATES"
+    else:
+        spatial_status = asset.position_verification_status or "VERIFIED"
+
+    zone_pres_id = None
+    zone_pres_name = None
+    if asset.zone:
+        zone_pres_id = asset.zone.presentation_zone_id or asset.zone.zone_id or asset.zone.id
+        zone_pres_name = asset.zone.name
+
+    return AssetOperationalContextResponse(
+        asset=_serialize_asset(asset, db),
+        meters=attached_meters,
+        upstream_connections=[_serialize_connection(c) for c in upstream_conns],
+        downstream_connections=[_serialize_connection(c) for c in downstream_conns],
+        presentation_zone_id=zone_pres_id,
+        presentation_zone_name=zone_pres_name,
+        spatial_status=spatial_status,
+    )
+
 

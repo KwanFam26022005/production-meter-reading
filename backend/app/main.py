@@ -142,6 +142,8 @@ from .schemas import (
     AssetConnectionCreateRequest,
     AssetConnectionResponse,
     AssetConnectionListResponse,
+    AssetNetworkResponse,
+    AssetOperationalContextResponse,
     TopologyTraceResponse,
     VerificationEvidenceResponse,
     AssetVerifyRequest,
@@ -178,6 +180,8 @@ from .asset_operations import (
     verify_asset_connection_with_evidence,
     reject_asset_connection,
     trace_asset_topology,
+    get_asset_network,
+    get_asset_operational_context,
     import_candidate_proposals,
     verify_asset,
     reject_asset_verification,
@@ -1857,6 +1861,36 @@ def trace_asset_topology_endpoint(
         utility_type=utility_type,
         include_unverified=include_unverified,
     )
+
+
+# ==============================================================================
+# V16E — ASSET NETWORK TOPOLOGY & OPERATIONAL CONTEXT ROUTES
+# ==============================================================================
+
+@app.get("/api/v1/admin/asset-network", response_model=AssetNetworkResponse)
+def get_asset_network_endpoint(
+    utility_type: Optional[str] = None,
+    focus_asset_id: Optional[str] = None,
+    verified_only: bool = True,
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> AssetNetworkResponse:
+    return get_asset_network(
+        db,
+        utility_type=utility_type,
+        focus_asset_id=focus_asset_id,
+        verified_only=verified_only,
+    )
+
+
+@app.get("/api/v1/admin/assets/{asset_id}/operational-context", response_model=AssetOperationalContextResponse)
+def get_asset_operational_context_endpoint(
+    asset_id: str,
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> AssetOperationalContextResponse:
+    return get_asset_operational_context(db, asset_id=asset_id)
+
 
 
 # ==============================================================================
