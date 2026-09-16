@@ -400,8 +400,6 @@ def create_asset(db: Session, actor: User, payload: AssetCreateRequest) -> Asset
         )
 
     verif_status = (payload.verification_status or "UNVERIFIED").strip().upper()
-    if verif_status == "UNVERIFIED" and settings.data_mode == "SIMULATION":
-        verif_status = "SIMULATION_APPROVED"
     if verif_status not in VALID_VERIFICATION_STATUSES:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -421,8 +419,8 @@ def create_asset(db: Session, actor: User, payload: AssetCreateRequest) -> Asset
         map_y=map_y,
         lifecycle_status="ACTIVE",
         verification_status=verif_status,
-        data_origin=payload.data_origin or ("SIMULATED" if settings.data_mode == "SIMULATION" else "FIELD_VERIFIED"),
-        scenario_id=payload.scenario_id or (settings.active_scenario if settings.data_mode == "SIMULATION" else None),
+        data_origin=payload.data_origin or "FIELD_VERIFIED",
+        scenario_id=payload.scenario_id,
         metadata_json=payload.metadata_json,
         created_by=actor.id if actor else None,
         updated_by=actor.id if actor else None,
@@ -797,8 +795,6 @@ def create_meter_asset_relation(
             )
 
     verif_status = (payload.verification_status or "UNVERIFIED").strip().upper()
-    if verif_status == "UNVERIFIED" and settings.data_mode == "SIMULATION":
-        verif_status = "SIMULATION_APPROVED"
     if verif_status not in VALID_VERIFICATION_STATUSES:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid verification_status '{verif_status}'")
 
@@ -810,8 +806,8 @@ def create_meter_asset_relation(
         mount_point=payload.mount_point.strip() if payload.mount_point else None,
         is_primary=payload.is_primary,
         verification_status=verif_status,
-        data_origin="SIMULATED" if settings.data_mode == "SIMULATION" else "FIELD_VERIFIED",
-        scenario_id=settings.active_scenario if settings.data_mode == "SIMULATION" else None,
+        data_origin="FIELD_VERIFIED",
+        scenario_id=None,
         valid_from=now_utc,
         valid_to=None,
         created_at=now_utc,
@@ -1022,8 +1018,6 @@ def create_asset_connection(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid connection_type '{conn_type}'")
 
     verif_status = (payload.verification_status or "UNVERIFIED").strip().upper()
-    if verif_status == "UNVERIFIED" and settings.data_mode == "SIMULATION":
-        verif_status = "SIMULATION_APPROVED"
     if verif_status not in VALID_VERIFICATION_STATUSES:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid verification_status '{verif_status}'")
 
@@ -1035,8 +1029,8 @@ def create_asset_connection(
         utility_type=util_type,
         connection_type=conn_type,
         verification_status=verif_status,
-        data_origin="SIMULATED" if settings.data_mode == "SIMULATION" else "FIELD_VERIFIED",
-        scenario_id=settings.active_scenario if settings.data_mode == "SIMULATION" else None,
+        data_origin="FIELD_VERIFIED",
+        scenario_id=None,
         valid_from=now_utc,
         valid_to=None,
         metadata_json=payload.metadata_json,

@@ -311,6 +311,15 @@ def seed_simulation(db_path: str = "data/app.db"):
     ))
     print(f"[1/7] Scenario '{SCENARIO_CODE}' initialized.")
 
+    # Clean up non-spec assets/connections for this scenario to guarantee exact baseline
+    valid_asset_codes = [s["code"] for s in ASSETS_SPEC]
+    q_marks = ",".join(["?"] * len(valid_asset_codes))
+    subquery = f"SELECT id FROM assets WHERE scenario_id = ? AND code NOT IN ({q_marks})"
+    con.execute(f"DELETE FROM asset_connections WHERE source_asset_id IN ({subquery}) OR target_asset_id IN ({subquery})", [SCENARIO_CODE] + valid_asset_codes + [SCENARIO_CODE] + valid_asset_codes)
+    con.execute(f"DELETE FROM meter_asset_relations WHERE asset_id IN ({subquery})", [SCENARIO_CODE] + valid_asset_codes)
+    con.execute(f"UPDATE assets SET parent_asset_id = NULL WHERE scenario_id = ? AND code NOT IN ({q_marks})", [SCENARIO_CODE] + valid_asset_codes)
+    con.execute(f"DELETE FROM assets WHERE scenario_id = ? AND code NOT IN ({q_marks})", [SCENARIO_CODE] + valid_asset_codes)
+
     # 2. Seed 32 Assets
     asset_id_map = {}
     for spec in ASSETS_SPEC:
@@ -488,8 +497,12 @@ def seed_simulation(db_path: str = "data/app.db"):
         ON CONFLICT(id) DO NOTHING
     """, (batch_id, now_str))
 
-    # Generate 14 days of hourly readings (336 hours per meter)
-    anchor_dt = datetime(2026, 9, 16, 0, 0, 0, tzinfo=timezone.utc)
+    # Clean up existing simulation batch readings/rounds for deterministic idempotency
+    con.execute("DELETE FROM meter_readings WHERE batch_id = ?", (batch_id,))
+    con.execute("DELETE FROM reading_rounds WHERE batch_id = ?", (batch_id,))
+
+    # Generate 14 days of hourly readings (336 hours per meter) ending prior to Ca 1 (06:00 VN)
+    anchor_dt = datetime(2026, 9, 15, 23, 0, 0, tzinfo=timezone.utc)
     start_dt = anchor_dt - timedelta(days=14)
 
     total_readings_seeded = 0
@@ -549,13 +562,13 @@ def seed_simulation(db_path: str = "data/app.db"):
             total_readings_seeded += 1
     print(f"[6/7] Seeded {total_readings_seeded} deterministic historical readings (14 days hourly).")
 
-    # 7. Create Current Active Operational Round (2026-09-16, 0/12 completed)
-    curr_round_dt = datetime(2026, 9, 16, 8, 0, 0, tzinfo=timezone.utc)
+    # 7. Create Current Active Operational Round (2026-09-16 Ca 1 at 06:00 VN, 0/12 completed)
+    curr_round_dt = datetime(2026, 9, 15, 23, 0, 0, tzinfo=timezone.utc)
     curr_round_id = gen_uuid("round", "2026-09-sim-2026-09-16-active")
     con.execute("""
         INSERT INTO reading_rounds (id, batch_id, scheduled_at, status, is_legacy, created_at)
         VALUES (?, ?, ?, 'OPEN', 0, ?)
-        ON CONFLICT(id) DO UPDATE SET status = 'OPEN'
+        ON CONFLICT(id) DO UPDATE SET status = 'OPEN', scheduled_at = excluded.scheduled_at
     """, (curr_round_id, batch_id, curr_round_dt.strftime("%Y-%m-%d %H:%M:%S"), now_str))
 
     con.commit()

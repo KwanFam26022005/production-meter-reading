@@ -2,10 +2,12 @@
 Test Suite for V16E-S1: Simulated Operational Baseline & Scenario Isolation
 """
 
+import os
 import pytest
-from sqlalchemy.orm import Session
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, Session
 
-from backend.app.db import SessionLocal
+from backend.app.config import get_settings
 from backend.app.models import (
     Asset,
     AssetConnection,
@@ -14,6 +16,8 @@ from backend.app.models import (
     MeterAssetRelation,
     MeterReading,
     OperationalZone,
+    ReadingRound,
+    User,
 )
 from backend.app.admin import get_admin_meters
 from backend.app.asset_operations import get_asset_network, list_assets
@@ -22,9 +26,19 @@ from backend.app.map_operations import get_map_overview
 from scripts.seed_tan_thuan_demo_v1 import seed_simulation
 
 
+@pytest.fixture(autouse=True)
+def ensure_simulation_db_env():
+    os.environ["DATABASE_URL"] = "sqlite:///./data/app.db"
+    get_settings.cache_clear()
+
+
 @pytest.fixture
 def db_session():
-    db = SessionLocal()
+    os.environ["DATABASE_URL"] = "sqlite:///./data/app.db"
+    get_settings.cache_clear()
+    engine = create_engine("sqlite:///./data/app.db", connect_args={"check_same_thread": False})
+    TestingSession = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    db = TestingSession()
     try:
         yield db
     finally:
@@ -271,3 +285,65 @@ def test_water_network_excludes_electricity_nodes(db_session: Session):
     }
     for e in electricity_exclusive:
         assert e not in node_codes, f"Electricity node {e} found in water network!"
+
+
+def test_fresh_seed_current_round_zero_of_twelve(db_session: Session):
+    """V16E-S1-R2: Fresh seed operational round Ca 1 has 0/12 completed and 12/12 DUE."""
+    overview = get_map_overview(db_session, date_str="2026-09-16")
+    assert overview.selected_round_id == "af8b6a60-80d9-596b-8db0-9c83d372c4bd"
+    assert overview.current_round_time == "06:00"
+    assert overview.total_meters == 12
+    assert overview.confirmed_count == 0
+    assert overview.due_count == 12
+    assert overview.completion_percent == 0.0
+    for m in overview.meters:
+        assert m.semantic_state == "DUE"
+        assert m.latest_reading_value is None
+
+
+def test_one_meter_completion_real_workflow(db_session: Session):
+    """V16E-S1-R2: Submitting 1 meter reading progresses round from 0/12 to 1/12."""
+    import uuid
+    from datetime import datetime, timezone
+
+    round_id = "af8b6a60-80d9-596b-8db0-9c83d372c4bd"
+    meter = db_session.query(Meter).filter(Meter.meter_code == "SIM-EM-001").first()
+    round_obj = db_session.query(ReadingRound).filter(ReadingRound.id == round_id).first()
+    admin_user = db_session.query(User).filter(User.role == "ADMIN").first()
+    user_id = admin_user.id if admin_user else "admin-test"
+
+    test_reading = MeterReading(
+        id=str(uuid.uuid4()),
+        meter_id=meter.id,
+        user_id=user_id,
+        batch_id=round_obj.batch_id,
+        reading_round_id=round_id,
+        reading="207950.50",
+        ocr_reading="207950.50",
+        confirmation_source="MANUAL",
+        status="CONFIRMED",
+        meter_type=meter.meter_type,
+        det_confidence=0.99,
+        ocr_confidence=0.99,
+        server_timestamp=datetime.now(timezone.utc),
+    )
+    db_session.add(test_reading)
+    db_session.commit()
+
+    try:
+        overview = get_map_overview(db_session, date_str="2026-09-16")
+        assert overview.confirmed_count == 1
+        assert overview.due_count == 11
+        assert overview.total_meters == 12
+
+        em_001 = next(m for m in overview.meters if m.meter_code == "SIM-EM-001")
+        assert em_001.semantic_state == "CONFIRMED"
+        assert em_001.latest_reading_value == "207950.50"
+    finally:
+        db_session.delete(test_reading)
+        db_session.commit()
+
+    # Verify return to 0/12 after cleanup
+    overview_clean = get_map_overview(db_session, date_str="2026-09-16")
+    assert overview_clean.confirmed_count == 0
+    assert overview_clean.due_count == 12

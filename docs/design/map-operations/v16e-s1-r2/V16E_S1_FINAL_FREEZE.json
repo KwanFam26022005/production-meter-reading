@@ -1,0 +1,32 @@
+{
+  "freeze_version": "v16e-s1-r2",
+  "base_commit": "b2085e58421bbb21bd119d863e2c1c2df8e4237a",
+  "final_commit": "c9babf122e259e8636bb2a00c72c1c6e18f26280",
+  "map_version": "tan-thuan-sim-v1-5zone",
+  "scenario_id": "tan-thuan-demo-v1",
+  "counts": {
+    "assets": 32,
+    "meters": 12,
+    "electricity_nodes": 25,
+    "electricity_edges": 24,
+    "water_nodes": 8,
+    "water_edges": 7,
+    "historical_readings": 4032,
+    "current_round_status": "OPEN",
+    "current_round_completed": 0,
+    "current_round_total": 12
+  },
+  "test_results": {
+    "backend_total": 170,
+    "backend_passed": 165,
+    "backend_failed": 5,
+    "frontend_total": 249,
+    "frontend_passed": 249,
+    "frontend_failed": 0,
+    "tsc_errors": 0
+  },
+  "sha256_checksums": {
+    "map_config": "1c4a9f866323cd7f5de3530887e62c565cccb479105f010476b6396606740754",
+    "seed_script": "bc3567d0df594f9ecc57b69b4b1f4c232a393e439f66cbb26e01e37eb2863512"
+  }
+}
