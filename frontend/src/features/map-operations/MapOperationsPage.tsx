@@ -31,6 +31,7 @@ import type { Asset, AssetConnection, UtilityType } from '../assets/types';
 import { canAdministerMapConfiguration } from '../../types';
 import { useOperationalWorkspace } from '../../context/OperationalWorkspaceContext';
 import { OperationalWorkspaceHeader } from '../workspace/OperationalWorkspaceHeader';
+import { AdaptiveCommandBar } from './command/AdaptiveCommandBar';
 import { MapInlineDrawers } from './components/MapInlineDrawers';
 import './motion/mapMotion.css';
 
@@ -699,9 +700,48 @@ const MapOperationsPageContent: React.FC<MapOperationsPageProps> = ({
 
   return (
     <div className="sgp-map-first-root" style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%', overflow: 'hidden' }}>
-      <OperationalWorkspaceHeader currentTab="dashboard" />
+      <OperationalWorkspaceHeader
+        currentTab="dashboard"
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        rightControls={
+          <AdaptiveCommandBar
+            isDocked={true}
+            user={user}
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
+            selectedDate={selectedDate}
+            onDateChange={setSelectedDate}
+            rounds={dashboardData?.round_progress || []}
+            selectedRoundId={selectedRoundId || filters.selectedRoundId}
+            onSelectRound={(roundId) => {
+              setSelectedRoundId(roundId);
+              setFilters({ ...filters, selectedRoundId: roundId });
+            }}
+            currentRoundTime={overallKpis.currentRoundTime}
+            overallKpis={overallKpis}
+            filters={filters}
+            onApplyFilters={setFilters}
+            searchQuery={searchQuery}
+            onSearchQueryChange={setSearchQuery}
+            mapMeters={mapMeters}
+            mapZones={mapZones}
+            availableOperators={availableOperators}
+            onSelectMeter={focusMeter}
+            onSelectZone={focusZone}
+            onSelectOperator={handleSelectOperator}
+            onRefresh={refresh}
+            isLoading={loading}
+            onExportCsv={exportCsv}
+            onOpenAnalytics={() => setAnalyticsOpen(!analyticsOpen)}
+            isAnalyticsOpen={analyticsOpen}
+            onOpenCalibration={calibrationWorkspace.openMapCalibration}
+          />
+        }
+      />
       <div style={{ flex: 1, position: 'relative', overflow: 'hidden', minHeight: 0 }}>
         <ImmersiveSceneShell
+          suppressFloatingCommandBar={true}
           user={user}
           selectedDate={selectedDate}
           onDateChange={setSelectedDate}

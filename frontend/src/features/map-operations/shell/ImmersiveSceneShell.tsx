@@ -143,6 +143,7 @@ interface ImmersiveSceneShellProps {
   onOpenVerificationReview?: (assetId?: string) => void;
   onOpenAssetDetails?: (assetId: string, assetCode?: string) => void;
   onSwitchToMapAndCenterAsset?: (asset: Asset) => void;
+  suppressFloatingCommandBar?: boolean;
 }
 
 /**
@@ -249,6 +250,7 @@ export const ImmersiveSceneShell: React.FC<ImmersiveSceneShellProps> = ({
   onOpenVerificationReview,
   onOpenAssetDetails,
   onSwitchToMapAndCenterAsset,
+  suppressFloatingCommandBar = false,
 }) => {
   const [isLegendOpen, setIsLegendOpen] = React.useState(false);
   const [isToolbarCollapsed, setIsToolbarCollapsed] = React.useState<boolean>(() => {
@@ -437,7 +439,7 @@ export const ImmersiveSceneShell: React.FC<ImmersiveSceneShellProps> = ({
         {/* ============================================================ */}
         {/* LAYER C: ADAPTIVE COMMAND BAR + MAP-ONLY VIEWPORT CONTROLS   */}
         {/* ============================================================ */}
-        {!isCalibrationActive && (
+        {!isCalibrationActive && !suppressFloatingCommandBar && (
           <>
             <AdaptiveCommandBar
               user={user}

@@ -88,6 +88,9 @@ export interface AdaptiveCommandBarProps {
   // Controlled collapse state (V13.3)
   isCollapsed?: boolean;
   onToggleCollapse?: (collapsed: boolean) => void;
+
+  // Integrated Top Bar Mode
+  isDocked?: boolean;
 }
 
 export type ActiveCommandSurfaceType = 'shift' | 'search' | 'filter' | 'overflow' | null;
@@ -123,6 +126,7 @@ export const AdaptiveCommandBar: React.FC<AdaptiveCommandBarProps> = ({
   backLabel,
   isCollapsed: controlledCollapsed,
   onToggleCollapse,
+  isDocked = false,
 }) => {
   // 1. Full Collapse State (Section 4: EXPANDED vs COLLAPSED)
   const [internalCollapsed, setInternalCollapsed] = useState<boolean>(() => {
@@ -351,19 +355,37 @@ export const AdaptiveCommandBar: React.FC<AdaptiveCommandBarProps> = ({
   return (
     <>
       <header
-        className="sgp-hud-top-bar sgp-adaptive-command-bar expanded"
+        className={`sgp-hud-top-bar sgp-adaptive-command-bar expanded ${isDocked ? 'docked-header' : ''}`}
         role="toolbar"
         aria-label="Thanh điều hành tác nghiệp cảng"
-        style={{
-          position: 'absolute',
-          top: '14px',
-          right: '16px',
-          left: 'auto',
-          transformOrigin: 'right center',
-          width: 'auto',
-          maxWidth: 'calc(100vw - 32px)',
-          zIndex: 40,
-        }}
+        style={
+          isDocked
+            ? {
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                position: 'static',
+                background: 'transparent',
+                border: 'none',
+                boxShadow: 'none',
+                padding: 0,
+                margin: 0,
+                width: 'auto',
+                maxWidth: 'none',
+                height: '100%',
+                zIndex: 'auto',
+              }
+            : {
+                position: 'absolute',
+                top: '14px',
+                right: '16px',
+                left: 'auto',
+                transformOrigin: 'right center',
+                width: 'auto',
+                maxWidth: 'calc(100vw - 32px)',
+                zIndex: 40,
+              }
+        }
       >
         {/* ============================================================ */}
         {/* 1. LEFT GROUP: BACK BUTTON ONLY (Branding removed in V13.2)  */}
@@ -423,48 +445,52 @@ export const AdaptiveCommandBar: React.FC<AdaptiveCommandBarProps> = ({
             </button>
           </div>
 
-          <span className="sgp-cmd-divider" aria-hidden="true">·</span>
+          {!isDocked && (
+            <>
+              <span className="sgp-cmd-divider" aria-hidden="true">·</span>
 
-          {/* View Switch: [Bản đồ] | [Mạng lưới] | [Danh sách] */}
-          <div
-            className="sgp-cmd-view-switch"
-            role="radiogroup"
-            aria-label="Chế độ hiển thị tác nghiệp"
-          >
-            <button
-              type="button"
-              className={`sgp-cmd-switch-btn ${viewMode === 'map' ? 'active' : ''}`}
-              onClick={() => onViewModeChange('map')}
-              role="radio"
-              aria-checked={viewMode === 'map'}
-              title="Chuyển sang chế độ Bản đồ không gian"
-            >
-              <MapIcon size={14} aria-hidden="true" />
-              <span>Bản đồ</span>
-            </button>
-            <button
-              type="button"
-              className={`sgp-cmd-switch-btn ${viewMode === 'network' ? 'active' : ''}`}
-              onClick={() => onViewModeChange('network')}
-              role="radio"
-              aria-checked={viewMode === 'network'}
-              title="Chuyển sang chế độ Sơ đồ mạng lưới tiện ích"
-            >
-              <Share2 size={14} aria-hidden="true" />
-              <span>Mạng lưới</span>
-            </button>
-            <button
-              type="button"
-              className={`sgp-cmd-switch-btn ${viewMode === 'list' ? 'active' : ''}`}
-              onClick={() => onViewModeChange('list')}
-              role="radio"
-              aria-checked={viewMode === 'list'}
-              title="Chuyển sang Sổ ca ghi: Danh sách 12 công tơ cần ghi nhận trong ca trực"
-            >
-              <ListIcon size={14} aria-hidden="true" />
-              <span>Sổ ca ghi</span>
-            </button>
-          </div>
+              {/* View Switch: [Bản đồ] | [Mạng lưới] | [Danh sách] */}
+              <div
+                className="sgp-cmd-view-switch"
+                role="radiogroup"
+                aria-label="Chế độ hiển thị tác nghiệp"
+              >
+                <button
+                  type="button"
+                  className={`sgp-cmd-switch-btn ${viewMode === 'map' ? 'active' : ''}`}
+                  onClick={() => onViewModeChange('map')}
+                  role="radio"
+                  aria-checked={viewMode === 'map'}
+                  title="Chuyển sang chế độ Bản đồ không gian"
+                >
+                  <MapIcon size={14} aria-hidden="true" />
+                  <span>Bản đồ</span>
+                </button>
+                <button
+                  type="button"
+                  className={`sgp-cmd-switch-btn ${viewMode === 'network' ? 'active' : ''}`}
+                  onClick={() => onViewModeChange('network')}
+                  role="radio"
+                  aria-checked={viewMode === 'network'}
+                  title="Chuyển sang chế độ Sơ đồ mạng lưới tiện ích"
+                >
+                  <Share2 size={14} aria-hidden="true" />
+                  <span>Mạng lưới</span>
+                </button>
+                <button
+                  type="button"
+                  className={`sgp-cmd-switch-btn ${viewMode === 'list' ? 'active' : ''}`}
+                  onClick={() => onViewModeChange('list')}
+                  role="radio"
+                  aria-checked={viewMode === 'list'}
+                  title="Chuyển sang Sổ ca ghi: Danh sách 12 công tơ cần ghi nhận trong ca trực"
+                >
+                  <ListIcon size={14} aria-hidden="true" />
+                  <span>Sổ ca ghi</span>
+                </button>
+              </div>
+            </>
+          )}
         </div>
 
         {/* ============================================================ */}
@@ -565,7 +591,7 @@ export const AdaptiveCommandBar: React.FC<AdaptiveCommandBarProps> = ({
           )}
 
           {/* COLLAPSE TRIGGER (Section 4: ChevronUp collapses entire bar to avatar) */}
-          {model.showCollapseToggle && (
+          {!isDocked && model.showCollapseToggle && (
             <button
               type="button"
               className="sgp-cmd-collapse-btn"
