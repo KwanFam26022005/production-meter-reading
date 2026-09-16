@@ -252,3 +252,48 @@ export interface MeterReviewMatrixItem {
   is_spatial_review_required: boolean;
 }
 
+export interface AssetNetworkStats {
+  total_nodes: number;
+  total_edges: number;
+  verified_nodes: number;
+  verified_edges: number;
+  unverified_nodes: number;
+  unverified_edges: number;
+}
+
+export interface AssetNetworkResponse {
+  utility_type?: UtilityType | 'ALL' | null;
+  focus_asset_id?: string | null;
+  verified_only: boolean;
+  nodes: Asset[];
+  edges: AssetConnection[];
+  stats: AssetNetworkStats;
+}
+
+export interface AssetAttachedMeterContext {
+  relation_id: string;
+  relation_type: MeterAssetRelationType;
+  is_primary: boolean;
+  verification_status: AssetVerificationStatus;
+  meter_id: string;
+  meter_code: string;
+  meter_name: string;
+  meter_type?: string | null;
+  utility_type?: string | null;
+  lifecycle_status: string;
+  latest_reading_value?: string | null;
+  latest_reading_status?: string | null;
+  latest_reading_time?: string | null;
+}
+
+export interface AssetOperationalContextResponse {
+  asset: Asset;
+  meters: AssetAttachedMeterContext[];
+  upstream_connections: AssetConnection[];
+  downstream_connections: AssetConnection[];
+  presentation_zone_id?: string | null;
+  presentation_zone_name?: string | null;
+  spatial_status: 'VERIFIED' | 'UNVERIFIED' | 'MISSING_COORDINATES';
+}
+
+

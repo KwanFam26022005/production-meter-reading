@@ -44,10 +44,10 @@ export function formatUserRole(role?: string | null): string {
 
 /**
  * Map Workspace View Modes (Section 3)
- * Normal user views: 'map' | 'list'
+ * Normal user views: 'map' | 'network' | 'list'
  * Administrative calibration workspace: 'calibration'
  */
-export type MapWorkspaceView = 'map' | 'list' | 'calibration';
+export type MapWorkspaceView = 'map' | 'network' | 'list' | 'calibration';
 
 /**
  * Check if the user is authorized to administer map geometry configuration (Section 4)

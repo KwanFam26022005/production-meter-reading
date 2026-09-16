@@ -20,10 +20,12 @@ import { OperatorLayer } from '../layers/OperatorLayer';
 import { AlertLayer } from '../layers/AlertLayer';
 import { LabelsLayer } from '../layers/LabelsLayer';
 import { RouteLayer } from '../layers/RouteLayer';
+import { AssetLayer } from '../layers/AssetLayer';
 import { MapDebugLayer } from '../operational-map/MapDebugLayer';
 import { useOperationalMotion } from '../motion/useOperationalMotion';
 import type { MapWorkspaceView } from '../../../types';
 import type { MapCalibrationWorkspace } from '../calibration/useMapCalibrationWorkspace';
+import type { Asset } from '../../assets/types';
 
 export interface OperationalSceneProps {
   zones: MapOperationalZone[];
@@ -55,6 +57,12 @@ export interface OperationalSceneProps {
   viewMode?: MapWorkspaceView;
   isCalibrationActive?: boolean;
   calibrationWorkspace?: MapCalibrationWorkspace;
+  assets?: Asset[];
+  selectedAssetId?: string | null;
+  hoveredAssetId?: string | null;
+  onSelectAsset?: (assetId: string) => void;
+  onHoverAsset?: (assetId: string | null) => void;
+  showUnverifiedAssets?: boolean;
 }
 
 /**
@@ -98,6 +106,12 @@ export const OperationalScene: React.FC<OperationalSceneProps> = ({
   viewMode = 'map',
   isCalibrationActive: propIsCalibrationActive,
   calibrationWorkspace,
+  assets,
+  selectedAssetId,
+  hoveredAssetId,
+  onSelectAsset,
+  onHoverAsset,
+  showUnverifiedAssets = false,
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
@@ -220,6 +234,19 @@ export const OperationalScene: React.FC<OperationalSceneProps> = ({
                 debugRoutes={debugRoutes}
                 isMoving={motion.getOperatorWorkflowState(selectedOperatorShiftId || selectedOperatorId || '') === 'MOVING'}
               />
+
+              {/* 3.2. Spatial Infrastructure Asset Layer (Phase V16E) */}
+              {assets && assets.length > 0 && (
+                <AssetLayer
+                  assets={assets}
+                  selectedAssetId={selectedAssetId}
+                  hoveredAssetId={hoveredAssetId}
+                  onSelectAsset={onSelectAsset}
+                  onHoverAsset={onHoverAsset}
+                  showUnverified={showUnverifiedAssets}
+                  zoomLevel={viewport.zoom}
+                />
+              )}
 
               {/* 4. Normal Meter Markers Layer (Section 17: normal meter) */}
               <MeterLayer

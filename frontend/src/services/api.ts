@@ -1624,6 +1624,8 @@ import {
   RelationRejectRequest,
   ConnectionVerifyRequest,
   ConnectionRejectRequest,
+  AssetNetworkResponse,
+  AssetOperationalContextResponse,
 } from '../features/assets/types';
 
 export async function getAdminAssets(params?: {
@@ -2215,6 +2217,49 @@ export async function updateAdminMeterMetadata(meterId: string, payload: {
   }
   return res.json();
 }
+
+export async function getAdminAssetNetwork(params?: {
+  utility_type?: string;
+  focus_asset_id?: string;
+  verified_only?: boolean;
+}): Promise<AssetNetworkResponse> {
+  const query = new URLSearchParams();
+  if (params?.utility_type && params.utility_type !== 'ALL') {
+    query.set('utility_type', params.utility_type);
+  }
+  if (params?.focus_asset_id) {
+    query.set('focus_asset_id', params.focus_asset_id);
+  }
+  if (params?.verified_only !== undefined) {
+    query.set('verified_only', String(params.verified_only));
+  }
+  const qs = query.toString();
+  const url = `/api/v1/admin/asset-network${qs ? `?${qs}` : ''}`;
+  const res = await apiFetch(url);
+  if (!res.ok) {
+    let detail = 'Không thể tải mạng lưới thiết bị kỹ thuật.';
+    try {
+      const err = await res.json();
+      if (err.detail) detail = err.detail;
+    } catch {}
+    throw new ApiError(res.status, detail);
+  }
+  return res.json();
+}
+
+export async function getAdminAssetOperationalContext(assetId: string): Promise<AssetOperationalContextResponse> {
+  const res = await apiFetch(`/api/v1/admin/assets/${encodeURIComponent(assetId)}/operational-context`);
+  if (!res.ok) {
+    let detail = 'Không thể tải ngữ cảnh tác nghiệp của thiết bị.';
+    try {
+      const err = await res.json();
+      if (err.detail) detail = err.detail;
+    } catch {}
+    throw new ApiError(res.status, detail);
+  }
+  return res.json();
+}
+
 
 
 
