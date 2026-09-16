@@ -15,6 +15,7 @@ from backend.app.models import (
     MeterReading,
     OperationalZone,
 )
+from backend.app.admin import get_admin_meters
 from backend.app.asset_operations import get_asset_network, list_assets
 from backend.app.map_config import get_active_map_config
 from backend.app.map_operations import get_map_overview
@@ -198,3 +199,75 @@ def test_seed_idempotency(db_session: Session):
         )
     ).count()
     assert sim_readings == 4032
+
+
+def test_12_meters_runtime_truth_contract(db_session: Session):
+    """V16E-S1-R1: Assert 12 meters correctly resolve zone names and utility types."""
+    expected_zones = {
+        "SIM-EM-001": "pres-technical",
+        "SIM-EM-002": "pres-berth",
+        "SIM-EM-003": "pres-container-west",
+        "SIM-EM-004": "pres-container-center",
+        "SIM-EM-005": "pres-cfs-east",
+        "SIM-EM-006": "pres-technical",
+        "SIM-EM-007": "pres-container-west",
+        "SIM-EM-008": "pres-container-center",
+        "SIM-WM-001": "pres-technical",
+        "SIM-WM-002": "pres-berth",
+        "SIM-WM-003": "pres-cfs-east",
+        "SIM-WM-004": "pres-technical",
+    }
+
+    overview = get_map_overview(db_session, date_str="2026-09-16")
+    assert len(overview.meters) == 12
+
+    for m in overview.meters:
+        assert m.meter_code in expected_zones
+        assert m.presentation_zone_id == expected_zones[m.meter_code]
+        assert m.zone_name is not None
+        assert len(m.zone_name) > 0
+
+        if m.meter_code.startswith("SIM-EM-"):
+            assert m.utility_type == "ELECTRICITY"
+        elif m.meter_code.startswith("SIM-WM-"):
+            assert m.utility_type == "WATER"
+
+
+def test_admin_meters_utility_and_zone_contract(db_session: Session):
+    """V16E-S1-R1: Assert get_admin_meters provides zone_name and utility_type."""
+    res = get_admin_meters(db_session, scenario_id="tan-thuan-demo-v1")
+    assert res.total == 12
+    for m in res.meters:
+        assert m.zone_name is not None
+        assert m.utility_type in ("ELECTRICITY", "WATER")
+        if m.meter_code.startswith("SIM-WM-"):
+            assert m.utility_type == "WATER"
+        else:
+            assert m.utility_type == "ELECTRICITY"
+
+
+def test_electricity_network_excludes_water_nodes(db_session: Session):
+    """V16E-S1-R1: Electricity view has 24 edges and strictly no water-exclusive assets."""
+    net = get_asset_network(db_session, utility_type="ELECTRICITY", scenario_id="tan-thuan-demo-v1")
+    assert len(net.edges) == 24
+    node_codes = {n.code for n in net.nodes}
+    water_exclusive = {
+        "SIM-CITY-WATER", "SIM-WIN-01", "SIM-WJ-01",
+        "SIM-WP-B01", "SIM-WP-CFS-01", "SIM-WP-TECH-01", "SIM-FIRE-HDR-01"
+    }
+    for w in water_exclusive:
+        assert w not in node_codes, f"Water node {w} found in electricity network!"
+
+
+def test_water_network_excludes_electricity_nodes(db_session: Session):
+    """V16E-S1-R1: Water view has 7 edges and strictly no electricity-exclusive assets."""
+    net = get_asset_network(db_session, utility_type="WATER", scenario_id="tan-thuan-demo-v1")
+    assert len(net.edges) == 7
+    node_codes = {n.code for n in net.nodes}
+    electricity_exclusive = {
+        "SIM-EXT-GRID", "SIM-SS-01", "SIM-TR-01", "SIM-MDB-01",
+        "SIM-CFS-MDB-01", "SIM-QC-01", "SIM-QC-02", "SIM-QC-03",
+        "SIM-RTG-W01", "SIM-RTG-C01", "SIM-COMP-01"
+    }
+    for e in electricity_exclusive:
+        assert e not in node_codes, f"Electricity node {e} found in water network!"

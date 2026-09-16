@@ -98,9 +98,11 @@ export const MeterQuickPopup: React.FC<MeterQuickPopupProps> = ({
     return () => document.removeEventListener('keydown', handleKeyDown, true);
   }, [onClose]);
 
+  const isWater = (meter as any).utilityType === 'WATER' || (meter as any).utility_type === 'WATER' || meter.meterCode?.startsWith('SIM-WM-');
+  const unitLabel = isWater ? 'm³' : 'kWh';
   const readingVal = meter.latestReading?.readingValue
-    ? `${meter.latestReading.readingValue} kWh`
-    : '001225.69 kWh';
+    ? `${meter.latestReading.readingValue} ${unitLabel}`
+    : `001225.69 ${unitLabel}`;
 
   const recordedTime = meter.latestReading?.serverTimestamp || meter.latestReading?.roundTime || '16:13:00 - 28/08/2026';
 

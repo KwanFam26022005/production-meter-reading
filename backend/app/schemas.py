@@ -413,13 +413,16 @@ class AdminMeterItem(BaseModel):
     name: str
     location: Optional[str] = None
     meter_type: str
+    utility_type: Optional[str] = "UNKNOWN"
     is_active: bool
     lifecycle_status: str = "ACTIVE"
     retired_at: Optional[str] = None
     retired_by: Optional[str] = None
     retirement_reason: Optional[str] = None
     zone_id: Optional[str] = None
+    zone_name: Optional[str] = None
     presentation_zone_id: Optional[str] = None
+    presentation_zone_name: Optional[str] = None
     map_x: Optional[float] = None
     map_y: Optional[float] = None
     route_status: str = "VALID"
@@ -1031,9 +1034,12 @@ class MapMeterOut(BaseModel):
     name: str
     location: Optional[str] = None
     meter_type: str
+    utility_type: Optional[str] = "UNKNOWN"
     zone_id: Optional[str] = None
     zone_code: Optional[str] = None
     zone_name: Optional[str] = None
+    presentation_zone_id: Optional[str] = None
+    presentation_zone_name: Optional[str] = None
     map_x: Optional[float] = None
     map_y: Optional[float] = None
     is_active: bool

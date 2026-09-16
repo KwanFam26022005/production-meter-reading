@@ -54,6 +54,7 @@ export interface MapMeterItem {
   name: string;
   location: string;
   meterType: string;
+  utilityType?: string | null;
   isActive: boolean;
   lifecycleStatus?: 'ACTIVE' | 'INACTIVE' | 'RETIRED' | string;
   retiredAt?: string | null;
@@ -63,6 +64,7 @@ export interface MapMeterItem {
   zoneCode: string;
   zoneName: string;
   presentationZoneId?: string | null;
+  presentationZoneName?: string | null;
   routeStatus?: 'VALID' | 'REVIEW_REQUIRED' | string;
   dataOrigin?: string;
   scenarioId?: string | null;

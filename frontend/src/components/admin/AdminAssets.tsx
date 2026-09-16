@@ -10,6 +10,7 @@ import {
   Gauge,
   ChevronRight,
   X,
+  Info,
 } from 'lucide-react';
 import {
   Asset,
@@ -321,17 +322,41 @@ export const AdminAssets: React.FC = () => {
     );
   };
 
+  const activeCount = assets.filter((a) => a.lifecycle_status === 'ACTIVE').length;
+  const attentionCount = assets.filter(
+    (a) => a.verification_status === 'UNVERIFIED' || a.verification_status === 'REJECTED'
+  ).length;
+  const inactiveCount = assets.filter((a) => a.lifecycle_status === 'INACTIVE' || a.lifecycle_status === 'RETIRED').length;
+
   return (
     <div className="admin-assets-page p-6 max-w-7xl mx-auto space-y-6">
-      {/* HEADER */}
+      {/* HEADER (Section 15: Production Polish) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-            <Boxes className="text-sky-600" size={26} />
-            Quản lý Thiết bị & Hạ tầng
-          </h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+              <Boxes className="text-sky-600" size={26} />
+              Thiết bị & hạ tầng
+            </h1>
+            <span
+              className="sgp-sim-badge"
+              title="Dữ liệu thiết bị và mạng lưới trong môi trường này được tạo để mô phỏng và không phải dữ liệu hạ tầng thực tế của doanh nghiệp."
+              style={{
+                padding: '2px 8px',
+                backgroundColor: '#F1F5F9',
+                color: '#334155',
+                fontSize: 11,
+                fontWeight: 600,
+                borderRadius: 4,
+                border: '1px solid #CBD5E1',
+                cursor: 'help',
+              }}
+            >
+              Dữ liệu mô phỏng
+            </span>
+          </div>
           <p className="text-sm text-slate-500 mt-1">
-            Mô hình thực thể tài sản cảng, liên kết công tơ đo lường và cấu trúc mạng lưới tiện ích (Phase V16C). Tổng số: {total} thiết bị.
+            Quản lý thiết bị, công trình và các điểm hạ tầng trong kịch bản hiện tại.
           </p>
         </div>
         <button
@@ -343,9 +368,30 @@ export const AdminAssets: React.FC = () => {
           className="inline-flex items-center gap-2 px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-sm font-semibold shadow-sm transition"
         >
           <Plus size={16} />
-          Thêm thiết bị mới
+          Thêm thiết bị
         </button>
       </div>
+
+      {/* SUMMARY STRIP (Section 17) */}
+      <div className="flex items-center gap-4 text-xs text-slate-600 bg-slate-50 px-4 py-2.5 rounded-xl border border-slate-200">
+        <span className="font-semibold text-slate-900">{total} Thiết bị</span>
+        <span className="text-slate-300">|</span>
+        <span className="text-emerald-700 font-medium">{activeCount} Đang sử dụng</span>
+        <span className="text-slate-300">|</span>
+        <span className="text-amber-700 font-medium">{attentionCount} Cần chú ý</span>
+        <span className="text-slate-300">|</span>
+        <span className="text-slate-500 font-medium">{inactiveCount} Đã ngừng</span>
+      </div>
+
+      {/* LEGACY QUARANTINE BANNER (Section 18: Quiet, informational banner when looking at legacy data) */}
+      {scopeFilter === 'LEGACY_TEST' && (
+        <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-xs text-slate-600 flex items-center gap-2.5">
+          <Info size={16} className="text-slate-400 shrink-0" />
+          <span>
+            Dữ liệu này được giữ để phục vụ kiểm thử và lịch sử kỹ thuật; không tham gia vận hành của kịch bản hiện tại.
+          </span>
+        </div>
+      )}
 
       {/* FILTER CONTROLS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">

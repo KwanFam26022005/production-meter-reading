@@ -140,6 +140,8 @@ def build_admin_meter_item(
     m: Meter,
     count: int = 0,
     latest_r: Optional[MeterReading] = None,
+    zone_name: Optional[str] = None,
+    presentation_zone_name: Optional[str] = None,
 ) -> AdminMeterItem:
     ls = getattr(m, "lifecycle_status", None) or ("ACTIVE" if m.is_active else "INACTIVE")
     ret_at = m.retired_at.isoformat() if getattr(m, "retired_at", None) else None
@@ -149,13 +151,16 @@ def build_admin_meter_item(
         name=m.name,
         location=m.location,
         meter_type=m.meter_type,
+        utility_type=getattr(m, "utility_type", "UNKNOWN") or "UNKNOWN",
         is_active=m.is_active,
         lifecycle_status=ls,
         retired_at=ret_at,
         retired_by=getattr(m, "retired_by", None),
         retirement_reason=getattr(m, "retirement_reason", None),
         zone_id=m.zone_id,
+        zone_name=zone_name,
         presentation_zone_id=m.presentation_zone_id,
+        presentation_zone_name=presentation_zone_name,
         map_x=m.map_x,
         map_y=m.map_y,
         route_status=m.route_status or "VALID",
@@ -259,10 +264,31 @@ def get_admin_meters(
         elif ls == "RETIRED":
             retired_cnt += 1
 
+    # Pre-fetch zones and map version zones for zone name resolution
+    all_op_zones = db.query(OperationalZone).all()
+    op_zone_map = {z.id: z.name for z in all_op_zones}
+
+    active_map = (
+        db.query(MapVersion)
+        .filter(MapVersion.status == "PUBLISHED")
+        .order_by(MapVersion.created_at.desc())
+        .first()
+    )
+    map_zone_labels: dict[str, str] = {}
+    if active_map:
+        mv_zones = db.query(MapVersionZone).filter(MapVersionZone.map_version_id == active_map.id).all()
+        for mvz in mv_zones:
+            map_zone_labels[mvz.zone_id] = mvz.display_label or mvz.business_name
+            if mvz.business_zone_id:
+                map_zone_labels[mvz.business_zone_id] = mvz.display_label or mvz.business_name
+
     for m in meters:
         count = reading_counts.get(m.id, 0)
         latest_r = latest_readings.get(m.id)
-        items.append(build_admin_meter_item(m, count, latest_r))
+        pres_zid = getattr(m, "presentation_zone_id", None)
+        pres_zname = map_zone_labels.get(pres_zid) if pres_zid else None
+        z_name = op_zone_map.get(m.zone_id) if m.zone_id else pres_zname
+        items.append(build_admin_meter_item(m, count, latest_r, zone_name=z_name, presentation_zone_name=pres_zname))
 
     return AdminMeterListResponse(
         total=len(items),

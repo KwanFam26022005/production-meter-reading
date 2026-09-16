@@ -2142,6 +2142,15 @@ def get_asset_network(
             asset_query = asset_query.filter(Asset.scenario_id == target_scenario)
         if verified_only:
             asset_query = asset_query.filter(Asset.verification_status.in_(approved_statuses))
+
+        if clean_util:
+            # P0: For a specific utility graph, nodes must be derived from the utility connections
+            conn_node_ids = set()
+            for c in connections:
+                conn_node_ids.add(c.source_asset_id)
+                conn_node_ids.add(c.target_asset_id)
+            asset_query = asset_query.filter(Asset.id.in_(conn_node_ids))
+
         nodes = asset_query.all()
 
     # Calculate scoped stats

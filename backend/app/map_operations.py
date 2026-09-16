@@ -8,6 +8,8 @@ from sqlalchemy.orm import Session
 
 from .admin import format_date_vn, get_admin_dashboard, get_local_time_str, log_admin_action
 from .models import (
+    MapVersion,
+    MapVersionZone,
     Meter,
     MeterReading,
     OperationalZone,
@@ -102,6 +104,21 @@ def get_map_overview(
         .order_by(Meter.meter_code.asc())
         .all()
     )
+
+    # Fetch active/published map version zones for presentation_zone_id resolution
+    active_map = (
+        db.query(MapVersion)
+        .filter(MapVersion.status == "PUBLISHED")
+        .order_by(MapVersion.created_at.desc())
+        .first()
+    )
+    map_zone_labels: dict[str, str] = {}
+    if active_map:
+        mv_zones = db.query(MapVersionZone).filter(MapVersionZone.map_version_id == active_map.id).all()
+        for mvz in mv_zones:
+            map_zone_labels[mvz.zone_id] = mvz.display_label or mvz.business_name
+            if mvz.business_zone_id:
+                map_zone_labels[mvz.business_zone_id] = mvz.display_label or mvz.business_name
 
     # Pre-fetch active zone assignments
     active_assignments = (
@@ -222,6 +239,13 @@ def get_map_overview(
         z_code = z_obj.code if z_obj else None
         z_name = z_obj.name if z_obj else None
 
+        pres_zid = getattr(m, "presentation_zone_id", None)
+        pres_zname = map_zone_labels.get(pres_zid) if pres_zid else None
+
+        # Fallback zone display name from active map version zone if operational zone is None
+        resolved_zone_name = z_name or pres_zname or (map_zone_labels.get(m.zone_id) if m.zone_id else None)
+        resolved_zone_code = z_code or pres_zid or m.zone_id
+
         # Track metrics for active meters
         if m.zone_id and m.zone_id in zone_metrics and m.is_active:
             z_m = zone_metrics[m.zone_id]
@@ -244,9 +268,12 @@ def get_map_overview(
                 name=m.name,
                 location=m.location,
                 meter_type=m.meter_type,
-                zone_id=m.zone_id,
-                zone_code=z_code,
-                zone_name=z_name,
+                utility_type=getattr(m, "utility_type", "UNKNOWN") or "UNKNOWN",
+                zone_id=m.zone_id or pres_zid,
+                zone_code=resolved_zone_code,
+                zone_name=resolved_zone_name,
+                presentation_zone_id=pres_zid,
+                presentation_zone_name=pres_zname,
                 map_x=m.map_x,
                 map_y=m.map_y,
                 is_active=m.is_active,

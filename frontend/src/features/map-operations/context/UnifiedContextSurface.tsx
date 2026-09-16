@@ -656,7 +656,10 @@ export const UnifiedContextSurface: React.FC<UnifiedContextSurfaceProps> = ({
               <div className="mt-3 flex items-baseline justify-between pt-2 border-t border-slate-700/50">
                 <span className="text-xs text-slate-400">Chỉ số ghi nhận:</span>
                 <span className="text-xl font-bold font-tabular text-emerald-400">
-                  {meter.latestReading.readingValue ?? '—'} <span className="text-xs font-normal text-slate-400">kWh</span>
+                  {meter.latestReading.readingValue ?? '—'}{' '}
+                  <span className="text-xs font-normal text-slate-400">
+                    {(meter as any).utilityType === 'WATER' || (meter as any).utility_type === 'WATER' || meter.meterCode?.startsWith('SIM-WM-') ? 'm³' : 'kWh'}
+                  </span>
                 </span>
               </div>
             )}

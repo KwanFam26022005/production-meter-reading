@@ -129,7 +129,9 @@ export const MeterDetailDrawer: React.FC<MeterDetailDrawerProps> = ({
                 <span className="sgp-reading-number font-tabular">
                   {reading.readingValue}
                 </span>
-                <span className="sgp-reading-unit">kWh</span>
+                <span className="sgp-reading-unit">
+                  {(meter as any).utilityType === 'WATER' || (meter as any).utility_type === 'WATER' || meter.meterCode?.startsWith('SIM-WM-') ? 'm³' : 'kWh'}
+                </span>
               </div>
 
               <div className="sgp-reading-meta-list">

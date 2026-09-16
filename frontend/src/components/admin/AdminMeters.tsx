@@ -256,7 +256,25 @@ export const AdminMeters: React.FC<AdminMetersProps> = ({ onInspectReading }) =>
       {/* 1. PAGE HEADER */}
       <div className="admin-page-header">
         <div className="admin-page-title-group">
-          <h1 className="admin-page-title">Danh mục công tơ</h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <h1 className="admin-page-title">Danh mục công tơ</h1>
+            <span
+              className="sgp-sim-badge"
+              title="Dữ liệu thiết bị và mạng lưới trong môi trường này được tạo để mô phỏng và không phải dữ liệu hạ tầng thực tế của doanh nghiệp."
+              style={{
+                padding: '2px 8px',
+                backgroundColor: '#F1F5F9',
+                color: '#334155',
+                fontSize: 11,
+                fontWeight: 600,
+                borderRadius: 4,
+                border: '1px solid #CBD5E1',
+                cursor: 'help',
+              }}
+            >
+              Dữ liệu mô phỏng
+            </span>
+          </div>
           <p className="admin-page-subtitle">Quản lý thông tin và trạng thái công tơ</p>
         </div>
 
@@ -468,7 +486,7 @@ export const AdminMeters: React.FC<AdminMetersProps> = ({ onInspectReading }) =>
                         {m.latest_reading ? (
                           <div className="admin-reading-cell-v2">
                             <span className="admin-reading-val font-mono font-semibold font-tabular">
-                              {m.latest_reading} kWh
+                              {m.latest_reading} {m.utility_type === 'WATER' ? 'm³' : 'kWh'}
                             </span>
                             {formattedTime && (
                               <span className="admin-reading-time font-tabular">

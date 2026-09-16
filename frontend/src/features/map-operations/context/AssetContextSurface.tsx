@@ -42,6 +42,7 @@ export interface AssetContextSurfaceProps {
   onSwitchToNetworkAndFocus?: (assetId: string) => void;
   onOpenVerificationReview?: (assetId: string) => void;
   canManageVerification?: boolean;
+  activeUtility?: string | null;
 }
 
 export const AssetContextSurface: React.FC<AssetContextSurfaceProps> = ({
@@ -54,6 +55,7 @@ export const AssetContextSurface: React.FC<AssetContextSurfaceProps> = ({
   onSwitchToNetworkAndFocus,
   onOpenVerificationReview,
   canManageVerification = false,
+  activeUtility = null,
 }) => {
   const [contextData, setContextData] = useState<AssetOperationalContextResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -137,6 +139,14 @@ export const AssetContextSurface: React.FC<AssetContextSurfaceProps> = ({
   // Group attached meters
   const measuresMeters = (contextData?.meters || []).filter((m) => m.relation_type === 'MEASURES');
   const installedMeters = (contextData?.meters || []).filter((m) => m.relation_type === 'INSTALLED_AT');
+
+  // Filter topology connections by active utility (Section 11: Active utility awareness)
+  const upstreamConns = (contextData?.upstream_connections || []).filter(
+    (c) => !activeUtility || activeUtility === 'ALL' || c.utility_type === activeUtility
+  );
+  const downstreamConns = (contextData?.downstream_connections || []).filter(
+    (c) => !activeUtility || activeUtility === 'ALL' || c.utility_type === activeUtility
+  );
 
   return (
     <aside
@@ -532,8 +542,8 @@ export const AssetContextSurface: React.FC<AssetContextSurfaceProps> = ({
             <ArrowUpRight size={13} />
             <span>Nguồn cấp (Upstream):</span>
           </div>
-          {contextData && contextData.upstream_connections.length > 0 ? (
-            contextData.upstream_connections.map((c) => (
+          {upstreamConns.length > 0 ? (
+            upstreamConns.map((c) => (
               <div
                 key={`up-${c.id}`}
                 onClick={() => onSelectAsset && onSelectAsset(c.source_asset_id)}
@@ -566,8 +576,8 @@ export const AssetContextSurface: React.FC<AssetContextSurfaceProps> = ({
             <ArrowDownRight size={13} />
             <span>Cấp điện/nước đến (Downstream):</span>
           </div>
-          {contextData && contextData.downstream_connections.length > 0 ? (
-            contextData.downstream_connections.map((c) => (
+          {downstreamConns.length > 0 ? (
+            downstreamConns.map((c) => (
               <div
                 key={`down-${c.id}`}
                 onClick={() => onSelectAsset && onSelectAsset(c.target_asset_id)}

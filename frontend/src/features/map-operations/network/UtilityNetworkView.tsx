@@ -134,12 +134,26 @@ export const UtilityNetworkView: React.FC<UtilityNetworkViewProps> = ({
       connectedNodeIds.add(e.target_asset_id);
     });
 
+    if (selectedUtility !== 'ALL') {
+      activeNodes = activeNodes.filter((n) => connectedNodeIds.has(n.id));
+    }
+
     return {
       filteredNodes: activeNodes,
       filteredEdges: activeEdges,
       verifiedEdgeCount: verifiedCount,
     };
   }, [nodes, edges, selectedUtility, showUnverified]);
+
+  // Section 10: Clear selection on utility switch if selected asset is not present in the new graph
+  useEffect(() => {
+    if (selectedAssetId && filteredNodes.length > 0) {
+      const exists = filteredNodes.some((n) => n.id === selectedAssetId);
+      if (!exists && onSelectAsset) {
+        onSelectAsset('');
+      }
+    }
+  }, [selectedAssetId, filteredNodes, onSelectAsset]);
 
   // 2. Trace Path Calculation (Upstream / Downstream from Selected Asset)
   const { highlightedNodeIds, highlightedEdgeIds } = useMemo(() => {

@@ -1232,6 +1232,26 @@ button.sgp-telemetry-item:hover {
   color: #64748B;
 }
 
+.sgp-list-desktop-table {
+  display: block;
+}
+
+.sgp-list-mobile-cards {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .sgp-list-desktop-table {
+    display: none !important;
+  }
+  .sgp-list-mobile-cards {
+    display: flex !important;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+  }
+}
+
 /* ==========================================================================
    Legacy AnalyticsDrawer and row inspect styles deprecated and removed (V13.1)
    Analytics is now exclusively rendered in .sgp-unified-context-surface.
