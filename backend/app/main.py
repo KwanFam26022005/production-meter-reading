@@ -143,6 +143,19 @@ from .schemas import (
     AssetConnectionResponse,
     AssetConnectionListResponse,
     TopologyTraceResponse,
+    VerificationEvidenceResponse,
+    AssetVerifyRequest,
+    AssetRejectRequest,
+    AssetVerifyPositionRequest,
+    RelationVerifyRequest,
+    RelationRejectRequest,
+    ConnectionVerifyRequest,
+    ConnectionRejectRequest,
+    MeterMetadataUpdateRequest,
+    CandidateImportRequest,
+    CandidateImportResponse,
+    AssetVerificationSummaryResponse,
+    MeterReviewMatrixItem,
 )
 from .asset_operations import (
     list_assets,
@@ -157,11 +170,23 @@ from .asset_operations import (
     close_meter_asset_relation,
     transfer_meter_asset_relation,
     verify_meter_asset_relation,
+    reject_meter_asset_relation,
     create_asset_connection,
     list_asset_connections,
     close_asset_connection,
     verify_asset_connection,
+    verify_asset_connection_with_evidence,
+    reject_asset_connection,
     trace_asset_topology,
+    import_candidate_proposals,
+    verify_asset,
+    reject_asset_verification,
+    reopen_asset_review,
+    verify_asset_position,
+    update_meter_metadata,
+    get_verification_summary,
+    get_meter_review_matrix,
+    get_entity_verification_evidences,
 )
 
 settings = get_settings()
@@ -1720,10 +1745,28 @@ def transfer_meter_asset_relation_endpoint(
 @app.post("/api/v1/admin/meter-asset-relations/{relation_id}/verify", response_model=MeterAssetRelationResponse, dependencies=[Depends(enforce_csrf)])
 def verify_meter_asset_relation_endpoint(
     relation_id: str,
+    payload: Optional[RelationVerifyRequest] = None,
     admin_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ) -> MeterAssetRelationResponse:
-    return verify_meter_asset_relation(db, actor=admin_user, relation_id=relation_id, new_status="VERIFIED")
+    if payload is None:
+        payload = RelationVerifyRequest(
+            evidence_type="PORT_DOCUMENT",
+            evidence_reference="Phê duyệt liên kết công tơ V16C",
+        )
+    return verify_meter_asset_relation(db, actor=admin_user, relation_id=relation_id, payload=payload)
+
+
+@app.post("/api/v1/admin/meter-asset-relations/{relation_id}/reject", response_model=MeterAssetRelationResponse, dependencies=[Depends(enforce_csrf)])
+def reject_meter_asset_relation_endpoint(
+    relation_id: str,
+    payload: Optional[RelationRejectRequest] = None,
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> MeterAssetRelationResponse:
+    if payload is None:
+        payload = RelationRejectRequest(reason="Từ chối liên kết qua Admin")
+    return reject_meter_asset_relation(db, actor=admin_user, relation_id=relation_id, payload=payload)
 
 
 # Asset Connections (Topology)
@@ -1770,21 +1813,43 @@ def close_asset_connection_endpoint(
 @app.post("/api/v1/admin/asset-connections/{connection_id}/verify", response_model=AssetConnectionResponse, dependencies=[Depends(enforce_csrf)])
 def verify_asset_connection_endpoint(
     connection_id: str,
+    payload: Optional[ConnectionVerifyRequest] = None,
     admin_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ) -> AssetConnectionResponse:
-    return verify_asset_connection(db, actor=admin_user, connection_id=connection_id, new_status="VERIFIED")
+    if payload is None:
+        payload = ConnectionVerifyRequest(
+            evidence_type="PORT_DOCUMENT",
+            evidence_reference="Phê duyệt kết nối mạng lưới V16C",
+        )
+    return verify_asset_connection_with_evidence(db, actor=admin_user, connection_id=connection_id, payload=payload)
+
+
+@app.post("/api/v1/admin/asset-connections/{connection_id}/reject", response_model=AssetConnectionResponse, dependencies=[Depends(enforce_csrf)])
+def reject_asset_connection_endpoint(
+    connection_id: str,
+    payload: Optional[ConnectionRejectRequest] = None,
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> AssetConnectionResponse:
+    if payload is None:
+        payload = ConnectionRejectRequest(reason="Từ chối kết nối qua Admin")
+    return reject_asset_connection(db, actor=admin_user, connection_id=connection_id, payload=payload)
 
 
 @app.get("/api/v1/admin/asset-topology/trace", response_model=TopologyTraceResponse)
+@app.get("/api/v1/admin/assets/{asset_id}/trace-topology", response_model=TopologyTraceResponse)
 def trace_asset_topology_endpoint(
     asset_id: str,
     direction: str = "downstream",
     utility_type: Optional[str] = None,
     include_unverified: bool = False,
+    verified_only: Optional[bool] = None,
     admin_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ) -> TopologyTraceResponse:
+    if verified_only is not None:
+        include_unverified = not verified_only
     return trace_asset_topology(
         db,
         asset_id=asset_id,
@@ -1792,3 +1857,110 @@ def trace_asset_topology_endpoint(
         utility_type=utility_type,
         include_unverified=include_unverified,
     )
+
+
+# ==============================================================================
+# V16D — CANDIDATE IMPORT, VERIFICATION & METADATA ROUTES
+# ==============================================================================
+
+@app.post("/api/v1/admin/assets/import-candidates", response_model=CandidateImportResponse, dependencies=[Depends(enforce_csrf)])
+def import_candidates_endpoint(
+    payload: Optional[CandidateImportRequest] = None,
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> CandidateImportResponse:
+    p_file = payload.proposals_file if payload else None
+    r_file = payload.relations_file if payload else None
+    return import_candidate_proposals(db, actor=admin_user, proposals_file=p_file, relations_file=r_file)
+
+
+@app.get("/api/v1/admin/asset-verification/overview", response_model=AssetVerificationSummaryResponse)
+@app.get("/api/v1/admin/verification-summary", response_model=AssetVerificationSummaryResponse)
+def get_verification_overview_endpoint(
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> AssetVerificationSummaryResponse:
+    return get_verification_summary(db)
+
+
+@app.get("/api/v1/admin/asset-verification/matrix", response_model=list[MeterReviewMatrixItem])
+@app.get("/api/v1/admin/meter-review-matrix", response_model=list[MeterReviewMatrixItem])
+def get_meter_review_matrix_endpoint(
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> list[MeterReviewMatrixItem]:
+    return get_meter_review_matrix(db)
+
+
+@app.get("/api/v1/admin/asset-verification/evidences", response_model=list[VerificationEvidenceResponse])
+def get_entity_evidences_endpoint(
+    entity_type: str,
+    entity_id: str,
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> list[VerificationEvidenceResponse]:
+    return get_entity_verification_evidences(db, entity_type=entity_type, entity_id=entity_id)
+
+
+@app.get("/api/v1/admin/verification-evidence/{entity_type}/{entity_id}", response_model=list[VerificationEvidenceResponse])
+def get_entity_evidences_path_endpoint(
+    entity_type: str,
+    entity_id: str,
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> list[VerificationEvidenceResponse]:
+    return get_entity_verification_evidences(db, entity_type=entity_type, entity_id=entity_id)
+
+
+@app.post("/api/v1/admin/assets/{asset_id}/verify", response_model=AssetResponse, dependencies=[Depends(enforce_csrf)])
+def verify_asset_endpoint(
+    asset_id: str,
+    payload: AssetVerifyRequest,
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> AssetResponse:
+    return verify_asset(db, actor=admin_user, asset_id=asset_id, payload=payload)
+
+
+@app.post("/api/v1/admin/assets/{asset_id}/reject-verification", response_model=AssetResponse, dependencies=[Depends(enforce_csrf)])
+@app.post("/api/v1/admin/assets/{asset_id}/reject", response_model=AssetResponse, dependencies=[Depends(enforce_csrf)])
+def reject_asset_verification_endpoint(
+    asset_id: str,
+    payload: AssetRejectRequest,
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> AssetResponse:
+    return reject_asset_verification(db, actor=admin_user, asset_id=asset_id, payload=payload)
+
+
+@app.post("/api/v1/admin/assets/{asset_id}/reopen-review", response_model=AssetResponse, dependencies=[Depends(enforce_csrf)])
+def reopen_asset_review_endpoint(
+    asset_id: str,
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> AssetResponse:
+    return reopen_asset_review(db, actor=admin_user, asset_id=asset_id)
+
+
+@app.post("/api/v1/admin/assets/{asset_id}/verify-position", response_model=AssetResponse, dependencies=[Depends(enforce_csrf)])
+@app.post("/api/v1/admin/assets/{asset_id}/position", response_model=AssetResponse, dependencies=[Depends(enforce_csrf)])
+def verify_asset_position_endpoint(
+    asset_id: str,
+    payload: AssetVerifyPositionRequest,
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> AssetResponse:
+    res, _ = verify_asset_position(db, actor=admin_user, asset_id=asset_id, payload=payload)
+    return res
+
+
+@app.patch("/api/v1/admin/meters/{meter_id}/metadata", dependencies=[Depends(enforce_csrf)])
+@app.put("/api/v1/admin/meters/{meter_id}/metadata", dependencies=[Depends(enforce_csrf)])
+def update_meter_metadata_endpoint(
+    meter_id: str,
+    payload: MeterMetadataUpdateRequest,
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    return update_meter_metadata(db, actor=admin_user, meter_id=meter_id, payload=payload)
+

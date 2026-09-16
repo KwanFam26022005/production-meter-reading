@@ -795,6 +795,65 @@ def migrate_db(db_engine=None) -> None:
             cursor.execute("CREATE INDEX IF NOT EXISTS ix_asset_connections_verification_status ON asset_connections (verification_status)")
             cursor.execute("CREATE INDEX IF NOT EXISTS ix_asset_conn_src_tgt ON asset_connections (source_asset_id, target_asset_id, utility_type)")
 
+            # 19. V16D Verification Evidence and Entity Metadata Extensions
+            # 19a. Verification Evidences Table
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS verification_evidences (
+                    id VARCHAR(36) NOT NULL,
+                    entity_type VARCHAR(50) NOT NULL,
+                    entity_id VARCHAR(36) NOT NULL,
+                    evidence_type VARCHAR(50) NOT NULL,
+                    evidence_reference VARCHAR(255) NOT NULL,
+                    notes TEXT,
+                    verified_by VARCHAR(36),
+                    verified_at DATETIME NOT NULL,
+                    created_at DATETIME NOT NULL,
+                    PRIMARY KEY (id),
+                    FOREIGN KEY(verified_by) REFERENCES users (id) ON DELETE SET NULL
+                )
+            """)
+            cursor.execute("CREATE INDEX IF NOT EXISTS ix_verif_evidence_entity ON verification_evidences (entity_type, entity_id)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS ix_verif_evidence_type ON verification_evidences (evidence_type)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS ix_verif_evidence_verified_at ON verification_evidences (verified_at)")
+
+            # 19b. Extend assets with source and position_verification_status
+            cursor.execute("PRAGMA table_info(assets)")
+            asset_cols = [c[1] for c in cursor.fetchall()]
+            if "source" not in asset_cols:
+                cursor.execute("ALTER TABLE assets ADD COLUMN source VARCHAR(50) NOT NULL DEFAULT 'MANUAL_ENTRY'")
+                cursor.execute("CREATE INDEX IF NOT EXISTS ix_assets_source ON assets (source)")
+            if "position_verification_status" not in asset_cols:
+                cursor.execute("ALTER TABLE assets ADD COLUMN position_verification_status VARCHAR(32) NOT NULL DEFAULT 'UNVERIFIED'")
+                cursor.execute("CREATE INDEX IF NOT EXISTS ix_assets_position_verif_status ON assets (position_verification_status)")
+
+            # 19c. Extend meters with reading_method, communication_protocol, utility_type
+            cursor.execute("PRAGMA table_info(meters)")
+            meter_cols = [c[1] for c in cursor.fetchall()]
+            if "reading_method" not in meter_cols:
+                cursor.execute("ALTER TABLE meters ADD COLUMN reading_method VARCHAR(32) DEFAULT 'UNKNOWN'")
+            if "communication_protocol" not in meter_cols:
+                cursor.execute("ALTER TABLE meters ADD COLUMN communication_protocol VARCHAR(32) DEFAULT 'UNKNOWN'")
+            if "utility_type" not in meter_cols:
+                cursor.execute("ALTER TABLE meters ADD COLUMN utility_type VARCHAR(32) DEFAULT 'UNKNOWN'")
+
+            # 19d. Extend meter_asset_relations with confidence, source, notes
+            cursor.execute("PRAGMA table_info(meter_asset_relations)")
+            rel_cols = [c[1] for c in cursor.fetchall()]
+            if "confidence" not in rel_cols:
+                cursor.execute("ALTER TABLE meter_asset_relations ADD COLUMN confidence VARCHAR(20) DEFAULT 'MEDIUM'")
+            if "source" not in rel_cols:
+                cursor.execute("ALTER TABLE meter_asset_relations ADD COLUMN source VARCHAR(50) DEFAULT 'MANUAL_ENTRY'")
+            if "notes" not in rel_cols:
+                cursor.execute("ALTER TABLE meter_asset_relations ADD COLUMN notes TEXT")
+
+            # 19e. Extend asset_connections with confidence, source
+            cursor.execute("PRAGMA table_info(asset_connections)")
+            conn_cols = [c[1] for c in cursor.fetchall()]
+            if "confidence" not in conn_cols:
+                cursor.execute("ALTER TABLE asset_connections ADD COLUMN confidence VARCHAR(20) DEFAULT 'MEDIUM'")
+            if "source" not in conn_cols:
+                cursor.execute("ALTER TABLE asset_connections ADD COLUMN source VARCHAR(50) DEFAULT 'MANUAL_ENTRY'")
+
             conn.connection.commit()
         finally:
             cursor.close()

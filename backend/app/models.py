@@ -176,6 +176,9 @@ class Meter(Base):
     route_status = Column(String(50), nullable=False, default="VALID", index=True)  # "VALID" | "REVIEW_REQUIRED" | "INVALID"
     is_active = Column(Boolean, nullable=False, default=True, index=True)
     lifecycle_status = Column(String(20), nullable=False, default="ACTIVE", index=True)  # "ACTIVE" | "INACTIVE" | "RETIRED"
+    reading_method = Column(String(32), nullable=True, default="UNKNOWN")  # "MANUAL" | "OCR" | "PULSE" | "MODBUS" | "PLC" | "SCADA" | "UNKNOWN"
+    communication_protocol = Column(String(32), nullable=True, default="UNKNOWN")  # "NONE" | "PULSE" | "RS485" | "MODBUS_RTU" | "MODBUS_TCP" | "PLC" | "OTHER" | "UNKNOWN"
+    utility_type = Column(String(32), nullable=True, default="UNKNOWN")  # "ELECTRICITY" | "WATER" | "OTHER" | "UNKNOWN"
     retired_at = Column(DateTime(timezone=True), nullable=True)
     retired_by = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     retirement_reason = Column(Text, nullable=True)
@@ -378,6 +381,8 @@ class Asset(Base):
     map_y = Column(Float, nullable=True)
     lifecycle_status = Column(String(32), nullable=False, default="ACTIVE", index=True)  # "ACTIVE" | "INACTIVE" | "RETIRED"
     verification_status = Column(String(32), nullable=False, default="UNVERIFIED", index=True)  # "UNVERIFIED" | "VERIFIED" | "REJECTED"
+    position_verification_status = Column(String(32), nullable=False, default="UNVERIFIED", index=True)  # "UNVERIFIED" | "VERIFIED"
+    source = Column(String(50), nullable=False, default="MANUAL_ENTRY", index=True)  # "DISCOVERY_PROPOSAL" | "MANUAL_ENTRY" | "IMPORT"
     metadata_json = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False, default=get_utc_now)
     updated_at = Column(DateTime(timezone=True), nullable=False, default=get_utc_now, onupdate=get_utc_now)
@@ -403,6 +408,9 @@ class MeterAssetRelation(Base):
     mount_point = Column(String(255), nullable=True)
     is_primary = Column(Boolean, nullable=False, default=True)
     verification_status = Column(String(32), nullable=False, default="UNVERIFIED", index=True)  # "UNVERIFIED" | "VERIFIED" | "REJECTED"
+    confidence = Column(String(20), nullable=True, default="MEDIUM")  # "LOW" | "MEDIUM" | "HIGH"
+    source = Column(String(50), nullable=True, default="MANUAL_ENTRY")
+    notes = Column(Text, nullable=True)
     valid_from = Column(DateTime(timezone=True), nullable=False, default=get_utc_now)
     valid_to = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False, default=get_utc_now)
@@ -426,6 +434,8 @@ class AssetConnection(Base):
     utility_type = Column(String(32), nullable=False, index=True)  # "ELECTRICITY" | "WATER" | "OTHER"
     connection_type = Column(String(32), nullable=False, default="SUPPLIES")  # "SUPPLIES" | "CONNECTED_TO"
     verification_status = Column(String(32), nullable=False, default="UNVERIFIED", index=True)  # "UNVERIFIED" | "VERIFIED" | "REJECTED"
+    confidence = Column(String(20), nullable=True, default="MEDIUM")  # "LOW" | "MEDIUM" | "HIGH"
+    source = Column(String(50), nullable=True, default="MANUAL_ENTRY")
     valid_from = Column(DateTime(timezone=True), nullable=False, default=get_utc_now)
     valid_to = Column(DateTime(timezone=True), nullable=True)
     metadata_json = Column(Text, nullable=True)
@@ -438,4 +448,24 @@ class AssetConnection(Base):
 
     __table_args__ = (
         Index("ix_asset_conn_src_tgt", "source_asset_id", "target_asset_id", "utility_type"),
+    )
+
+
+class VerificationEvidence(Base):
+    __tablename__ = "verification_evidences"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    entity_type = Column(String(50), nullable=False, index=True)  # "ASSET" | "METER_ASSET_RELATION" | "ASSET_CONNECTION" | "METER"
+    entity_id = Column(String(36), nullable=False, index=True)
+    evidence_type = Column(String(50), nullable=False, index=True)  # "FIELD_INSPECTION" | "MENTOR_CONFIRMATION" | "PORT_DOCUMENT" | "EQUIPMENT_NAMEPLATE" | "METER_PHOTO" | "ELECTRICAL_DRAWING" | "WATER_DRAWING" | "SCADA_CONFIG" | "OTHER"
+    evidence_reference = Column(String(255), nullable=False)
+    notes = Column(Text, nullable=True)
+    verified_by = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    verified_at = Column(DateTime(timezone=True), nullable=False, default=get_utc_now)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=get_utc_now)
+
+    verified_by_user = relationship("User", foreign_keys=[verified_by])
+
+    __table_args__ = (
+        Index("ix_verif_evidence_entity", "entity_type", "entity_id"),
     )

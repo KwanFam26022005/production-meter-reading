@@ -1317,6 +1317,11 @@ class AssetResponse(BaseModel):
     map_y: Optional[float] = None
     lifecycle_status: str
     verification_status: str
+    position_verification_status: str = "UNVERIFIED"
+    source: str = "MANUAL_ENTRY"
+    contained_in_zone: Optional[bool] = None
+    presentation_zone_id: Optional[str] = None
+    warning: Optional[str] = None
     metadata_json: Optional[str] = None
     child_count: int = 0
     attached_meters_count: int = 0
@@ -1339,6 +1344,9 @@ class MeterAssetRelationCreateRequest(BaseModel):
     mount_point: Optional[str] = None
     is_primary: bool = True
     verification_status: Optional[str] = "UNVERIFIED"
+    confidence: Optional[str] = "MEDIUM"
+    source: Optional[str] = "MANUAL_ENTRY"
+    notes: Optional[str] = None
 
 
 class MeterAssetRelationTransferRequest(BaseModel):
@@ -1359,6 +1367,9 @@ class MeterAssetRelationResponse(BaseModel):
     mount_point: Optional[str] = None
     is_primary: bool
     verification_status: str
+    confidence: Optional[str] = "MEDIUM"
+    source: Optional[str] = "MANUAL_ENTRY"
+    notes: Optional[str] = None
     valid_from: str
     valid_to: Optional[str] = None
     created_at: str
@@ -1377,6 +1388,8 @@ class AssetConnectionCreateRequest(BaseModel):
     utility_type: str  # ELECTRICITY | WATER | OTHER
     connection_type: Optional[str] = "SUPPLIES"  # SUPPLIES | CONNECTED_TO
     verification_status: Optional[str] = "UNVERIFIED"
+    confidence: Optional[str] = "MEDIUM"
+    source: Optional[str] = "MANUAL_ENTRY"
     metadata_json: Optional[str] = None
 
 
@@ -1391,6 +1404,8 @@ class AssetConnectionResponse(BaseModel):
     utility_type: str
     connection_type: str
     verification_status: str
+    confidence: Optional[str] = "MEDIUM"
+    source: Optional[str] = "MANUAL_ENTRY"
     valid_from: str
     valid_to: Optional[str] = None
     metadata_json: Optional[str] = None
@@ -1410,5 +1425,115 @@ class TopologyTraceResponse(BaseModel):
     include_unverified: bool
     nodes: list[AssetResponse]
     edges: list[AssetConnectionResponse]
+
+
+# ==============================================================================
+# V16D — VERIFICATION, EVIDENCE & DISCOVERY INGESTION SCHEMAS
+# ==============================================================================
+
+class VerificationEvidenceResponse(BaseModel):
+    id: str
+    entity_type: str
+    entity_id: str
+    evidence_type: str
+    evidence_reference: str
+    notes: Optional[str] = None
+    verified_by: Optional[str] = None
+    verified_by_name: Optional[str] = None
+    verified_at: str
+    created_at: str
+
+
+class AssetVerifyRequest(BaseModel):
+    evidence_type: str  # FIELD_INSPECTION | MENTOR_CONFIRMATION | PORT_DOCUMENT | EQUIPMENT_NAMEPLATE | METER_PHOTO | ELECTRICAL_DRAWING | WATER_DRAWING | SCADA_CONFIG | OTHER
+    evidence_reference: str
+    notes: Optional[str] = None
+
+
+class AssetRejectRequest(BaseModel):
+    reason: str
+    notes: Optional[str] = None
+
+
+class AssetVerifyPositionRequest(BaseModel):
+    map_x: float
+    map_y: float
+    evidence_type: str = "FIELD_INSPECTION"
+    evidence_reference: str = "Xác nhận vị trí"
+    notes: Optional[str] = None
+
+
+class RelationVerifyRequest(BaseModel):
+    evidence_type: str
+    evidence_reference: str
+    is_primary: bool = True
+    mount_point: Optional[str] = None
+    notes: Optional[str] = None
+
+
+class RelationRejectRequest(BaseModel):
+    reason: Optional[str] = None
+    notes: Optional[str] = None
+
+
+class ConnectionVerifyRequest(BaseModel):
+    evidence_type: str
+    evidence_reference: str
+    notes: Optional[str] = None
+
+
+class ConnectionRejectRequest(BaseModel):
+    reason: Optional[str] = None
+    notes: Optional[str] = None
+
+
+class MeterMetadataUpdateRequest(BaseModel):
+    reading_method: Optional[str] = None  # MANUAL | OCR | PULSE | MODBUS | PLC | SCADA | UNKNOWN
+    communication_protocol: Optional[str] = None  # NONE | PULSE | RS485 | MODBUS_RTU | MODBUS_TCP | PLC | OTHER | UNKNOWN
+    utility_type: Optional[str] = None  # ELECTRICITY | WATER | OTHER | UNKNOWN
+
+
+class CandidateImportRequest(BaseModel):
+    proposals_file: Optional[str] = None
+    relations_file: Optional[str] = None
+
+
+class CandidateImportResponse(BaseModel):
+    imported_assets: int
+    updated_assets: int
+    imported_relations: int
+    updated_relations: int
+    total_candidates: int
+    message: str
+
+
+class AssetVerificationSummaryResponse(BaseModel):
+    assetCandidates: int
+    verifiedAssets: int
+    unverifiedAssets: int
+    rejectedAssets: int
+    meterRelations: int
+    verifiedMeterRelations: int
+    unverifiedMeterRelations: int
+    topologyConnections: int
+    verifiedTopologyConnections: int
+    spatialReviewMeters: list[str]
+    missingInformationCounts: dict[str, int]
+
+
+class MeterReviewMatrixItem(BaseModel):
+    meter_code: str
+    name: str
+    utility: str
+    proposed_measures: Optional[str] = None
+    measures_confidence: Optional[str] = None
+    measures_verification: str
+    proposed_installed_at: Optional[str] = None
+    installed_at_verification: str
+    asset_position_known: bool
+    reading_method: str
+    missing_info: list[str]
+    is_spatial_review_required: bool
+
 
 

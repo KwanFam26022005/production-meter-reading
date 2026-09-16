@@ -11,12 +11,14 @@ Implements:
 import json
 import uuid
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Optional
 
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from .admin import log_admin_action
+from .geometry_utils import is_point_in_polygon
 from .models import (
     AdminAuditLog,
     Asset,
@@ -24,7 +26,10 @@ from .models import (
     Meter,
     MeterAssetRelation,
     OperationalZone,
+    MapVersion,
+    MapVersionZone,
     User,
+    VerificationEvidence,
     get_utc_now,
 )
 from .schemas import (
@@ -33,17 +38,30 @@ from .schemas import (
     AssetConnectionResponse,
     AssetCreateRequest,
     AssetListResponse,
+    AssetRejectRequest,
     AssetRelocateRequest,
     AssetResponse,
     AssetRetireRequest,
     AssetSetParentRequest,
     AssetSummary,
     AssetUpdateRequest,
+    AssetVerificationSummaryResponse,
+    AssetVerifyPositionRequest,
+    AssetVerifyRequest,
+    CandidateImportRequest,
+    CandidateImportResponse,
+    ConnectionRejectRequest,
+    ConnectionVerifyRequest,
     MeterAssetRelationCreateRequest,
     MeterAssetRelationListResponse,
     MeterAssetRelationResponse,
     MeterAssetRelationTransferRequest,
+    MeterMetadataUpdateRequest,
+    MeterReviewMatrixItem,
+    RelationRejectRequest,
+    RelationVerifyRequest,
     TopologyTraceResponse,
+    VerificationEvidenceResponse,
 )
 from .topology_service import (
     check_hierarchy_cycle,
@@ -63,12 +81,18 @@ VALID_ASSET_TYPES = {
     "PUMP",
     "COMPRESSOR",
     "MACHINE",
+    "FACILITY",
+    "BUILDING",
     "WAREHOUSE",
     "WORKSHOP",
-    "OFFICE",
+    "BERTH_INFRASTRUCTURE",
+    "GATE_EQUIPMENT",
+    "FIRE_PUMP_SYSTEM",
+    "COMPRESSOR_SYSTEM",
     "WATER_POINT",
     "FIRE_WATER_POINT",
     "SHORE_POWER_POINT",
+    "OFFICE",
     "OTHER",
 }
 
@@ -81,8 +105,47 @@ VALID_RELATION_TYPES = {"INSTALLED_AT", "MEASURES"}
 VALID_UTILITY_TYPES = {"ELECTRICITY", "WATER", "OTHER"}
 VALID_CONNECTION_TYPES = {"SUPPLIES", "CONNECTED_TO"}
 
+VALID_EVIDENCE_TYPES = {
+    "FIELD_INSPECTION",
+    "PHYSICAL_INSPECTION",
+    "MENTOR_CONFIRMATION",
+    "PORT_DOCUMENT",
+    "EQUIPMENT_NAMEPLATE",
+    "METER_PHOTO",
+    "ELECTRICAL_DRAWING",
+    "ELECTRICAL_DIAGRAM",
+    "WATER_DRAWING",
+    "SINGLE_LINE_DIAGRAM",
+    "SCADA_CONFIG",
+    "OTHER",
+}
+VALID_READING_METHODS = {"MANUAL", "OCR", "PULSE", "MODBUS", "PLC", "SCADA", "UNKNOWN"}
+VALID_COMMUNICATION_PROTOCOLS = {"NONE", "PULSE", "RS485", "MODBUS_RTU", "MODBUS_TCP", "PLC", "OTHER", "UNKNOWN"}
+VALID_METER_UTILITY_TYPES = {"ELECTRICITY", "WATER", "OTHER", "UNKNOWN"}
 
-def _serialize_asset(asset: Asset, db: Session) -> AssetResponse:
+
+def _serialize_evidence(ev: VerificationEvidence) -> VerificationEvidenceResponse:
+    return VerificationEvidenceResponse(
+        id=ev.id,
+        entity_type=ev.entity_type,
+        entity_id=ev.entity_id,
+        evidence_type=ev.evidence_type,
+        evidence_reference=ev.evidence_reference,
+        notes=ev.notes,
+        verified_by=ev.verified_by,
+        verified_by_name=ev.verified_by_user.full_name if ev.verified_by_user else None,
+        verified_at=ev.verified_at.isoformat() if ev.verified_at else "",
+        created_at=ev.created_at.isoformat() if ev.created_at else "",
+    )
+
+
+def _serialize_asset(
+    asset: Asset,
+    db: Session,
+    contained_in_zone: Optional[bool] = None,
+    presentation_zone_id: Optional[str] = None,
+    warning: Optional[str] = None,
+) -> AssetResponse:
     parent_summary = None
     if asset.parent_asset:
         parent_summary = AssetSummary(
@@ -117,6 +180,11 @@ def _serialize_asset(asset: Asset, db: Session) -> AssetResponse:
         map_y=asset.map_y,
         lifecycle_status=asset.lifecycle_status,
         verification_status=asset.verification_status,
+        position_verification_status=getattr(asset, "position_verification_status", "UNVERIFIED") or "UNVERIFIED",
+        source=getattr(asset, "source", "MANUAL_ENTRY") or "MANUAL_ENTRY",
+        contained_in_zone=contained_in_zone,
+        presentation_zone_id=presentation_zone_id,
+        warning=warning,
         metadata_json=asset.metadata_json,
         child_count=child_count,
         attached_meters_count=attached_meters_count,
@@ -140,6 +208,9 @@ def _serialize_relation(rel: MeterAssetRelation) -> MeterAssetRelationResponse:
         mount_point=rel.mount_point,
         is_primary=rel.is_primary,
         verification_status=rel.verification_status,
+        confidence=getattr(rel, "confidence", "MEDIUM") or "MEDIUM",
+        source=getattr(rel, "source", "MANUAL_ENTRY") or "MANUAL_ENTRY",
+        notes=getattr(rel, "notes", None),
         valid_from=rel.valid_from.isoformat() if rel.valid_from else "",
         valid_to=rel.valid_to.isoformat() if rel.valid_to else None,
         created_at=rel.created_at.isoformat() if rel.created_at else "",
@@ -159,6 +230,8 @@ def _serialize_connection(conn: AssetConnection) -> AssetConnectionResponse:
         utility_type=conn.utility_type,
         connection_type=conn.connection_type,
         verification_status=conn.verification_status,
+        confidence=getattr(conn, "confidence", "MEDIUM") or "MEDIUM",
+        source=getattr(conn, "source", "MANUAL_ENTRY") or "MANUAL_ENTRY",
         valid_from=conn.valid_from.isoformat() if conn.valid_from else "",
         valid_to=conn.valid_to.isoformat() if conn.valid_to else None,
         metadata_json=conn.metadata_json,
@@ -1076,3 +1149,861 @@ def trace_asset_topology(
         nodes=[_serialize_asset(a, db) for a in all_nodes],
         edges=[_serialize_connection(c) for c in conns],
     )
+
+
+# ==============================================================================
+# V16D — CANDIDATE INGESTION, HUMAN VERIFICATION & DATA POPULATION
+# ==============================================================================
+
+def import_candidate_proposals(
+    db: Session,
+    actor: User,
+    proposals_file: Optional[str] = None,
+    relations_file: Optional[str] = None,
+) -> CandidateImportResponse:
+    """
+    Imports discovery proposals into UNVERIFIED candidate assets and meter-asset relations.
+    Guarantees idempotence: Repeated calls do not create duplicates.
+    Does NOT invent coordinates, zones, or topology.
+    Does NOT mark records as VERIFIED.
+    """
+    prop_path = Path(proposals_file) if proposals_file else Path("docs/domain/asset-discovery/ASSET_MIGRATION_PROPOSALS.v1.json")
+    rel_path = Path(relations_file) if relations_file else Path("docs/domain/asset-discovery/METER_ASSET_RELATION_PROPOSALS.v1.json")
+
+    if not prop_path.exists():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Candidate proposals file not found: {prop_path}",
+        )
+
+    with open(prop_path, "r", encoding="utf-8") as f:
+        proposals_data = json.load(f)
+
+    relations_data = []
+    if rel_path.exists():
+        with open(rel_path, "r", encoding="utf-8") as f:
+            relations_data = json.load(f)
+
+    imported_assets = 0
+    updated_assets = 0
+    imported_relations = 0
+    updated_relations = 0
+
+    now_utc = get_utc_now()
+
+    # 1. Ingest Asset Candidates
+    for p in proposals_data:
+        code = p.get("proposedCode", "").strip()
+        if not code:
+            continue
+        existing_asset = db.query(Asset).filter(Asset.code == code).first()
+        raw_type = p.get("assetType", "OTHER").strip().upper()
+        asset_type = raw_type if raw_type in VALID_ASSET_TYPES else "OTHER"
+        mobility = p.get("mobilityType", "FIXED").strip().upper()
+        if mobility not in ("FIXED", "MOBILE"):
+            mobility = "FIXED"
+
+        meta = {
+            "evidenceSource": p.get("evidenceSource"),
+            "notes": p.get("notes"),
+            "confidence": p.get("confidence", "MEDIUM"),
+        }
+
+        if existing_asset:
+            # Idempotent: Only update metadata and keep UNVERIFIED if candidate
+            if existing_asset.source == "DISCOVERY_PROPOSAL" and existing_asset.verification_status == "UNVERIFIED":
+                existing_asset.name = p.get("proposedName", existing_asset.name)
+                existing_asset.asset_type = asset_type
+                existing_asset.mobility_type = mobility
+                existing_asset.metadata_json = json.dumps(meta, ensure_ascii=False)
+                existing_asset.updated_at = now_utc
+            updated_assets += 1
+        else:
+            new_asset = Asset(
+                id=str(uuid.uuid4()),
+                code=code,
+                name=p.get("proposedName", f"Asset {code}"),
+                asset_type=asset_type,
+                zone_id=None,  # Section 9: Do not invent zone
+                parent_asset_id=None,  # Section 9: Do not invent parent
+                mobility_type=mobility,
+                position_source="UNKNOWN",
+                map_x=None,  # Section 10: Null coordinates expected
+                map_y=None,
+                lifecycle_status="ACTIVE",
+                verification_status="UNVERIFIED",
+                position_verification_status="UNVERIFIED",
+                source="DISCOVERY_PROPOSAL",
+                metadata_json=json.dumps(meta, ensure_ascii=False),
+                created_at=now_utc,
+                updated_at=now_utc,
+                created_by=actor.id if actor else None,
+            )
+            db.add(new_asset)
+            imported_assets += 1
+
+    db.flush()
+
+    # 2. Ingest Meter-Asset Relation Candidates
+    for r in relations_data:
+        m_code = r.get("meterCode", "").strip()
+        a_code = r.get("proposedAssetCode", "").strip()
+        rel_type = r.get("proposedRelationType", "MEASURES").strip().upper()
+        if rel_type not in VALID_RELATION_TYPES:
+            rel_type = "MEASURES"
+
+        if not m_code or not a_code:
+            continue
+
+        # Match meter: Check exact code, then try MTR- <-> CT- mapping
+        meter = db.query(Meter).filter(Meter.meter_code == m_code).first()
+        if not meter:
+            alt_code = m_code.replace("MTR-", "CT-") if "MTR-" in m_code else m_code.replace("CT-", "MTR-")
+            meter = db.query(Meter).filter(Meter.meter_code == alt_code).first()
+
+        asset = db.query(Asset).filter(Asset.code == a_code).first()
+
+        if meter and asset:
+            # Check if active relation exists
+            existing_rel = (
+                db.query(MeterAssetRelation)
+                .filter(
+                    MeterAssetRelation.meter_id == meter.id,
+                    MeterAssetRelation.asset_id == asset.id,
+                    MeterAssetRelation.relation_type == rel_type,
+                    MeterAssetRelation.valid_to.is_(None),
+                )
+                .first()
+            )
+
+            rel_notes = {
+                "evidenceSource": r.get("evidenceSource"),
+                "questions": r.get("questions", []),
+            }
+
+            if existing_rel:
+                if existing_rel.source == "DISCOVERY_PROPOSAL" and existing_rel.verification_status == "UNVERIFIED":
+                    existing_rel.confidence = r.get("confidence", "MEDIUM")
+                    existing_rel.notes = json.dumps(rel_notes, ensure_ascii=False)
+                updated_relations += 1
+            else:
+                new_rel = MeterAssetRelation(
+                    id=str(uuid.uuid4()),
+                    meter_id=meter.id,
+                    asset_id=asset.id,
+                    relation_type=rel_type,
+                    mount_point=None,
+                    is_primary=False,  # Unverified candidate is not primary yet
+                    verification_status="UNVERIFIED",
+                    confidence=r.get("confidence", "MEDIUM"),
+                    source="DISCOVERY_PROPOSAL",
+                    notes=json.dumps(rel_notes, ensure_ascii=False),
+                    valid_from=now_utc,
+                    valid_to=None,
+                    created_at=now_utc,
+                    created_by=actor.id if actor else None,
+                )
+                db.add(new_rel)
+                imported_relations += 1
+
+    log_admin_action(
+        db,
+        actor_user_id=actor.id if actor else None,
+        action="ASSET_CANDIDATE_IMPORTED",
+        resource_type="ASSET",
+        resource_id=None,
+        before_json=None,
+        after_json={
+            "imported_assets": imported_assets,
+            "updated_assets": updated_assets,
+            "imported_relations": imported_relations,
+            "updated_relations": updated_relations,
+        },
+    )
+    db.commit()
+
+    return CandidateImportResponse(
+        imported_assets=imported_assets,
+        updated_assets=updated_assets,
+        imported_relations=imported_relations,
+        updated_relations=updated_relations,
+        total_candidates=len(proposals_data),
+        message=f"Import completed: {imported_assets} assets added, {updated_assets} unchanged/updated, {imported_relations} relations added, {updated_relations} unchanged/updated.",
+    )
+
+
+def verify_asset(
+    db: Session,
+    actor: User,
+    asset_id: str,
+    payload: AssetVerifyRequest,
+) -> AssetResponse:
+    ev_type = payload.evidence_type.strip().upper()
+    if ev_type not in VALID_EVIDENCE_TYPES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid evidence_type '{payload.evidence_type}'. Valid types: {sorted(list(VALID_EVIDENCE_TYPES))}",
+        )
+    ref = payload.evidence_reference.strip()
+    if not ref:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="evidence_reference is required for human verification",
+        )
+
+    asset = db.query(Asset).filter(Asset.id == asset_id).first()
+    if not asset:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Asset '{asset_id}' not found",
+        )
+
+    # Minimum verification rules (Section 18)
+    if not asset.code or not asset.name:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Asset must have code and name to be verified",
+        )
+    if asset.asset_type not in VALID_ASSET_TYPES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Asset has invalid type '{asset.asset_type}'",
+        )
+
+    now_utc = get_utc_now()
+    before_status = asset.verification_status
+    asset.verification_status = "VERIFIED"
+    asset.updated_at = now_utc
+    asset.updated_by = actor.id if actor else None
+
+    # Record Evidence
+    evidence = VerificationEvidence(
+        id=str(uuid.uuid4()),
+        entity_type="ASSET",
+        entity_id=asset.id,
+        evidence_type=ev_type,
+        evidence_reference=ref,
+        notes=payload.notes,
+        verified_by=actor.id if actor else None,
+        verified_at=now_utc,
+        created_at=now_utc,
+    )
+    db.add(evidence)
+
+    log_admin_action(
+        db,
+        actor_user_id=actor.id if actor else None,
+        action="ASSET_VERIFIED",
+        resource_type="ASSET",
+        resource_id=asset.id,
+        before_json={"verification_status": before_status},
+        after_json={
+            "verification_status": "VERIFIED",
+            "evidence_type": ev_type,
+            "evidence_reference": ref,
+        },
+    )
+    db.commit()
+    db.refresh(asset)
+    return _serialize_asset(asset, db)
+
+
+def reject_asset_verification(
+    db: Session,
+    actor: User,
+    asset_id: str,
+    payload: AssetRejectRequest,
+) -> AssetResponse:
+    asset = db.query(Asset).filter(Asset.id == asset_id).first()
+    if not asset:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Asset '{asset_id}' not found",
+        )
+
+    now_utc = get_utc_now()
+    before_status = asset.verification_status
+    asset.verification_status = "REJECTED"
+    asset.updated_at = now_utc
+    asset.updated_by = actor.id if actor else None
+
+    log_admin_action(
+        db,
+        actor_user_id=actor.id if actor else None,
+        action="ASSET_VERIFICATION_REJECTED",
+        resource_type="ASSET",
+        resource_id=asset.id,
+        before_json={"verification_status": before_status},
+        after_json={
+            "verification_status": "REJECTED",
+            "reason": payload.reason,
+            "notes": payload.notes,
+        },
+    )
+    db.commit()
+    db.refresh(asset)
+    return _serialize_asset(asset, db)
+
+
+def reopen_asset_review(
+    db: Session,
+    actor: User,
+    asset_id: str,
+) -> AssetResponse:
+    asset = db.query(Asset).filter(Asset.id == asset_id).first()
+    if not asset:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Asset '{asset_id}' not found",
+        )
+
+    now_utc = get_utc_now()
+    before_status = asset.verification_status
+    asset.verification_status = "UNVERIFIED"
+    asset.updated_at = now_utc
+    asset.updated_by = actor.id if actor else None
+
+    log_admin_action(
+        db,
+        actor_user_id=actor.id if actor else None,
+        action="ASSET_REOPENED_FOR_REVIEW",
+        resource_type="ASSET",
+        resource_id=asset.id,
+        before_json={"verification_status": before_status},
+        after_json={"verification_status": "UNVERIFIED"},
+    )
+    db.commit()
+    db.refresh(asset)
+    return _serialize_asset(asset, db)
+
+
+def verify_asset_position(
+    db: Session,
+    actor: User,
+    asset_id: str,
+    payload: AssetVerifyPositionRequest,
+) -> tuple[AssetResponse, Optional[str]]:
+    asset = db.query(Asset).filter(Asset.id == asset_id).first()
+    if not asset:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Asset '{asset_id}' not found",
+        )
+
+    ev_type = payload.evidence_type.strip().upper()
+    if ev_type not in VALID_EVIDENCE_TYPES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid evidence_type '{payload.evidence_type}'",
+        )
+    ref = payload.evidence_reference.strip()
+    if not ref:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="evidence_reference is required",
+        )
+
+    if not (0.0 <= payload.map_x <= 1.0 and 0.0 <= payload.map_y <= 1.0):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Coordinates map_x and map_y must be within [0.0, 1.0]",
+        )
+
+    # Check presentation zone containment
+    contained_zone_id = None
+    contained_in_zone = False
+    warning_msg = None
+
+    active_mv = db.query(MapVersion).filter(MapVersion.status == "PUBLISHED").first()
+    if active_mv and active_mv.zones:
+        cw = active_mv.canonical_width or 1915
+        ch = active_mv.canonical_height or 821
+        px = payload.map_x * cw
+        py = payload.map_y * ch
+        pt = {"x": px, "y": py}
+        for vz in active_mv.zones:
+            try:
+                poly = json.loads(vz.polygon_canonical) if isinstance(vz.polygon_canonical, str) else vz.polygon_canonical
+                if is_point_in_polygon(pt, poly):
+                    contained_zone_id = vz.zone_id
+                    contained_in_zone = True
+                    break
+            except Exception:
+                pass
+
+    if not contained_in_zone:
+        warning_msg = f"Cảnh báo: Tọa độ ({payload.map_x:.4f}, {payload.map_y:.4f}) nằm ngoài tất cả 6 presentation zones"
+    elif asset.zone_id:
+        zone = db.query(OperationalZone).filter(OperationalZone.id == asset.zone_id).first()
+        if zone and zone.map_polygon:
+            try:
+                poly = json.loads(zone.map_polygon) if isinstance(zone.map_polygon, str) else zone.map_polygon
+                pt = {"x": payload.map_x, "y": payload.map_y}
+                if not is_point_in_polygon(pt, poly):
+                    warning_msg = f"Cảnh báo: Tọa độ ({payload.map_x:.4f}, {payload.map_y:.4f}) nằm ngoài ranh giới vùng '{zone.name}'"
+            except Exception:
+                pass
+
+    now_utc = get_utc_now()
+    before_x, before_y = asset.map_x, asset.map_y
+    asset.map_x = payload.map_x
+    asset.map_y = payload.map_y
+    asset.position_source = "STATIC_MAP"
+    asset.position_verification_status = "VERIFIED"
+    asset.updated_at = now_utc
+    asset.updated_by = actor.id if actor else None
+
+    # Record Evidence
+    evidence = VerificationEvidence(
+        id=str(uuid.uuid4()),
+        entity_type="ASSET_POSITION",
+        entity_id=asset.id,
+        evidence_type=ev_type,
+        evidence_reference=ref,
+        notes=payload.notes,
+        verified_by=actor.id if actor else None,
+        verified_at=now_utc,
+        created_at=now_utc,
+    )
+    db.add(evidence)
+
+    log_admin_action(
+        db,
+        actor_user_id=actor.id if actor else None,
+        action="ASSET_POSITION_VERIFIED",
+        resource_type="ASSET",
+        resource_id=asset.id,
+        before_json={"map_x": before_x, "map_y": before_y},
+        after_json={
+            "map_x": payload.map_x,
+            "map_y": payload.map_y,
+            "position_verification_status": "VERIFIED",
+            "warning": warning_msg,
+        },
+    )
+    db.commit()
+    db.refresh(asset)
+    return _serialize_asset(
+        asset,
+        db,
+        contained_in_zone=contained_in_zone,
+        presentation_zone_id=contained_zone_id,
+        warning=warning_msg,
+    ), warning_msg
+
+
+def verify_meter_asset_relation(
+    db: Session,
+    actor: User,
+    relation_id: str,
+    payload: RelationVerifyRequest,
+) -> MeterAssetRelationResponse:
+    ev_type = payload.evidence_type.strip().upper()
+    if ev_type not in VALID_EVIDENCE_TYPES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid evidence_type '{payload.evidence_type}'. Valid: {sorted(list(VALID_EVIDENCE_TYPES))}",
+        )
+    ref = payload.evidence_reference.strip()
+    if not ref:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="evidence_reference is required",
+        )
+
+    rel = db.query(MeterAssetRelation).filter(MeterAssetRelation.id == relation_id).first()
+    if not rel:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Relation '{relation_id}' not found",
+        )
+
+    if rel.meter.lifecycle_status == "RETIRED":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Cannot verify relation on RETIRED meter '{rel.meter.meter_code}'",
+        )
+
+    now_utc = get_utc_now()
+
+    # Active Primary Uniqueness enforcement (Section 48)
+    if payload.is_primary:
+        existing_primaries = (
+            db.query(MeterAssetRelation)
+            .filter(
+                MeterAssetRelation.meter_id == rel.meter_id,
+                MeterAssetRelation.relation_type == rel.relation_type,
+                MeterAssetRelation.is_primary == True,
+                MeterAssetRelation.valid_to.is_(None),
+                MeterAssetRelation.id != rel.id,
+            )
+            .all()
+        )
+        for existing_primary in existing_primaries:
+            existing_primary.valid_to = now_utc
+            existing_primary.is_primary = False
+            log_admin_action(
+                db,
+                actor_user_id=actor.id if actor else None,
+                action="METER_ASSET_RELATION_TRANSFERRED",
+                resource_type="METER_ASSET_RELATION",
+                resource_id=existing_primary.id,
+                before_json={"is_primary": True, "valid_to": None},
+                after_json={"is_primary": False, "valid_to": now_utc.isoformat()},
+            )
+
+    before_status = rel.verification_status
+    rel.verification_status = "VERIFIED"
+    rel.is_primary = payload.is_primary
+    if payload.mount_point is not None:
+        rel.mount_point = payload.mount_point.strip() or None
+
+    # Record Evidence
+    evidence = VerificationEvidence(
+        id=str(uuid.uuid4()),
+        entity_type="METER_ASSET_RELATION",
+        entity_id=rel.id,
+        evidence_type=ev_type,
+        evidence_reference=ref,
+        notes=payload.notes,
+        verified_by=actor.id if actor else None,
+        verified_at=now_utc,
+        created_at=now_utc,
+    )
+    db.add(evidence)
+
+    log_admin_action(
+        db,
+        actor_user_id=actor.id if actor else None,
+        action="METER_ASSET_RELATION_VERIFIED",
+        resource_type="METER_ASSET_RELATION",
+        resource_id=rel.id,
+        before_json={"verification_status": before_status},
+        after_json={
+            "verification_status": "VERIFIED",
+            "is_primary": rel.is_primary,
+            "evidence_type": ev_type,
+            "evidence_reference": ref,
+        },
+    )
+    db.commit()
+    db.refresh(rel)
+    return _serialize_relation(rel)
+
+
+def reject_meter_asset_relation(
+    db: Session,
+    actor: User,
+    relation_id: str,
+    payload: RelationRejectRequest,
+) -> MeterAssetRelationResponse:
+    rel = db.query(MeterAssetRelation).filter(MeterAssetRelation.id == relation_id).first()
+    if not rel:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Relation '{relation_id}' not found",
+        )
+
+    now_utc = get_utc_now()
+    before_status = rel.verification_status
+    rel.verification_status = "REJECTED"
+    rel.valid_to = now_utc
+    rel.is_primary = False
+
+    log_admin_action(
+        db,
+        actor_user_id=actor.id if actor else None,
+        action="METER_ASSET_RELATION_REJECTED",
+        resource_type="METER_ASSET_RELATION",
+        resource_id=rel.id,
+        before_json={"verification_status": before_status, "valid_to": None},
+        after_json={
+            "verification_status": "REJECTED",
+            "valid_to": now_utc.isoformat(),
+            "reason": payload.reason,
+            "notes": payload.notes,
+        },
+    )
+    db.commit()
+    db.refresh(rel)
+    return _serialize_relation(rel)
+
+
+def verify_asset_connection_with_evidence(
+    db: Session,
+    actor: User,
+    connection_id: str,
+    payload: ConnectionVerifyRequest,
+) -> AssetConnectionResponse:
+    ev_type = payload.evidence_type.strip().upper()
+    if ev_type not in VALID_EVIDENCE_TYPES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid evidence_type '{payload.evidence_type}'",
+        )
+    ref = payload.evidence_reference.strip()
+    if not ref:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="evidence_reference is required",
+        )
+
+    conn = db.query(AssetConnection).filter(AssetConnection.id == connection_id).first()
+    if not conn:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Connection '{connection_id}' not found",
+        )
+
+    now_utc = get_utc_now()
+    before_status = conn.verification_status
+    conn.verification_status = "VERIFIED"
+
+    evidence = VerificationEvidence(
+        id=str(uuid.uuid4()),
+        entity_type="ASSET_CONNECTION",
+        entity_id=conn.id,
+        evidence_type=ev_type,
+        evidence_reference=ref,
+        notes=payload.notes,
+        verified_by=actor.id if actor else None,
+        verified_at=now_utc,
+        created_at=now_utc,
+    )
+    db.add(evidence)
+
+    log_admin_action(
+        db,
+        actor_user_id=actor.id if actor else None,
+        action="ASSET_CONNECTION_VERIFIED",
+        resource_type="ASSET_CONNECTION",
+        resource_id=conn.id,
+        before_json={"verification_status": before_status},
+        after_json={"verification_status": "VERIFIED", "evidence_reference": ref},
+    )
+    db.commit()
+    db.refresh(conn)
+    return _serialize_connection(conn)
+
+
+def reject_asset_connection(
+    db: Session,
+    actor: User,
+    connection_id: str,
+    payload: ConnectionRejectRequest,
+) -> AssetConnectionResponse:
+    conn = db.query(AssetConnection).filter(AssetConnection.id == connection_id).first()
+    if not conn:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Connection '{connection_id}' not found",
+        )
+
+    now_utc = get_utc_now()
+    before_status = conn.verification_status
+    conn.verification_status = "REJECTED"
+    conn.valid_to = now_utc
+
+    log_admin_action(
+        db,
+        actor_user_id=actor.id if actor else None,
+        action="ASSET_CONNECTION_REJECTED",
+        resource_type="ASSET_CONNECTION",
+        resource_id=conn.id,
+        before_json={"verification_status": before_status, "valid_to": None},
+        after_json={"verification_status": "REJECTED", "valid_to": now_utc.isoformat(), "reason": payload.reason},
+    )
+    db.commit()
+    db.refresh(conn)
+    return _serialize_connection(conn)
+
+
+def update_meter_metadata(
+    db: Session,
+    actor: User,
+    meter_id: str,
+    payload: MeterMetadataUpdateRequest,
+) -> dict:
+    meter = db.query(Meter).filter(Meter.id == meter_id).first()
+    if not meter:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Meter '{meter_id}' not found",
+        )
+
+    before = {
+        "reading_method": meter.reading_method,
+        "communication_protocol": meter.communication_protocol,
+        "utility_type": meter.utility_type,
+    }
+
+    if payload.reading_method is not None:
+        rm = payload.reading_method.strip().upper()
+        if rm not in VALID_READING_METHODS:
+            raise HTTPException(status_code=400, detail=f"Invalid reading_method '{rm}'")
+        meter.reading_method = rm
+
+    if payload.communication_protocol is not None:
+        cp = payload.communication_protocol.strip().upper()
+        if cp not in VALID_COMMUNICATION_PROTOCOLS:
+            raise HTTPException(status_code=400, detail=f"Invalid communication_protocol '{cp}'")
+        meter.communication_protocol = cp
+
+    if payload.utility_type is not None:
+        ut = payload.utility_type.strip().upper()
+        if ut not in VALID_METER_UTILITY_TYPES:
+            raise HTTPException(status_code=400, detail=f"Invalid utility_type '{ut}'")
+        meter.utility_type = ut
+
+    meter.updated_at = get_utc_now()
+
+    log_admin_action(
+        db,
+        actor_user_id=actor.id if actor else None,
+        action="METER_METADATA_VERIFIED",
+        resource_type="METER",
+        resource_id=meter.id,
+        before_json=before,
+        after_json={
+            "reading_method": meter.reading_method,
+            "communication_protocol": meter.communication_protocol,
+            "utility_type": meter.utility_type,
+        },
+    )
+    db.commit()
+    db.refresh(meter)
+    return {
+        "id": meter.id,
+        "meter_code": meter.meter_code,
+        "reading_method": meter.reading_method,
+        "communication_protocol": meter.communication_protocol,
+        "utility_type": meter.utility_type,
+    }
+
+
+def get_verification_summary(db: Session) -> AssetVerificationSummaryResponse:
+    asset_candidates = db.query(Asset).filter(Asset.source == "DISCOVERY_PROPOSAL").count()
+    verified_assets = db.query(Asset).filter(Asset.verification_status == "VERIFIED").count()
+    unverified_assets = db.query(Asset).filter(Asset.verification_status == "UNVERIFIED").count()
+    rejected_assets = db.query(Asset).filter(Asset.verification_status == "REJECTED").count()
+
+    meter_relations = db.query(MeterAssetRelation).filter(MeterAssetRelation.valid_to.is_(None)).count()
+    verified_relations = (
+        db.query(MeterAssetRelation)
+        .filter(MeterAssetRelation.verification_status == "VERIFIED", MeterAssetRelation.valid_to.is_(None))
+        .count()
+    )
+    unverified_relations = (
+        db.query(MeterAssetRelation)
+        .filter(MeterAssetRelation.verification_status == "UNVERIFIED", MeterAssetRelation.valid_to.is_(None))
+        .count()
+    )
+
+    connections = db.query(AssetConnection).filter(AssetConnection.valid_to.is_(None)).count()
+    verified_conns = (
+        db.query(AssetConnection)
+        .filter(AssetConnection.verification_status == "VERIFIED", AssetConnection.valid_to.is_(None))
+        .count()
+    )
+
+    missing_pos = db.query(Asset).filter(Asset.map_x.is_(None)).count()
+    meters = db.query(Meter).filter(Meter.lifecycle_status == "ACTIVE").all()
+    missing_inst = 0
+    missing_meas = 0
+    missing_rm = 0
+    missing_ut = 0
+    for m in meters:
+        has_inst = any(r.relation_type == "INSTALLED_AT" and r.valid_to is None for r in m.asset_relations)
+        has_meas = any(r.relation_type == "MEASURES" and r.valid_to is None for r in m.asset_relations)
+        if not has_inst:
+            missing_inst += 1
+        if not has_meas:
+            missing_meas += 1
+        if not m.reading_method or m.reading_method == "UNKNOWN":
+            missing_rm += 1
+        if not m.utility_type or m.utility_type == "UNKNOWN":
+            missing_ut += 1
+
+    return AssetVerificationSummaryResponse(
+        assetCandidates=asset_candidates,
+        verifiedAssets=verified_assets,
+        unverifiedAssets=unverified_assets,
+        rejectedAssets=rejected_assets,
+        meterRelations=meter_relations,
+        verifiedMeterRelations=verified_relations,
+        unverifiedMeterRelations=unverified_relations,
+        topologyConnections=connections,
+        verifiedTopologyConnections=verified_conns,
+        spatialReviewMeters=["CT-001", "CT-007", "CT-008", "CT-009", "CT-010"],
+        missingInformationCounts={
+            "missing_asset_position": missing_pos,
+            "missing_installed_at": missing_inst,
+            "missing_measures": missing_meas,
+            "missing_reading_method": missing_rm,
+            "missing_utility_type": missing_ut,
+        },
+    )
+
+
+def get_meter_review_matrix(db: Session) -> list[MeterReviewMatrixItem]:
+    meters = db.query(Meter).order_by(Meter.meter_code.asc()).all()
+    matrix = []
+    spatial_review_set = {"CT-001", "CT-007", "CT-008", "CT-009", "CT-010"}
+
+    for m in meters:
+        measures_rel = next((r for r in m.asset_relations if r.relation_type == "MEASURES" and r.valid_to is None), None)
+        installed_rel = next((r for r in m.asset_relations if r.relation_type == "INSTALLED_AT" and r.valid_to is None), None)
+
+        pos_known = False
+        if measures_rel and measures_rel.asset and measures_rel.asset.map_x is not None:
+            pos_known = True
+        elif installed_rel and installed_rel.asset and installed_rel.asset.map_x is not None:
+            pos_known = True
+
+        missing = []
+        if not measures_rel:
+            missing.append("Nguồn cấp / tải đo (MEASURES)")
+        if not installed_rel:
+            missing.append("Vị trí tủ / nơi lắp đặt (INSTALLED_AT)")
+        if not pos_known:
+            missing.append("Tọa độ thiết bị")
+        if not m.reading_method or m.reading_method == "UNKNOWN":
+            missing.append("Phương thức đọc chỉ số")
+        if not m.utility_type or m.utility_type == "UNKNOWN":
+            missing.append("Loại môi chất / điện năng")
+
+        item = MeterReviewMatrixItem(
+            meter_code=m.meter_code,
+            name=m.name,
+            utility=m.utility_type or "UNKNOWN",
+            proposed_measures=measures_rel.asset.name if (measures_rel and measures_rel.asset) else None,
+            measures_confidence=measures_rel.confidence if measures_rel else None,
+            measures_verification=measures_rel.verification_status if measures_rel else "CHƯA LIÊN KẾT",
+            proposed_installed_at=installed_rel.asset.name if (installed_rel and installed_rel.asset) else None,
+            installed_at_verification=installed_rel.verification_status if installed_rel else "CHƯA LIÊN KẾT",
+            asset_position_known=pos_known,
+            reading_method=m.reading_method or "UNKNOWN",
+            missing_info=missing,
+            is_spatial_review_required=m.meter_code in spatial_review_set,
+        )
+        matrix.append(item)
+
+    return matrix
+
+
+def get_entity_verification_evidences(
+    db: Session,
+    entity_type: str,
+    entity_id: str,
+) -> list[VerificationEvidenceResponse]:
+    evs = (
+        db.query(VerificationEvidence)
+        .filter(
+            VerificationEvidence.entity_type == entity_type.strip().upper(),
+            VerificationEvidence.entity_id == entity_id.strip(),
+        )
+        .order_by(VerificationEvidence.verified_at.desc())
+        .all()
+    )
+    return [_serialize_evidence(e) for e in evs]
+
