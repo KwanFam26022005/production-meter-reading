@@ -10,8 +10,6 @@ import {
   ShieldCheck,
   ChevronLeft,
   Map,
-  Boxes,
-  ClipboardCheck,
 } from 'lucide-react';
 import { User, formatUserRole } from '../../types';
 
@@ -52,16 +50,25 @@ export const AdminShell: React.FC<AdminShellProps> = ({
     return () => document.removeEventListener('keydown', handleKeyDown, true);
   }, [sidebarOpen]);
 
-  // Visible navigation: "Thiết bị" added in V16C, "Đối soát" added in V16D
-  const navItems: { id: AdminTab; label: string; icon: React.ReactNode; cluster?: 'operational' | 'workflow' }[] = [
-    { id: 'dashboard', label: 'Bản đồ', icon: <Map size={22} />, cluster: 'operational' },
-    { id: 'assets', label: 'Thiết bị', icon: <Boxes size={22} />, cluster: 'operational' },
-    { id: 'verification', label: 'Đối soát', icon: <ClipboardCheck size={22} />, cluster: 'operational' },
-    { id: 'schedules', label: 'Lịch ghi', icon: <Calendar size={22} />, cluster: 'workflow' },
-    { id: 'staff_roster', label: 'Phân ca', icon: <Users size={22} />, cluster: 'workflow' },
-    { id: 'reports', label: 'Báo cáo', icon: <BarChart3 size={22} />, cluster: 'workflow' },
-    { id: 'audit', label: 'Nhật ký', icon: <ScrollText size={22} />, cluster: 'workflow' },
+  const navItems: { id: AdminTab; label: string; icon: React.ReactNode }[] = [
+    { id: 'dashboard', label: 'Bản đồ', icon: <Map size={22} /> },
+    { id: 'schedules', label: 'Lịch ghi', icon: <Calendar size={22} /> },
+    { id: 'staff_roster', label: 'Phân ca', icon: <Users size={22} /> },
+    { id: 'reports', label: 'Báo cáo', icon: <BarChart3 size={22} /> },
+    { id: 'audit', label: 'Nhật ký', icon: <ScrollText size={22} /> },
   ];
+
+  const isItemActive = (itemId: AdminTab) => {
+    if (itemId === 'dashboard') {
+      return (
+        activeTab === 'dashboard' ||
+        activeTab === 'assets' ||
+        activeTab === 'verification' ||
+        activeTab === 'meters'
+      );
+    }
+    return activeTab === itemId;
+  };
 
   return (
     <div className="admin-portal-root">
@@ -132,19 +139,19 @@ export const AdminShell: React.FC<AdminShellProps> = ({
 
           <nav className="admin-nav-list">
             {navItems.map((item, idx) => {
-              const isActive = activeTab === item.id;
-              const isFirstWorkflow = item.cluster === 'workflow' && navItems[idx - 1]?.cluster === 'operational';
+              const isActive = isItemActive(item.id);
+              const isFirstWorkflow = idx === 1;
               return (
                 <React.Fragment key={item.id}>
                   {isFirstWorkflow && <div className="admin-rail-group-divider" title="Tác nghiệp & Báo cáo" />}
                   <button
                     type="button"
-                    className={`admin-nav-item ${isActive ? 'active' : ''} ${item.cluster === 'operational' ? 'operational-cluster' : ''}`}
+                    className={`admin-nav-item ${isActive ? 'active' : ''}`}
                     onClick={() => {
                       onSelectTab(item.id);
                       setSidebarOpen(false);
                     }}
-                    title={item.label}
+                    title={item.id === 'dashboard' ? 'Không gian Vận hành & Hạ tầng (Bản đồ, Thiết bị, Đối soát)' : item.label}
                     aria-label={item.label}
                     aria-current={isActive ? 'page' : undefined}
                   >
@@ -234,18 +241,16 @@ export const AdminShell: React.FC<AdminShellProps> = ({
 
             <nav className="admin-drawer-nav-list">
               {navItems.map((item, idx) => {
-                const isActive = activeTab === item.id;
-                const isFirstOperational = item.cluster === 'operational' && idx === 0;
-                const isFirstWorkflow = item.cluster === 'workflow' && navItems[idx - 1]?.cluster === 'operational';
+                const isActive = isItemActive(item.id);
                 return (
                   <React.Fragment key={item.id}>
-                    {isFirstOperational && (
+                    {idx === 0 && (
                       <div className="admin-drawer-nav-header">
                         <span>HẠ TẦNG & VẬN HÀNH</span>
                         <span className="admin-drawer-nav-badge">Hợp nhất</span>
                       </div>
                     )}
-                    {isFirstWorkflow && (
+                    {idx === 1 && (
                       <div className="admin-drawer-nav-header mt-3">
                         <span>TÁC NGHIỆP & BÁO CÁO</span>
                       </div>
@@ -262,7 +267,9 @@ export const AdminShell: React.FC<AdminShellProps> = ({
                       aria-current={isActive ? 'page' : undefined}
                     >
                       <span className="admin-drawer-nav-icon">{item.icon}</span>
-                      <span className="admin-drawer-nav-label">{item.label}</span>
+                      <span className="admin-drawer-nav-label">
+                        {item.id === 'dashboard' ? 'Điều hành Không gian & Hạ tầng' : item.label}
+                      </span>
                       {isActive && <span className="admin-drawer-active-dot" />}
                     </button>
                   </React.Fragment>
