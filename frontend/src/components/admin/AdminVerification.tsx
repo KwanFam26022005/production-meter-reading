@@ -343,9 +343,11 @@ export const AdminVerification: React.FC = () => {
   };
 
   return (
-    <div className="admin-verification-page p-6 max-w-7xl mx-auto space-y-6">
-      {/* UNIFIED WORKSPACE HEADER */}
+    <div className="admin-verification-wrapper flex flex-col w-full min-h-screen bg-slate-50">
+      {/* UNIFIED WORKSPACE HEADER (FULL BLEED) */}
       <OperationalWorkspaceHeader currentTab="verification" />
+
+      <div className="admin-verification-page p-6 max-w-7xl w-full mx-auto space-y-6 flex-1">
 
       {/* 1. TOP DUAL SCOPE SEGMENTED CONTROL */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white p-2.5 rounded-xl border border-[#D7E0E5] shadow-sm">
@@ -1400,6 +1402,7 @@ export const AdminVerification: React.FC = () => {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 };

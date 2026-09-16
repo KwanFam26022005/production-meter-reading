@@ -16744,41 +16744,54 @@ body:has(.admin-portal-root) {
    UNIFIED OPERATIONAL WORKSPACE & COCKPIT STYLES
    ========================================================================== */
 
+/* ==========================================================================
+   UNIFIED OPERATIONAL WORKSPACE & COCKPIT STYLES (Single-Row Cockpit)
+   ========================================================================== */
+
 .sgp-unified-workspace-header {
   background: linear-gradient(180deg, #091a2e 0%, #0c2340 100%);
-  border-bottom: 1px solid rgba(56, 189, 248, 0.15);
-  padding: 10px 18px 8px;
+  border-bottom: 1px solid rgba(56, 189, 248, 0.18);
+  height: 50px;
+  min-height: 50px;
+  max-height: 50px;
+  padding: 0 14px;
   color: #f8fafc;
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-  flex-shrink: 0;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  z-index: 25;
-}
-
-.sgp-uwh-top-row {
-  display: flex;
+  flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
+  gap: 8px;
+  flex-wrap: nowrap;
+  flex-shrink: 0;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  z-index: 25;
+  overflow: hidden;
+}
+
+/* 1. LEFT COLUMN: Identity */
+.sgp-uwh-col-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
 .sgp-uwh-identity {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
 }
 
-.sgp-uwh-badge {
+.sgp-uwh-dot-badge {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
   background: rgba(14, 165, 233, 0.15);
-  border: 1px solid rgba(56, 189, 248, 0.3);
-  padding: 3px 8px;
-  border-radius: 4px;
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 
 .sgp-uwh-dot {
@@ -16795,81 +16808,46 @@ body:has(.admin-portal-root) {
   50% { opacity: 0.5; transform: scale(0.85); }
 }
 
-.sgp-uwh-badge-text {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  color: #7dd3fc;
-  text-transform: uppercase;
+.sgp-uwh-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .sgp-uwh-title {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 700;
   color: #ffffff;
   margin: 0;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  white-space: nowrap;
+  letter-spacing: -0.01em;
 }
 
 .sgp-uwh-scenario-tag {
-  font-size: 10px;
+  font-size: 9.5px;
   font-weight: 600;
-  padding: 1px 6px;
-  background: rgba(255, 255, 255, 0.1);
+  padding: 1px 5px;
+  background: rgba(255, 255, 255, 0.08);
   border-radius: 4px;
   color: #94a3b8;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  white-space: nowrap;
 }
 
-.sgp-uwh-telemetry {
+/* 2. CENTER COLUMN: Core Tabs */
+.sgp-uwh-col-center {
   display: flex;
   align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.sgp-uwh-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  background: rgba(15, 23, 42, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 500;
-  color: #cbd5e1;
-}
-
-.sgp-uwh-chip-alert {
-  background: rgba(30, 58, 138, 0.3);
-  border-color: rgba(96, 165, 250, 0.4);
-  color: #93c5fd;
-}
-
-.sgp-text-amber { color: #fbbf24; }
-.sgp-text-cyan { color: #38bdf8; }
-.sgp-text-emerald { color: #34d399; }
-.sgp-text-blue { color: #60a5fa; }
-
-.sgp-uwh-controls-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-  padding-top: 4px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .sgp-uwh-mode-nav {
   display: inline-flex;
   align-items: center;
-  background: rgba(15, 23, 42, 0.7);
-  padding: 3px;
-  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.75);
+  padding: 2.5px;
+  border-radius: 7px;
   border: 1px solid rgba(255, 255, 255, 0.12);
   gap: 2px;
 }
@@ -16877,15 +16855,16 @@ body:has(.admin-portal-root) {
 .sgp-uwh-mode-btn {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  padding: 6px 14px;
-  border-radius: 6px;
+  gap: 6px;
+  padding: 5px 11px;
+  border-radius: 5px;
   border: none;
   background: transparent;
   color: #94a3b8;
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
+  white-space: nowrap;
   transition: all 0.15s ease;
 }
 
@@ -16901,16 +16880,16 @@ body:has(.admin-portal-root) {
 }
 
 .sgp-uwh-mode-count {
-  font-size: 10px;
-  font-weight: 500;
-  padding: 1px 6px;
-  background: rgba(0, 0, 0, 0.25);
+  font-size: 9.5px;
+  font-weight: 600;
+  padding: 1px 5px;
+  background: rgba(0, 0, 0, 0.3);
   border-radius: 4px;
   color: #e2e8f0;
 }
 
 .sgp-uwh-mode-btn.active .sgp-uwh-mode-count {
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(0, 0, 0, 0.25);
   color: #ffffff;
 }
 
@@ -16920,11 +16899,67 @@ body:has(.admin-portal-root) {
   font-weight: 700;
 }
 
-.sgp-uwh-actions-group {
+/* 3. RIGHT COLUMN: Telemetry & Actions */
+.sgp-uwh-col-right {
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-shrink: 1;
+  min-width: 0;
+}
+
+.sgp-uwh-telemetry {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.sgp-uwh-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 7px;
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #cbd5e1;
+  white-space: nowrap;
+}
+
+.sgp-uwh-chip-val {
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.sgp-uwh-chip-txt {
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.sgp-uwh-chip-alert {
+  background: rgba(30, 58, 138, 0.35);
+  border-color: rgba(96, 165, 250, 0.4);
+  color: #93c5fd;
+}
+
+.sgp-uwh-chip-alert .sgp-uwh-chip-val {
+  color: #bfdbfe;
+}
+
+.sgp-text-amber { color: #fbbf24; }
+.sgp-text-cyan { color: #38bdf8; }
+.sgp-text-emerald { color: #34d399; }
+.sgp-text-blue { color: #60a5fa; }
+
+.sgp-uwh-actions-strip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
 }
 
 .sgp-uwh-search-wrap {
@@ -16935,7 +16970,7 @@ body:has(.admin-portal-root) {
 
 .sgp-uwh-search-icon {
   position: absolute;
-  left: 10px;
+  left: 8px;
   color: #64748b;
   pointer-events: none;
 }
@@ -16943,43 +16978,58 @@ body:has(.admin-portal-root) {
 .sgp-uwh-search-input {
   background: rgba(15, 23, 42, 0.8);
   border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 6px;
-  padding: 6px 12px 6px 30px;
-  font-size: 12px;
+  border-radius: 5px;
+  padding: 4px 8px 4px 26px;
+  font-size: 11.5px;
   color: #ffffff;
   outline: none;
-  width: 220px;
-  transition: all 0.15s ease;
+  width: 105px;
+  transition: all 0.18s ease;
 }
 
-.sgp-uwh-search-input:focus {
+.sgp-uwh-search-input:focus,
+.sgp-uwh-search-wrap.focused .sgp-uwh-search-input {
   border-color: #38bdf8;
-  width: 260px;
+  width: 160px;
   background: rgba(15, 23, 42, 0.95);
   box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
 }
 
+.sgp-uwh-search-clear {
+  position: absolute;
+  right: 6px;
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+}
+
 .sgp-uwh-utility-pills {
   display: inline-flex;
-  background: rgba(15, 23, 42, 0.6);
+  background: rgba(15, 23, 42, 0.65);
   border: 1px solid rgba(255, 255, 255, 0.1);
   padding: 2px;
-  border-radius: 6px;
+  border-radius: 5px;
   gap: 2px;
+  flex-shrink: 0;
 }
 
 .sgp-uwh-utility-pill {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px 8px;
+  gap: 3px;
+  padding: 3px 6px;
   border: none;
   background: transparent;
   color: #94a3b8;
-  font-size: 11.5px;
+  font-size: 11px;
   font-weight: 500;
-  border-radius: 4px;
+  border-radius: 3px;
   cursor: pointer;
+  white-space: nowrap;
   transition: all 0.15s ease;
 }
 
@@ -16996,16 +17046,18 @@ body:has(.admin-portal-root) {
 .sgp-uwh-hud-toggle {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border-radius: 6px;
+  gap: 5px;
+  padding: 4px 8px;
+  border-radius: 5px;
   border: 1px solid rgba(56, 189, 248, 0.3);
   background: rgba(14, 165, 233, 0.1);
   color: #7dd3fc;
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 600;
   cursor: pointer;
+  white-space: nowrap;
   transition: all 0.15s ease;
+  flex-shrink: 0;
 }
 
 .sgp-uwh-hud-toggle:hover {
@@ -17018,6 +17070,54 @@ body:has(.admin-portal-root) {
   background: #0284c7;
   color: #ffffff;
   border-color: #38bdf8;
+}
+
+/* ==========================================================================
+   RESPONSIVE ADAPTIVE BREAKPOINTS (14-inch Laptop vs 24-inch Desktop)
+   ========================================================================== */
+
+/* WIDESCREEN DESKTOP (24-inch+, >= 1600px) */
+@media (min-width: 1600px) {
+  .sgp-uwh-title-full { display: inline; }
+  .sgp-uwh-title-compact { display: none; }
+  .sgp-uwh-tab-full { display: inline; }
+  .sgp-uwh-tab-compact { display: none; }
+  .sgp-uwh-chip-txt { display: inline; }
+  .sgp-uwh-pill-txt { display: inline; }
+  .sgp-uwh-search-input { width: 140px; }
+  .sgp-uwh-search-input:focus,
+  .sgp-uwh-search-wrap.focused .sgp-uwh-search-input { width: 200px; }
+}
+
+/* STANDARD LAPTOP (14-inch, 1200px - 1599px) */
+@media (max-width: 1599px) {
+  .sgp-unified-workspace-header {
+    height: 48px;
+    min-height: 48px;
+    max-height: 48px;
+    padding: 0 10px;
+    gap: 6px;
+  }
+  .sgp-uwh-title-full { display: none; }
+  .sgp-uwh-title-compact { display: inline; font-size: 13px; }
+  .sgp-uwh-scenario-tag { display: none; }
+  .sgp-uwh-tab-full { display: none; }
+  .sgp-uwh-tab-compact { display: inline; }
+  .sgp-uwh-chip-txt { display: none; }
+  .sgp-uwh-pill-txt { display: none; }
+  .sgp-uwh-mode-btn { padding: 4px 8px; font-size: 11.5px; }
+  .sgp-uwh-chip { padding: 2.5px 5px; font-size: 10.5px; }
+  .sgp-uwh-hud-toggle span { font-size: 11px; }
+}
+
+/* COMPACT / TABLET (< 1200px) */
+@media (max-width: 1199px) {
+  .sgp-uwh-telemetry .sgp-uwh-chip:not(.sgp-uwh-chip-alert) {
+    display: none;
+  }
+  .sgp-uwh-utility-pills {
+    display: none;
+  }
 }
 
 /* ==========================================================================

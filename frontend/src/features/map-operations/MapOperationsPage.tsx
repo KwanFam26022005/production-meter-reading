@@ -705,15 +705,15 @@ const MapOperationsPageContent: React.FC<MapOperationsPageProps> = ({
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         extraActions={
-          <div style={{ display: 'flex', gap: '6px' }}>
+          <div style={{ display: 'flex', gap: '4px' }}>
             <button
               type="button"
               className={`sgp-uwh-hud-toggle ${inlineDrawer === 'assets' ? 'active' : ''}`}
               onClick={() => setInlineDrawer((prev) => (prev === 'assets' ? null : 'assets'))}
               title="Mở danh mục 32 thiết bị hạ tầng ngay trên bản đồ"
             >
-              <Boxes size={14} />
-              <span>Thiết bị ({assets.length})</span>
+              <Boxes size={13} />
+              <span>Hạ tầng</span>
             </button>
             <button
               type="button"
@@ -721,7 +721,7 @@ const MapOperationsPageContent: React.FC<MapOperationsPageProps> = ({
               onClick={() => setInlineDrawer((prev) => (prev === 'verification' ? null : 'verification'))}
               title="Xem nhanh các mục cần đối soát"
             >
-              <ClipboardCheck size={14} />
+              <ClipboardCheck size={13} />
               <span>Đối soát</span>
             </button>
           </div>

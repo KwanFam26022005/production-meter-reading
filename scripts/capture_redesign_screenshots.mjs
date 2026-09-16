@@ -11,63 +11,59 @@ if (!fs.existsSync(ARTIFACT_OUT_DIR)) {
 
 async function run() {
   const browser = await chromium.launch({ executablePath: EDGE_PATH, headless: true });
-  const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
-  const page = await context.newPage();
 
-  console.log('Navigating to http://localhost:5173 ...');
-  await page.goto('http://localhost:5173');
-  await page.waitForTimeout(2000);
+  // Helper to log in and capture
+  async function captureViewport(name, width, height) {
+    console.log(`Setting up ${name} (${width}x${height})...`);
+    const context = await browser.newContext({ viewport: { width, height } });
+    const page = await context.newPage();
 
-  const isLogin = await page.$('input[type="password"]');
-  if (isLogin) {
-    console.log('Logging in...');
-    await page.fill('#employeeCode', '52300119');
-    await page.fill('#password', 'Admin123456!');
-    await page.click('button[type="submit"]');
-    await page.waitForTimeout(3000);
-  }
-
-  // 1. Map Operations with Workspace Header
-  console.log('Capturing: 01-workspace-map-header.png...');
-  await page.waitForSelector('.sgp-unified-workspace-header', { timeout: 10000 });
-  await page.waitForTimeout(1500);
-  await page.screenshot({ path: path.join(ARTIFACT_OUT_DIR, '01-workspace-map-header.png') });
-
-  // 2. Open Inline Asset Drawer
-  console.log('Opening Inline Asset Drawer...');
-  const assetBtn = await page.$('.sgp-uwh-hud-toggle:has-text("Thiết bị")');
-  if (assetBtn) {
-    await assetBtn.click();
+    await page.goto('http://localhost:5173');
     await page.waitForTimeout(1500);
-    console.log('Capturing: 02-map-asset-drawer-open.png...');
-    await page.screenshot({ path: path.join(ARTIFACT_OUT_DIR, '02-map-asset-drawer-open.png') });
-    // Close drawer
-    const closeBtn = await page.$('.sgp-mid-close-btn');
-    if (closeBtn) await closeBtn.click();
-    await page.waitForTimeout(500);
+
+    const isLogin = await page.$('input[type="password"]');
+    if (isLogin) {
+      console.log(`Logging in for ${name}...`);
+      await page.fill('#employeeCode', '52300119');
+      await page.fill('#password', 'Admin123456!');
+      await page.click('button[type="submit"]');
+      await page.waitForTimeout(3000);
+    }
+
+    await page.waitForSelector('.sgp-unified-workspace-header', { timeout: 10000 });
+    await page.waitForTimeout(1500);
+
+    console.log(`Capturing: ${name}-map.png...`);
+    await page.screenshot({ path: path.join(ARTIFACT_OUT_DIR, `${name}-map.png`) });
+
+    // Open Assets tab
+    const assetTabBtn = await page.$('.sgp-uwh-mode-btn[data-tab="assets"]');
+    if (assetTabBtn) {
+      await assetTabBtn.click();
+      await page.waitForTimeout(1500);
+      console.log(`Capturing: ${name}-assets.png...`);
+      await page.screenshot({ path: path.join(ARTIFACT_OUT_DIR, `${name}-assets.png`) });
+    }
+
+    // Open Verification tab
+    const verifyTabBtn = await page.$('.sgp-uwh-mode-btn[data-tab="verification"]');
+    if (verifyTabBtn) {
+      await verifyTabBtn.click();
+      await page.waitForTimeout(1500);
+      console.log(`Capturing: ${name}-verification.png...`);
+      await page.screenshot({ path: path.join(ARTIFACT_OUT_DIR, `${name}-verification.png`) });
+    }
+
+    await context.close();
   }
 
-  // 3. Navigate to Assets tab
-  console.log('Navigating to Assets Tab...');
-  const assetTabBtn = await page.$('.sgp-uwh-mode-btn:has-text("Kho Thiết bị")');
-  if (assetTabBtn) {
-    await assetTabBtn.click();
-    await page.waitForTimeout(2000);
-    console.log('Capturing: 03-workspace-assets-tab.png...');
-    await page.screenshot({ path: path.join(ARTIFACT_OUT_DIR, '03-workspace-assets-tab.png') });
-  }
+  // 1. 14-inch Laptop (1366x768)
+  await captureViewport('01-14inch-laptop', 1366, 768);
 
-  // 4. Navigate to Verification tab
-  console.log('Navigating to Verification Tab...');
-  const verifyTabBtn = await page.$('.sgp-uwh-mode-btn:has-text("Trung tâm Đối soát")');
-  if (verifyTabBtn) {
-    await verifyTabBtn.click();
-    await page.waitForTimeout(2000);
-    console.log('Capturing: 04-workspace-verification-tab.png...');
-    await page.screenshot({ path: path.join(ARTIFACT_OUT_DIR, '04-workspace-verification-tab.png') });
-  }
+  // 2. 24-inch Desktop (1920x1080)
+  await captureViewport('02-24inch-desktop', 1920, 1080);
 
-  console.log('All screenshots captured successfully!');
+  console.log('All responsive screenshots captured successfully!');
   await browser.close();
 }
 
@@ -75,3 +71,4 @@ run().catch((err) => {
   console.error('Capture failed:', err);
   process.exit(1);
 });
+
