@@ -459,10 +459,10 @@ export const AdaptiveCommandBar: React.FC<AdaptiveCommandBarProps> = ({
               onClick={() => onViewModeChange('list')}
               role="radio"
               aria-checked={viewMode === 'list'}
-              title="Chuyển sang chế độ Danh sách công tơ"
+              title="Chuyển sang Sổ ca ghi: Danh sách 12 công tơ cần ghi nhận trong ca trực"
             >
               <ListIcon size={14} aria-hidden="true" />
-              <span>Danh sách</span>
+              <span>Sổ ca ghi</span>
             </button>
           </div>
         </div>

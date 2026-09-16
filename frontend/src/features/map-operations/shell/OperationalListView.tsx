@@ -96,11 +96,11 @@ export const OperationalListView: React.FC<OperationalListViewProps> = ({
       : `${meters.length} công tơ`;
 
   return (
-    <div className="sgp-operational-list-view" role="region" aria-label="Danh sách công tơ tác nghiệp">
+    <div className="sgp-operational-list-view" role="region" aria-label="Sổ ca ghi công tơ tác nghiệp">
       {/* Section 14: Compact table heading replacing elevated summary card */}
       <div className="sgp-list-view-header">
         <div className="sgp-list-header-left flex items-center gap-2.5">
-          <h2 className="sgp-list-title font-semibold text-slate-800 text-sm">Công tơ</h2>
+          <h2 className="sgp-list-title font-semibold text-slate-800 text-sm">Sổ ca ghi · Công tơ tác nghiệp</h2>
           <span className="sgp-list-count-badge font-tabular text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200">
             {countSummaryText}
           </span>

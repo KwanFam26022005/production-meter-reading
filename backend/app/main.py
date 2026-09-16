@@ -1930,19 +1930,21 @@ def import_candidates_endpoint(
 @app.get("/api/v1/admin/asset-verification/overview", response_model=AssetVerificationSummaryResponse)
 @app.get("/api/v1/admin/verification-summary", response_model=AssetVerificationSummaryResponse)
 def get_verification_overview_endpoint(
+    scenario_id: Optional[str] = None,
     admin_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ) -> AssetVerificationSummaryResponse:
-    return get_verification_summary(db)
+    return get_verification_summary(db, scenario_id=scenario_id)
 
 
 @app.get("/api/v1/admin/asset-verification/matrix", response_model=list[MeterReviewMatrixItem])
 @app.get("/api/v1/admin/meter-review-matrix", response_model=list[MeterReviewMatrixItem])
 def get_meter_review_matrix_endpoint(
+    scenario_id: Optional[str] = None,
     admin_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ) -> list[MeterReviewMatrixItem]:
-    return get_meter_review_matrix(db)
+    return get_meter_review_matrix(db, scenario_id=scenario_id)
 
 
 @app.get("/api/v1/admin/asset-verification/evidences", response_model=list[VerificationEvidenceResponse])

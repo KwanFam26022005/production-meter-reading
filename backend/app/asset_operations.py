@@ -300,7 +300,11 @@ def list_assets(
     if lifecycle_status:
         query = query.filter(Asset.lifecycle_status == lifecycle_status.strip().upper())
     if verification_status:
-        query = query.filter(Asset.verification_status == verification_status.strip().upper())
+        vs = verification_status.strip().upper()
+        if vs in ("VERIFIED", "APPROVED"):
+            query = query.filter(Asset.verification_status.in_(["VERIFIED", "SIMULATION_APPROVED"]))
+        else:
+            query = query.filter(Asset.verification_status == vs)
     if mobility_type:
         query = query.filter(Asset.mobility_type == mobility_type.strip().upper())
     if search:
@@ -857,7 +861,11 @@ def list_meter_asset_relations(
     if active_only:
         query = query.filter(MeterAssetRelation.valid_to.is_(None))
     if verification_status:
-        query = query.filter(MeterAssetRelation.verification_status == verification_status.strip().upper())
+        vs = verification_status.strip().upper()
+        if vs in ("VERIFIED", "APPROVED"):
+            query = query.filter(MeterAssetRelation.verification_status.in_(["VERIFIED", "SIMULATION_APPROVED"]))
+        else:
+            query = query.filter(MeterAssetRelation.verification_status == vs)
 
     total = query.count()
     rels = query.order_by(MeterAssetRelation.created_at.desc()).all()
@@ -1107,7 +1115,11 @@ def list_asset_connections(
     if active_only:
         query = query.filter(AssetConnection.valid_to.is_(None))
     if verification_status:
-        query = query.filter(AssetConnection.verification_status == verification_status.strip().upper())
+        vs = verification_status.strip().upper()
+        if vs in ("VERIFIED", "APPROVED"):
+            query = query.filter(AssetConnection.verification_status.in_(["VERIFIED", "SIMULATION_APPROVED"]))
+        else:
+            query = query.filter(AssetConnection.verification_status == vs)
 
     total = query.count()
     conns = query.order_by(AssetConnection.created_at.desc()).all()
@@ -1947,33 +1959,44 @@ def update_meter_metadata(
     }
 
 
-def get_verification_summary(db: Session) -> AssetVerificationSummaryResponse:
-    asset_candidates = db.query(Asset).filter(Asset.source == "DISCOVERY_PROPOSAL").count()
-    verified_assets = db.query(Asset).filter(Asset.verification_status == "VERIFIED").count()
-    unverified_assets = db.query(Asset).filter(Asset.verification_status == "UNVERIFIED").count()
-    rejected_assets = db.query(Asset).filter(Asset.verification_status == "REJECTED").count()
+def get_verification_summary(db: Session, scenario_id: Optional[str] = None) -> AssetVerificationSummaryResponse:
+    if scenario_id is not None:
+        target_scenario = None if scenario_id.upper() in ("ALL", "NONE", "NULL") else scenario_id
+    elif settings.data_mode == "SIMULATION":
+        target_scenario = settings.active_scenario
+    else:
+        target_scenario = None
 
-    meter_relations = db.query(MeterAssetRelation).filter(MeterAssetRelation.valid_to.is_(None)).count()
-    verified_relations = (
-        db.query(MeterAssetRelation)
-        .filter(MeterAssetRelation.verification_status == "VERIFIED", MeterAssetRelation.valid_to.is_(None))
-        .count()
-    )
-    unverified_relations = (
-        db.query(MeterAssetRelation)
-        .filter(MeterAssetRelation.verification_status == "UNVERIFIED", MeterAssetRelation.valid_to.is_(None))
-        .count()
-    )
+    asset_q = db.query(Asset)
+    if target_scenario:
+        asset_q = asset_q.filter(Asset.scenario_id == target_scenario)
 
-    connections = db.query(AssetConnection).filter(AssetConnection.valid_to.is_(None)).count()
-    verified_conns = (
-        db.query(AssetConnection)
-        .filter(AssetConnection.verification_status == "VERIFIED", AssetConnection.valid_to.is_(None))
-        .count()
-    )
+    asset_candidates = asset_q.filter(Asset.source == "DISCOVERY_PROPOSAL").count()
+    verified_assets = asset_q.filter(Asset.verification_status.in_(["VERIFIED", "SIMULATION_APPROVED"])).count()
+    unverified_assets = asset_q.filter(Asset.verification_status == "UNVERIFIED").count()
+    rejected_assets = asset_q.filter(Asset.verification_status == "REJECTED").count()
 
-    missing_pos = db.query(Asset).filter(Asset.map_x.is_(None)).count()
-    meters = db.query(Meter).filter(Meter.lifecycle_status == "ACTIVE").all()
+    rel_q = db.query(MeterAssetRelation).filter(MeterAssetRelation.valid_to.is_(None))
+    if target_scenario:
+        rel_q = rel_q.filter(MeterAssetRelation.scenario_id == target_scenario)
+
+    meter_relations = rel_q.count()
+    verified_relations = rel_q.filter(MeterAssetRelation.verification_status.in_(["VERIFIED", "SIMULATION_APPROVED"])).count()
+    unverified_relations = rel_q.filter(MeterAssetRelation.verification_status == "UNVERIFIED").count()
+
+    conn_q = db.query(AssetConnection).filter(AssetConnection.valid_to.is_(None))
+    if target_scenario:
+        conn_q = conn_q.filter(AssetConnection.scenario_id == target_scenario)
+
+    connections = conn_q.count()
+    verified_conns = conn_q.filter(AssetConnection.verification_status.in_(["VERIFIED", "SIMULATION_APPROVED"])).count()
+
+    missing_pos = asset_q.filter(Asset.map_x.is_(None)).count()
+    meter_q = db.query(Meter).filter(Meter.lifecycle_status == "ACTIVE")
+    if target_scenario:
+        meter_q = meter_q.filter(Meter.scenario_id == target_scenario)
+    meters = meter_q.all()
+
     missing_inst = 0
     missing_meas = 0
     missing_rm = 0
@@ -1990,6 +2013,12 @@ def get_verification_summary(db: Session) -> AssetVerificationSummaryResponse:
         if not m.utility_type or m.utility_type == "UNKNOWN":
             missing_ut += 1
 
+    # Spatial review meters scoped to active scenario
+    if target_scenario:
+        spatial_review_candidates = [m.meter_code for m in meters if m.meter_code.endswith("-001") or m.meter_code.endswith("-007")]
+    else:
+        spatial_review_candidates = ["CT-001", "CT-007", "CT-008", "CT-009", "CT-010"]
+
     return AssetVerificationSummaryResponse(
         assetCandidates=asset_candidates,
         verifiedAssets=verified_assets,
@@ -2000,7 +2029,7 @@ def get_verification_summary(db: Session) -> AssetVerificationSummaryResponse:
         unverifiedMeterRelations=unverified_relations,
         topologyConnections=connections,
         verifiedTopologyConnections=verified_conns,
-        spatialReviewMeters=["CT-001", "CT-007", "CT-008", "CT-009", "CT-010"],
+        spatialReviewMeters=spatial_review_candidates,
         missingInformationCounts={
             "missing_asset_position": missing_pos,
             "missing_installed_at": missing_inst,
@@ -2011,10 +2040,21 @@ def get_verification_summary(db: Session) -> AssetVerificationSummaryResponse:
     )
 
 
-def get_meter_review_matrix(db: Session) -> list[MeterReviewMatrixItem]:
-    meters = db.query(Meter).order_by(Meter.meter_code.asc()).all()
+def get_meter_review_matrix(db: Session, scenario_id: Optional[str] = None) -> list[MeterReviewMatrixItem]:
+    if scenario_id is not None:
+        target_scenario = None if scenario_id.upper() in ("ALL", "NONE", "NULL") else scenario_id
+    elif settings.data_mode == "SIMULATION":
+        target_scenario = settings.active_scenario
+    else:
+        target_scenario = None
+
+    meter_q = db.query(Meter)
+    if target_scenario:
+        meter_q = meter_q.filter(Meter.scenario_id == target_scenario)
+    meters = meter_q.order_by(Meter.meter_code.asc()).all()
+
     matrix = []
-    spatial_review_set = {"CT-001", "CT-007", "CT-008", "CT-009", "CT-010"}
+    spatial_review_set = {"CT-001", "CT-007", "CT-008", "CT-009", "CT-010", "SIM-EM-001", "SIM-EM-007"}
 
     for m in meters:
         measures_rel = next((r for r in m.asset_relations if r.relation_type == "MEASURES" and r.valid_to is None), None)

@@ -56,7 +56,7 @@ const EVIDENCE_TYPE_LABELS: Record<EvidenceType, string> = {
 };
 
 export const AdminVerification: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'pending' | 'verified' | 'rejected' | 'matrix'>('pending');
+  const [activeTab, setActiveTab] = useState<'pending' | 'verified' | 'rejected' | 'matrix'>('verified');
   const [summary, setSummary] = useState<AssetVerificationSummary | null>(null);
   const [matrix, setMatrix] = useState<MeterReviewMatrixItem[]>([]);
   const [assets, setAssets] = useState<Asset[]>([]);
@@ -349,22 +349,47 @@ export const AdminVerification: React.FC = () => {
 
       <div className="admin-verification-page p-6 max-w-7xl w-full mx-auto space-y-6 flex-1">
 
-      {/* 1. TOP DUAL SCOPE SEGMENTED CONTROL */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white p-2.5 rounded-xl border border-[#D7E0E5] shadow-sm">
-        <div className="flex items-center gap-2 w-full sm:w-auto">
+      {/* HEADER (Section 15: Production Polish — Synchronized with AdminAssets) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
+        <div>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+              <ClipboardCheck className="text-sky-600" size={26} />
+              Trung tâm đối soát
+            </h1>
+            <span
+              className="sgp-sim-badge"
+              title="Dữ liệu thiết bị và mạng lưới trong môi trường này được tạo để mô phỏng và không phải dữ liệu hạ tầng thực tế của doanh nghiệp."
+              style={{
+                padding: '2px 8px',
+                backgroundColor: '#F1F5F9',
+                color: '#334155',
+                fontSize: 11,
+                fontWeight: 600,
+                borderRadius: 4,
+                border: '1px solid #CBD5E1',
+                cursor: 'help',
+              }}
+            >
+              Dữ liệu mô phỏng
+            </span>
+          </div>
+          <p className="text-sm text-slate-500 mt-1">
+            Đối soát liên thông hồ sơ kỹ thuật hạ tầng và chỉ số đo đếm ca kíp bảo toàn minh chứng.
+          </p>
+        </div>
+
+        {/* DUAL SCOPE SEGMENTED CONTROL */}
+        <div className="sgp-segmented-scope flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200 w-full sm:w-auto self-start sm:self-auto">
           <button
             type="button"
             onClick={() => setHubScope('infrastructure')}
-            className={`flex-1 sm:flex-none px-4 py-2.5 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition ${
-              hubScope === 'infrastructure'
-                ? 'bg-[#073B5C] text-white shadow-sm'
-                : 'text-[#53636D] hover:bg-[#F2F7F9] hover:text-[#073B5C]'
-            }`}
+            className={`sgp-scope-btn ${hubScope === 'infrastructure' ? 'active' : ''}`}
           >
-            <Boxes size={18} />
-            <span>Đối soát Hồ sơ Hạ tầng & Thiết bị</span>
+            <Boxes size={14} className={hubScope === 'infrastructure' ? 'text-sky-600' : 'text-slate-400'} />
+            <span>Hồ sơ hạ tầng & thiết bị</span>
             {summary && summary.unverifiedAssets > 0 && (
-              <span className="px-2 py-0.5 text-xs rounded-full bg-amber-500 text-white font-bold">
+              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-amber-500 text-white">
                 {summary.unverifiedAssets}
               </span>
             )}
@@ -373,66 +398,32 @@ export const AdminVerification: React.FC = () => {
           <button
             type="button"
             onClick={() => setHubScope('readings')}
-            className={`flex-1 sm:flex-none px-4 py-2.5 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition ${
-              hubScope === 'readings'
-                ? 'bg-[#073B5C] text-white shadow-sm'
-                : 'text-[#53636D] hover:bg-[#F2F7F9] hover:text-[#073B5C]'
-            }`}
+            className={`sgp-scope-btn ${hubScope === 'readings' ? 'active' : ''}`}
           >
-            <ClipboardCheck size={18} />
-            <span>Đối soát Chỉ số & Ca ghi</span>
+            <ClipboardCheck size={14} className={hubScope === 'readings' ? 'text-sky-600' : 'text-slate-400'} />
+            <span>Chỉ số & ca ghi</span>
             {readingExceptions.length > 0 && (
-              <span className="px-2 py-0.5 text-xs rounded-full bg-rose-500 text-white font-bold">
+              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-rose-500 text-white">
                 {readingExceptions.length}
               </span>
             )}
           </button>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {workspace && (
-            <div className="flex items-center gap-1.5 mr-2">
-              <button
-                type="button"
-                onClick={() => workspace?.setActiveTab('dashboard')}
-                className="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-[#53636D] hover:bg-[#F2F7F9] hover:text-[#073B5C] border border-[#D7E0E5] flex items-center gap-1.5 transition"
-                title="Mở Không gian Bản đồ Vận hành"
-              >
-                <MapPin size={13} className="text-sky-600" />
-                <span>Bản đồ</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => workspace?.setActiveTab('assets')}
-                className="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-[#53636D] hover:bg-[#F2F7F9] hover:text-[#073B5C] border border-[#D7E0E5] flex items-center gap-1.5 transition"
-                title="Mở Danh mục Thiết bị"
-              >
-                <Boxes size={13} className="text-sky-600" />
-                <span>Thiết bị</span>
-              </button>
-            </div>
-          )}
-          <div className="text-xs text-[#74838C] hidden xl:flex items-center gap-2">
-            <span className="font-semibold text-[#073B5C]">Trung tâm Đối soát Liên thông</span>
-            <span>•</span>
-            <span>Bảo toàn minh chứng</span>
-          </div>
         </div>
       </div>
 
       {hubScope === 'readings' ? (
         <div className="space-y-4">
           {/* Controls Bar: Date, Refresh, KPI Summary */}
-          <div className="bg-white border border-[#D7E0E5] rounded-xl p-4 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2">
-                <Calendar size={18} className="text-[#12658F]" />
-                <span className="text-xs font-semibold text-[#53636D]">Ngày ghi nhận:</span>
+                <Calendar size={16} className="text-sky-600" />
+                <span className="text-xs font-semibold text-slate-600">Ngày ghi nhận:</span>
                 <input
                   type="date"
                   value={selectedShiftDate}
                   onChange={(e) => setSelectedShiftDate(e.target.value)}
-                  className="px-3 py-1.5 text-sm font-medium border border-[#D7E0E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#073B5C]"
+                  className="px-3 py-1.5 text-sm font-medium border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
                 />
               </div>
 
@@ -440,24 +431,24 @@ export const AdminVerification: React.FC = () => {
                 type="button"
                 onClick={() => loadShiftReadings(selectedShiftDate)}
                 disabled={readingsLoading}
-                className="p-2 text-[#53636D] hover:text-[#073B5C] hover:bg-[#F2F7F9] rounded-lg transition"
+                className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition"
                 title="Làm mới danh sách bất thường"
               >
-                <RefreshCw size={16} className={readingsLoading ? 'animate-spin' : ''} />
+                <RefreshCw size={15} className={readingsLoading ? 'animate-spin' : ''} />
               </button>
             </div>
 
             <div className="flex items-center gap-4 text-xs">
               <div className="flex items-center gap-1.5">
                 <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
-                <span className="text-[#53636D]">Cần kiểm tra:</span>
+                <span className="text-slate-600">Cần kiểm tra:</span>
                 <span className="font-bold text-amber-700">
                   {readingExceptions.filter((e) => e.exception_state === 'REVIEW').length}
                 </span>
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
-                <span className="text-[#53636D]">Chưa ghi / Bỏ sót:</span>
+                <span className="text-slate-600">Chưa ghi / Bỏ sót:</span>
                 <span className="font-bold text-rose-700">
                   {readingExceptions.filter((e) => e.exception_state === 'MISSING').length}
                 </span>
@@ -466,23 +457,23 @@ export const AdminVerification: React.FC = () => {
           </div>
 
           {/* Shift Reading Anomaly List */}
-          <div className="bg-white border border-[#D7E0E5] rounded-xl shadow-sm overflow-hidden">
+          <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
             {readingsLoading ? (
-              <div className="p-12 text-center text-[#53636D] text-sm">Đang tải dữ liệu đối soát ca ghi...</div>
+              <div className="p-12 text-center text-slate-500 text-sm">Đang tải dữ liệu đối soát ca ghi...</div>
             ) : readingExceptions.length === 0 ? (
               <div className="p-12 text-center space-y-2">
-                <div className="w-12 h-12 rounded-full bg-[#EAF6F1] text-[#167A5A] mx-auto flex items-center justify-center">
+                <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 mx-auto flex items-center justify-center">
                   <CheckCircle2 size={24} />
                 </div>
-                <h4 className="font-bold text-[#073B5C] text-sm">Toàn bộ chỉ số ca ghi đã hoàn tất đối soát</h4>
-                <p className="text-xs text-[#53636D]">
+                <h4 className="font-bold text-slate-800 text-sm">Toàn bộ chỉ số ca ghi đã hoàn tất đối soát</h4>
+                <p className="text-xs text-slate-500">
                   Không phát hiện bất thường vượt ngưỡng hoặc yêu cầu kiểm tra thực địa trong ca này.
                 </p>
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs text-[#18242C]">
-                  <thead className="bg-[#F6F8F9] border-b border-[#D7E0E5] text-[11px] font-bold text-[#53636D] uppercase">
+                <table className="w-full text-left text-xs text-slate-700">
+                  <thead className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-600 uppercase">
                     <tr>
                       <th className="py-3 px-4">Công tơ</th>
                       <th className="py-3 px-4">Khu vực / Điểm đo</th>
@@ -493,37 +484,37 @@ export const AdminVerification: React.FC = () => {
                       <th className="py-3 px-4 text-right">Thao tác xử lý</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#E6ECEF]">
+                  <tbody className="divide-y divide-slate-200">
                     {readingExceptions.map((exc, idx) => (
-                      <tr key={idx} className="hover:bg-[#F8FAFC] transition">
+                      <tr key={idx} className="hover:bg-slate-50 transition">
                         <td className="py-3 px-4">
-                          <span className="font-mono font-bold text-[#073B5C] text-xs block">{exc.meter_code}</span>
-                          <span className="text-[#53636D] text-[11px]">{exc.meter_name}</span>
+                          <span className="font-mono font-bold text-slate-900 text-xs block">{exc.meter_code}</span>
+                          <span className="text-slate-500 text-[11px]">{exc.meter_name}</span>
                         </td>
-                        <td className="py-3 px-4 text-[#53636D]">{exc.location}</td>
+                        <td className="py-3 px-4 text-slate-600">{exc.location}</td>
                         <td className="py-3 px-4">
-                          <span className="font-medium text-[#18242C] block">{exc.scheduled_local}</span>
-                          <span className="text-[10px] text-[#74838C]">Mã lượt: {exc.round_id}</span>
+                          <span className="font-medium text-slate-800 block">{exc.scheduled_local}</span>
+                          <span className="text-[10px] text-slate-400">Mã lượt: {exc.round_id}</span>
                         </td>
                         <td className="py-3 px-4">
                           <span
                             className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
                               exc.exception_state === 'REVIEW'
-                                ? 'bg-[#FFF4DF] text-[#A86200] border border-[#FFE0A3]'
-                                : 'bg-[#FCECEC] text-[#B43A3A] border border-[#F5B5B5]'
+                                ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                                : 'bg-rose-50 text-rose-700 border border-rose-200'
                             }`}
                           >
                             <AlertTriangle size={10} />
                             {exc.exception_label}
                           </span>
                         </td>
-                        <td className="py-3 px-4 font-mono font-bold text-sm text-[#073B5C]">
+                        <td className="py-3 px-4 font-mono font-bold text-sm text-slate-900">
                           {exc.ocr_reading || '—'}
                         </td>
-                        <td className="py-3 px-4 text-[#53636D]">
+                        <td className="py-3 px-4 text-slate-600">
                           <span>{exc.recorded_by || 'Chưa ghi'}</span>
                           {exc.server_timestamp && (
-                            <span className="text-[10px] text-[#74838C] block">{exc.server_timestamp}</span>
+                            <span className="text-[10px] text-slate-400 block">{exc.server_timestamp}</span>
                           )}
                         </td>
                         <td className="py-3 px-4 text-right">
@@ -539,7 +530,7 @@ export const AdminVerification: React.FC = () => {
                                     name: exc.meter_name,
                                   })
                                 }
-                                className="p-1.5 text-[#53636D] hover:text-[#073B5C] hover:bg-[#E8F1F5] rounded-lg transition"
+                                className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition"
                                 title="Định vị công tơ trên Bản đồ"
                               >
                                 <MapPin size={15} />
@@ -550,7 +541,7 @@ export const AdminVerification: React.FC = () => {
                               <button
                                 type="button"
                                 onClick={() => workspace.openReadingInspection(exc.reading_id!)}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#073B5C] hover:bg-[#0B4F75] text-white text-xs font-semibold rounded-lg shadow-sm transition"
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-sky-600 hover:bg-sky-700 text-white text-xs font-semibold rounded-lg shadow-sm transition"
                                 title="Mở đối soát ảnh chụp và chỉ số"
                               >
                                 <Eye size={13} />
@@ -569,181 +560,125 @@ export const AdminVerification: React.FC = () => {
         </div>
       ) : (
         <>
-          {/* Overview Metric Banner */}
-          <div className="bg-white border border-[#D7E0E5] rounded-xl p-5 shadow-sm">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#D7E0E5] pb-4 mb-4">
-          <div>
-            <h2 className="text-xl font-bold text-[#073B5C] flex items-center gap-2">
-              <ClipboardCheck className="w-6 h-6 text-[#12658F]" />
-              Đối soát & Xác minh Hạ tầng (V16D)
-            </h2>
-            <p className="text-sm text-[#53636D]">
-              Quy trình chuyển đổi đề xuất ứng viên thành dữ liệu hạ tầng chính thức. Mọi quyết định xác minh bắt buộc đính kèm căn cứ thực tế.
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={handleImport}
-              disabled={isImporting}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-[#E8F1F5] hover:bg-[#D7E0E5] text-[#073B5C] font-semibold text-sm rounded-lg transition-colors border border-[#B8C6CE]"
-            >
-              <DownloadCloud className="w-4 h-4 text-[#12658F]" />
-              {isImporting ? 'Đang nạp đề xuất...' : 'Nạp đề xuất ứng viên (Import)'}
-            </button>
-          </div>
-        </div>
+          {/* SUMMARY STRIP (Section 17 — Synchronized with AdminAssets.tsx) */}
+          {summary && (
+            <div className="flex flex-wrap items-center gap-4 text-xs text-slate-600 bg-slate-50 px-4 py-2.5 rounded-xl border border-slate-200">
+              <span className="font-semibold text-slate-900">{summary.verifiedAssets} Đã xác minh</span>
+              <span className="text-slate-300">|</span>
+              <span className="text-amber-700 font-medium">{summary.unverifiedAssets} Chờ xác minh</span>
+              <span className="text-slate-300">|</span>
+              <span className="text-slate-700 font-medium">{summary.verifiedMeterRelations}/{summary.meterRelations} Liên kết công tơ</span>
+              <span className="text-slate-300">|</span>
+              <span className="text-emerald-700 font-medium">{summary.verifiedTopologyConnections}/{summary.topologyConnections} Kết nối mạng lưới</span>
+              <span className="text-slate-300">|</span>
+              <span className="text-slate-500 font-medium">{summary.spatialReviewMeters.length} Rà soát vị trí</span>
+            </div>
+          )}
 
-        {summary && (
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-            <div className="p-3 bg-[#F6F8F9] rounded-lg border border-[#D7E0E5]">
-              <div className="text-xs text-[#53636D]">Ứng viên khám phá</div>
-              <div className="text-xl font-bold text-[#073B5C]">{summary.assetCandidates}</div>
-              <div className="text-[11px] text-[#74838C]">Đề xuất từ hồ sơ sơ bộ</div>
-            </div>
-            <div className="p-3 bg-[#EAF6F1] rounded-lg border border-[#B8DEC9]">
-              <div className="text-xs text-[#167A5A]">Thiết bị đã xác minh</div>
-              <div className="text-xl font-bold text-[#167A5A]">{summary.verifiedAssets}</div>
-              <div className="text-[11px] text-[#167A5A]">Có đầy đủ chứng thực</div>
-            </div>
-            <div className="p-3 bg-[#FFF4DF] rounded-lg border border-[#FFE0A3]">
-              <div className="text-xs text-[#A86200]">Chờ xác minh</div>
-              <div className="text-xl font-bold text-[#A86200]">{summary.unverifiedAssets}</div>
-              <div className="text-[11px] text-[#A86200]">Chưa đưa vào vận hành</div>
-            </div>
-            <div className="p-3 bg-[#F6F8F9] rounded-lg border border-[#D7E0E5]">
-              <div className="text-xs text-[#53636D]">Liên kết công tơ</div>
-              <div className="text-xl font-bold text-[#073B5C]">
-                {summary.verifiedMeterRelations} <span className="text-xs text-[#74838C]">/ {summary.meterRelations}</span>
-              </div>
-              <div className="text-[11px] text-[#74838C]">{summary.unverifiedMeterRelations} liên kết chờ duyệt</div>
-            </div>
-            <div className="p-3 bg-[#FCECEC] rounded-lg border border-[#F5B5B5]">
-              <div className="text-xs text-[#B43A3A]">Công tơ xem xét vị trí</div>
-              <div className="text-xl font-bold text-[#B43A3A]">{summary.spatialReviewMeters.length}</div>
-              <div className="text-[11px] text-[#B43A3A]">CT-001, 007, 008, 009, 010</div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {actionSuccess && (
-        <div className="bg-[#EAF6F1] border border-[#167A5A] text-[#167A5A] px-4 py-3 rounded-lg text-sm flex items-center justify-between">
-          <span className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4" />
-            {actionSuccess}
-          </span>
-          <button onClick={() => setActionSuccess(null)} className="text-[#167A5A] hover:underline">
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      )}
-
-      {error && (
-        <div className="bg-[#FCECEC] border border-[#B43A3A] text-[#B43A3A] px-4 py-3 rounded-lg text-sm flex items-center justify-between">
-          <span>{error}</span>
-          <button onClick={() => setError(null)} className="text-[#B43A3A] hover:underline">
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      )}
-
-      {/* Workspace Tabs & Filters */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-2 border-b border-[#D7E0E5] pb-px">
-          <button
-            onClick={() => setActiveTab('pending')}
-            className={`px-4 py-2 text-sm font-semibold border-b-2 transition-colors flex items-center gap-2 ${
-              activeTab === 'pending'
-                ? 'border-[#073B5C] text-[#073B5C]'
-                : 'border-transparent text-[#53636D] hover:text-[#073B5C]'
-            }`}
-          >
-            <AlertTriangle className="w-4 h-4 text-[#A86200]" />
-            Chờ xác minh
-            {summary && (
-              <span className="ml-1 px-2 py-0.5 text-xs rounded-full bg-[#FFF4DF] text-[#A86200] font-bold">
-                {summary.unverifiedAssets}
+          {actionSuccess && (
+            <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-lg text-sm flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                {actionSuccess}
               </span>
-            )}
-          </button>
+              <button onClick={() => setActionSuccess(null)} className="text-emerald-700 hover:underline">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
 
-          <button
-            onClick={() => setActiveTab('verified')}
-            className={`px-4 py-2 text-sm font-semibold border-b-2 transition-colors flex items-center gap-2 ${
-              activeTab === 'verified'
-                ? 'border-[#167A5A] text-[#167A5A]'
-                : 'border-transparent text-[#53636D] hover:text-[#167A5A]'
-            }`}
-          >
-            <CheckCircle2 className="w-4 h-4 text-[#167A5A]" />
-            Đã xác minh
-            {summary && (
-              <span className="ml-1 px-2 py-0.5 text-xs rounded-full bg-[#EAF6F1] text-[#167A5A] font-bold">
-                {summary.verifiedAssets}
-              </span>
-            )}
-          </button>
+          {error && (
+            <div className="bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-lg text-sm flex items-center justify-between">
+              <span>{error}</span>
+              <button onClick={() => setError(null)} className="text-rose-700 hover:underline">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
 
-          <button
-            onClick={() => setActiveTab('rejected')}
-            className={`px-4 py-2 text-sm font-semibold border-b-2 transition-colors flex items-center gap-2 ${
-              activeTab === 'rejected'
-                ? 'border-[#B43A3A] text-[#B43A3A]'
-                : 'border-transparent text-[#53636D] hover:text-[#B43A3A]'
-            }`}
-          >
-            <XCircle className="w-4 h-4 text-[#B43A3A]" />
-            Bị từ chối
-            {summary && (
-              <span className="ml-1 px-2 py-0.5 text-xs rounded-full bg-[#FCECEC] text-[#B43A3A] font-bold">
-                {summary.rejectedAssets}
-              </span>
-            )}
-          </button>
+          {/* SUB-TABS & SEARCH CONTROLS */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <button
+                type="button"
+                onClick={() => setActiveTab('verified')}
+                className={`sgp-subtab-btn ${activeTab === 'verified' ? 'active verified' : ''}`}
+              >
+                <CheckCircle2 size={13} className={activeTab === 'verified' ? 'text-emerald-600' : 'text-slate-400'} />
+                <span>Đã xác minh ({summary?.verifiedAssets || 0})</span>
+              </button>
 
-          <button
-            onClick={() => setActiveTab('matrix')}
-            className={`px-4 py-2 text-sm font-semibold border-b-2 transition-colors flex items-center gap-2 ${
-              activeTab === 'matrix'
-                ? 'border-[#12658F] text-[#12658F]'
-                : 'border-transparent text-[#53636D] hover:text-[#12658F]'
-            }`}
-          >
-            <Gauge className="w-4 h-4 text-[#12658F]" />
-            Ma trận 12 công tơ
-          </button>
-        </div>
+              <button
+                type="button"
+                onClick={() => setActiveTab('pending')}
+                className={`sgp-subtab-btn ${activeTab === 'pending' ? 'active pending' : ''}`}
+              >
+                <AlertTriangle size={13} className={activeTab === 'pending' ? 'text-amber-600' : 'text-slate-400'} />
+                <span>Chờ xác minh ({summary?.unverifiedAssets || 0})</span>
+              </button>
 
-        {activeTab !== 'matrix' && (
-          <div className="relative min-w-[260px]">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#74838C]" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Tìm mã hoặc tên thiết bị..."
-              className="w-full pl-9 pr-3 py-1.5 text-sm bg-white border border-[#D7E0E5] rounded-lg focus:outline-none focus:border-[#073B5C]"
-            />
+              <button
+                type="button"
+                onClick={() => setActiveTab('rejected')}
+                className={`sgp-subtab-btn ${activeTab === 'rejected' ? 'active rejected' : ''}`}
+              >
+                <XCircle size={13} className={activeTab === 'rejected' ? 'text-rose-600' : 'text-slate-400'} />
+                <span>Bị từ chối ({summary?.rejectedAssets || 0})</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('matrix')}
+                className={`sgp-subtab-btn ${activeTab === 'matrix' ? 'active matrix' : ''}`}
+              >
+                <Gauge size={13} className={activeTab === 'matrix' ? 'text-sky-600' : 'text-slate-400'} />
+                <span>Ma trận 12 công tơ</span>
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {activeTab !== 'matrix' && (
+                <div className="relative w-full sm:w-60">
+                  <Search size={14} className="absolute left-3 top-2.5 text-slate-400" />
+                  <input
+                    type="text"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Tìm mã hoặc tên thiết bị..."
+                    className="w-full pl-8 pr-3 py-1.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  />
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={handleImport}
+                disabled={isImporting}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-lg text-xs font-medium border border-slate-300 transition"
+                title="Nạp đề xuất ứng viên từ hồ sơ khám phá"
+              >
+                <DownloadCloud size={13} className="text-slate-600" />
+                <span>{isImporting ? 'Đang nạp...' : 'Nạp đề xuất'}</span>
+              </button>
+            </div>
           </div>
-        )}
-      </div>
 
       {/* Main Tab Content */}
       {loading ? (
         <div className="p-8 text-center text-[#53636D]">Đang tải danh sách đối soát...</div>
       ) : activeTab === 'matrix' ? (
         /* 12-METER REVIEW MATRIX */
-        <div className="bg-white border border-[#D7E0E5] rounded-xl overflow-hidden shadow-sm">
-          <div className="p-4 border-b border-[#D7E0E5] bg-[#F6F8F9] flex items-center justify-between">
-            <h3 className="text-sm font-bold text-[#073B5C]">
+        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+          <div className="p-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
+            <h3 className="text-sm font-bold text-slate-800">
               Ma Trận Đối Soát 12 Công Tơ Hiện Hữu (authoritative baseline)
             </h3>
-            <span className="text-xs text-[#53636D]">12 công tơ cố định, tọa độ không đổi</span>
+            <span className="text-xs text-slate-500">12 công tơ cố định, bảo toàn vị trí chuẩn hóa</span>
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs text-[#18242C]">
-              <thead className="bg-[#F2F7F9] text-[#073B5C] font-semibold border-b border-[#D7E0E5]">
+            <table className="w-full text-left text-xs text-slate-700">
+              <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200 uppercase text-[11px]">
                 <tr>
                   <th className="px-4 py-3">Công tơ</th>
                   <th className="px-4 py-3">Tên hiện hữu</th>
@@ -758,30 +693,30 @@ export const AdminVerification: React.FC = () => {
                   <th className="px-4 py-3 text-right">Thao tác</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#D7E0E5]">
+              <tbody className="divide-y divide-slate-200">
                 {matrix.map((row) => (
-                  <tr key={row.meter_code} className="hover:bg-[#F6F8F9]">
-                    <td className="px-4 py-3 font-mono font-bold text-[#073B5C]">
+                  <tr key={row.meter_code} className="hover:bg-slate-50 transition">
+                    <td className="px-4 py-3 font-mono font-bold text-slate-900">
                       {row.meter_code}
                     </td>
-                    <td className="px-4 py-3">{row.name}</td>
+                    <td className="px-4 py-3 font-medium text-slate-800">{row.name}</td>
                     <td className="px-4 py-3">
-                      <span className="px-2 py-0.5 bg-[#E8F1F5] rounded text-[11px] font-semibold text-[#073B5C]">
+                      <span className="px-2 py-0.5 bg-sky-50 text-sky-700 border border-sky-200 rounded text-[11px] font-semibold">
                         {row.utility}
                       </span>
                     </td>
-                    <td className="px-4 py-3 font-medium text-[#18242C]">
-                      {row.proposed_measures || <span className="text-[#74838C]">Chưa có</span>}
+                    <td className="px-4 py-3 font-medium text-slate-800">
+                      {row.proposed_measures || <span className="text-slate-400">Chưa có</span>}
                     </td>
                     <td className="px-4 py-3">
                       {row.measures_confidence ? (
                         <span
-                          className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                          className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
                             row.measures_confidence === 'HIGH'
-                              ? 'bg-[#EAF6F1] text-[#167A5A]'
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                               : row.measures_confidence === 'MEDIUM'
-                              ? 'bg-[#FFF4DF] text-[#A86200]'
-                              : 'bg-[#F2F7F9] text-[#53636D]'
+                              ? 'bg-amber-50 text-amber-700 border-amber-200'
+                              : 'bg-slate-100 text-slate-600 border-slate-200'
                           }`}
                         >
                           {row.measures_confidence}
@@ -792,29 +727,29 @@ export const AdminVerification: React.FC = () => {
                     </td>
                     <td className="px-4 py-3">
                       <span
-                        className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                          row.measures_verification === 'VERIFIED'
-                            ? 'bg-[#EAF6F1] text-[#167A5A]'
+                        className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
+                          row.measures_verification === 'VERIFIED' || row.measures_verification === 'SIMULATION_APPROVED'
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                             : row.measures_verification === 'REJECTED'
-                            ? 'bg-[#FCECEC] text-[#B43A3A]'
-                            : 'bg-[#FFF4DF] text-[#A86200]'
+                            ? 'bg-rose-50 text-rose-700 border-rose-200'
+                            : 'bg-amber-50 text-amber-700 border-amber-200'
                         }`}
                       >
-                        {row.measures_verification}
+                        {row.measures_verification === 'SIMULATION_APPROVED' ? 'Đã duyệt MP' : row.measures_verification}
                       </span>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 text-slate-700">
                       {row.proposed_installed_at ? (
                         <span>{row.proposed_installed_at}</span>
                       ) : (
-                        <span className="text-[#74838C]">Chưa liên kết</span>
+                        <span className="text-slate-400">Chưa liên kết</span>
                       )}
                     </td>
                     <td className="px-4 py-3">
                       {row.asset_position_known ? (
-                        <span className="text-[#167A5A] font-semibold">Đã có</span>
+                        <span className="text-emerald-700 font-semibold">Đã có</span>
                       ) : (
-                        <span className="text-[#A86200]">Chưa có</span>
+                        <span className="text-amber-700">Chưa có</span>
                       )}
                     </td>
                     <td className="px-4 py-3">
@@ -823,23 +758,23 @@ export const AdminVerification: React.FC = () => {
                           {row.missing_info.map((item, idx) => (
                             <span
                               key={idx}
-                              className="px-1.5 py-0.5 bg-[#FFF4DF] text-[#A86200] rounded text-[10px]"
+                              className="px-1.5 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 rounded text-[10px]"
                             >
                               {item}
                             </span>
                           ))}
                         </div>
                       ) : (
-                        <span className="text-[#167A5A] text-xs">Đầy đủ</span>
+                        <span className="text-emerald-700 text-xs font-medium">Đầy đủ</span>
                       )}
                     </td>
                     <td className="px-4 py-3">
                       {row.is_spatial_review_required ? (
-                        <span className="px-2 py-0.5 bg-[#FFF4DF] text-[#A86200] border border-[#FFE0A3] rounded text-[10px] font-bold">
+                        <span className="px-2 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 rounded text-[10px] font-bold">
                           SPATIAL REVIEW
                         </span>
                       ) : (
-                        <span className="text-[#74838C] text-[10px]">Bình thường</span>
+                        <span className="text-slate-400 text-[10px]">Bình thường</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-right">
@@ -855,10 +790,10 @@ export const AdminVerification: React.FC = () => {
                                 name: row.name,
                               })
                             }
-                            className="p-1 text-[#53636D] hover:text-[#073B5C] hover:bg-[#E8F1F5] rounded transition"
+                            className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition"
                             title="Định vị công tơ trên Bản đồ"
                           >
-                            <MapPin size={15} />
+                            <MapPin size={14} />
                           </button>
                         )}
                         {row.proposed_measures && workspace && (
@@ -870,10 +805,10 @@ export const AdminVerification: React.FC = () => {
                                 row.proposed_measures || undefined
                               )
                             }
-                            className="p-1 text-[#53636D] hover:text-[#073B5C] hover:bg-[#E8F1F5] rounded transition"
+                            className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition"
                             title="Mở trong Danh mục Thiết bị"
                           >
-                            <Boxes size={15} />
+                            <Boxes size={14} />
                           </button>
                         )}
                       </div>
@@ -886,77 +821,82 @@ export const AdminVerification: React.FC = () => {
         </div>
       ) : (
         /* ASSET CANDIDATES QUEUE */
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="sgp-candidate-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {assets.length === 0 ? (
-            <div className="col-span-full bg-white border border-[#D7E0E5] rounded-xl p-8 text-center text-[#53636D]">
+            <div className="col-span-full bg-white border border-slate-200 rounded-xl p-8 text-center text-slate-500">
               Không có thiết bị nào trong trạng thái này.
             </div>
           ) : (
             assets.map((asset) => {
               const rel = relations.find((r) => r.asset_id === asset.id);
+              const isVerified = asset.verification_status === 'VERIFIED' || asset.verification_status === 'SIMULATION_APPROVED';
+              const isRejected = asset.verification_status === 'REJECTED';
+
               return (
                 <div
                   key={asset.id}
-                  className="bg-white border border-[#D7E0E5] rounded-xl p-4 shadow-sm hover:border-[#073B5C] transition-all flex flex-col justify-between"
+                  className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm hover:border-slate-300 transition-all flex flex-col justify-between"
                 >
                   <div className="space-y-3">
                     <div className="flex items-start justify-between">
                       <div>
-                        <span className="text-xs font-mono font-bold text-[#12658F] bg-[#E8F1F5] px-2 py-0.5 rounded">
+                        <span className="text-xs font-mono font-bold text-sky-700 bg-sky-50 px-2 py-0.5 rounded border border-sky-200">
                           {asset.code}
                         </span>
-                        <h4 className="font-bold text-[#073B5C] mt-1 text-sm">{asset.name}</h4>
+                        <h4 className="font-bold text-slate-800 mt-1 text-sm">{asset.name}</h4>
                       </div>
                       <span
-                        className={`text-[10px] font-bold px-2 py-0.5 rounded ${
-                          asset.verification_status === 'VERIFIED'
-                            ? 'bg-[#EAF6F1] text-[#167A5A]'
-                            : asset.verification_status === 'REJECTED'
-                            ? 'bg-[#FCECEC] text-[#B43A3A]'
-                            : 'bg-[#FFF4DF] text-[#A86200]'
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
+                          isVerified
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            : isRejected
+                            ? 'bg-rose-50 text-rose-700 border-rose-200'
+                            : 'bg-amber-50 text-amber-700 border-amber-200'
                         }`}
                       >
-                        {asset.verification_status === 'VERIFIED'
+                        {asset.verification_status === 'SIMULATION_APPROVED'
+                          ? 'Mô phỏng duyệt'
+                          : isVerified
                           ? 'Đã xác minh'
-                          : asset.verification_status === 'REJECTED'
+                          : isRejected
                           ? 'Bị từ chối'
                           : 'Chờ xác minh'}
                       </span>
                     </div>
 
-                    <div className="text-xs text-[#53636D] space-y-1">
+                    <div className="text-xs text-slate-600 space-y-1.5">
                       <div className="flex justify-between">
-                        <span>Phân loại:</span>
-                        <span className="font-semibold text-[#18242C]">{asset.asset_type}</span>
+                        <span className="text-slate-500">Phân loại:</span>
+                        <span className="font-semibold text-slate-800">{asset.asset_type}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span>Vị trí bản đồ:</span>
-                        <span className="font-mono">
+                        <span className="text-slate-500">Vị trí bản đồ:</span>
+                        <span className="font-mono text-slate-700">
                           {asset.map_x !== null && asset.map_y !== null
                             ? `(${asset.map_x.toFixed(4)}, ${asset.map_y.toFixed(4)})`
                             : 'Chưa có'}
                         </span>
                       </div>
                       <div className="flex justify-between">
-                        <span>Tính di động:</span>
-                        <span>{asset.mobility_type === 'MOBILE' ? 'Di động' : 'Cố định'}</span>
+                        <span className="text-slate-500">Tính di động:</span>
+                        <span className="text-slate-700">{asset.mobility_type === 'MOBILE' ? 'Di động' : 'Cố định'}</span>
                       </div>
                       {rel && (
-                        <div className="pt-2 border-t border-[#D7E0E5]">
-                          <div className="flex justify-between items-center text-[#073B5C] font-semibold">
+                        <div className="pt-2 border-t border-slate-200">
+                          <div className="flex justify-between items-center text-slate-800 font-semibold">
                             <span>Đo bởi:</span>
-                            <span className="font-mono text-[#12658F]">{rel.meter_code}</span>
+                            <span className="font-mono text-sky-600">{rel.meter_code}</span>
                           </div>
-                          <div className="flex justify-between items-center text-[11px] text-[#74838C]">
+                          <div className="flex justify-between items-center text-[11px] text-slate-500">
                             <span>Quan hệ:</span>
                             <span>{rel.relation_type} ({rel.confidence || 'MEDIUM'})</span>
                           </div>
-                          {rel.verification_status !== 'VERIFIED' && (
+                          {rel.verification_status !== 'VERIFIED' && rel.verification_status !== 'SIMULATION_APPROVED' && (
                             <div className="mt-1 flex justify-end">
                               <button
                                 type="button"
                                 onClick={() => openRelationReview(rel)}
-                                className="text-[11px] text-[#12658F] hover:underline font-semibold"
+                                className="text-[11px] text-sky-600 hover:text-sky-700 font-semibold"
                               >
                                 Đối soát liên kết
                               </button>
@@ -967,11 +907,11 @@ export const AdminVerification: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="mt-4 pt-3 border-t border-[#D7E0E5] flex items-center justify-between gap-2 flex-wrap">
+                  <div className="mt-4 pt-3 border-t border-slate-200 flex items-center justify-between gap-2 flex-wrap">
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => openPositionModal(asset)}
-                        className="text-xs font-semibold text-[#12658F] hover:underline flex items-center gap-1"
+                        className="text-xs font-semibold text-sky-600 hover:text-sky-700 flex items-center gap-1 transition"
                       >
                         <MapPin className="w-3.5 h-3.5" />
                         {asset.map_x !== null ? 'Đổi tọa độ' : 'Đặt vị trí'}
@@ -989,7 +929,7 @@ export const AdminVerification: React.FC = () => {
                               coordinates: [asset.map_x!, asset.map_y!],
                             })
                           }
-                          className="text-xs font-semibold text-[#073B5C] hover:underline flex items-center gap-1"
+                          className="text-xs font-semibold text-slate-600 hover:text-slate-900 flex items-center gap-1 transition"
                           title="Định vị trên Bản đồ tác nghiệp"
                         >
                           <ExternalLink className="w-3.5 h-3.5" />
@@ -1001,7 +941,7 @@ export const AdminVerification: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => workspace.openAssetDetails(asset.id, asset.code)}
-                          className="text-xs font-semibold text-[#073B5C] hover:underline flex items-center gap-1"
+                          className="text-xs font-semibold text-slate-600 hover:text-slate-900 flex items-center gap-1 transition"
                           title="Mở trong Danh mục Thiết bị"
                         >
                           <Boxes className="w-3.5 h-3.5" />
@@ -1014,16 +954,17 @@ export const AdminVerification: React.FC = () => {
                       {asset.verification_status === 'REJECTED' ? (
                         <button
                           onClick={() => handleReopenAsset(asset)}
-                          className="px-3 py-1.5 bg-[#F2F7F9] hover:bg-[#E8F1F5] text-[#073B5C] text-xs font-semibold rounded-lg border border-[#B8C6CE]"
+                          className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg border border-slate-300 transition"
                         >
                           Mở lại rà soát
                         </button>
                       ) : (
                         <button
                           onClick={() => openAssetReview(asset)}
-                          className="px-3 py-1.5 bg-[#073B5C] hover:bg-[#0B4F75] text-white text-xs font-semibold rounded-lg transition-colors"
+                          className="px-3 py-1.5 bg-sky-600 hover:bg-sky-700 text-white text-xs font-semibold rounded-lg shadow-sm transition inline-flex items-center gap-1"
                         >
-                          Đối soát & Xác minh
+                          <ShieldCheck size={13} />
+                          <span>{isVerified ? 'Hồ sơ đối soát' : 'Xác minh'}</span>
                         </button>
                       )}
                     </div>
@@ -1039,38 +980,38 @@ export const AdminVerification: React.FC = () => {
 
       {/* MODAL: ASSET REVIEW & EVIDENCE */}
       {selectedAsset && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full border border-[#D7E0E5] max-h-[90vh] flex flex-col">
-            <div className="p-4 border-b border-[#D7E0E5] flex items-center justify-between">
-              <h3 className="font-bold text-[#073B5C] text-base flex items-center gap-2">
-                <ShieldCheck className="w-5 h-5 text-[#12658F]" />
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full border border-slate-200 max-h-[90vh] flex flex-col">
+            <div className="p-4 border-b border-slate-200 flex items-center justify-between">
+              <h3 className="font-bold text-slate-800 text-base flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-sky-600" />
                 Đối Soát Thiết Bị: {selectedAsset.code}
               </h3>
-              <button onClick={() => setSelectedAsset(null)} className="text-[#74838C] hover:text-[#18242C]">
+              <button onClick={() => setSelectedAsset(null)} className="text-slate-400 hover:text-slate-600">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="p-5 overflow-y-auto space-y-4 text-xs text-[#18242C]">
+            <div className="p-5 overflow-y-auto space-y-4 text-xs text-slate-700">
               {/* 1. THIẾT BỊ */}
-              <div className="p-3 bg-[#F6F8F9] rounded-lg border border-[#D7E0E5] space-y-2">
-                <h4 className="font-bold text-[#073B5C] uppercase text-[11px]">1. Thông tin Thiết Bị</h4>
+              <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-2">
+                <h4 className="font-bold text-slate-800 uppercase text-[11px]">1. Thông tin Thiết Bị</h4>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <span className="text-[#53636D]">Tên thiết bị:</span>
-                    <p className="font-semibold text-[#073B5C]">{selectedAsset.name}</p>
+                    <span className="text-slate-500">Tên thiết bị:</span>
+                    <p className="font-semibold text-slate-900">{selectedAsset.name}</p>
                   </div>
                   <div>
-                    <span className="text-[#53636D]">Loại tài sản:</span>
-                    <p className="font-semibold text-[#073B5C]">{selectedAsset.asset_type}</p>
+                    <span className="text-slate-500">Loại tài sản:</span>
+                    <p className="font-semibold text-slate-900">{selectedAsset.asset_type}</p>
                   </div>
                   <div>
-                    <span className="text-[#53636D]">Tính di động:</span>
+                    <span className="text-slate-500">Tính di động:</span>
                     <p>{selectedAsset.mobility_type === 'MOBILE' ? 'Thiết bị di động' : 'Thiết bị cố định'}</p>
                   </div>
                   <div>
-                    <span className="text-[#53636D]">Tọa độ bản đồ:</span>
-                    <p className="font-mono">
+                    <span className="text-slate-500">Tọa độ bản đồ:</span>
+                    <p className="font-mono text-slate-800">
                       {selectedAsset.map_x !== null
                         ? `(${selectedAsset.map_x.toFixed(4)}, ${selectedAsset.map_y?.toFixed(4)})`
                         : 'Chưa có tọa độ'}
@@ -1081,15 +1022,15 @@ export const AdminVerification: React.FC = () => {
 
               {/* 2. BẰNG CHỨNG XÁC MINH */}
               <div className="space-y-3">
-                <h4 className="font-bold text-[#073B5C] uppercase text-[11px]">2. Căn cứ & Bằng chứng Xác minh</h4>
+                <h4 className="font-bold text-slate-800 uppercase text-[11px]">2. Căn cứ & Bằng chứng Xác minh</h4>
                 <div>
-                  <label className="block font-semibold mb-1 text-[#073B5C]">
-                    Loại bằng chứng thực tế <span className="text-red-500">*</span>:
+                  <label className="block font-semibold mb-1 text-slate-700">
+                    Loại bằng chứng thực tế <span className="text-rose-500">*</span>:
                   </label>
                   <select
                     value={evidenceType}
                     onChange={(e) => setEvidenceType(e.target.value as EvidenceType)}
-                    className="w-full p-2 border border-[#D7E0E5] rounded-lg bg-white text-xs focus:outline-none focus:border-[#073B5C]"
+                    className="w-full p-2 border border-slate-200 rounded-lg bg-white text-xs focus:outline-none focus:ring-2 focus:ring-sky-500"
                   >
                     {Object.entries(EVIDENCE_TYPE_LABELS).map(([k, label]) => (
                       <option key={k} value={k}>
@@ -1100,38 +1041,38 @@ export const AdminVerification: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block font-semibold mb-1 text-[#073B5C]">
-                    Số hiệu / Định danh tài liệu <span className="text-red-500">*</span>:
+                  <label className="block font-semibold mb-1 text-slate-700">
+                    Số hiệu / Định danh tài liệu <span className="text-rose-500">*</span>:
                   </label>
                   <input
                     type="text"
                     value={evidenceReference}
                     onChange={(e) => setEvidenceReference(e.target.value)}
                     placeholder="Ví dụ: BB-KSTT-2026-09-16 / Sơ đồ bản vẽ TTA-01 / Ảnh nameplate"
-                    className="w-full p-2 border border-[#D7E0E5] rounded-lg text-xs focus:outline-none focus:border-[#073B5C]"
+                    className="w-full p-2 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-sky-500"
                   />
                 </div>
 
                 <div>
-                  <label className="block font-semibold mb-1 text-[#073B5C]">Ghi chú đối soát:</label>
+                  <label className="block font-semibold mb-1 text-slate-700">Ghi chú đối soát:</label>
                   <textarea
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
                     rows={2}
                     placeholder="Chi tiết kết luận kỹ thuật..."
-                    className="w-full p-2 border border-[#D7E0E5] rounded-lg text-xs focus:outline-none focus:border-[#073B5C]"
+                    className="w-full p-2 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-sky-500"
                   />
                 </div>
 
                 {pastEvidences.length > 0 && (
-                  <div className="mt-3 p-3 bg-[#F2F7F9] rounded border border-[#D7E0E5]">
-                    <span className="font-semibold text-[#073B5C] block mb-1 text-[11px]">
+                  <div className="mt-3 p-3 bg-slate-50 rounded border border-slate-200">
+                    <span className="font-semibold text-slate-800 block mb-1 text-[11px]">
                       Lịch sử bằng chứng đã ghi nhận ({pastEvidences.length}):
                     </span>
                     <ul className="space-y-1 text-[11px]">
                       {pastEvidences.map((ev) => (
-                        <li key={ev.id} className="text-[#53636D]">
-                          • <span className="font-semibold text-[#073B5C]">{ev.evidence_type}</span>:{' '}
+                        <li key={ev.id} className="text-slate-600">
+                          • <span className="font-semibold text-slate-800">{ev.evidence_type}</span>:{' '}
                           {ev.evidence_reference} ({new Date(ev.verified_at).toLocaleDateString('vi-VN')})
                         </li>
                       ))}
@@ -1141,8 +1082,8 @@ export const AdminVerification: React.FC = () => {
               </div>
 
               {/* 3. TỪ CHỐI (OPTIONAL REASON) */}
-              <div className="pt-2 border-t border-[#D7E0E5]">
-                <label className="block font-semibold mb-1 text-[#53636D]">
+              <div className="pt-2 border-t border-slate-200">
+                <label className="block font-semibold mb-1 text-slate-600">
                   Lý do từ chối (chỉ điền khi bấm Từ chối):
                 </label>
                 <input
@@ -1150,17 +1091,17 @@ export const AdminVerification: React.FC = () => {
                   value={rejectionReason}
                   onChange={(e) => setRejectionReason(e.target.value)}
                   placeholder="Không tồn tại thực tế / sai lệch danh mục"
-                  className="w-full p-2 border border-[#D7E0E5] rounded-lg text-xs"
+                  className="w-full p-2 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-rose-500"
                 />
               </div>
             </div>
 
-            <div className="p-4 border-t border-[#D7E0E5] flex items-center justify-between bg-[#F6F8F9]">
+            <div className="p-4 border-t border-slate-200 flex items-center justify-between bg-slate-50">
               <button
                 type="button"
                 onClick={handleRejectAsset}
                 disabled={isSubmitting}
-                className="px-4 py-2 bg-white hover:bg-[#FCECEC] text-[#B43A3A] border border-[#F5B5B5] font-semibold text-xs rounded-lg transition-colors"
+                className="px-4 py-2 bg-white hover:bg-rose-50 text-rose-700 border border-rose-200 font-semibold text-xs rounded-lg transition-colors"
               >
                 Từ chối thiết bị
               </button>
@@ -1169,7 +1110,7 @@ export const AdminVerification: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setSelectedAsset(null)}
-                  className="px-4 py-2 bg-white border border-[#D7E0E5] text-[#53636D] text-xs font-semibold rounded-lg hover:bg-[#F6F8F9]"
+                  className="px-4 py-2 bg-white border border-slate-200 text-slate-700 text-xs font-semibold rounded-lg hover:bg-slate-50 transition"
                 >
                   Đóng
                 </button>
@@ -1177,7 +1118,7 @@ export const AdminVerification: React.FC = () => {
                   type="button"
                   onClick={handleVerifyAsset}
                   disabled={isSubmitting}
-                  className="px-5 py-2 bg-[#167A5A] hover:bg-[#0E5B42] text-white text-xs font-bold rounded-lg transition-colors shadow-sm"
+                  className="px-5 py-2 bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold rounded-lg transition-colors shadow-sm"
                 >
                   {isSubmitting ? 'Đang lưu...' : 'Xác minh Thiết Bị'}
                 </button>
@@ -1189,47 +1130,47 @@ export const AdminVerification: React.FC = () => {
 
       {/* MODAL: RELATION REVIEW & EVIDENCE */}
       {selectedRelation && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-xl w-full border border-[#D7E0E5] max-h-[90vh] flex flex-col">
-            <div className="p-4 border-b border-[#D7E0E5] flex items-center justify-between">
-              <h3 className="font-bold text-[#073B5C] text-base flex items-center gap-2">
-                <ShieldCheck className="w-5 h-5 text-[#12658F]" />
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-xl w-full border border-slate-200 max-h-[90vh] flex flex-col">
+            <div className="p-4 border-b border-slate-200 flex items-center justify-between">
+              <h3 className="font-bold text-slate-800 text-base flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-sky-600" />
                 Đối Soát Quan Hệ: {selectedRelation.meter_code} ↔ {selectedRelation.asset_code}
               </h3>
-              <button onClick={() => setSelectedRelation(null)} className="text-[#74838C] hover:text-[#18242C]">
+              <button onClick={() => setSelectedRelation(null)} className="text-slate-400 hover:text-slate-600">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="p-5 overflow-y-auto space-y-4 text-xs text-[#18242C]">
-              <div className="p-3 bg-[#F6F8F9] rounded-lg border border-[#D7E0E5] space-y-1">
+            <div className="p-5 overflow-y-auto space-y-4 text-xs text-slate-700">
+              <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-1">
                 <div className="flex justify-between">
-                  <span className="text-[#53636D]">Công tơ:</span>
-                  <span className="font-mono font-bold text-[#073B5C]">{selectedRelation.meter_code}</span>
+                  <span className="text-slate-500">Công tơ:</span>
+                  <span className="font-mono font-bold text-slate-900">{selectedRelation.meter_code}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-[#53636D]">Thiết bị:</span>
-                  <span className="font-mono font-bold text-[#073B5C]">{selectedRelation.asset_code}</span>
+                  <span className="text-slate-500">Thiết bị:</span>
+                  <span className="font-mono font-bold text-slate-900">{selectedRelation.asset_code}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-[#53636D]">Loại liên kết:</span>
-                  <span>{selectedRelation.relation_type}</span>
+                  <span className="text-slate-500">Loại liên kết:</span>
+                  <span className="font-medium text-slate-800">{selectedRelation.relation_type}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-[#53636D]">Độ tin cậy đề xuất:</span>
-                  <span className="font-semibold">{selectedRelation.confidence || 'MEDIUM'}</span>
+                  <span className="text-slate-500">Độ tin cậy đề xuất:</span>
+                  <span className="font-semibold text-slate-800">{selectedRelation.confidence || 'MEDIUM'}</span>
                 </div>
               </div>
 
               <div className="space-y-3">
                 <div>
-                  <label className="block font-semibold mb-1 text-[#073B5C]">
-                    Loại bằng chứng thực tế <span className="text-red-500">*</span>:
+                  <label className="block font-semibold mb-1 text-slate-700">
+                    Loại bằng chứng thực tế <span className="text-rose-500">*</span>:
                   </label>
                   <select
                     value={evidenceType}
                     onChange={(e) => setEvidenceType(e.target.value as EvidenceType)}
-                    className="w-full p-2 border border-[#D7E0E5] rounded-lg bg-white text-xs"
+                    className="w-full p-2 border border-slate-200 rounded-lg bg-white text-xs focus:outline-none focus:ring-2 focus:ring-sky-500"
                   >
                     {Object.entries(EVIDENCE_TYPE_LABELS).map(([k, label]) => (
                       <option key={k} value={k}>{label}</option>
@@ -1238,38 +1179,38 @@ export const AdminVerification: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block font-semibold mb-1 text-[#073B5C]">
-                    Số hiệu / Căn cứ tài liệu <span className="text-red-500">*</span>:
+                  <label className="block font-semibold mb-1 text-slate-700">
+                    Số hiệu / Căn cứ tài liệu <span className="text-rose-500">*</span>:
                   </label>
                   <input
                     type="text"
                     value={evidenceReference}
                     onChange={(e) => setEvidenceReference(e.target.value)}
                     placeholder="VD: BB-KT-2026-03 hoặc Sơ đồ tủ điện"
-                    className="w-full p-2 border border-[#D7E0E5] rounded-lg text-xs"
+                    className="w-full p-2 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-sky-500"
                   />
                 </div>
 
                 <div>
-                  <label className="block font-semibold mb-1 text-[#073B5C]">Ghi chú kỹ thuật:</label>
+                  <label className="block font-semibold mb-1 text-slate-700">Ghi chú kỹ thuật:</label>
                   <textarea
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
                     rows={2}
                     placeholder="Ghi chú xác minh..."
-                    className="w-full p-2 border border-[#D7E0E5] rounded-lg text-xs"
+                    className="w-full p-2 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-sky-500"
                   />
                 </div>
 
                 {pastEvidences.length > 0 && (
-                  <div className="p-3 bg-[#F2F7F9] rounded border border-[#D7E0E5]">
-                    <span className="font-semibold text-[#073B5C] block mb-1 text-[11px]">
+                  <div className="p-3 bg-slate-50 rounded border border-slate-200">
+                    <span className="font-semibold text-slate-800 block mb-1 text-[11px]">
                       Lịch sử bằng chứng ({pastEvidences.length}):
                     </span>
                     <ul className="space-y-1 text-[11px]">
                       {pastEvidences.map((ev) => (
-                        <li key={ev.id} className="text-[#53636D]">
-                          • <span className="font-semibold">{ev.evidence_type}</span>: {ev.evidence_reference}
+                        <li key={ev.id} className="text-slate-600">
+                          • <span className="font-semibold text-slate-800">{ev.evidence_type}</span>: {ev.evidence_reference}
                         </li>
                       ))}
                     </ul>
@@ -1277,24 +1218,24 @@ export const AdminVerification: React.FC = () => {
                 )}
               </div>
 
-              <div className="pt-2 border-t border-[#D7E0E5]">
-                <label className="block font-semibold mb-1 text-[#53636D]">Lý do từ chối (nếu từ chối):</label>
+              <div className="pt-2 border-t border-slate-200">
+                <label className="block font-semibold mb-1 text-slate-600">Lý do từ chối (nếu từ chối):</label>
                 <input
                   type="text"
                   value={rejectionReason}
                   onChange={(e) => setRejectionReason(e.target.value)}
                   placeholder="Sai lệch đấu nối / không cấp nguồn thiết bị này"
-                  className="w-full p-2 border border-[#D7E0E5] rounded-lg text-xs"
+                  className="w-full p-2 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-rose-500"
                 />
               </div>
             </div>
 
-            <div className="p-4 border-t border-[#D7E0E5] flex items-center justify-between bg-[#F6F8F9]">
+            <div className="p-4 border-t border-slate-200 flex items-center justify-between bg-slate-50">
               <button
                 type="button"
                 onClick={handleRejectRelation}
                 disabled={isSubmitting}
-                className="px-4 py-2 bg-white hover:bg-[#FCECEC] text-[#B43A3A] border border-[#F5B5B5] font-semibold text-xs rounded-lg transition-colors"
+                className="px-4 py-2 bg-white hover:bg-rose-50 text-rose-700 border border-rose-200 font-semibold text-xs rounded-lg transition-colors"
               >
                 Từ chối liên kết
               </button>
@@ -1303,7 +1244,7 @@ export const AdminVerification: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setSelectedRelation(null)}
-                  className="px-4 py-2 bg-white border border-[#D7E0E5] text-[#53636D] text-xs font-semibold rounded-lg"
+                  className="px-4 py-2 bg-white border border-slate-200 text-slate-700 text-xs font-semibold rounded-lg hover:bg-slate-50 transition"
                 >
                   Đóng
                 </button>
@@ -1311,7 +1252,7 @@ export const AdminVerification: React.FC = () => {
                   type="button"
                   onClick={handleVerifyRelation}
                   disabled={isSubmitting}
-                  className="px-5 py-2 bg-[#167A5A] hover:bg-[#0E5B42] text-white text-xs font-bold rounded-lg transition-colors shadow-sm"
+                  className="px-5 py-2 bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold rounded-lg transition-colors shadow-sm"
                 >
                   {isSubmitting ? 'Đang lưu...' : 'Xác minh Liên kết'}
                 </button>
@@ -1323,14 +1264,14 @@ export const AdminVerification: React.FC = () => {
 
       {/* MODAL: MAP POSITION PLACEMENT */}
       {positionAsset && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full border border-[#D7E0E5] p-5 space-y-4">
-            <div className="flex items-center justify-between border-b border-[#D7E0E5] pb-3">
-              <h3 className="font-bold text-[#073B5C] text-sm flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-[#12658F]" />
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full border border-slate-200 p-5 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+              <h3 className="font-bold text-slate-800 text-sm flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-sky-600" />
                 Đặt vị trí: {positionAsset.code}
               </h3>
-              <button onClick={() => setPositionAsset(null)} className="text-[#74838C]">
+              <button onClick={() => setPositionAsset(null)} className="text-slate-400 hover:text-slate-600">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -1338,7 +1279,7 @@ export const AdminVerification: React.FC = () => {
             <div className="space-y-3 text-xs">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold mb-1 text-[#073B5C]">Tọa độ X [0, 1]:</label>
+                  <label className="block font-semibold mb-1 text-slate-700">Tọa độ X [0, 1]:</label>
                   <input
                     type="number"
                     step="0.0001"
@@ -1346,11 +1287,11 @@ export const AdminVerification: React.FC = () => {
                     max="1"
                     value={posX}
                     onChange={(e) => setPosX(e.target.value)}
-                    className="w-full p-2 border border-[#D7E0E5] rounded-lg text-xs"
+                    className="w-full p-2 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-sky-500"
                   />
                 </div>
                 <div>
-                  <label className="block font-semibold mb-1 text-[#073B5C]">Tọa độ Y [0, 1]:</label>
+                  <label className="block font-semibold mb-1 text-slate-700">Tọa độ Y [0, 1]:</label>
                   <input
                     type="number"
                     step="0.0001"
@@ -1358,35 +1299,35 @@ export const AdminVerification: React.FC = () => {
                     max="1"
                     value={posY}
                     onChange={(e) => setPosY(e.target.value)}
-                    className="w-full p-2 border border-[#D7E0E5] rounded-lg text-xs"
+                    className="w-full p-2 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-sky-500"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block font-semibold mb-1 text-[#073B5C]">Bằng chứng định vị:</label>
+                <label className="block font-semibold mb-1 text-slate-700">Bằng chứng định vị:</label>
                 <input
                   type="text"
                   value={evidenceReference}
                   onChange={(e) => setEvidenceReference(e.target.value)}
                   placeholder="Ví dụ: Tọa độ GPS thực địa / Mặt bằng cảng"
-                  className="w-full p-2 border border-[#D7E0E5] rounded-lg text-xs"
+                  className="w-full p-2 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-sky-500"
                 />
               </div>
 
               {posWarning && (
-                <div className="p-2.5 bg-[#FFF4DF] border border-[#FFE0A3] text-[#A86200] rounded text-[11px] flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4 shrink-0" />
+                <div className="p-2.5 bg-amber-50 border border-amber-200 text-amber-700 rounded text-[11px] flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600" />
                   <span>{posWarning}</span>
                 </div>
               )}
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#D7E0E5]">
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-200">
               <button
                 type="button"
                 onClick={() => setPositionAsset(null)}
-                className="px-4 py-2 border border-[#D7E0E5] text-xs font-semibold rounded-lg text-[#53636D]"
+                className="px-4 py-2 border border-slate-200 text-xs font-semibold rounded-lg text-slate-600 hover:bg-slate-50 transition"
               >
                 Hủy
               </button>
@@ -1394,7 +1335,7 @@ export const AdminVerification: React.FC = () => {
                 type="button"
                 onClick={handleSavePosition}
                 disabled={isSubmitting}
-                className="px-4 py-2 bg-[#073B5C] hover:bg-[#0B4F75] text-white text-xs font-bold rounded-lg"
+                className="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold rounded-lg shadow-sm transition"
               >
                 {isSubmitting ? 'Đang lưu...' : 'Xác nhận tọa độ'}
               </button>
