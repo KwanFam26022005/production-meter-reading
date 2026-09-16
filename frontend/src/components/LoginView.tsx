@@ -234,6 +234,58 @@ export const LoginView: React.FC<LoginViewProps> = ({
                 </button>
               </form>
 
+              <div style={{ marginTop: '16px', padding: '12px', background: 'rgba(15, 23, 42, 0.04)', borderRadius: '8px', border: '1px solid rgba(15, 23, 42, 0.08)' }}>
+                <div style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', marginBottom: '8px', textAlign: 'center' }}>
+                  Tài khoản dùng thử nhanh (Demo)
+                </div>
+                <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEmployeeCode('52300119');
+                      setPassword('Admin123456!');
+                      if (error) setError(null);
+                    }}
+                    style={{
+                      flex: 1,
+                      padding: '6px 10px',
+                      fontSize: '12px',
+                      fontWeight: 500,
+                      color: '#0f172a',
+                      background: '#ffffff',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                    }}
+                    title="Mã: 52300119 · Mật khẩu: Admin123456!"
+                  >
+                    Quản trị viên (52300119)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEmployeeCode('CSG-0102');
+                      setPassword('Admin123456!');
+                      if (error) setError(null);
+                    }}
+                    style={{
+                      flex: 1,
+                      padding: '6px 10px',
+                      fontSize: '12px',
+                      fontWeight: 500,
+                      color: '#0f172a',
+                      background: '#ffffff',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                    }}
+                    title="Mã: CSG-0102 · Mật khẩu: Admin123456!"
+                  >
+                    Nhân viên (CSG-0102)
+                  </button>
+                </div>
+              </div>
+
               <div className="auth-support-text">
                 <span>Không đăng nhập được? Liên hệ quản trị hệ thống.</span>
               </div>
