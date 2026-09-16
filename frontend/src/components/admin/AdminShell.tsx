@@ -53,14 +53,14 @@ export const AdminShell: React.FC<AdminShellProps> = ({
   }, [sidebarOpen]);
 
   // Visible navigation: "Thiết bị" added in V16C, "Đối soát" added in V16D
-  const navItems: { id: AdminTab; label: string; icon: React.ReactNode }[] = [
-    { id: 'dashboard', label: 'Bản đồ', icon: <Map size={22} /> },
-    { id: 'assets', label: 'Thiết bị', icon: <Boxes size={22} /> },
-    { id: 'verification', label: 'Đối soát', icon: <ClipboardCheck size={22} /> },
-    { id: 'schedules', label: 'Lịch ghi', icon: <Calendar size={22} /> },
-    { id: 'staff_roster', label: 'Phân ca', icon: <Users size={22} /> },
-    { id: 'reports', label: 'Báo cáo', icon: <BarChart3 size={22} /> },
-    { id: 'audit', label: 'Nhật ký', icon: <ScrollText size={22} /> },
+  const navItems: { id: AdminTab; label: string; icon: React.ReactNode; cluster?: 'operational' | 'workflow' }[] = [
+    { id: 'dashboard', label: 'Bản đồ', icon: <Map size={22} />, cluster: 'operational' },
+    { id: 'assets', label: 'Thiết bị', icon: <Boxes size={22} />, cluster: 'operational' },
+    { id: 'verification', label: 'Đối soát', icon: <ClipboardCheck size={22} />, cluster: 'operational' },
+    { id: 'schedules', label: 'Lịch ghi', icon: <Calendar size={22} />, cluster: 'workflow' },
+    { id: 'staff_roster', label: 'Phân ca', icon: <Users size={22} />, cluster: 'workflow' },
+    { id: 'reports', label: 'Báo cáo', icon: <BarChart3 size={22} />, cluster: 'workflow' },
+    { id: 'audit', label: 'Nhật ký', icon: <ScrollText size={22} />, cluster: 'workflow' },
   ];
 
   return (
@@ -131,24 +131,27 @@ export const AdminShell: React.FC<AdminShellProps> = ({
           </div>
 
           <nav className="admin-nav-list">
-            {navItems.map((item) => {
+            {navItems.map((item, idx) => {
               const isActive = activeTab === item.id;
+              const isFirstWorkflow = item.cluster === 'workflow' && navItems[idx - 1]?.cluster === 'operational';
               return (
-                <button
-                  key={item.id}
-                  type="button"
-                  className={`admin-nav-item ${isActive ? 'active' : ''}`}
-                  onClick={() => {
-                    onSelectTab(item.id);
-                    setSidebarOpen(false);
-                  }}
-                  title={item.label}
-                  aria-label={item.label}
-                  aria-current={isActive ? 'page' : undefined}
-                >
-                  <span className="admin-nav-icon">{item.icon}</span>
-                  <span className="admin-nav-label">{item.label}</span>
-                </button>
+                <React.Fragment key={item.id}>
+                  {isFirstWorkflow && <div className="admin-rail-group-divider" title="Tác nghiệp & Báo cáo" />}
+                  <button
+                    type="button"
+                    className={`admin-nav-item ${isActive ? 'active' : ''} ${item.cluster === 'operational' ? 'operational-cluster' : ''}`}
+                    onClick={() => {
+                      onSelectTab(item.id);
+                      setSidebarOpen(false);
+                    }}
+                    title={item.label}
+                    aria-label={item.label}
+                    aria-current={isActive ? 'page' : undefined}
+                  >
+                    <span className="admin-nav-icon">{item.icon}</span>
+                    <span className="admin-nav-label">{item.label}</span>
+                  </button>
+                </React.Fragment>
               );
             })}
           </nav>
@@ -230,25 +233,39 @@ export const AdminShell: React.FC<AdminShellProps> = ({
             </div>
 
             <nav className="admin-drawer-nav-list">
-              {navItems.map((item) => {
+              {navItems.map((item, idx) => {
                 const isActive = activeTab === item.id;
+                const isFirstOperational = item.cluster === 'operational' && idx === 0;
+                const isFirstWorkflow = item.cluster === 'workflow' && navItems[idx - 1]?.cluster === 'operational';
                 return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    className={`admin-drawer-nav-item ${isActive ? 'active' : ''}`}
-                    onClick={() => {
-                      onSelectTab(item.id);
-                      setSidebarOpen(false);
-                    }}
-                    title={item.label}
-                    aria-label={item.label}
-                    aria-current={isActive ? 'page' : undefined}
-                  >
-                    <span className="admin-drawer-nav-icon">{item.icon}</span>
-                    <span className="admin-drawer-nav-label">{item.label}</span>
-                    {isActive && <span className="admin-drawer-active-dot" />}
-                  </button>
+                  <React.Fragment key={item.id}>
+                    {isFirstOperational && (
+                      <div className="admin-drawer-nav-header">
+                        <span>HẠ TẦNG & VẬN HÀNH</span>
+                        <span className="admin-drawer-nav-badge">Hợp nhất</span>
+                      </div>
+                    )}
+                    {isFirstWorkflow && (
+                      <div className="admin-drawer-nav-header mt-3">
+                        <span>TÁC NGHIỆP & BÁO CÁO</span>
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      className={`admin-drawer-nav-item ${isActive ? 'active' : ''}`}
+                      onClick={() => {
+                        onSelectTab(item.id);
+                        setSidebarOpen(false);
+                      }}
+                      title={item.label}
+                      aria-label={item.label}
+                      aria-current={isActive ? 'page' : undefined}
+                    >
+                      <span className="admin-drawer-nav-icon">{item.icon}</span>
+                      <span className="admin-drawer-nav-label">{item.label}</span>
+                      {isActive && <span className="admin-drawer-active-dot" />}
+                    </button>
+                  </React.Fragment>
                 );
               })}
             </nav>

@@ -26,6 +26,7 @@ import {
 } from '../../features/assets/types';
 import type { AdminDashboardExceptionItem } from '../../types';
 import { useOperationalWorkspace } from '../../context/OperationalWorkspaceContext';
+import { OperationalWorkspaceHeader } from '../../features/workspace/OperationalWorkspaceHeader';
 import {
   getAssetVerificationOverview,
   getMeterReviewMatrix,
@@ -342,7 +343,10 @@ export const AdminVerification: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="admin-verification-page p-6 max-w-7xl mx-auto space-y-6">
+      {/* UNIFIED WORKSPACE HEADER */}
+      <OperationalWorkspaceHeader currentTab="verification" />
+
       {/* 1. TOP DUAL SCOPE SEGMENTED CONTROL */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white p-2.5 rounded-xl border border-[#D7E0E5] shadow-sm">
         <div className="flex items-center gap-2 w-full sm:w-auto">

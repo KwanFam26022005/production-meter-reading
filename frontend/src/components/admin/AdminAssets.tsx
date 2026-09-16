@@ -16,6 +16,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { useOperationalWorkspace } from '../../context/OperationalWorkspaceContext';
+import { OperationalWorkspaceHeader } from '../../features/workspace/OperationalWorkspaceHeader';
 import {
   Asset,
   AssetType,
@@ -353,46 +354,12 @@ export const AdminAssets: React.FC = () => {
 
   return (
     <div className="admin-assets-page p-6 max-w-7xl mx-auto space-y-6">
-      {/* UNIFIED WORKSPACE SHORTCUT STRIP */}
-      {workspace && (
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-600">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-bold text-slate-700">Không gian Vận hành & Hạ tầng:</span>
-            <div className="flex items-center gap-1.5">
-              <button
-                type="button"
-                onClick={() => workspace?.setActiveTab('dashboard')}
-                className="px-2.5 py-1 rounded bg-white hover:bg-slate-100 text-slate-700 font-medium border border-slate-200 flex items-center gap-1 transition"
-                title="Mở Không gian Bản đồ Vận hành"
-              >
-                <MapPin size={13} className="text-sky-600" />
-                <span>Bản đồ Vận hành</span>
-              </button>
-              <span className="px-2.5 py-1 rounded bg-sky-600 text-white font-bold flex items-center gap-1 shadow-sm">
-                <Boxes size={13} />
-                <span>Danh mục Thiết bị</span>
-              </span>
-              <button
-                type="button"
-                onClick={() => workspace?.setActiveTab('verification')}
-                className="px-2.5 py-1 rounded bg-white hover:bg-slate-100 text-slate-700 font-medium border border-slate-200 flex items-center gap-1 transition"
-                title="Mở Trung tâm Đối soát"
-              >
-                <ClipboardCheck size={13} className="text-amber-600" />
-                <span>Trung tâm Đối soát</span>
-                {attentionCount > 0 && (
-                  <span className="ml-1 px-1.5 py-0.2 rounded-full bg-amber-100 text-amber-800 font-bold text-[10px]">
-                    {attentionCount}
-                  </span>
-                )}
-              </button>
-            </div>
-          </div>
-          <span className="text-slate-400 hidden lg:inline">
-            Liên thông trực tiếp giữa Không gian Bản đồ, Hồ sơ Thiết bị và Đối soát
-          </span>
-        </div>
-      )}
+      {/* UNIFIED WORKSPACE HEADER */}
+      <OperationalWorkspaceHeader
+        currentTab="assets"
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+      />
 
       {/* HEADER (Section 15: Production Polish) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">

@@ -30,6 +30,9 @@ import {
 import type { Asset, AssetConnection, UtilityType } from '../assets/types';
 import { canAdministerMapConfiguration } from '../../types';
 import { useOperationalWorkspace } from '../../context/OperationalWorkspaceContext';
+import { OperationalWorkspaceHeader } from '../workspace/OperationalWorkspaceHeader';
+import { MapInlineDrawers } from './components/MapInlineDrawers';
+import { Boxes, ClipboardCheck } from 'lucide-react';
 import './motion/mapMotion.css';
 
 interface MapOperationsPageProps {
@@ -102,6 +105,16 @@ const MapOperationsPageContent: React.FC<MapOperationsPageProps> = ({
 
   // Search Query state (unified across Map and List modes)
   const [searchQuery, setSearchQuery] = useState('');
+  const [inlineDrawer, setInlineDrawer] = useState<'assets' | 'verification' | null>(null);
+
+  // Synchronize top workspace utility filter with map selected utility
+  useEffect(() => {
+    if (workspace && workspace.utilityFilter) {
+      if (workspace.utilityFilter === 'ELECTRICITY' || workspace.utilityFilter === 'WATER') {
+        setSelectedUtility(workspace.utilityFilter);
+      }
+    }
+  }, [workspace?.utilityFilter]);
 
   // Context Surface Navigation History (Zone -> Zone-Meters -> Meter-Detail)
   const [previousContext, setPreviousContext] = useState<{
@@ -686,145 +699,185 @@ const MapOperationsPageContent: React.FC<MapOperationsPageProps> = ({
   };
 
   return (
-    <ImmersiveSceneShell
-      user={user}
-      selectedDate={selectedDate}
-      onDateChange={setSelectedDate}
-      dashboardData={dashboardData}
-      mapMeters={mapMeters}
-      filteredMeters={filteredMeters}
-      mapZones={mapZones}
-      availableOperators={availableOperators}
-      overallKpis={overallKpis}
-      isLoading={loading}
-      onRefresh={refresh}
-      onExportCsv={exportCsv}
-
-      viewMode={viewMode}
-      onViewModeChange={setViewMode}
-      onOpenCalibration={calibrationWorkspace.openMapCalibration}
-      calibrationWorkspace={calibrationWorkspace}
-
-      selectedRoundId={selectedRoundId || filters.selectedRoundId}
-      onSelectRound={(roundId) => {
-        setSelectedRoundId(roundId);
-        setFilters({ ...filters, selectedRoundId: roundId });
-      }}
-      filters={filters}
-      onApplyFilters={setFilters}
-      searchQuery={searchQuery}
-      onSearchQueryChange={setSearchQuery}
-      hasMeterBack={Boolean(previousContext)}
-      meterBackLabel={previousContext?.type === 'zone-meters' ? 'Danh sách công tơ' : 'Tổng quan khu vực'}
-      onMeterBack={handleBackFromMeter}
-
-      selection={{
-        selectedZoneId: mapState.selectedEntity?.type === 'zone' ? mapState.selectedEntity.id : null,
-        selectedMeterId: mapState.selectedEntity?.type === 'meter' ? mapState.selectedEntity.id : null,
-        hoveredZoneId: mapState.hoveredEntity?.type === 'zone' ? mapState.hoveredEntity.id : null,
-        hoveredMeterId: mapState.hoveredEntity?.type === 'meter' ? mapState.hoveredEntity.id : null,
-      }}
-      selectedMeter={selectedMeter}
-      selectedZone={selectedZone}
-      selectedOperatorSummary={selectedOperatorSummary}
-      selectedOperatorShiftId={mapState.selectedEntity?.type === 'operator' ? mapState.selectedEntity.id : null}
-
-      onSelectZone={focusZone}
-      onSelectMeter={focusMeter}
-      onSelectOperator={handleSelectOperator}
-      onHoverZone={(zoneId) => mapState.setHoveredEntity(zoneId ? { type: 'zone', id: zoneId } : null)}
-      onHoverMeter={(meterId) => mapState.setHoveredEntity(meterId ? { type: 'meter', id: meterId } : null)}
-      onClearSelection={clearSelection}
-      onCloseOperatorPopover={() => mapState.resetToBrowse()}
-
-      viewport={viewport}
-      onViewportChange={setViewport}
-      onZoomIn={handleZoomIn}
-      onZoomOut={handleZoomOut}
-      onResetView={handleResetView}
-
-      exceptionFocus={exceptionFocus}
-      onToggleExceptionFocus={() => {
-        setActiveFocusType(null);
-        setExceptionFocus((v) => !v);
-      }}
-      activeFocusType={activeFocusType}
-      onFocusTypeChange={(type) => {
-        setActiveFocusType(type);
-        if (type) setExceptionFocus(false);
-      }}
-
-      detailOpen={mapState.mode === 'details'}
-      onSetDetailOpen={(open) => {
-        if (open) mapState.openDetails();
-        else mapState.resetToBrowse();
-      }}
-      analyticsOpen={analyticsOpen}
-      onSetAnalyticsOpen={(open) => {
-        if (open) mapState.resetToBrowse();
-        setAnalyticsOpen(open);
-      }}
-      onInspectReading={onInspectReading}
-      onReassignOperator={reassignOperator}
-
-      // V7.1 State Machine Props
-      mapMode={mapState.mode}
-      selectedEntity={mapState.selectedEntity}
-      detailView={mapState.detailView}
-      placementContext={activePlacementContext}
-      onOpenDetails={handleOpenDetails}
-      onBackToInspector={handleBackToInspector}
-      onUpdatePlacementContext={mapState.updatePlacementContext}
-      onConfirmPlacement={handleConfirmPlacementFromRail}
-      onCancelPlacement={handleCancelPlacement}
-      onResetPin={placement.handleResetPin}
-      isSubmittingPlacement={placement.isSubmitting}
-      placementError={placement.error}
-
-      placementSvgLayer={
-        mapState.mode === 'placement' ? (
-          <SpatialPlacementSvgLayer
-            isActive={mapState.mode === 'placement'}
-            targetZoneId={mapState.placementContext?.targetZoneId || 'zone-container'}
-            targetZoneName={mapState.placementContext?.targetZoneName || 'Khu vực Bãi Container (CY)'}
-            pinnedCoords={placement.pinnedCoords}
-            activeCanonical={placement.activeCanonical}
-            isCurrentInside={placement.isCurrentInside}
-            onSvgMouseMove={placement.handleSvgMouseMove}
-            onSvgClick={placement.handleSvgClick}
-          />
-        ) : undefined
-      }
-      onAddMeterToZone={handleStartPlacement}
-      onRelocateMeter={handleStartRelocation}
-
-      // Infrastructure Assets & Network Topology (Phase V16E)
-      assets={assets}
-      assetConnections={assetConnections}
-      selectedAssetId={selectedAssetId}
-      onSelectAsset={handleSelectAsset}
-      onClearSelectedAsset={handleClearSelectedAsset}
-      selectedUtility={selectedUtility}
-      onSelectUtility={setSelectedUtility}
-      showUnverifiedAssets={showUnverifiedAssets}
-      onToggleShowUnverifiedAssets={setShowUnverifiedAssets}
-      isNetworkLoading={networkLoading}
-      onRefreshNetwork={fetchNetworkData}
-      canManageVerification={canAdministerMapConfiguration(user)}
-      onOpenVerificationReview={(id) => {
-        if (workspace) {
-          workspace.openVerification(id);
-        } else {
-          window.location.href = `/admin?tab=verification${id ? '&asset=' + id : ''}`;
+    <div className="sgp-map-first-root" style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%', overflow: 'hidden' }}>
+      <OperationalWorkspaceHeader
+        currentTab="dashboard"
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        extraActions={
+          <div style={{ display: 'flex', gap: '6px' }}>
+            <button
+              type="button"
+              className={`sgp-uwh-hud-toggle ${inlineDrawer === 'assets' ? 'active' : ''}`}
+              onClick={() => setInlineDrawer((prev) => (prev === 'assets' ? null : 'assets'))}
+              title="Mở danh mục 32 thiết bị hạ tầng ngay trên bản đồ"
+            >
+              <Boxes size={14} />
+              <span>Thiết bị ({assets.length})</span>
+            </button>
+            <button
+              type="button"
+              className={`sgp-uwh-hud-toggle ${inlineDrawer === 'verification' ? 'active' : ''}`}
+              onClick={() => setInlineDrawer((prev) => (prev === 'verification' ? null : 'verification'))}
+              title="Xem nhanh các mục cần đối soát"
+            >
+              <ClipboardCheck size={14} />
+              <span>Đối soát</span>
+            </button>
+          </div>
         }
-      }}
-      onOpenAssetDetails={(id, code) => {
-        if (workspace) {
-          workspace.openAssetDetails(id, code);
-        }
-      }}
-      onSwitchToMapAndCenterAsset={handleSwitchToMapAndCenterAsset}
-    />
+      />
+      <div style={{ flex: 1, position: 'relative', overflow: 'hidden', minHeight: 0 }}>
+        <ImmersiveSceneShell
+          user={user}
+          selectedDate={selectedDate}
+          onDateChange={setSelectedDate}
+          dashboardData={dashboardData}
+          mapMeters={mapMeters}
+          filteredMeters={filteredMeters}
+          mapZones={mapZones}
+          availableOperators={availableOperators}
+          overallKpis={overallKpis}
+          isLoading={loading}
+          onRefresh={refresh}
+          onExportCsv={exportCsv}
+
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
+          onOpenCalibration={calibrationWorkspace.openMapCalibration}
+          calibrationWorkspace={calibrationWorkspace}
+
+          selectedRoundId={selectedRoundId || filters.selectedRoundId}
+          onSelectRound={(roundId) => {
+            setSelectedRoundId(roundId);
+            setFilters({ ...filters, selectedRoundId: roundId });
+          }}
+          filters={filters}
+          onApplyFilters={setFilters}
+          searchQuery={searchQuery}
+          onSearchQueryChange={setSearchQuery}
+          hasMeterBack={Boolean(previousContext)}
+          meterBackLabel={previousContext?.type === 'zone-meters' ? 'Danh sách công tơ' : 'Tổng quan khu vực'}
+          onMeterBack={handleBackFromMeter}
+
+          selection={{
+            selectedZoneId: mapState.selectedEntity?.type === 'zone' ? mapState.selectedEntity.id : null,
+            selectedMeterId: mapState.selectedEntity?.type === 'meter' ? mapState.selectedEntity.id : null,
+            hoveredZoneId: mapState.hoveredEntity?.type === 'zone' ? mapState.hoveredEntity.id : null,
+            hoveredMeterId: mapState.hoveredEntity?.type === 'meter' ? mapState.hoveredEntity.id : null,
+          }}
+          selectedMeter={selectedMeter}
+          selectedZone={selectedZone}
+          selectedOperatorSummary={selectedOperatorSummary}
+          selectedOperatorShiftId={mapState.selectedEntity?.type === 'operator' ? mapState.selectedEntity.id : null}
+
+          onSelectZone={focusZone}
+          onSelectMeter={focusMeter}
+          onSelectOperator={handleSelectOperator}
+          onHoverZone={(zoneId) => mapState.setHoveredEntity(zoneId ? { type: 'zone', id: zoneId } : null)}
+          onHoverMeter={(meterId) => mapState.setHoveredEntity(meterId ? { type: 'meter', id: meterId } : null)}
+          onClearSelection={clearSelection}
+          onCloseOperatorPopover={() => mapState.resetToBrowse()}
+
+          viewport={viewport}
+          onViewportChange={setViewport}
+          onZoomIn={handleZoomIn}
+          onZoomOut={handleZoomOut}
+          onResetView={handleResetView}
+
+          exceptionFocus={exceptionFocus}
+          onToggleExceptionFocus={() => {
+            setActiveFocusType(null);
+            setExceptionFocus((v) => !v);
+          }}
+          activeFocusType={activeFocusType}
+          onFocusTypeChange={(type) => {
+            setActiveFocusType(type);
+            if (type) setExceptionFocus(false);
+          }}
+
+          detailOpen={mapState.mode === 'details'}
+          onSetDetailOpen={(open) => {
+            if (open) mapState.openDetails();
+            else mapState.resetToBrowse();
+          }}
+          analyticsOpen={analyticsOpen}
+          onSetAnalyticsOpen={(open) => {
+            if (open) mapState.resetToBrowse();
+            setAnalyticsOpen(open);
+          }}
+          onInspectReading={onInspectReading}
+          onReassignOperator={reassignOperator}
+
+          // V7.1 State Machine Props
+          mapMode={mapState.mode}
+          selectedEntity={mapState.selectedEntity}
+          detailView={mapState.detailView}
+          placementContext={activePlacementContext}
+          onOpenDetails={handleOpenDetails}
+          onBackToInspector={handleBackToInspector}
+          onUpdatePlacementContext={mapState.updatePlacementContext}
+          onConfirmPlacement={handleConfirmPlacementFromRail}
+          onCancelPlacement={handleCancelPlacement}
+          onResetPin={placement.handleResetPin}
+          isSubmittingPlacement={placement.isSubmitting}
+          placementError={placement.error}
+
+          placementSvgLayer={
+            mapState.mode === 'placement' ? (
+              <SpatialPlacementSvgLayer
+                isActive={mapState.mode === 'placement'}
+                targetZoneId={mapState.placementContext?.targetZoneId || 'zone-container'}
+                targetZoneName={mapState.placementContext?.targetZoneName || 'Khu vực Bãi Container (CY)'}
+                pinnedCoords={placement.pinnedCoords}
+                activeCanonical={placement.activeCanonical}
+                isCurrentInside={placement.isCurrentInside}
+                onSvgMouseMove={placement.handleSvgMouseMove}
+                onSvgClick={placement.handleSvgClick}
+              />
+            ) : undefined
+          }
+          onAddMeterToZone={handleStartPlacement}
+          onRelocateMeter={handleStartRelocation}
+
+          // Infrastructure Assets & Network Topology (Phase V16E)
+          assets={assets}
+          assetConnections={assetConnections}
+          selectedAssetId={selectedAssetId}
+          onSelectAsset={handleSelectAsset}
+          onClearSelectedAsset={handleClearSelectedAsset}
+          selectedUtility={selectedUtility}
+          onSelectUtility={setSelectedUtility}
+          showUnverifiedAssets={showUnverifiedAssets}
+          onToggleShowUnverifiedAssets={setShowUnverifiedAssets}
+          isNetworkLoading={networkLoading}
+          onRefreshNetwork={fetchNetworkData}
+          canManageVerification={canAdministerMapConfiguration(user)}
+          onOpenVerificationReview={(id) => {
+            if (workspace) {
+              workspace.openVerification(id);
+            } else {
+              window.location.href = `/admin?tab=verification${id ? '&asset=' + id : ''}`;
+            }
+          }}
+          onOpenAssetDetails={(id, code) => {
+            if (workspace) {
+              workspace.openAssetDetails(id, code);
+            }
+          }}
+          onSwitchToMapAndCenterAsset={handleSwitchToMapAndCenterAsset}
+        />
+        <MapInlineDrawers
+          assets={assets}
+          activeDrawer={inlineDrawer}
+          onClose={() => setInlineDrawer(null)}
+          onLocateAsset={(asset) => {
+            handleSelectAsset(asset.id);
+            setInlineDrawer(null);
+          }}
+        />
+      </div>
+    </div>
   );
 };
 
