@@ -29,6 +29,7 @@ import {
 } from '../../services/api';
 import type { Asset, AssetConnection, UtilityType } from '../assets/types';
 import { canAdministerMapConfiguration } from '../../types';
+import { useOperationalWorkspace } from '../../context/OperationalWorkspaceContext';
 import './motion/mapMotion.css';
 
 interface MapOperationsPageProps {
@@ -52,6 +53,12 @@ const MapOperationsPageContent: React.FC<MapOperationsPageProps> = ({
   onSwitchToLegacy: _onSwitchToLegacy,
 }) => {
   const mapConfig = useMapConfiguration();
+  let workspace: ReturnType<typeof useOperationalWorkspace> | null = null;
+  try {
+    workspace = useOperationalWorkspace();
+  } catch {
+    workspace = null;
+  }
 
   const {
     selectedDate,
@@ -218,6 +225,34 @@ const MapOperationsPageContent: React.FC<MapOperationsPageProps> = ({
       setViewport(framing);
     }
   }, [setViewMode, setViewport]);
+
+  // Respond to focusedEntity from OperationalWorkspace
+  useEffect(() => {
+    if (!workspace?.focusedEntity) return;
+    const fe = workspace.focusedEntity;
+    if (fe.type === 'asset') {
+      handleSelectAsset(fe.id);
+      const targetAsset = assets.find((a) => a.id === fe.id || a.code === fe.code);
+      if (targetAsset && targetAsset.map_x !== null && targetAsset.map_y !== null) {
+        handleSwitchToMapAndCenterAsset(targetAsset);
+      }
+    } else if (fe.type === 'meter') {
+      const targetMeter = mapMeters.find((m) => m.id === fe.id || m.meterCode === fe.code);
+      if (targetMeter) {
+        mapState.selectMeter(targetMeter.id);
+        setViewMode('map');
+        const sceneCoord = normalizedToCanonicalScene(targetMeter.coordinates);
+        const framing = focusEntity({
+          entity: { type: 'meter', id: targetMeter.id },
+          mode: 'inspect',
+          viewportWidth: typeof window !== 'undefined' ? window.innerWidth : 1440,
+          viewportHeight: typeof window !== 'undefined' ? window.innerHeight : 900,
+          entityCoords: sceneCoord,
+        });
+        setViewport(framing);
+      }
+    }
+  }, [workspace?.focusedEntity, assets, mapMeters, handleSelectAsset, handleSwitchToMapAndCenterAsset, mapState, setViewport, setViewMode]);
 
   // Placement initial coordinates for relocating meter
   const selectedMeterCoord = useMemo(() => {
@@ -777,7 +812,16 @@ const MapOperationsPageContent: React.FC<MapOperationsPageProps> = ({
       onRefreshNetwork={fetchNetworkData}
       canManageVerification={canAdministerMapConfiguration(user)}
       onOpenVerificationReview={(id) => {
-        window.location.href = `/admin?tab=verification${id ? '&asset=' + id : ''}`;
+        if (workspace) {
+          workspace.openVerification(id);
+        } else {
+          window.location.href = `/admin?tab=verification${id ? '&asset=' + id : ''}`;
+        }
+      }}
+      onOpenAssetDetails={(id, code) => {
+        if (workspace) {
+          workspace.openAssetDetails(id, code);
+        }
       }}
       onSwitchToMapAndCenterAsset={handleSwitchToMapAndCenterAsset}
     />

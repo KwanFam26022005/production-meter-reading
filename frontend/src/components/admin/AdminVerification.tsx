@@ -10,6 +10,11 @@ import {
   Gauge,
   X,
   ShieldCheck,
+  Boxes,
+  Eye,
+  Calendar,
+  ExternalLink,
+  RefreshCw,
 } from 'lucide-react';
 import {
   Asset,
@@ -19,6 +24,8 @@ import {
   EvidenceType,
   VerificationEvidence,
 } from '../../features/assets/types';
+import type { AdminDashboardExceptionItem } from '../../types';
+import { useOperationalWorkspace } from '../../context/OperationalWorkspaceContext';
 import {
   getAssetVerificationOverview,
   getMeterReviewMatrix,
@@ -32,6 +39,7 @@ import {
   rejectAdminMeterAssetRelation,
   importAdminCandidateProposals,
   getEntityEvidences,
+  getAdminDashboard,
 } from '../../services/api';
 
 const EVIDENCE_TYPE_LABELS: Record<EvidenceType, string> = {
@@ -55,9 +63,52 @@ export const AdminVerification: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
-
   const [search, setSearch] = useState<string>('');
   const [isImporting, setIsImporting] = useState<boolean>(false);
+
+  let workspace: ReturnType<typeof useOperationalWorkspace> | null = null;
+  try {
+    workspace = useOperationalWorkspace();
+  } catch {
+    workspace = null;
+  }
+
+  const [hubScope, setHubScope] = useState<'infrastructure' | 'readings'>('infrastructure');
+  const [readingExceptions, setReadingExceptions] = useState<AdminDashboardExceptionItem[]>([]);
+  const [readingsLoading, setReadingsLoading] = useState<boolean>(false);
+  const [selectedShiftDate, setSelectedShiftDate] = useState<string>(() => {
+    return workspace?.selectedDate || new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date());
+  });
+
+  // Auto-focus asset if navigated from another workspace view (e.g. Map or Asset Inventory)
+  useEffect(() => {
+    if (!workspace?.focusedEntity) return;
+    const fe = workspace.focusedEntity;
+    if (fe.type === 'asset') {
+      setHubScope('infrastructure');
+      if (fe.code) {
+        setSearch(fe.code);
+      }
+    }
+  }, [workspace?.focusedEntity]);
+
+  const loadShiftReadings = async (dateStr: string) => {
+    setReadingsLoading(true);
+    try {
+      const dash = await getAdminDashboard(dateStr);
+      setReadingExceptions(dash.exceptions || []);
+    } catch (err: any) {
+      console.error('Failed to load shift exceptions', err);
+    } finally {
+      setReadingsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (hubScope === 'readings') {
+      loadShiftReadings(selectedShiftDate);
+    }
+  }, [hubScope, selectedShiftDate]);
 
   // Review Modal state
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
@@ -292,8 +343,228 @@ export const AdminVerification: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Overview Metric Banner */}
-      <div className="bg-white border border-[#D7E0E5] rounded-xl p-5 shadow-sm">
+      {/* 1. TOP DUAL SCOPE SEGMENTED CONTROL */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white p-2.5 rounded-xl border border-[#D7E0E5] shadow-sm">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <button
+            type="button"
+            onClick={() => setHubScope('infrastructure')}
+            className={`flex-1 sm:flex-none px-4 py-2.5 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition ${
+              hubScope === 'infrastructure'
+                ? 'bg-[#073B5C] text-white shadow-sm'
+                : 'text-[#53636D] hover:bg-[#F2F7F9] hover:text-[#073B5C]'
+            }`}
+          >
+            <Boxes size={18} />
+            <span>Đối soát Hồ sơ Hạ tầng & Thiết bị</span>
+            {summary && summary.unverifiedAssets > 0 && (
+              <span className="px-2 py-0.5 text-xs rounded-full bg-amber-500 text-white font-bold">
+                {summary.unverifiedAssets}
+              </span>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setHubScope('readings')}
+            className={`flex-1 sm:flex-none px-4 py-2.5 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition ${
+              hubScope === 'readings'
+                ? 'bg-[#073B5C] text-white shadow-sm'
+                : 'text-[#53636D] hover:bg-[#F2F7F9] hover:text-[#073B5C]'
+            }`}
+          >
+            <ClipboardCheck size={18} />
+            <span>Đối soát Chỉ số & Ca ghi</span>
+            {readingExceptions.length > 0 && (
+              <span className="px-2 py-0.5 text-xs rounded-full bg-rose-500 text-white font-bold">
+                {readingExceptions.length}
+              </span>
+            )}
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {workspace && (
+            <div className="flex items-center gap-1.5 mr-2">
+              <button
+                type="button"
+                onClick={() => workspace?.setActiveTab('dashboard')}
+                className="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-[#53636D] hover:bg-[#F2F7F9] hover:text-[#073B5C] border border-[#D7E0E5] flex items-center gap-1.5 transition"
+                title="Mở Không gian Bản đồ Vận hành"
+              >
+                <MapPin size={13} className="text-sky-600" />
+                <span>Bản đồ</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => workspace?.setActiveTab('assets')}
+                className="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-[#53636D] hover:bg-[#F2F7F9] hover:text-[#073B5C] border border-[#D7E0E5] flex items-center gap-1.5 transition"
+                title="Mở Danh mục Thiết bị"
+              >
+                <Boxes size={13} className="text-sky-600" />
+                <span>Thiết bị</span>
+              </button>
+            </div>
+          )}
+          <div className="text-xs text-[#74838C] hidden xl:flex items-center gap-2">
+            <span className="font-semibold text-[#073B5C]">Trung tâm Đối soát Liên thông</span>
+            <span>•</span>
+            <span>Bảo toàn minh chứng</span>
+          </div>
+        </div>
+      </div>
+
+      {hubScope === 'readings' ? (
+        <div className="space-y-4">
+          {/* Controls Bar: Date, Refresh, KPI Summary */}
+          <div className="bg-white border border-[#D7E0E5] rounded-xl p-4 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <Calendar size={18} className="text-[#12658F]" />
+                <span className="text-xs font-semibold text-[#53636D]">Ngày ghi nhận:</span>
+                <input
+                  type="date"
+                  value={selectedShiftDate}
+                  onChange={(e) => setSelectedShiftDate(e.target.value)}
+                  className="px-3 py-1.5 text-sm font-medium border border-[#D7E0E5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#073B5C]"
+                />
+              </div>
+
+              <button
+                type="button"
+                onClick={() => loadShiftReadings(selectedShiftDate)}
+                disabled={readingsLoading}
+                className="p-2 text-[#53636D] hover:text-[#073B5C] hover:bg-[#F2F7F9] rounded-lg transition"
+                title="Làm mới danh sách bất thường"
+              >
+                <RefreshCw size={16} className={readingsLoading ? 'animate-spin' : ''} />
+              </button>
+            </div>
+
+            <div className="flex items-center gap-4 text-xs">
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+                <span className="text-[#53636D]">Cần kiểm tra:</span>
+                <span className="font-bold text-amber-700">
+                  {readingExceptions.filter((e) => e.exception_state === 'REVIEW').length}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
+                <span className="text-[#53636D]">Chưa ghi / Bỏ sót:</span>
+                <span className="font-bold text-rose-700">
+                  {readingExceptions.filter((e) => e.exception_state === 'MISSING').length}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Shift Reading Anomaly List */}
+          <div className="bg-white border border-[#D7E0E5] rounded-xl shadow-sm overflow-hidden">
+            {readingsLoading ? (
+              <div className="p-12 text-center text-[#53636D] text-sm">Đang tải dữ liệu đối soát ca ghi...</div>
+            ) : readingExceptions.length === 0 ? (
+              <div className="p-12 text-center space-y-2">
+                <div className="w-12 h-12 rounded-full bg-[#EAF6F1] text-[#167A5A] mx-auto flex items-center justify-center">
+                  <CheckCircle2 size={24} />
+                </div>
+                <h4 className="font-bold text-[#073B5C] text-sm">Toàn bộ chỉ số ca ghi đã hoàn tất đối soát</h4>
+                <p className="text-xs text-[#53636D]">
+                  Không phát hiện bất thường vượt ngưỡng hoặc yêu cầu kiểm tra thực địa trong ca này.
+                </p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs text-[#18242C]">
+                  <thead className="bg-[#F6F8F9] border-b border-[#D7E0E5] text-[11px] font-bold text-[#53636D] uppercase">
+                    <tr>
+                      <th className="py-3 px-4">Công tơ</th>
+                      <th className="py-3 px-4">Khu vực / Điểm đo</th>
+                      <th className="py-3 px-4">Lượt ghi & Ca</th>
+                      <th className="py-3 px-4">Tình trạng đối soát</th>
+                      <th className="py-3 px-4">Chỉ số OCR ghi nhận</th>
+                      <th className="py-3 px-4">Nhân viên ghi</th>
+                      <th className="py-3 px-4 text-right">Thao tác xử lý</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#E6ECEF]">
+                    {readingExceptions.map((exc, idx) => (
+                      <tr key={idx} className="hover:bg-[#F8FAFC] transition">
+                        <td className="py-3 px-4">
+                          <span className="font-mono font-bold text-[#073B5C] text-xs block">{exc.meter_code}</span>
+                          <span className="text-[#53636D] text-[11px]">{exc.meter_name}</span>
+                        </td>
+                        <td className="py-3 px-4 text-[#53636D]">{exc.location}</td>
+                        <td className="py-3 px-4">
+                          <span className="font-medium text-[#18242C] block">{exc.scheduled_local}</span>
+                          <span className="text-[10px] text-[#74838C]">Mã lượt: {exc.round_id}</span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <span
+                            className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                              exc.exception_state === 'REVIEW'
+                                ? 'bg-[#FFF4DF] text-[#A86200] border border-[#FFE0A3]'
+                                : 'bg-[#FCECEC] text-[#B43A3A] border border-[#F5B5B5]'
+                            }`}
+                          >
+                            <AlertTriangle size={10} />
+                            {exc.exception_label}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 font-mono font-bold text-sm text-[#073B5C]">
+                          {exc.ocr_reading || '—'}
+                        </td>
+                        <td className="py-3 px-4 text-[#53636D]">
+                          <span>{exc.recorded_by || 'Chưa ghi'}</span>
+                          {exc.server_timestamp && (
+                            <span className="text-[10px] text-[#74838C] block">{exc.server_timestamp}</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            {workspace && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  workspace.locateOnMap({
+                                    type: 'meter',
+                                    id: exc.meter_id,
+                                    code: exc.meter_code,
+                                    name: exc.meter_name,
+                                  })
+                                }
+                                className="p-1.5 text-[#53636D] hover:text-[#073B5C] hover:bg-[#E8F1F5] rounded-lg transition"
+                                title="Định vị công tơ trên Bản đồ"
+                              >
+                                <MapPin size={15} />
+                              </button>
+                            )}
+
+                            {exc.reading_id && workspace && (
+                              <button
+                                type="button"
+                                onClick={() => workspace.openReadingInspection(exc.reading_id!)}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#073B5C] hover:bg-[#0B4F75] text-white text-xs font-semibold rounded-lg shadow-sm transition"
+                                title="Mở đối soát ảnh chụp và chỉ số"
+                              >
+                                <Eye size={13} />
+                                <span>Đối soát ảnh & số</span>
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Overview Metric Banner */}
+          <div className="bg-white border border-[#D7E0E5] rounded-xl p-5 shadow-sm">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#D7E0E5] pb-4 mb-4">
           <div>
             <h2 className="text-xl font-bold text-[#073B5C] flex items-center gap-2">
@@ -478,12 +749,15 @@ export const AdminVerification: React.FC = () => {
                   <th className="px-4 py-3">Vị trí TB</th>
                   <th className="px-4 py-3">Thông tin còn thiếu</th>
                   <th className="px-4 py-3">Rà soát vị trí</th>
+                  <th className="px-4 py-3 text-right">Thao tác</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#D7E0E5]">
                 {matrix.map((row) => (
                   <tr key={row.meter_code} className="hover:bg-[#F6F8F9]">
-                    <td className="px-4 py-3 font-mono font-bold text-[#073B5C]">{row.meter_code}</td>
+                    <td className="px-4 py-3 font-mono font-bold text-[#073B5C]">
+                      {row.meter_code}
+                    </td>
                     <td className="px-4 py-3">{row.name}</td>
                     <td className="px-4 py-3">
                       <span className="px-2 py-0.5 bg-[#E8F1F5] rounded text-[11px] font-semibold text-[#073B5C]">
@@ -561,6 +835,42 @@ export const AdminVerification: React.FC = () => {
                       ) : (
                         <span className="text-[#74838C] text-[10px]">Bình thường</span>
                       )}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        {workspace && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              workspace.locateOnMap({
+                                type: 'meter',
+                                id: row.meter_code,
+                                code: row.meter_code,
+                                name: row.name,
+                              })
+                            }
+                            className="p-1 text-[#53636D] hover:text-[#073B5C] hover:bg-[#E8F1F5] rounded transition"
+                            title="Định vị công tơ trên Bản đồ"
+                          >
+                            <MapPin size={15} />
+                          </button>
+                        )}
+                        {row.proposed_measures && workspace && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              workspace.openAssetDetails(
+                                row.proposed_measures!,
+                                row.proposed_measures || undefined
+                              )
+                            }
+                            className="p-1 text-[#53636D] hover:text-[#073B5C] hover:bg-[#E8F1F5] rounded transition"
+                            title="Mở trong Danh mục Thiết bị"
+                          >
+                            <Boxes size={15} />
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -651,14 +961,48 @@ export const AdminVerification: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="mt-4 pt-3 border-t border-[#D7E0E5] flex items-center justify-between gap-2">
-                    <button
-                      onClick={() => openPositionModal(asset)}
-                      className="text-xs font-semibold text-[#12658F] hover:underline flex items-center gap-1"
-                    >
-                      <MapPin className="w-3.5 h-3.5" />
-                      {asset.map_x !== null ? 'Đổi tọa độ' : 'Đặt vị trí'}
-                    </button>
+                  <div className="mt-4 pt-3 border-t border-[#D7E0E5] flex items-center justify-between gap-2 flex-wrap">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => openPositionModal(asset)}
+                        className="text-xs font-semibold text-[#12658F] hover:underline flex items-center gap-1"
+                      >
+                        <MapPin className="w-3.5 h-3.5" />
+                        {asset.map_x !== null ? 'Đổi tọa độ' : 'Đặt vị trí'}
+                      </button>
+
+                      {asset.map_x !== null && asset.map_y !== null && workspace && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            workspace.locateOnMap({
+                              type: 'asset',
+                              id: asset.id,
+                              code: asset.code,
+                              name: asset.name,
+                              coordinates: [asset.map_x!, asset.map_y!],
+                            })
+                          }
+                          className="text-xs font-semibold text-[#073B5C] hover:underline flex items-center gap-1"
+                          title="Định vị trên Bản đồ tác nghiệp"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                          <span>Bản đồ</span>
+                        </button>
+                      )}
+
+                      {workspace && (
+                        <button
+                          type="button"
+                          onClick={() => workspace.openAssetDetails(asset.id, asset.code)}
+                          className="text-xs font-semibold text-[#073B5C] hover:underline flex items-center gap-1"
+                          title="Mở trong Danh mục Thiết bị"
+                        >
+                          <Boxes className="w-3.5 h-3.5" />
+                          <span>Thiết bị</span>
+                        </button>
+                      )}
+                    </div>
 
                     <div className="flex items-center gap-2">
                       {asset.verification_status === 'REJECTED' ? (
@@ -683,6 +1027,8 @@ export const AdminVerification: React.FC = () => {
             })
           )}
         </div>
+      )}
+        </>
       )}
 
       {/* MODAL: ASSET REVIEW & EVIDENCE */}

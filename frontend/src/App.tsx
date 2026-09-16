@@ -41,6 +41,7 @@ import { AdminReports } from './components/admin/AdminReports';
 import { AdminReadingInspection } from './components/admin/AdminReadingInspection';
 import { AdminAssets } from './components/admin/AdminAssets';
 import { AdminVerification } from './components/admin/AdminVerification';
+import { OperationalWorkspaceProvider, useOperationalWorkspace } from './context/OperationalWorkspaceContext';
 
 const MAX_IMAGE_SIZE_BYTES = 12 * 1024 * 1024; // 12MB
 const MAX_READING_LENGTH = 12;
@@ -117,6 +118,98 @@ function generateRoiCrop(imageSrc: string, roiBbox: [number, number, number, num
   });
 }
 
+interface AdminWorkspaceAppProps {
+  currentUser: User;
+  onLogout: () => void;
+  isLogoutModalOpen: boolean;
+  isLoggingOut: boolean;
+  logoutError: string | null;
+  handleConfirmLogout: () => void;
+  handleCancelLogout: () => void;
+}
+
+const AdminWorkspaceApp: React.FC<AdminWorkspaceAppProps> = ({
+  currentUser,
+  onLogout,
+  isLogoutModalOpen,
+  isLoggingOut,
+  logoutError,
+  handleConfirmLogout,
+  handleCancelLogout,
+}) => {
+  const {
+    activeTab,
+    setActiveTab,
+    inspectingReadingId,
+    setInspectingReadingId,
+  } = useOperationalWorkspace();
+
+  const adminActiveTab = activeTab;
+
+  const handleSelectTab = (tab: AdminTab) => {
+    setInspectingReadingId(null);
+    if (tab === 'meters') {
+      try {
+        sessionStorage.setItem('map_workspace_view', 'list');
+      } catch {}
+      setActiveTab('dashboard');
+      return;
+    }
+    setActiveTab(tab);
+  };
+
+  return (
+    <AdminShell
+      user={currentUser}
+      activeTab={adminActiveTab}
+      onSelectTab={handleSelectTab}
+      onLogout={onLogout}
+    >
+      {/* If inspecting a reading, show inspection view */}
+      {inspectingReadingId && (
+        <AdminReadingInspection
+          readingId={inspectingReadingId}
+          onBack={() => setInspectingReadingId(null)}
+          onSelectReading={(nextReadingId) => setInspectingReadingId(nextReadingId)}
+        />
+      )}
+
+      {/* Active tab content: strictly isolate lifecycle so only active page is mounted */}
+      {!inspectingReadingId && (
+        <>
+          {adminActiveTab === 'dashboard' && (
+            <AdminDashboard user={currentUser} onInspectReading={(rId) => setInspectingReadingId(rId)} />
+          )}
+          {adminActiveTab === 'assets' && <AdminAssets />}
+          {adminActiveTab === 'verification' && <AdminVerification />}
+          {adminActiveTab === 'schedules' && <AdminSchedules />}
+          {adminActiveTab === 'staff_roster' && <AdminStaffRoster user={currentUser} />}
+          {adminActiveTab === 'meters' && (
+            <AdminMeters onInspectReading={(rId) => setInspectingReadingId(rId)} />
+          )}
+          {adminActiveTab === 'reports' && (
+            <AdminReports
+              user={currentUser}
+              onBackToDashboard={() => handleSelectTab('dashboard')}
+              onInspectReading={(rId) => setInspectingReadingId(rId)}
+            />
+          )}
+          {adminActiveTab === 'audit' && <AdminAudit />}
+        </>
+      )}
+
+      <LogoutConfirmModal
+        isOpen={isLogoutModalOpen}
+        hasUnsavedWork={false}
+        isLoggingOut={isLoggingOut}
+        error={logoutError}
+        onConfirm={handleConfirmLogout}
+        onCancel={handleCancelLogout}
+      />
+    </AdminShell>
+  );
+};
+
 export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [authChecking, setAuthChecking] = useState<boolean>(true);
@@ -144,10 +237,8 @@ export default function App() {
     } catch {}
     return 'dashboard';
   });
-  const [inspectingReadingId, setInspectingReadingId] = useState<string | null>(null);
 
   const handleSelectAdminTab = (tab: AdminTab) => {
-    setInspectingReadingId(null);
     // V13: Legacy meter navigation redirects into Map Operations -> List view
     if (tab === 'meters') {
       try {
@@ -564,54 +655,20 @@ export default function App() {
   // 2.5 Admin Persona Route (ADMIN role)
   if (currentUser.role === 'ADMIN') {
     return (
-      <AdminShell
-        user={currentUser}
-        activeTab={adminActiveTab}
-        onSelectTab={handleSelectAdminTab}
-        onLogout={handleOpenLogoutModal}
+      <OperationalWorkspaceProvider
+        initialTab={adminActiveTab}
+        onTabChange={handleSelectAdminTab}
       >
-        {/* If inspecting a reading, show inspection view */}
-        {inspectingReadingId && (
-          <AdminReadingInspection
-            readingId={inspectingReadingId}
-            onBack={() => setInspectingReadingId(null)}
-            onSelectReading={(nextReadingId) => setInspectingReadingId(nextReadingId)}
-          />
-        )}
-
-        {/* Active tab content: strictly isolate lifecycle so only active page is mounted */}
-        {!inspectingReadingId && (
-          <>
-            {adminActiveTab === 'dashboard' && (
-              <AdminDashboard user={currentUser} onInspectReading={(rId) => setInspectingReadingId(rId)} />
-            )}
-            {adminActiveTab === 'assets' && <AdminAssets />}
-            {adminActiveTab === 'verification' && <AdminVerification />}
-            {adminActiveTab === 'schedules' && <AdminSchedules />}
-            {adminActiveTab === 'staff_roster' && <AdminStaffRoster user={currentUser} />}
-            {adminActiveTab === 'meters' && (
-              <AdminMeters onInspectReading={(rId) => setInspectingReadingId(rId)} />
-            )}
-            {adminActiveTab === 'reports' && (
-              <AdminReports
-                user={currentUser}
-                onBackToDashboard={() => handleSelectAdminTab('dashboard')}
-                onInspectReading={(rId) => setInspectingReadingId(rId)}
-              />
-            )}
-            {adminActiveTab === 'audit' && <AdminAudit />}
-          </>
-        )}
-
-        <LogoutConfirmModal
-          isOpen={isLogoutModalOpen}
-          hasUnsavedWork={false}
+        <AdminWorkspaceApp
+          currentUser={currentUser}
+          onLogout={handleOpenLogoutModal}
+          isLogoutModalOpen={isLogoutModalOpen}
           isLoggingOut={isLoggingOut}
-          error={logoutError}
-          onConfirm={handleConfirmLogout}
-          onCancel={handleCancelLogout}
+          logoutError={logoutError}
+          handleConfirmLogout={handleConfirmLogout}
+          handleCancelLogout={handleCancelLogout}
         />
-      </AdminShell>
+      </OperationalWorkspaceProvider>
     );
   }
 

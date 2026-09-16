@@ -141,6 +141,7 @@ interface ImmersiveSceneShellProps {
   onRefreshNetwork?: () => void;
   canManageVerification?: boolean;
   onOpenVerificationReview?: (assetId?: string) => void;
+  onOpenAssetDetails?: (assetId: string, assetCode?: string) => void;
   onSwitchToMapAndCenterAsset?: (asset: Asset) => void;
 }
 
@@ -246,6 +247,7 @@ export const ImmersiveSceneShell: React.FC<ImmersiveSceneShellProps> = ({
   onRefreshNetwork,
   canManageVerification = false,
   onOpenVerificationReview,
+  onOpenAssetDetails,
   onSwitchToMapAndCenterAsset,
 }) => {
   const [isLegendOpen, setIsLegendOpen] = React.useState(false);
@@ -514,6 +516,7 @@ export const ImmersiveSceneShell: React.FC<ImmersiveSceneShellProps> = ({
               if (onSelectAsset) onSelectAsset(id);
             }}
             onOpenVerificationReview={onOpenVerificationReview}
+            onOpenAssetDetails={onOpenAssetDetails}
             canManageVerification={canManageVerification}
           />
         )}

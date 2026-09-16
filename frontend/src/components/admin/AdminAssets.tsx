@@ -11,7 +11,11 @@ import {
   ChevronRight,
   X,
   Info,
+  MapPin,
+  ClipboardCheck,
+  ExternalLink,
 } from 'lucide-react';
+import { useOperationalWorkspace } from '../../context/OperationalWorkspaceContext';
 import {
   Asset,
   AssetType,
@@ -70,6 +74,25 @@ export const AdminAssets: React.FC = () => {
   const [assetRelations, setAssetRelations] = useState<MeterAssetRelation[]>([]);
   const [assetConnections, setAssetConnections] = useState<AssetConnection[]>([]);
   const [detailLoading, setDetailLoading] = useState<boolean>(false);
+
+  let workspace: ReturnType<typeof useOperationalWorkspace> | null = null;
+  try {
+    workspace = useOperationalWorkspace();
+  } catch {
+    workspace = null;
+  }
+
+  // Auto-focus asset if navigated from another workspace view (e.g. Map or Verification)
+  useEffect(() => {
+    if (!workspace?.focusedEntity) return;
+    const fe = workspace.focusedEntity;
+    if (fe.type === 'asset' && assets.length > 0) {
+      const match = assets.find((a) => a.id === fe.id || a.code === fe.code);
+      if (match && selectedAsset?.id !== match.id) {
+        handleSelectAsset(match);
+      }
+    }
+  }, [workspace?.focusedEntity, assets]);
 
   // Create / Edit modal
   const [isCreateOpen, setIsCreateOpen] = useState<boolean>(false);
@@ -330,6 +353,47 @@ export const AdminAssets: React.FC = () => {
 
   return (
     <div className="admin-assets-page p-6 max-w-7xl mx-auto space-y-6">
+      {/* UNIFIED WORKSPACE SHORTCUT STRIP */}
+      {workspace && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-600">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-bold text-slate-700">Không gian Vận hành & Hạ tầng:</span>
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => workspace?.setActiveTab('dashboard')}
+                className="px-2.5 py-1 rounded bg-white hover:bg-slate-100 text-slate-700 font-medium border border-slate-200 flex items-center gap-1 transition"
+                title="Mở Không gian Bản đồ Vận hành"
+              >
+                <MapPin size={13} className="text-sky-600" />
+                <span>Bản đồ Vận hành</span>
+              </button>
+              <span className="px-2.5 py-1 rounded bg-sky-600 text-white font-bold flex items-center gap-1 shadow-sm">
+                <Boxes size={13} />
+                <span>Danh mục Thiết bị</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => workspace?.setActiveTab('verification')}
+                className="px-2.5 py-1 rounded bg-white hover:bg-slate-100 text-slate-700 font-medium border border-slate-200 flex items-center gap-1 transition"
+                title="Mở Trung tâm Đối soát"
+              >
+                <ClipboardCheck size={13} className="text-amber-600" />
+                <span>Trung tâm Đối soát</span>
+                {attentionCount > 0 && (
+                  <span className="ml-1 px-1.5 py-0.2 rounded-full bg-amber-100 text-amber-800 font-bold text-[10px]">
+                    {attentionCount}
+                  </span>
+                )}
+              </button>
+            </div>
+          </div>
+          <span className="text-slate-400 hidden lg:inline">
+            Liên thông trực tiếp giữa Không gian Bản đồ, Hồ sơ Thiết bị và Đối soát
+          </span>
+        </div>
+      )}
+
       {/* HEADER (Section 15: Production Polish) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
         <div>
@@ -514,7 +578,36 @@ export const AdminAssets: React.FC = () => {
                     <td className="py-3 px-4">{renderLifecycleBadge(a.lifecycle_status)}</td>
                     <td className="py-3 px-4">{renderVerificationBadge(a.verification_status)}</td>
                     <td className="py-3 px-4 text-right">
-                      <ChevronRight className="inline text-slate-400" size={16} />
+                      <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
+                        {a.map_x !== null && a.map_y !== null && workspace && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              workspace.locateOnMap({
+                                type: 'asset',
+                                id: a.id,
+                                code: a.code,
+                                name: a.name,
+                                coordinates: [a.map_x!, a.map_y!],
+                              })
+                            }
+                            className="p-1 text-slate-400 hover:text-sky-600 hover:bg-sky-50 rounded transition"
+                            title="Định vị thiết bị trên Bản đồ tác nghiệp"
+                            aria-label={`Định vị ${a.code} trên Bản đồ`}
+                          >
+                            <MapPin size={16} />
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleSelectAsset(a)}
+                          className="p-1 text-slate-400 hover:text-slate-600 rounded transition"
+                          title="Xem chi tiết thiết bị"
+                          aria-label={`Xem chi tiết ${a.code}`}
+                        >
+                          <ChevronRight size={16} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -542,6 +635,38 @@ export const AdminAssets: React.FC = () => {
                     {selectedAsset.code}
                   </span>
                   <h2 className="text-xl font-bold text-slate-900 mt-1">{selectedAsset.name}</h2>
+                  <div className="flex items-center gap-2 mt-3">
+                    {selectedAsset.map_x !== null && selectedAsset.map_y !== null && workspace && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          workspace.locateOnMap({
+                            type: 'asset',
+                            id: selectedAsset.id,
+                            code: selectedAsset.code,
+                            name: selectedAsset.name,
+                            coordinates: [selectedAsset.map_x!, selectedAsset.map_y!],
+                          })
+                        }
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#073B5C] hover:bg-[#0a4d78] text-white text-xs font-semibold rounded-lg shadow-sm transition"
+                        title="Định vị và thu phóng trên Bản đồ tác nghiệp"
+                      >
+                        <MapPin size={13} />
+                        <span>Định vị trên Bản đồ</span>
+                      </button>
+                    )}
+                    {workspace && (
+                      <button
+                        type="button"
+                        onClick={() => workspace.openVerification(selectedAsset.id)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 text-xs font-semibold rounded-lg transition"
+                        title="Mở hồ sơ đối soát và minh chứng kỹ thuật"
+                      >
+                        <ClipboardCheck size={13} />
+                        <span>Đối soát hồ sơ</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <button
                   type="button"
@@ -609,6 +734,59 @@ export const AdminAssets: React.FC = () => {
                   </div>
                 )}
               </div>
+
+              {/* Visual SVG Mini-Map Preview Widget */}
+              {selectedAsset.map_x !== null && selectedAsset.map_y !== null && (
+                <div className="bg-slate-900 rounded-xl p-3 border border-slate-700 relative overflow-hidden">
+                  <div className="flex items-center justify-between text-xs text-slate-300 mb-2 font-medium">
+                    <span className="flex items-center gap-1.5">
+                      <MapPin size={13} className="text-sky-400" />
+                      Vị trí không gian trên sơ đồ cảng
+                    </span>
+                    <span className="font-mono text-[11px] text-slate-400">
+                      X: {(selectedAsset.map_x * 100).toFixed(1)}% · Y: {(selectedAsset.map_y * 100).toFixed(1)}%
+                    </span>
+                  </div>
+                  <div
+                    className="relative w-full rounded-lg overflow-hidden bg-[#0c1828] border border-slate-700/60 cursor-pointer group"
+                    style={{ aspectRatio: '1915 / 821' }}
+                    onClick={() => {
+                      if (workspace) {
+                        workspace.locateOnMap({
+                          type: 'asset',
+                          id: selectedAsset.id,
+                          code: selectedAsset.code,
+                          name: selectedAsset.name,
+                          coordinates: [selectedAsset.map_x!, selectedAsset.map_y!],
+                        });
+                      }
+                    }}
+                    title="Bấm để mở và phóng to trên bản đồ lớn"
+                  >
+                    <svg className="w-full h-full" viewBox="0 0 1915 821" preserveAspectRatio="none">
+                      <path d="M 0 0 L 1915 0 L 1915 320 Q 1400 360 1000 450 Q 500 580 0 620 Z" fill="#0c2340" opacity="0.6" />
+                      <line x1="320" y1="480" x2="1680" y2="340" stroke="#38bdf8" strokeWidth="8" strokeDasharray="16 8" opacity="0.4" />
+                      <rect x="250" y="520" width="380" height="240" rx="8" fill="#1e293b" stroke="#475569" strokeWidth="2" opacity="0.5" />
+                      <rect x="680" y="460" width="450" height="280" rx="8" fill="#1e293b" stroke="#475569" strokeWidth="2" opacity="0.5" />
+                      <rect x="1180" y="380" width="480" height="340" rx="8" fill="#1e293b" stroke="#475569" strokeWidth="2" opacity="0.5" />
+                    </svg>
+                    <div
+                      className="absolute transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center pointer-events-none"
+                      style={{
+                        left: `${selectedAsset.map_x * 100}%`,
+                        top: `${selectedAsset.map_y * 100}%`,
+                      }}
+                    >
+                      <span className="animate-ping absolute inline-flex h-6 w-6 rounded-full bg-sky-400 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-sky-500 border-2 border-white shadow-lg" />
+                    </div>
+                    <div className="absolute bottom-2 right-2 bg-slate-900/80 backdrop-blur-sm text-[10px] text-sky-300 font-semibold px-2 py-0.5 rounded border border-sky-500/30 flex items-center gap-1 group-hover:bg-sky-600 group-hover:text-white transition">
+                      <span>Mở bản đồ lớn</span>
+                      <ExternalLink size={10} />
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Attached Meters */}
               <div className="space-y-3">
@@ -838,6 +1016,44 @@ export const AdminAssets: React.FC = () => {
                     onChange={(e) => setFormMapY(e.target.value)}
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg font-mono focus:ring-2 focus:ring-sky-500 focus:outline-none"
                   />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-slate-700">Chấm vị trí trên sơ đồ</span>
+                  <span className="text-[11px] text-slate-400">Nhấp chuột vào bản đồ để chọn tọa độ</span>
+                </div>
+                <div
+                  className="relative w-full rounded-lg overflow-hidden bg-[#0c1828] border border-slate-300 cursor-crosshair"
+                  style={{ aspectRatio: '1915 / 821' }}
+                  onClick={(e) => {
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    const nx = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+                    const ny = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
+                    setFormMapX(nx.toFixed(4));
+                    setFormMapY(ny.toFixed(4));
+                  }}
+                  title="Nhấp chuột vào vị trí bất kỳ để gán tọa độ"
+                >
+                  <svg className="w-full h-full" viewBox="0 0 1915 821" preserveAspectRatio="none">
+                    <path d="M 0 0 L 1915 0 L 1915 320 Q 1400 360 1000 450 Q 500 580 0 620 Z" fill="#0c2340" opacity="0.6" />
+                    <line x1="320" y1="480" x2="1680" y2="340" stroke="#38bdf8" strokeWidth="8" strokeDasharray="16 8" opacity="0.4" />
+                    <rect x="250" y="520" width="380" height="240" rx="8" fill="#1e293b" stroke="#475569" strokeWidth="2" opacity="0.5" />
+                    <rect x="680" y="460" width="450" height="280" rx="8" fill="#1e293b" stroke="#475569" strokeWidth="2" opacity="0.5" />
+                    <rect x="1180" y="380" width="480" height="340" rx="8" fill="#1e293b" stroke="#475569" strokeWidth="2" opacity="0.5" />
+                  </svg>
+                  {parseFloat(formMapX) >= 0 && parseFloat(formMapY) >= 0 && (
+                    <div
+                      className="absolute transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center pointer-events-none"
+                      style={{
+                        left: `${parseFloat(formMapX) * 100}%`,
+                        top: `${parseFloat(formMapY) * 100}%`,
+                      }}
+                    >
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-sky-500 border-2 border-white shadow" />
+                    </div>
+                  )}
                 </div>
               </div>
 

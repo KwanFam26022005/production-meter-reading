@@ -25,6 +25,8 @@ import {
   ShieldCheck,
   Layers,
   Gauge,
+  Boxes,
+  ClipboardCheck,
 } from 'lucide-react';
 import type {
   Asset,
@@ -41,6 +43,7 @@ export interface AssetContextSurfaceProps {
   onSwitchToMapAndCenter?: (asset: Asset) => void;
   onSwitchToNetworkAndFocus?: (assetId: string) => void;
   onOpenVerificationReview?: (assetId: string) => void;
+  onOpenAssetDetails?: (assetId: string, assetCode?: string) => void;
   canManageVerification?: boolean;
   activeUtility?: string | null;
 }
@@ -54,6 +57,7 @@ export const AssetContextSurface: React.FC<AssetContextSurfaceProps> = ({
   onSwitchToMapAndCenter,
   onSwitchToNetworkAndFocus,
   onOpenVerificationReview,
+  onOpenAssetDetails,
   canManageVerification = false,
   activeUtility = null,
 }) => {
@@ -330,58 +334,115 @@ export const AssetContextSurface: React.FC<AssetContextSurfaceProps> = ({
           padding: '12px 20px',
           borderBottom: '1px solid #E2E8F0',
           display: 'flex',
+          flexDirection: 'column',
           gap: 8,
           backgroundColor: '#FFFFFF',
         }}
       >
-        <button
-          type="button"
-          disabled={!hasCoordinates}
-          onClick={() => onSwitchToMapAndCenter && onSwitchToMapAndCenter(asset)}
-          style={{
-            flex: 1,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 6,
-            padding: '8px 12px',
-            backgroundColor: hasCoordinates ? '#073B5C' : '#F1F5F9',
-            color: hasCoordinates ? '#FFFFFF' : '#94A3B8',
-            border: 'none',
-            borderRadius: 6,
-            fontSize: 12,
-            fontWeight: 600,
-            cursor: hasCoordinates ? 'pointer' : 'not-allowed',
-          }}
-          title={hasCoordinates ? 'Định vị thiết bị trên Bản đồ tác nghiệp' : 'Thiết bị chưa có tọa độ trên bản đồ'}
-        >
-          <MapPin size={14} />
-          <span>Xem trên bản đồ</span>
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            type="button"
+            disabled={!hasCoordinates}
+            onClick={() => onSwitchToMapAndCenter && onSwitchToMapAndCenter(asset)}
+            style={{
+              flex: 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+              padding: '8px 12px',
+              backgroundColor: hasCoordinates ? '#073B5C' : '#F1F5F9',
+              color: hasCoordinates ? '#FFFFFF' : '#94A3B8',
+              border: 'none',
+              borderRadius: 6,
+              fontSize: 12,
+              fontWeight: 600,
+              cursor: hasCoordinates ? 'pointer' : 'not-allowed',
+            }}
+            title={hasCoordinates ? 'Định vị thiết bị trên Bản đồ tác nghiệp' : 'Thiết bị chưa có tọa độ trên bản đồ'}
+          >
+            <MapPin size={14} />
+            <span>Xem trên bản đồ</span>
+          </button>
 
-        <button
-          type="button"
-          onClick={() => onSwitchToNetworkAndFocus && onSwitchToNetworkAndFocus(asset.id)}
-          style={{
-            flex: 1,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 6,
-            padding: '8px 12px',
-            backgroundColor: '#FFFFFF',
-            border: '1px solid #073B5C',
-            color: '#073B5C',
-            borderRadius: 6,
-            fontSize: 12,
-            fontWeight: 600,
-            cursor: 'pointer',
-          }}
-          title="Mở sơ đồ mạng lưới và làm nổi bật thiết bị này"
-        >
-          <Share2 size={14} />
-          <span>Xem mạng lưới</span>
-        </button>
+          <button
+            type="button"
+            onClick={() => onSwitchToNetworkAndFocus && onSwitchToNetworkAndFocus(asset.id)}
+            style={{
+              flex: 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+              padding: '8px 12px',
+              backgroundColor: '#FFFFFF',
+              border: '1px solid #073B5C',
+              color: '#073B5C',
+              borderRadius: 6,
+              fontSize: 12,
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}
+            title="Mở sơ đồ mạng lưới và làm nổi bật thiết bị này"
+          >
+            <Share2 size={14} />
+            <span>Xem mạng lưới</span>
+          </button>
+        </div>
+
+        <div style={{ display: 'flex', gap: 8 }}>
+          {onOpenAssetDetails && (
+            <button
+              type="button"
+              onClick={() => onOpenAssetDetails(asset.id, asset.code)}
+              style={{
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                padding: '7px 10px',
+                backgroundColor: '#F8FAFC',
+                border: '1px solid #CBD5E1',
+                color: '#334155',
+                borderRadius: 6,
+                fontSize: 11,
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+              title="Mở thiết bị trong Danh mục Quản lý Thiết bị"
+            >
+              <Boxes size={13} color="#0284C7" />
+              <span>Mở trong Thiết bị</span>
+            </button>
+          )}
+
+          {onOpenVerificationReview && (
+            <button
+              type="button"
+              onClick={() => onOpenVerificationReview(asset.id)}
+              style={{
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                padding: '7px 10px',
+                backgroundColor: isApproved ? '#F8FAFC' : '#FEF3C7',
+                border: `1px solid ${isApproved ? '#CBD5E1' : '#FCD34D'}`,
+                color: isApproved ? '#334155' : '#92400E',
+                borderRadius: 6,
+                fontSize: 11,
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+              title="Mở hồ sơ đối soát và minh chứng của thiết bị"
+            >
+              <ClipboardCheck size={13} color={isApproved ? '#167A5A' : '#D97706'} />
+              <span>Đối soát hồ sơ</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* ============================================================ */}
