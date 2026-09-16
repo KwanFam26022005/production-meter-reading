@@ -1613,6 +1613,17 @@ import {
   AssetConnection,
   AssetConnectionListResponse,
   TopologyTraceResponse,
+  CandidateImportResponse,
+  AssetVerificationSummary,
+  MeterReviewMatrixItem,
+  VerificationEvidence,
+  AssetVerifyRequest,
+  AssetRejectRequest,
+  AssetVerifyPositionRequest,
+  RelationVerifyRequest,
+  RelationRejectRequest,
+  ConnectionVerifyRequest,
+  ConnectionRejectRequest,
 } from '../features/assets/types';
 
 export async function getAdminAssets(params?: {
@@ -1890,13 +1901,15 @@ export async function transferAdminMeterAssetRelation(
   return res.json();
 }
 
-export async function verifyAdminMeterAssetRelation(relationId: string): Promise<MeterAssetRelation> {
+export async function verifyAdminMeterAssetRelation(relationId: string, payload?: RelationVerifyRequest): Promise<MeterAssetRelation> {
   const csrfToken = await getCsrfToken();
   const res = await apiFetch(`/api/v1/admin/meter-asset-relations/${relationId}/verify`, {
     method: 'POST',
     headers: {
+      'Content-Type': 'application/json',
       'X-CSRF-Token': csrfToken,
     },
+    body: JSON.stringify(payload || { evidence_type: 'PORT_DOCUMENT', evidence_reference: 'Xác minh hồ sơ công tơ' }),
   });
   if (!res.ok) {
     let detail = 'Không thể xác minh liên kết.';
@@ -1979,6 +1992,230 @@ export async function traceAdminAssetTopology(params: {
   }
   return res.json();
 }
+
+// ==============================================================================
+// V16D — CANDIDATE IMPORT, HUMAN VERIFICATION & REVIEW WORKSPACE
+// ==============================================================================
+
+export async function importAdminCandidateProposals(payload?: {
+  proposals_file?: string;
+  relations_file?: string;
+}): Promise<CandidateImportResponse> {
+  const csrfToken = await getCsrfToken();
+  const res = await apiFetch('/api/v1/admin/assets/import-candidates', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRF-Token': csrfToken,
+    },
+    body: JSON.stringify(payload || {}),
+  });
+  if (!res.ok) {
+    let detail = 'Không thể nạp danh sách ứng viên.';
+    try {
+      const err = await res.json();
+      if (err.detail) detail = err.detail;
+    } catch {}
+    throw new ApiError(res.status, detail);
+  }
+  return res.json();
+}
+
+export async function getAssetVerificationOverview(): Promise<AssetVerificationSummary> {
+  const res = await apiFetch('/api/v1/admin/asset-verification/overview');
+  if (!res.ok) {
+    throw new ApiError(res.status, 'Không thể tải tổng quan đối soát thiết bị.');
+  }
+  return res.json();
+}
+
+export async function getMeterReviewMatrix(): Promise<MeterReviewMatrixItem[]> {
+  const res = await apiFetch('/api/v1/admin/asset-verification/matrix');
+  if (!res.ok) {
+    throw new ApiError(res.status, 'Không thể tải ma trận đối soát công tơ.');
+  }
+  return res.json();
+}
+
+export async function getEntityEvidences(entityType: string, entityId: string): Promise<VerificationEvidence[]> {
+  const res = await apiFetch(`/api/v1/admin/asset-verification/evidences?entity_type=${encodeURIComponent(entityType)}&entity_id=${encodeURIComponent(entityId)}`);
+  if (!res.ok) {
+    throw new ApiError(res.status, 'Không thể tải danh sách bằng chứng.');
+  }
+  return res.json();
+}
+
+export async function verifyAdminAsset(assetId: string, payload: AssetVerifyRequest): Promise<Asset> {
+  const csrfToken = await getCsrfToken();
+  const res = await apiFetch(`/api/v1/admin/assets/${assetId}/verify`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRF-Token': csrfToken,
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    let detail = 'Không thể xác minh thiết bị.';
+    try {
+      const err = await res.json();
+      if (err.detail) detail = err.detail;
+    } catch {}
+    throw new ApiError(res.status, detail);
+  }
+  return res.json();
+}
+
+export async function rejectAdminAssetVerification(assetId: string, payload: AssetRejectRequest): Promise<Asset> {
+  const csrfToken = await getCsrfToken();
+  const res = await apiFetch(`/api/v1/admin/assets/${assetId}/reject-verification`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRF-Token': csrfToken,
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    let detail = 'Không thể từ chối thiết bị.';
+    try {
+      const err = await res.json();
+      if (err.detail) detail = err.detail;
+    } catch {}
+    throw new ApiError(res.status, detail);
+  }
+  return res.json();
+}
+
+export async function reopenAdminAssetReview(assetId: string): Promise<Asset> {
+  const csrfToken = await getCsrfToken();
+  const res = await apiFetch(`/api/v1/admin/assets/${assetId}/reopen-review`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRF-Token': csrfToken,
+    },
+  });
+  if (!res.ok) {
+    let detail = 'Không thể mở lại rà soát thiết bị.';
+    try {
+      const err = await res.json();
+      if (err.detail) detail = err.detail;
+    } catch {}
+    throw new ApiError(res.status, detail);
+  }
+  return res.json();
+}
+
+export async function verifyAdminAssetPosition(assetId: string, payload: AssetVerifyPositionRequest): Promise<Asset> {
+  const csrfToken = await getCsrfToken();
+  const res = await apiFetch(`/api/v1/admin/assets/${assetId}/verify-position`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRF-Token': csrfToken,
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    let detail = 'Không thể xác minh tọa độ thiết bị.';
+    try {
+      const err = await res.json();
+      if (err.detail) detail = err.detail;
+    } catch {}
+    throw new ApiError(res.status, detail);
+  }
+  return res.json();
+}
+
+export async function rejectAdminMeterAssetRelation(relationId: string, payload?: RelationRejectRequest): Promise<MeterAssetRelation> {
+  const csrfToken = await getCsrfToken();
+  const res = await apiFetch(`/api/v1/admin/meter-asset-relations/${relationId}/reject`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRF-Token': csrfToken,
+    },
+    body: JSON.stringify(payload || { reason: 'Từ chối liên kết qua quản trị' }),
+  });
+  if (!res.ok) {
+    let detail = 'Không thể từ chối liên kết công tơ.';
+    try {
+      const err = await res.json();
+      if (err.detail) detail = err.detail;
+    } catch {}
+    throw new ApiError(res.status, detail);
+  }
+  return res.json();
+}
+
+export async function verifyAdminAssetConnection(connectionId: string, payload?: ConnectionVerifyRequest): Promise<AssetConnection> {
+  const csrfToken = await getCsrfToken();
+  const res = await apiFetch(`/api/v1/admin/asset-connections/${connectionId}/verify`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRF-Token': csrfToken,
+    },
+    body: JSON.stringify(payload || { evidence_type: 'PORT_DOCUMENT', evidence_reference: 'Xác minh hồ sơ mạng lưới' }),
+  });
+  if (!res.ok) {
+    let detail = 'Không thể xác minh kết nối mạng lưới.';
+    try {
+      const err = await res.json();
+      if (err.detail) detail = err.detail;
+    } catch {}
+    throw new ApiError(res.status, detail);
+  }
+  return res.json();
+}
+
+export async function rejectAdminAssetConnection(connectionId: string, payload?: ConnectionRejectRequest): Promise<AssetConnection> {
+  const csrfToken = await getCsrfToken();
+  const res = await apiFetch(`/api/v1/admin/asset-connections/${connectionId}/reject`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRF-Token': csrfToken,
+    },
+    body: JSON.stringify(payload || { reason: 'Từ chối kết nối mạng lưới' }),
+  });
+  if (!res.ok) {
+    let detail = 'Không thể từ chối kết nối mạng lưới.';
+    try {
+      const err = await res.json();
+      if (err.detail) detail = err.detail;
+    } catch {}
+    throw new ApiError(res.status, detail);
+  }
+  return res.json();
+}
+
+export async function updateAdminMeterMetadata(meterId: string, payload: {
+  reading_method?: string;
+  communication_protocol?: string;
+  utility_type?: string;
+}): Promise<any> {
+  const csrfToken = await getCsrfToken();
+  const res = await apiFetch(`/api/v1/admin/meters/${meterId}/metadata`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRF-Token': csrfToken,
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    let detail = 'Không thể cập nhật thông số công tơ.';
+    try {
+      const err = await res.json();
+      if (err.detail) detail = err.detail;
+    } catch {}
+    throw new ApiError(res.status, detail);
+  }
+  return res.json();
+}
+
 
 
 

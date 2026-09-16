@@ -17,6 +17,12 @@ export type AssetType =
   | 'WAREHOUSE'
   | 'WORKSHOP'
   | 'OFFICE'
+  | 'FACILITY'
+  | 'BUILDING'
+  | 'BERTH_INFRASTRUCTURE'
+  | 'GATE_EQUIPMENT'
+  | 'FIRE_PUMP_SYSTEM'
+  | 'COMPRESSOR_SYSTEM'
   | 'WATER_POINT'
   | 'FIRE_WATER_POINT'
   | 'SHORE_POWER_POINT'
@@ -26,6 +32,20 @@ export type AssetMobilityType = 'FIXED' | 'MOBILE';
 export type AssetPositionSource = 'STATIC_MAP' | 'ASSIGNED' | 'LAST_KNOWN' | 'GPS' | 'UNKNOWN';
 export type AssetLifecycleStatus = 'ACTIVE' | 'INACTIVE' | 'RETIRED';
 export type AssetVerificationStatus = 'UNVERIFIED' | 'VERIFIED' | 'REJECTED';
+
+export type EvidenceType =
+  | 'FIELD_INSPECTION'
+  | 'MENTOR_CONFIRMATION'
+  | 'PORT_DOCUMENT'
+  | 'EQUIPMENT_NAMEPLATE'
+  | 'METER_PHOTO'
+  | 'ELECTRICAL_DRAWING'
+  | 'WATER_DRAWING'
+  | 'SCADA_CONFIG'
+  | 'OTHER';
+
+export type ReadingMethod = 'MANUAL' | 'OCR' | 'PULSE' | 'MODBUS' | 'PLC' | 'SCADA' | 'UNKNOWN';
+export type CommunicationProtocol = 'NONE' | 'PULSE' | 'RS485' | 'MODBUS_RTU' | 'MODBUS_TCP' | 'PLC' | 'OTHER' | 'UNKNOWN';
 
 export type MeterAssetRelationType = 'INSTALLED_AT' | 'MEASURES';
 export type UtilityType = 'ELECTRICITY' | 'WATER' | 'OTHER';
@@ -56,6 +76,8 @@ export interface Asset {
   map_y: number | null;
   lifecycle_status: AssetLifecycleStatus;
   verification_status: AssetVerificationStatus;
+  position_verification_status: 'UNVERIFIED' | 'VERIFIED';
+  source: 'DISCOVERY_PROPOSAL' | 'MANUAL_ENTRY' | 'IMPORT';
   metadata_json?: string | null;
   child_count: number;
   attached_meters_count: number;
@@ -82,6 +104,9 @@ export interface MeterAssetRelation {
   mount_point?: string | null;
   is_primary: boolean;
   verification_status: AssetVerificationStatus;
+  confidence?: 'LOW' | 'MEDIUM' | 'HIGH';
+  source?: string | null;
+  notes?: string | null;
   valid_from: string;
   valid_to: string | null;
   created_at: string;
@@ -104,6 +129,8 @@ export interface AssetConnection {
   utility_type: UtilityType;
   connection_type: AssetConnectionType;
   verification_status: AssetVerificationStatus;
+  confidence?: 'LOW' | 'MEDIUM' | 'HIGH';
+  source?: string | null;
   valid_from: string;
   valid_to: string | null;
   metadata_json?: string | null;
@@ -124,3 +151,104 @@ export interface TopologyTraceResponse {
   nodes: Asset[];
   edges: AssetConnection[];
 }
+
+export interface VerificationEvidence {
+  id: string;
+  entity_type: string;
+  entity_id: string;
+  evidence_type: EvidenceType;
+  evidence_reference: string;
+  notes?: string | null;
+  verified_by?: string | null;
+  verified_by_name?: string | null;
+  verified_at: string;
+  created_at: string;
+}
+
+export interface AssetVerifyRequest {
+  evidence_type: EvidenceType;
+  evidence_reference: string;
+  notes?: string;
+}
+
+export interface AssetRejectRequest {
+  reason: string;
+  notes?: string;
+}
+
+export interface AssetVerifyPositionRequest {
+  map_x: number;
+  map_y: number;
+  evidence_type: EvidenceType;
+  evidence_reference: string;
+  notes?: string;
+}
+
+export interface RelationVerifyRequest {
+  evidence_type: EvidenceType;
+  evidence_reference: string;
+  is_primary?: boolean;
+  mount_point?: string;
+  notes?: string;
+}
+
+export interface RelationRejectRequest {
+  reason?: string;
+  notes?: string;
+}
+
+export interface ConnectionVerifyRequest {
+  evidence_type: EvidenceType;
+  evidence_reference: string;
+  notes?: string;
+}
+
+export interface ConnectionRejectRequest {
+  reason?: string;
+  notes?: string;
+}
+
+export interface CandidateImportResponse {
+  imported_assets: number;
+  updated_assets: number;
+  imported_relations: number;
+  updated_relations: number;
+  total_candidates: number;
+  message: string;
+}
+
+export interface AssetVerificationSummary {
+  assetCandidates: number;
+  verifiedAssets: number;
+  unverifiedAssets: number;
+  rejectedAssets: number;
+  meterRelations: number;
+  verifiedMeterRelations: number;
+  unverifiedMeterRelations: number;
+  topologyConnections: number;
+  verifiedTopologyConnections: number;
+  spatialReviewMeters: string[];
+  missingInformationCounts: {
+    missing_asset_position: number;
+    missing_installed_at: number;
+    missing_measures: number;
+    missing_reading_method: number;
+    missing_utility_type: number;
+  };
+}
+
+export interface MeterReviewMatrixItem {
+  meter_code: string;
+  name: string;
+  utility: string;
+  proposed_measures?: string | null;
+  measures_confidence?: string | null;
+  measures_verification: string;
+  proposed_installed_at?: string | null;
+  installed_at_verification: string;
+  asset_position_known: boolean;
+  reading_method: string;
+  missing_info: string[];
+  is_spatial_review_required: boolean;
+}
+

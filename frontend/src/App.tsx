@@ -40,6 +40,7 @@ import { AdminAudit } from './components/admin/AdminAudit';
 import { AdminReports } from './components/admin/AdminReports';
 import { AdminReadingInspection } from './components/admin/AdminReadingInspection';
 import { AdminAssets } from './components/admin/AdminAssets';
+import { AdminVerification } from './components/admin/AdminVerification';
 
 const MAX_IMAGE_SIZE_BYTES = 12 * 1024 * 1024; // 12MB
 const MAX_READING_LENGTH = 12;
@@ -137,7 +138,7 @@ export default function App() {
         sessionStorage.setItem('map_workspace_view', 'list');
         return 'dashboard';
       }
-      if (saved && ['dashboard', 'schedules', 'staff_roster', 'meters', 'reports', 'audit'].includes(saved)) {
+      if (saved && ['dashboard', 'assets', 'verification', 'schedules', 'staff_roster', 'meters', 'reports', 'audit'].includes(saved)) {
         return saved as AdminTab;
       }
     } catch {}
@@ -585,6 +586,7 @@ export default function App() {
               <AdminDashboard user={currentUser} onInspectReading={(rId) => setInspectingReadingId(rId)} />
             )}
             {adminActiveTab === 'assets' && <AdminAssets />}
+            {adminActiveTab === 'verification' && <AdminVerification />}
             {adminActiveTab === 'schedules' && <AdminSchedules />}
             {adminActiveTab === 'staff_roster' && <AdminStaffRoster user={currentUser} />}
             {adminActiveTab === 'meters' && (
