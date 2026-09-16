@@ -355,11 +355,7 @@ export const AdminAssets: React.FC = () => {
   return (
     <div className="admin-assets-wrapper flex flex-col w-full min-h-screen bg-slate-50">
       {/* UNIFIED WORKSPACE HEADER (FULL BLEED) */}
-      <OperationalWorkspaceHeader
-        currentTab="assets"
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-      />
+      <OperationalWorkspaceHeader currentTab="assets" />
 
       <div className="admin-assets-page p-6 max-w-7xl w-full mx-auto space-y-6 flex-1">
 

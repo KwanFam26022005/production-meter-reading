@@ -32,7 +32,6 @@ import { canAdministerMapConfiguration } from '../../types';
 import { useOperationalWorkspace } from '../../context/OperationalWorkspaceContext';
 import { OperationalWorkspaceHeader } from '../workspace/OperationalWorkspaceHeader';
 import { MapInlineDrawers } from './components/MapInlineDrawers';
-import { Boxes, ClipboardCheck } from 'lucide-react';
 import './motion/mapMotion.css';
 
 interface MapOperationsPageProps {
@@ -700,33 +699,7 @@ const MapOperationsPageContent: React.FC<MapOperationsPageProps> = ({
 
   return (
     <div className="sgp-map-first-root" style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%', overflow: 'hidden' }}>
-      <OperationalWorkspaceHeader
-        currentTab="dashboard"
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        extraActions={
-          <div style={{ display: 'flex', gap: '4px' }}>
-            <button
-              type="button"
-              className={`sgp-uwh-hud-toggle ${inlineDrawer === 'assets' ? 'active' : ''}`}
-              onClick={() => setInlineDrawer((prev) => (prev === 'assets' ? null : 'assets'))}
-              title="Mở danh mục 32 thiết bị hạ tầng ngay trên bản đồ"
-            >
-              <Boxes size={13} />
-              <span>Hạ tầng</span>
-            </button>
-            <button
-              type="button"
-              className={`sgp-uwh-hud-toggle ${inlineDrawer === 'verification' ? 'active' : ''}`}
-              onClick={() => setInlineDrawer((prev) => (prev === 'verification' ? null : 'verification'))}
-              title="Xem nhanh các mục cần đối soát"
-            >
-              <ClipboardCheck size={13} />
-              <span>Đối soát</span>
-            </button>
-          </div>
-        }
-      />
+      <OperationalWorkspaceHeader currentTab="dashboard" />
       <div style={{ flex: 1, position: 'relative', overflow: 'hidden', minHeight: 0 }}>
         <ImmersiveSceneShell
           user={user}

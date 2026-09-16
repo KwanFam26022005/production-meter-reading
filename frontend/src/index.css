@@ -16751,16 +16751,16 @@ body:has(.admin-portal-root) {
 .sgp-unified-workspace-header {
   background: linear-gradient(180deg, #091a2e 0%, #0c2340 100%);
   border-bottom: 1px solid rgba(56, 189, 248, 0.18);
-  height: 50px;
-  min-height: 50px;
-  max-height: 50px;
-  padding: 0 14px;
+  height: 48px;
+  min-height: 48px;
+  max-height: 48px;
+  padding: 0 16px;
   color: #f8fafc;
   display: flex;
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 16px;
   flex-wrap: nowrap;
   flex-shrink: 0;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
@@ -16846,22 +16846,22 @@ body:has(.admin-portal-root) {
   display: inline-flex;
   align-items: center;
   background: rgba(15, 23, 42, 0.75);
-  padding: 2.5px;
-  border-radius: 7px;
+  padding: 3px;
+  border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.12);
-  gap: 2px;
+  gap: 3px;
 }
 
 .sgp-uwh-mode-btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 5px 11px;
-  border-radius: 5px;
+  gap: 7px;
+  padding: 6px 13px;
+  border-radius: 6px;
   border: none;
   background: transparent;
   color: #94a3b8;
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
@@ -16899,14 +16899,13 @@ body:has(.admin-portal-root) {
   font-weight: 700;
 }
 
-/* 3. RIGHT COLUMN: Telemetry & Actions */
+/* 3. RIGHT COLUMN: Telemetry */
 .sgp-uwh-col-right {
   display: flex;
   align-items: center;
   justify-content: flex-end;
   gap: 8px;
-  flex-shrink: 1;
-  min-width: 0;
+  flex-shrink: 0;
 }
 
 .sgp-uwh-telemetry {
@@ -16919,11 +16918,11 @@ body:has(.admin-portal-root) {
 .sgp-uwh-chip {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 3px 7px;
+  gap: 5px;
+  padding: 4px 8px;
   background: rgba(15, 23, 42, 0.65);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 5px;
+  border-radius: 6px;
   font-size: 11px;
   font-weight: 600;
   color: #cbd5e1;
@@ -16955,148 +16954,33 @@ body:has(.admin-portal-root) {
 .sgp-text-emerald { color: #34d399; }
 .sgp-text-blue { color: #60a5fa; }
 
-.sgp-uwh-actions-strip {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-}
-
-.sgp-uwh-search-wrap {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.sgp-uwh-search-icon {
-  position: absolute;
-  left: 8px;
-  color: #64748b;
-  pointer-events: none;
-}
-
-.sgp-uwh-search-input {
-  background: rgba(15, 23, 42, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 5px;
-  padding: 4px 8px 4px 26px;
-  font-size: 11.5px;
-  color: #ffffff;
-  outline: none;
-  width: 105px;
-  transition: all 0.18s ease;
-}
-
-.sgp-uwh-search-input:focus,
-.sgp-uwh-search-wrap.focused .sgp-uwh-search-input {
-  border-color: #38bdf8;
-  width: 160px;
-  background: rgba(15, 23, 42, 0.95);
-  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
-}
-
-.sgp-uwh-search-clear {
-  position: absolute;
-  right: 6px;
-  background: transparent;
-  border: none;
-  color: #94a3b8;
-  cursor: pointer;
-  padding: 0;
-  display: flex;
-  align-items: center;
-}
-
-.sgp-uwh-utility-pills {
-  display: inline-flex;
-  background: rgba(15, 23, 42, 0.65);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 2px;
-  border-radius: 5px;
-  gap: 2px;
-  flex-shrink: 0;
-}
-
-.sgp-uwh-utility-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  padding: 3px 6px;
-  border: none;
-  background: transparent;
-  color: #94a3b8;
-  font-size: 11px;
-  font-weight: 500;
-  border-radius: 3px;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all 0.15s ease;
-}
-
-.sgp-uwh-utility-pill:hover {
-  color: #ffffff;
-}
-
-.sgp-uwh-utility-pill.active {
-  background: rgba(255, 255, 255, 0.12);
-  color: #38bdf8;
-  font-weight: 600;
-}
-
-.sgp-uwh-hud-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 4px 8px;
-  border-radius: 5px;
-  border: 1px solid rgba(56, 189, 248, 0.3);
-  background: rgba(14, 165, 233, 0.1);
-  color: #7dd3fc;
-  font-size: 11.5px;
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all 0.15s ease;
-  flex-shrink: 0;
-}
-
-.sgp-uwh-hud-toggle:hover {
-  background: rgba(14, 165, 233, 0.2);
-  color: #ffffff;
-  border-color: #38bdf8;
-}
-
-.sgp-uwh-hud-toggle.active {
-  background: #0284c7;
-  color: #ffffff;
-  border-color: #38bdf8;
-}
-
 /* ==========================================================================
    RESPONSIVE ADAPTIVE BREAKPOINTS (14-inch Laptop vs 24-inch Desktop)
    ========================================================================== */
 
 /* WIDESCREEN DESKTOP (24-inch+, >= 1600px) */
 @media (min-width: 1600px) {
+  .sgp-unified-workspace-header {
+    height: 50px;
+    min-height: 50px;
+    max-height: 50px;
+    padding: 0 20px;
+  }
   .sgp-uwh-title-full { display: inline; }
   .sgp-uwh-title-compact { display: none; }
   .sgp-uwh-tab-full { display: inline; }
   .sgp-uwh-tab-compact { display: none; }
   .sgp-uwh-chip-txt { display: inline; }
-  .sgp-uwh-pill-txt { display: inline; }
-  .sgp-uwh-search-input { width: 140px; }
-  .sgp-uwh-search-input:focus,
-  .sgp-uwh-search-wrap.focused .sgp-uwh-search-input { width: 200px; }
 }
 
 /* STANDARD LAPTOP (14-inch, 1200px - 1599px) */
 @media (max-width: 1599px) {
   .sgp-unified-workspace-header {
-    height: 48px;
-    min-height: 48px;
-    max-height: 48px;
-    padding: 0 10px;
-    gap: 6px;
+    height: 46px;
+    min-height: 46px;
+    max-height: 46px;
+    padding: 0 12px;
+    gap: 10px;
   }
   .sgp-uwh-title-full { display: none; }
   .sgp-uwh-title-compact { display: inline; font-size: 13px; }
@@ -17104,18 +16988,13 @@ body:has(.admin-portal-root) {
   .sgp-uwh-tab-full { display: none; }
   .sgp-uwh-tab-compact { display: inline; }
   .sgp-uwh-chip-txt { display: none; }
-  .sgp-uwh-pill-txt { display: none; }
-  .sgp-uwh-mode-btn { padding: 4px 8px; font-size: 11.5px; }
-  .sgp-uwh-chip { padding: 2.5px 5px; font-size: 10.5px; }
-  .sgp-uwh-hud-toggle span { font-size: 11px; }
+  .sgp-uwh-mode-btn { padding: 4px 9px; font-size: 11.5px; }
+  .sgp-uwh-chip { padding: 2.5px 6px; font-size: 10.5px; }
 }
 
 /* COMPACT / TABLET (< 1200px) */
 @media (max-width: 1199px) {
   .sgp-uwh-telemetry .sgp-uwh-chip:not(.sgp-uwh-chip-alert) {
-    display: none;
-  }
-  .sgp-uwh-utility-pills {
     display: none;
   }
 }

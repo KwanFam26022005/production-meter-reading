@@ -1,32 +1,22 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   Map,
   Boxes,
   ClipboardCheck,
   Zap,
   Droplets,
-  Search,
   Activity,
-  Layers,
-  X,
 } from 'lucide-react';
 import { useOperationalWorkspace } from '../../context/OperationalWorkspaceContext';
 
 interface OperationalWorkspaceHeaderProps {
   currentTab: 'dashboard' | 'assets' | 'verification';
-  searchQuery?: string;
-  onSearchChange?: (query: string) => void;
-  extraActions?: React.ReactNode;
 }
 
 export const OperationalWorkspaceHeader: React.FC<OperationalWorkspaceHeaderProps> = ({
   currentTab,
-  searchQuery,
-  onSearchChange,
-  extraActions,
 }) => {
-  const { setActiveTab, utilityFilter, setUtilityFilter } = useOperationalWorkspace();
-  const [searchFocused, setSearchFocused] = useState(false);
+  const { setActiveTab } = useOperationalWorkspace();
 
   return (
     <header
@@ -34,7 +24,7 @@ export const OperationalWorkspaceHeader: React.FC<OperationalWorkspaceHeaderProp
       role="region"
       aria-label="Thanh điều hành hạ tầng & không gian hợp nhất"
     >
-      {/* 1. LEFT: Brand & Identity */}
+      {/* 1. LEFT: Brand & Cockpit Identity */}
       <div className="sgp-uwh-col-left">
         <div className="sgp-uwh-identity">
           <div className="sgp-uwh-dot-badge" title="Không gian Vận hành Hợp nhất">
@@ -94,9 +84,8 @@ export const OperationalWorkspaceHeader: React.FC<OperationalWorkspaceHeaderProp
         </nav>
       </div>
 
-      {/* 3. RIGHT: Adaptive Telemetry + Quick Controls */}
+      {/* 3. RIGHT: Adaptive Real-time Telemetry Dashboard */}
       <div className="sgp-uwh-col-right">
-        {/* Adaptive Telemetry Chips */}
         <div className="sgp-uwh-telemetry" aria-label="Chỉ số hạ tầng thời gian thực">
           <div className="sgp-uwh-chip" title="24 thiết bị và 8 tuyến cáp điện đang vận hành">
             <Zap size={13} className="sgp-text-amber" />
@@ -116,69 +105,8 @@ export const OperationalWorkspaceHeader: React.FC<OperationalWorkspaceHeaderProp
           <div className="sgp-uwh-chip sgp-uwh-chip-alert" title="2 mục hồ sơ & chỉ số chờ đối soát">
             <ClipboardCheck size={13} className="sgp-text-blue" />
             <span className="sgp-uwh-chip-val">2</span>
-            <span className="sgp-uwh-chip-txt">Chờ duyệt</span>
+            <span className="sgp-uwh-chip-txt">Chờ đối soát</span>
           </div>
-        </div>
-
-        {/* Global Search & Utility Filter */}
-        <div className="sgp-uwh-actions-strip">
-          {onSearchChange !== undefined && (
-            <div className={`sgp-uwh-search-wrap ${searchFocused ? 'focused' : ''}`}>
-              <Search size={13} className="sgp-uwh-search-icon" />
-              <input
-                type="text"
-                placeholder="Tìm..."
-                value={searchQuery || ''}
-                onChange={(e) => onSearchChange(e.target.value)}
-                onFocus={() => setSearchFocused(true)}
-                onBlur={() => setSearchFocused(false)}
-                className="sgp-uwh-search-input"
-              />
-              {searchQuery && (
-                <button
-                  type="button"
-                  className="sgp-uwh-search-clear"
-                  onClick={() => onSearchChange('')}
-                  title="Xóa tìm kiếm"
-                >
-                  <X size={11} />
-                </button>
-              )}
-            </div>
-          )}
-
-          {/* Quick Utility Switcher */}
-          <div className="sgp-uwh-utility-pills" role="group" aria-label="Bộ lọc loại hạ tầng">
-            <button
-              type="button"
-              className={`sgp-uwh-utility-pill ${utilityFilter === 'ALL' ? 'active' : ''}`}
-              onClick={() => setUtilityFilter('ALL')}
-              title="Tất cả hạ tầng"
-            >
-              <Layers size={12} />
-              <span className="sgp-uwh-pill-txt">Tất cả</span>
-            </button>
-            <button
-              type="button"
-              className={`sgp-uwh-utility-pill ${utilityFilter === 'ELECTRICITY' ? 'active' : ''}`}
-              onClick={() => setUtilityFilter('ELECTRICITY')}
-              title="Chỉ hạ tầng Điện"
-            >
-              <Zap size={12} />
-              <span className="sgp-uwh-pill-txt">Điện</span>
-            </button>
-            <button
-              type="button"
-              className={`sgp-uwh-utility-pill ${utilityFilter === 'WATER' ? 'active' : ''}`}
-              onClick={() => setUtilityFilter('WATER')}
-              title="Chỉ hạ tầng Nước"
-            >
-              <Droplets size={12} />
-              <span className="sgp-uwh-pill-txt">Nước</span>
-            </button>
-          </div>
-
-          {extraActions}
         </div>
       </div>
     </header>
