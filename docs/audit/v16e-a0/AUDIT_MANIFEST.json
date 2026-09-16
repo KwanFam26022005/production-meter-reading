@@ -1,0 +1,29 @@
+{
+  "timestamp": "2026-09-16T02:18:45.521271+00:00",
+  "branch": "feature/v10-landmark-calibration-minimal-hud",
+  "commit": "e959b745ebda0d436ed43588d41224ec3a3e17ed",
+  "databasePath": "D:\\Projects\\production-meter-reading\\production-meter-reading\\data\\app.db",
+  "databaseSha256": "c6a5d864183921af3cc1bbf20865e24d9cc4ec04fd38c668d0a232fe93d723ca",
+  "activeMapVersionId": "7176b67f-37b8-4a62-98c1-02943dd98e7d",
+  "activeMapVersionNumber": "tan-thuan-v16a-r2-frozen",
+  "mapImagePath": "D:\\Projects\\production-meter-reading\\production-meter-reading\\frontend\\src\\assets\\maps\\tan-thuan-port-v8.webp",
+  "mapImageSha256": "13e48d4fb09e288c27cd9db0e3345514f3af7e53812c42652f23b937681bd4d6",
+  "canonicalDimensions": {
+    "width": 1915,
+    "height": 821
+  },
+  "coordinateSystem": "tan-thuan-canonical-image-pixel-space-v1",
+  "zoneCount": 6,
+  "meterCount": 12,
+  "assetCount": 364,
+  "meterAssetRelationCount": 90,
+  "assetConnectionCount": 102,
+  "verifiedAssetCount": 105,
+  "verifiedRelationCount": 36,
+  "verifiedTopologyEdgeCount": 80,
+  "electricityEdgeCount": 95,
+  "waterEdgeCount": 7,
+  "spatialMismatchMeterCount": 5,
+  "spatialMismatchAssetCount": 10,
+  "presGatePresent": true
+}

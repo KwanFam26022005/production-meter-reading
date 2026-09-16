@@ -1,0 +1,7 @@
+﻿presentationZoneId,displayName,assignedAssetCount,containedAssetCount,verifiedContainedCount,unverifiedContainedCount,withPositionCount,containedAssetCodes
+pres-berth,Cầu cảng,0,0,0,0,0,
+pres-container-west,Bãi container phía Tây,0,7,7,0,7,ASSET-CTX-002d98; ASSET-CTX-62855b; ASSET-CTX-986ce0; ASSET-CTX-a04c0b; ASSET-CTX-bcc7aa; ASSET-CTX-d7de11; ASSET-CTX-f9d051
+pres-container-center,Bãi container trung tâm,0,13,13,0,13,AST-TEST-006CF0; AST-TEST-0A8A3E; AST-TEST-24B4DA; AST-TEST-40847B; AST-TEST-4E54DD; AST-TEST-6CEC01; AST-TEST-6FEB16; AST-TEST-7D8CE8; AST-TEST-A16A31; AST-TEST-AF7C37; AST-TEST-B1A95F; AST-TEST-C19E95; AST-TEST-C751E7
+pres-cfs-east,Kho / CFS phía Đông,0,0,0,0,0,
+pres-technical,Khu kỹ thuật / Dịch vụ,0,0,0,0,0,
+pres-gate,Cổng chính,0,0,0,0,0,

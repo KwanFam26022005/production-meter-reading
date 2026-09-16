@@ -1,0 +1,820 @@
+[
+  {
+    "presentationZoneId": "pres-berth",
+    "displayName": "Cầu cảng",
+    "businessName": "Khu vực Cầu cảng (Berths 1–3)",
+    "businessZoneId": "zone-berth",
+    "displayIndex": 1,
+    "presentationColor": "#0284C7",
+    "icon": "ship",
+    "vertexCount": 19,
+    "polygonCanonical": [
+      {
+        "x": 233,
+        "y": 259,
+        "landmarkId": "berth-west-start"
+      },
+      {
+        "x": 376,
+        "y": 267
+      },
+      {
+        "x": 521,
+        "y": 275,
+        "landmarkId": "quay-west-bend"
+      },
+      {
+        "x": 643,
+        "y": 277
+      },
+      {
+        "x": 647,
+        "y": 290,
+        "landmarkId": "quay-central-break"
+      },
+      {
+        "x": 918,
+        "y": 244,
+        "landmarkId": "berth-central-junction"
+      },
+      {
+        "x": 1169,
+        "y": 206
+      },
+      {
+        "x": 1502,
+        "y": 147,
+        "landmarkId": "east-crane-transition"
+      },
+      {
+        "x": 1508,
+        "y": 160
+      },
+      {
+        "x": 1594,
+        "y": 138
+      },
+      {
+        "x": 1799,
+        "y": 7,
+        "landmarkId": "berth-east-end"
+      },
+      {
+        "x": 1810,
+        "y": 37
+      },
+      {
+        "x": 1604,
+        "y": 167,
+        "landmarkId": "southern-service-road-east"
+      },
+      {
+        "x": 1519,
+        "y": 201
+      },
+      {
+        "x": 1187,
+        "y": 254
+      },
+      {
+        "x": 825,
+        "y": 312
+      },
+      {
+        "x": 671,
+        "y": 335
+      },
+      {
+        "x": 432,
+        "y": 329
+      },
+      {
+        "x": 227,
+        "y": 321,
+        "landmarkId": "southern-service-road-west"
+      }
+    ],
+    "polygonNormalized": [
+      {
+        "x": 0.121671,
+        "y": 0.315469
+      },
+      {
+        "x": 0.196345,
+        "y": 0.325213
+      },
+      {
+        "x": 0.272063,
+        "y": 0.334957
+      },
+      {
+        "x": 0.33577,
+        "y": 0.337393
+      },
+      {
+        "x": 0.337859,
+        "y": 0.353228
+      },
+      {
+        "x": 0.479373,
+        "y": 0.297199
+      },
+      {
+        "x": 0.610444,
+        "y": 0.250914
+      },
+      {
+        "x": 0.784334,
+        "y": 0.17905
+      },
+      {
+        "x": 0.787467,
+        "y": 0.194884
+      },
+      {
+        "x": 0.832376,
+        "y": 0.168088
+      },
+      {
+        "x": 0.939426,
+        "y": 0.008526
+      },
+      {
+        "x": 0.94517,
+        "y": 0.045067
+      },
+      {
+        "x": 0.837598,
+        "y": 0.20341
+      },
+      {
+        "x": 0.793211,
+        "y": 0.244823
+      },
+      {
+        "x": 0.619843,
+        "y": 0.309379
+      },
+      {
+        "x": 0.430809,
+        "y": 0.380024
+      },
+      {
+        "x": 0.350392,
+        "y": 0.408039
+      },
+      {
+        "x": 0.225587,
+        "y": 0.400731
+      },
+      {
+        "x": 0.118538,
+        "y": 0.390987
+      }
+    ],
+    "areaPixels": 80524.0,
+    "boundingBox": {
+      "minX": 227,
+      "maxX": 1810,
+      "minY": 7,
+      "maxY": 335,
+      "width": 1583,
+      "height": 328
+    },
+    "labelAnchor": {
+      "x": 930,
+      "y": 302
+    },
+    "labelAnchorInside": false,
+    "operatorAnchor": {
+      "x": 1030,
+      "y": 285
+    },
+    "operatorAnchorInside": false,
+    "landmarksCount": 9,
+    "isSimplePolygon": true,
+    "boundsValid": true,
+    "status": "ACTIVE_PUBLISHED",
+    "source": "map_version_zones"
+  },
+  {
+    "presentationZoneId": "pres-container-west",
+    "displayName": "Bãi container phía Tây",
+    "businessName": "Khu vực Kho & Bãi Container Phía Tây",
+    "businessZoneId": "zone-warehouse",
+    "displayIndex": 2,
+    "presentationColor": "#EA580C",
+    "icon": "container",
+    "vertexCount": 13,
+    "polygonCanonical": [
+      {
+        "x": 73,
+        "y": 314,
+        "landmarkId": "west-yard-northwest"
+      },
+      {
+        "x": 199,
+        "y": 332
+      },
+      {
+        "x": 430,
+        "y": 342
+      },
+      {
+        "x": 680,
+        "y": 354
+      },
+      {
+        "x": 800,
+        "y": 333,
+        "landmarkId": "west-central-road-north"
+      },
+      {
+        "x": 820,
+        "y": 548,
+        "landmarkId": "west-central-road-south"
+      },
+      {
+        "x": 666,
+        "y": 550
+      },
+      {
+        "x": 471,
+        "y": 544,
+        "landmarkId": "south-road-east-curve"
+      },
+      {
+        "x": 324,
+        "y": 537,
+        "landmarkId": "south-road-mid-curve"
+      },
+      {
+        "x": 186,
+        "y": 524,
+        "landmarkId": "south-road-west-curve"
+      },
+      {
+        "x": 101,
+        "y": 501
+      },
+      {
+        "x": 10,
+        "y": 464,
+        "landmarkId": "west-yard-southwest"
+      },
+      {
+        "x": 44,
+        "y": 376,
+        "landmarkId": "west-yard-west-mid"
+      }
+    ],
+    "polygonNormalized": [
+      {
+        "x": 0.03812,
+        "y": 0.38246
+      },
+      {
+        "x": 0.103916,
+        "y": 0.404385
+      },
+      {
+        "x": 0.224543,
+        "y": 0.416565
+      },
+      {
+        "x": 0.355091,
+        "y": 0.431181
+      },
+      {
+        "x": 0.417755,
+        "y": 0.405603
+      },
+      {
+        "x": 0.428198,
+        "y": 0.667479
+      },
+      {
+        "x": 0.347781,
+        "y": 0.669915
+      },
+      {
+        "x": 0.245953,
+        "y": 0.662607
+      },
+      {
+        "x": 0.169191,
+        "y": 0.65408
+      },
+      {
+        "x": 0.097128,
+        "y": 0.638246
+      },
+      {
+        "x": 0.052742,
+        "y": 0.610231
+      },
+      {
+        "x": 0.005222,
+        "y": 0.565164
+      },
+      {
+        "x": 0.022977,
+        "y": 0.457978
+      }
+    ],
+    "areaPixels": 151483.5,
+    "boundingBox": {
+      "minX": 10,
+      "maxX": 820,
+      "minY": 314,
+      "maxY": 550,
+      "width": 810,
+      "height": 236
+    },
+    "labelAnchor": {
+      "x": 410,
+      "y": 480
+    },
+    "labelAnchorInside": true,
+    "operatorAnchor": {
+      "x": 525,
+      "y": 515
+    },
+    "operatorAnchorInside": true,
+    "landmarksCount": 8,
+    "isSimplePolygon": true,
+    "boundsValid": true,
+    "status": "ACTIVE_PUBLISHED",
+    "source": "map_version_zones"
+  },
+  {
+    "presentationZoneId": "pres-container-center",
+    "displayName": "Bãi container trung tâm",
+    "businessName": "Khu vực Bãi Container Trung Tâm (CY)",
+    "businessZoneId": "zone-container",
+    "displayIndex": 3,
+    "presentationColor": "#E11D48",
+    "icon": "container",
+    "vertexCount": 8,
+    "polygonCanonical": [
+      {
+        "x": 820,
+        "y": 328,
+        "landmarkId": "central-yard-nw"
+      },
+      {
+        "x": 1190,
+        "y": 280
+      },
+      {
+        "x": 1483,
+        "y": 225,
+        "landmarkId": "central-yard-ne"
+      },
+      {
+        "x": 1523,
+        "y": 327
+      },
+      {
+        "x": 1553,
+        "y": 429
+      },
+      {
+        "x": 1486,
+        "y": 440,
+        "landmarkId": "central-yard-se"
+      },
+      {
+        "x": 1204,
+        "y": 491,
+        "landmarkId": "central-yard-south-road-east"
+      },
+      {
+        "x": 842,
+        "y": 542,
+        "landmarkId": "central-yard-south-road-west"
+      }
+    ],
+    "polygonNormalized": [
+      {
+        "x": 0.428198,
+        "y": 0.399513
+      },
+      {
+        "x": 0.62141,
+        "y": 0.341048
+      },
+      {
+        "x": 0.774413,
+        "y": 0.274056
+      },
+      {
+        "x": 0.7953,
+        "y": 0.398295
+      },
+      {
+        "x": 0.810966,
+        "y": 0.522533
+      },
+      {
+        "x": 0.775979,
+        "y": 0.535932
+      },
+      {
+        "x": 0.628721,
+        "y": 0.598051
+      },
+      {
+        "x": 0.439687,
+        "y": 0.660171
+      }
+    ],
+    "areaPixels": 148083.0,
+    "boundingBox": {
+      "minX": 820,
+      "maxX": 1553,
+      "minY": 225,
+      "maxY": 542,
+      "width": 733,
+      "height": 317
+    },
+    "labelAnchor": {
+      "x": 1090,
+      "y": 438
+    },
+    "labelAnchorInside": true,
+    "operatorAnchor": {
+      "x": 1278,
+      "y": 455
+    },
+    "operatorAnchorInside": true,
+    "landmarksCount": 8,
+    "isSimplePolygon": true,
+    "boundsValid": true,
+    "status": "ACTIVE_PUBLISHED",
+    "source": "map_version_zones"
+  },
+  {
+    "presentationZoneId": "pres-cfs-east",
+    "displayName": "Kho / CFS phía Đông",
+    "businessName": "Khu vực Kho & CFS Phía Đông",
+    "businessZoneId": "zone-warehouse",
+    "displayIndex": 4,
+    "presentationColor": "#EAB308",
+    "icon": "warehouse",
+    "vertexCount": 12,
+    "polygonCanonical": [
+      {
+        "x": 1505,
+        "y": 222,
+        "landmarkId": "east-cfs-northwest"
+      },
+      {
+        "x": 1694,
+        "y": 134,
+        "landmarkId": "east-cfs-north"
+      },
+      {
+        "x": 1730,
+        "y": 196
+      },
+      {
+        "x": 1784,
+        "y": 277,
+        "landmarkId": "east-cfs-northeast"
+      },
+      {
+        "x": 1826,
+        "y": 345,
+        "landmarkId": "east-cfs-east"
+      },
+      {
+        "x": 1862,
+        "y": 415
+      },
+      {
+        "x": 1795,
+        "y": 450,
+        "landmarkId": "east-cfs-southeast"
+      },
+      {
+        "x": 1738,
+        "y": 474
+      },
+      {
+        "x": 1620,
+        "y": 511,
+        "landmarkId": "east-cfs-south"
+      },
+      {
+        "x": 1591,
+        "y": 453
+      },
+      {
+        "x": 1566,
+        "y": 393,
+        "landmarkId": "east-cfs-southwest"
+      },
+      {
+        "x": 1543,
+        "y": 333
+      }
+    ],
+    "polygonNormalized": [
+      {
+        "x": 0.785901,
+        "y": 0.270402
+      },
+      {
+        "x": 0.884595,
+        "y": 0.163216
+      },
+      {
+        "x": 0.903394,
+        "y": 0.238733
+      },
+      {
+        "x": 0.931593,
+        "y": 0.337393
+      },
+      {
+        "x": 0.953525,
+        "y": 0.420219
+      },
+      {
+        "x": 0.972324,
+        "y": 0.505481
+      },
+      {
+        "x": 0.937337,
+        "y": 0.548112
+      },
+      {
+        "x": 0.907572,
+        "y": 0.577345
+      },
+      {
+        "x": 0.845953,
+        "y": 0.622412
+      },
+      {
+        "x": 0.830809,
+        "y": 0.551766
+      },
+      {
+        "x": 0.817755,
+        "y": 0.478685
+      },
+      {
+        "x": 0.805744,
+        "y": 0.405603
+      }
+    ],
+    "areaPixels": 77778.5,
+    "boundingBox": {
+      "minX": 1505,
+      "maxX": 1862,
+      "minY": 134,
+      "maxY": 511,
+      "width": 357,
+      "height": 377
+    },
+    "labelAnchor": {
+      "x": 1750,
+      "y": 335
+    },
+    "labelAnchorInside": true,
+    "operatorAnchor": {
+      "x": 1838,
+      "y": 445
+    },
+    "operatorAnchorInside": false,
+    "landmarksCount": 7,
+    "isSimplePolygon": true,
+    "boundsValid": true,
+    "status": "ACTIVE_PUBLISHED",
+    "source": "map_version_zones"
+  },
+  {
+    "presentationZoneId": "pres-technical",
+    "displayName": "Khu kỹ thuật / Dịch vụ",
+    "businessName": "Khu vực Kỹ thuật, Trạm điện & Dịch vụ",
+    "businessZoneId": "zone-technical",
+    "displayIndex": 5,
+    "presentationColor": "#10B981",
+    "icon": "gear",
+    "vertexCount": 13,
+    "polygonCanonical": [
+      {
+        "x": 1171,
+        "y": 505,
+        "landmarkId": "technical-north-road-east"
+      },
+      {
+        "x": 1555,
+        "y": 446
+      },
+      {
+        "x": 1597,
+        "y": 553
+      },
+      {
+        "x": 1465,
+        "y": 591,
+        "landmarkId": "technical-east-road"
+      },
+      {
+        "x": 1369,
+        "y": 616,
+        "landmarkId": "technical-southeast"
+      },
+      {
+        "x": 1270,
+        "y": 632,
+        "landmarkId": "workshop-east"
+      },
+      {
+        "x": 1173,
+        "y": 651,
+        "landmarkId": "technical-south-road"
+      },
+      {
+        "x": 972,
+        "y": 683
+      },
+      {
+        "x": 956,
+        "y": 636,
+        "landmarkId": "technical-southwest"
+      },
+      {
+        "x": 850,
+        "y": 592,
+        "landmarkId": "workshop-west"
+      },
+      {
+        "x": 846,
+        "y": 573
+      },
+      {
+        "x": 843,
+        "y": 561
+      },
+      {
+        "x": 1016,
+        "y": 537
+      }
+    ],
+    "polygonNormalized": [
+      {
+        "x": 0.611488,
+        "y": 0.615104
+      },
+      {
+        "x": 0.81201,
+        "y": 0.54324
+      },
+      {
+        "x": 0.833943,
+        "y": 0.673569
+      },
+      {
+        "x": 0.765013,
+        "y": 0.719854
+      },
+      {
+        "x": 0.714883,
+        "y": 0.750305
+      },
+      {
+        "x": 0.663185,
+        "y": 0.769793
+      },
+      {
+        "x": 0.612533,
+        "y": 0.792935
+      },
+      {
+        "x": 0.507572,
+        "y": 0.831912
+      },
+      {
+        "x": 0.499217,
+        "y": 0.774665
+      },
+      {
+        "x": 0.443864,
+        "y": 0.721072
+      },
+      {
+        "x": 0.441775,
+        "y": 0.697929
+      },
+      {
+        "x": 0.440209,
+        "y": 0.683313
+      },
+      {
+        "x": 0.530548,
+        "y": 0.65408
+      }
+    ],
+    "areaPixels": 91872.5,
+    "boundingBox": {
+      "minX": 843,
+      "maxX": 1597,
+      "minY": 446,
+      "maxY": 683,
+      "width": 754,
+      "height": 237
+    },
+    "labelAnchor": {
+      "x": 1145,
+      "y": 575
+    },
+    "labelAnchorInside": true,
+    "operatorAnchor": {
+      "x": 1100,
+      "y": 740
+    },
+    "operatorAnchorInside": false,
+    "landmarksCount": 9,
+    "isSimplePolygon": true,
+    "boundsValid": true,
+    "status": "ACTIVE_PUBLISHED",
+    "source": "map_version_zones"
+  },
+  {
+    "presentationZoneId": "pres-gate",
+    "displayName": "Cổng chính",
+    "businessName": "Khu vực Cổng chính & Trạm cân",
+    "businessZoneId": "zone-technical",
+    "displayIndex": 6,
+    "presentationColor": "#8B5CF6",
+    "icon": "gate",
+    "vertexCount": 4,
+    "polygonCanonical": [
+      {
+        "x": 825,
+        "y": 564,
+        "landmarkId": "gate-entry-road"
+      },
+      {
+        "x": 850,
+        "y": 562,
+        "landmarkId": "gate-internal-junction"
+      },
+      {
+        "x": 856,
+        "y": 604
+      },
+      {
+        "x": 829,
+        "y": 598,
+        "landmarkId": "gate-east-boundary"
+      }
+    ],
+    "polygonNormalized": [
+      {
+        "x": 0.430809,
+        "y": 0.686967
+      },
+      {
+        "x": 0.443864,
+        "y": 0.684531
+      },
+      {
+        "x": 0.446997,
+        "y": 0.735688
+      },
+      {
+        "x": 0.432898,
+        "y": 0.72838
+      }
+    ],
+    "areaPixels": 978.0,
+    "boundingBox": {
+      "minX": 825,
+      "maxX": 856,
+      "minY": 562,
+      "maxY": 604,
+      "width": 31,
+      "height": 42
+    },
+    "labelAnchor": {
+      "x": 1742,
+      "y": 550
+    },
+    "labelAnchorInside": false,
+    "operatorAnchor": {
+      "x": 1790,
+      "y": 580
+    },
+    "operatorAnchorInside": false,
+    "landmarksCount": 8,
+    "isSimplePolygon": true,
+    "boundsValid": true,
+    "status": "ACTIVE_PUBLISHED",
+    "source": "map_version_zones"
+  }
+]

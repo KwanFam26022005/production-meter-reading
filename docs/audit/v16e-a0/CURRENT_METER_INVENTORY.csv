@@ -1,0 +1,13 @@
+﻿id,meter_code,name,meter_type,utility_type,lifecycle_status,reading_method,zone_id,presentation_zone_id,map_x,map_y,readingCount,latestRecordedValue,historyCriticality
+4557d411-4bef-445e-b045-1ead2e242948,CT-001,Công tơ Trạm A,MECHANICAL,UNKNOWN,ACTIVE,UNKNOWN,zone-technical,pres-technical,0.5995,0.8356,232,00836,HISTORY_CRITICAL
+fed0d7d8-bc2d-4c1d-a8f8-262fa3ac396e,CT-002,Công tơ Kho B,LCD,UNKNOWN,ACTIVE,UNKNOWN,zone-warehouse,pres-container-west,0.2648,0.5664,229,,HISTORY_CRITICAL
+e0654f54-c401-49f2-8d79-38f6fbf50ef6,CT-003,Công tơ Cầu cảng 1,MECHANICAL,ELECTRICITY,ACTIVE,OCR,zone-berth,pres-berth,0.176,0.3849,249,00801,HISTORY_CRITICAL
+bb0d2e8d-67ab-47eb-b36e-26448152c7e4,CT-004,Công tơ Cầu cảng 2,LCD,UNKNOWN,ACTIVE,UNKNOWN,zone-berth,pres-berth,0.3624,0.3837,236,001225.69,HISTORY_CRITICAL
+0ca43793-5158-46e7-a796-431f2cfd7ecf,CT-005,Công tơ Kho C,MECHANICAL,UNKNOWN,ACTIVE,UNKNOWN,zone-warehouse,pres-container-west,0.3337,0.5786,235,00846,HISTORY_CRITICAL
+8b56445b-7da9-4bce-91fc-388f3f7a2737,CT-006,Công tơ Kho D,MECHANICAL,UNKNOWN,ACTIVE,UNKNOWN,zone-warehouse,pres-cfs-east,0.8773,0.4629,241,0028728.6,HISTORY_CRITICAL
+5abcdc9c-bda7-403d-99e1-0d1733af3417,CT-007,Công tơ Trạm B,LCD,UNKNOWN,ACTIVE,UNKNOWN,zone-technical,pres-technical,0.5577,0.877,242,,HISTORY_CRITICAL
+50167b00-47da-4c35-9733-5c534188ca32,CT-008,Công tơ Cầu cảng 3,MECHANICAL,UNKNOWN,ACTIVE,UNKNOWN,zone-berth,pres-berth,0.7311,0.3021,235,0064413.1,HISTORY_CRITICAL
+eacc7434-4dd3-41d8-88f4-cccf84635295,CT-009,Công tơ Khu kỹ thuật 1,LCD,UNKNOWN,ACTIVE,UNKNOWN,zone-technical,pres-technical,0.6418,0.8295,234,001885.73,HISTORY_CRITICAL
+171d8959-492a-413c-bb07-6b72d59db796,CT-010,Công tơ Khu kỹ thuật 2,MECHANICAL,UNKNOWN,ACTIVE,UNKNOWN,zone-technical,pres-gate,0.8564,0.6821,241,0032922.7,HISTORY_CRITICAL
+00142f61-7c44-42b6-8e57-e4a6c9302557,CT-011,Công tơ Bãi Container 1,LCD,UNKNOWN,ACTIVE,UNKNOWN,zone-container,pres-container-center,0.6115,0.5323,238,001277.68,HISTORY_CRITICAL
+8908e259-d48d-4fef-aef7-2da41e1466e2,CT-012,Công tơ Bãi Container 2,MECHANICAL,UNKNOWN,ACTIVE,UNKNOWN,zone-container,pres-container-center,0.7321,0.5164,229,0045774.0,HISTORY_CRITICAL

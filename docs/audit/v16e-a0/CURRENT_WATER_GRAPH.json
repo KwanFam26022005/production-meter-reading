@@ -1,0 +1,1923 @@
+{
+  "utilityType": "WATER",
+  "totalNodes": 364,
+  "connectedNodesCount": 14,
+  "isolatedNodesCount": 350,
+  "totalEdges": 7,
+  "verifiedEdges": 7,
+  "unverifiedEdges": 0,
+  "connectedComponentsCount": 357,
+  "hasCycles": false,
+  "graphRootCandidates": [
+    {
+      "id": "cad9cead-a968-47a5-bb53-7b0bef13b2cf",
+      "code": "W-SRC-0bb7d8",
+      "name": "Đài Nước Cảng",
+      "out_degree": 1
+    },
+    {
+      "id": "7fca6baf-ca46-4f9c-b5a7-accc7439d625",
+      "code": "W-SRC-51ca5a",
+      "name": "Đài Nước Cảng",
+      "out_degree": 1
+    },
+    {
+      "id": "4fdf6189-b00a-4243-84d4-c1a3305bed71",
+      "code": "W-SRC-53ff96",
+      "name": "Đài Nước Cảng",
+      "out_degree": 1
+    },
+    {
+      "id": "2f295b69-6369-4658-b0a6-e1f556bb3a0e",
+      "code": "W-SRC-7dc6eb",
+      "name": "Đài Nước Cảng",
+      "out_degree": 1
+    },
+    {
+      "id": "31a59bd7-df1a-4dfd-b17a-d73dc95d7826",
+      "code": "W-SRC-97a336",
+      "name": "Đài Nước Cảng",
+      "out_degree": 1
+    },
+    {
+      "id": "d887c3ea-52f3-4cba-b385-487d1e0a4acf",
+      "code": "W-SRC-c3495e",
+      "name": "Đài Nước Cảng",
+      "out_degree": 1
+    },
+    {
+      "id": "6ff5778f-a951-498a-a54e-3d08b75f2e63",
+      "code": "W-SRC-f08093",
+      "name": "Đài Nước Cảng",
+      "out_degree": 1
+    }
+  ],
+  "graphSinkCandidates": [
+    {
+      "id": "a2fdd3a2-6301-4662-bf64-3236f2334ee3",
+      "code": "W-DST-3c0390",
+      "name": "Trụ Nước Tàu Cầu Cảng",
+      "in_degree": 1
+    },
+    {
+      "id": "dacfe0a7-0a83-4ee6-8bbe-706ea13809df",
+      "code": "W-DST-4767dc",
+      "name": "Trụ Nước Tàu Cầu Cảng",
+      "in_degree": 1
+    },
+    {
+      "id": "c0eee923-a4a6-4a79-bde7-6c3291a8d5fb",
+      "code": "W-DST-5fd06c",
+      "name": "Trụ Nước Tàu Cầu Cảng",
+      "in_degree": 1
+    },
+    {
+      "id": "aa6e478a-59d1-48bf-9c3a-c56a19d8d36d",
+      "code": "W-DST-850914",
+      "name": "Trụ Nước Tàu Cầu Cảng",
+      "in_degree": 1
+    },
+    {
+      "id": "4466aa02-79af-422f-b648-cf4ddfc4fbe9",
+      "code": "W-DST-a5d116",
+      "name": "Trụ Nước Tàu Cầu Cảng",
+      "in_degree": 1
+    },
+    {
+      "id": "07e106a4-dcf7-4bed-92c2-a37901a6c655",
+      "code": "W-DST-b7d248",
+      "name": "Trụ Nước Tàu Cầu Cảng",
+      "in_degree": 1
+    },
+    {
+      "id": "a0e31784-aea6-4e32-a1fe-182da74475c1",
+      "code": "W-DST-beb6b5",
+      "name": "Trụ Nước Tàu Cầu Cảng",
+      "in_degree": 1
+    }
+  ],
+  "isolatedNodes": [
+    {
+      "id": "c89d0a40-9fbf-40da-91a9-337efc341922",
+      "code": "ASSET-CTX-002d98",
+      "name": "Trạm Trắc Địa Tân Thuận"
+    },
+    {
+      "id": "6a4f70b2-75df-4f3b-bc8b-c2fc7130217e",
+      "code": "ASSET-CTX-62855b",
+      "name": "Trạm Trắc Địa Tân Thuận"
+    },
+    {
+      "id": "db6eab79-0f51-4663-a132-d73f4c7899b5",
+      "code": "ASSET-CTX-986ce0",
+      "name": "Trạm Trắc Địa Tân Thuận"
+    },
+    {
+      "id": "e616b07d-d839-4f23-9f19-b7ad7ce9611d",
+      "code": "ASSET-CTX-a04c0b",
+      "name": "Trạm Trắc Địa Tân Thuận"
+    },
+    {
+      "id": "d4a875c2-7c30-4445-915d-6be2e9421911",
+      "code": "ASSET-CTX-bcc7aa",
+      "name": "Trạm Trắc Địa Tân Thuận"
+    },
+    {
+      "id": "6e665d64-ed36-4f77-8dd8-dfeea3012abd",
+      "code": "ASSET-CTX-d7de11",
+      "name": "Trạm Trắc Địa Tân Thuận"
+    },
+    {
+      "id": "92d77f65-7567-4765-8b93-e4316d8faf95",
+      "code": "ASSET-CTX-f9d051",
+      "name": "Trạm Trắc Địa Tân Thuận"
+    },
+    {
+      "id": "83c04b86-8880-4a46-ba76-1729211bc1a4",
+      "code": "ASSET-NET-UV-49a216",
+      "name": "Trạm Biến Áp Chưa Xác Minh"
+    },
+    {
+      "id": "c26d1bb3-5bf7-460f-93f4-4ec26cf738a7",
+      "code": "ASSET-NET-UV-55f403",
+      "name": "Trạm Biến Áp Chưa Xác Minh"
+    },
+    {
+      "id": "07789d63-5a25-4890-82e6-9254745b251f",
+      "code": "ASSET-NET-UV-62c75d",
+      "name": "Trạm Biến Áp Chưa Xác Minh"
+    },
+    {
+      "id": "af6aebfb-5550-4869-a81b-6863418edd03",
+      "code": "ASSET-NET-UV-63ae0e",
+      "name": "Trạm Biến Áp Chưa Xác Minh"
+    },
+    {
+      "id": "9c6ab0ba-785d-48b6-b324-900c64d2e531",
+      "code": "ASSET-NET-UV-9aabfb",
+      "name": "Trạm Biến Áp Chưa Xác Minh"
+    },
+    {
+      "id": "5973adaf-dbd8-445d-9dfc-066858b4f2b3",
+      "code": "ASSET-NET-UV-f02cbc",
+      "name": "Trạm Biến Áp Chưa Xác Minh"
+    },
+    {
+      "id": "5237d5ed-ad40-4235-9e44-98f709e7adbd",
+      "code": "ASSET-NET-UV-fa6ee2",
+      "name": "Trạm Biến Áp Chưa Xác Minh"
+    },
+    {
+      "id": "8a9882f0-aefc-40ed-b4c1-2dea34cadf02",
+      "code": "ASSET-NET-V-04d295",
+      "name": "Trạm Biến Áp Đã Xác Minh"
+    },
+    {
+      "id": "52550df9-8166-4e97-8977-33b231387f35",
+      "code": "ASSET-NET-V-0635d9",
+      "name": "Trạm Biến Áp Đã Xác Minh"
+    },
+    {
+      "id": "697de013-2e05-45e4-b70b-c34c2f12863d",
+      "code": "ASSET-NET-V-172821",
+      "name": "Trạm Biến Áp Đã Xác Minh"
+    },
+    {
+      "id": "959c24dd-8bdc-4b05-a10f-f0224eed19db",
+      "code": "ASSET-NET-V-2c58fb",
+      "name": "Trạm Biến Áp Đã Xác Minh"
+    },
+    {
+      "id": "1f36093b-012d-448e-b7de-7a8101ed2783",
+      "code": "ASSET-NET-V-7a5b89",
+      "name": "Trạm Biến Áp Đã Xác Minh"
+    },
+    {
+      "id": "63ccca8e-9d45-43ab-a714-ae24c6bd1a4d",
+      "code": "ASSET-NET-V-8b330b",
+      "name": "Trạm Biến Áp Đã Xác Minh"
+    },
+    {
+      "id": "ddd9cfb0-6588-42e1-a8f1-0bdbbc3ec3dc",
+      "code": "ASSET-NET-V-f87109",
+      "name": "Trạm Biến Áp Đã Xác Minh"
+    },
+    {
+      "id": "bfa11817-6a6b-40ba-8258-ae2abcbc806d",
+      "code": "ASSET-NET-V2-062261",
+      "name": "Tủ Phân Phối Đã Xác Minh"
+    },
+    {
+      "id": "0db7e23d-c35b-465c-adfc-9457891914db",
+      "code": "ASSET-NET-V2-274b71",
+      "name": "Tủ Phân Phối Đã Xác Minh"
+    },
+    {
+      "id": "3500f95c-3828-4204-a7b8-3d787df21e41",
+      "code": "ASSET-NET-V2-2c565f",
+      "name": "Tủ Phân Phối Đã Xác Minh"
+    },
+    {
+      "id": "b4af0ef0-ce5d-4d15-97c1-9f03cbece601",
+      "code": "ASSET-NET-V2-7809c7",
+      "name": "Tủ Phân Phối Đã Xác Minh"
+    },
+    {
+      "id": "0e88d513-3d6f-418b-951e-e8ab85dba39e",
+      "code": "ASSET-NET-V2-85744f",
+      "name": "Tủ Phân Phối Đã Xác Minh"
+    },
+    {
+      "id": "ffa5982f-3ffc-4db5-b446-b8e9def6b736",
+      "code": "ASSET-NET-V2-99fdfc",
+      "name": "Tủ Phân Phối Đã Xác Minh"
+    },
+    {
+      "id": "49d792b7-5c54-4f43-8cd2-1e8bcd865ace",
+      "code": "ASSET-NET-V2-b196b5",
+      "name": "Tủ Phân Phối Đã Xác Minh"
+    },
+    {
+      "id": "c961a579-6d3b-4775-8de8-042df7ec463a",
+      "code": "ASSET-NO-XY-176f90",
+      "name": "Máy Bơm Cứu Hỏa Dự Phòng"
+    },
+    {
+      "id": "d3acb698-7e2a-46da-9c59-06360149200c",
+      "code": "ASSET-NO-XY-242077",
+      "name": "Máy Bơm Cứu Hỏa Dự Phòng"
+    },
+    {
+      "id": "d8c9b3c6-b594-4878-b649-d5cfa1a94960",
+      "code": "ASSET-NO-XY-35ece4",
+      "name": "Máy Bơm Cứu Hỏa Dự Phòng"
+    },
+    {
+      "id": "5ccb13b7-9f34-4570-9d4d-32032f7edd3c",
+      "code": "ASSET-NO-XY-859750",
+      "name": "Máy Bơm Cứu Hỏa Dự Phòng"
+    },
+    {
+      "id": "c51185fe-f924-44ee-9a35-08e734afcb61",
+      "code": "ASSET-NO-XY-9202df",
+      "name": "Máy Bơm Cứu Hỏa Dự Phòng"
+    },
+    {
+      "id": "47a13046-9d7f-48f2-bb73-b353e1cbbb00",
+      "code": "ASSET-NO-XY-ba8a6a",
+      "name": "Máy Bơm Cứu Hỏa Dự Phòng"
+    },
+    {
+      "id": "edce9229-51a0-4cf8-9e42-a7dcc6ddaf3f",
+      "code": "ASSET-NO-XY-c3650e",
+      "name": "Máy Bơm Cứu Hỏa Dự Phòng"
+    },
+    {
+      "id": "17594b83-9e4f-4a86-9e9d-bf8b69f9417d",
+      "code": "ASSET-UP-2e042b",
+      "name": "Đường Dây 110kV EVN"
+    },
+    {
+      "id": "6235d99d-306a-47a6-b948-04f27a53bf23",
+      "code": "ASSET-UP-6be8f0",
+      "name": "Đường Dây 110kV EVN"
+    },
+    {
+      "id": "b33648d8-ebaf-4e90-b1bc-c3a74868ac67",
+      "code": "ASSET-UP-9f4580",
+      "name": "Đường Dây 110kV EVN"
+    },
+    {
+      "id": "4367b561-d553-4c5f-9bbb-0cf7d72d39f6",
+      "code": "ASSET-UP-a15c39",
+      "name": "Đường Dây 110kV EVN"
+    },
+    {
+      "id": "787ba297-cc9e-4adf-8af3-7e7c51e792aa",
+      "code": "ASSET-UP-b32f5d",
+      "name": "Đường Dây 110kV EVN"
+    },
+    {
+      "id": "5e06e9d2-736a-4008-99c4-d4756e7f2549",
+      "code": "ASSET-UP-c8c207",
+      "name": "Đường Dây 110kV EVN"
+    },
+    {
+      "id": "db71f5fa-0bdd-4b02-888d-e615a43f6cbc",
+      "code": "ASSET-UP-c91861",
+      "name": "Đường Dây 110kV EVN"
+    },
+    {
+      "id": "0cbf9ea3-c778-4a68-8a17-916d658d7417",
+      "code": "AST-A-1490",
+      "name": "Asset A"
+    },
+    {
+      "id": "8cb0685f-a2dc-43d9-bf94-ae310d201563",
+      "code": "AST-A-1d0d",
+      "name": "Asset A"
+    },
+    {
+      "id": "14f26b21-a1d3-4f33-bbfb-22158258dba6",
+      "code": "AST-A-2a36",
+      "name": "Asset A"
+    },
+    {
+      "id": "7cbefea8-7722-4bd2-ba7c-d68a0728ba44",
+      "code": "AST-A-50fb",
+      "name": "Asset A"
+    },
+    {
+      "id": "f7a63e0c-dc63-4efc-91ad-dd0cf5478072",
+      "code": "AST-A-6017",
+      "name": "Asset A"
+    },
+    {
+      "id": "8d9d4e68-c5f9-485c-be13-76e48fbce48b",
+      "code": "AST-A-7bf2",
+      "name": "Asset A"
+    },
+    {
+      "id": "f93c0d46-28eb-4e92-9078-48987ccbd540",
+      "code": "AST-A-8516",
+      "name": "Asset A"
+    },
+    {
+      "id": "1167b171-0dc9-46ab-ab16-a8588cdbb44b",
+      "code": "AST-A-9655",
+      "name": "Asset A"
+    },
+    {
+      "id": "076881e8-207d-4886-845c-1a5353bfa4a4",
+      "code": "AST-A-abc0",
+      "name": "Asset A"
+    },
+    {
+      "id": "26b1d428-e91f-4735-a737-595cab00d967",
+      "code": "AST-A-e42b",
+      "name": "Asset A"
+    },
+    {
+      "id": "339bee88-d4e4-4e39-a5a9-9f512e427951",
+      "code": "AST-A-ef1d",
+      "name": "Asset A"
+    },
+    {
+      "id": "ac12ccbb-5904-4342-81e9-b33d6a5a0b1d",
+      "code": "AST-A-efa1",
+      "name": "Asset A"
+    },
+    {
+      "id": "bbe02670-f231-4ff8-8ab7-07bbb3d9c144",
+      "code": "AST-A-f20a",
+      "name": "Asset A"
+    },
+    {
+      "id": "dc8b63e9-e0ec-4c21-a703-0c130b6333ad",
+      "code": "AST-A-f43d",
+      "name": "Asset A"
+    },
+    {
+      "id": "d89418f8-f194-436c-a402-4112a400d92b",
+      "code": "AST-B-1277",
+      "name": "Asset B"
+    },
+    {
+      "id": "c8d377b8-3b72-4789-85eb-1dc019330e9a",
+      "code": "AST-B-4b76",
+      "name": "Asset B"
+    },
+    {
+      "id": "75221121-9919-42ea-8eab-83d8e884861e",
+      "code": "AST-B-50af",
+      "name": "Asset B"
+    },
+    {
+      "id": "73896bca-f123-4145-bbea-841076ac410c",
+      "code": "AST-B-51e7",
+      "name": "Asset B"
+    },
+    {
+      "id": "b5e295bd-0274-4756-9f24-9c65b6314506",
+      "code": "AST-B-56e4",
+      "name": "Asset B"
+    },
+    {
+      "id": "f35ffa6e-c30f-4ac0-99e8-b7191c2988bd",
+      "code": "AST-B-59b3",
+      "name": "Asset B"
+    },
+    {
+      "id": "b7bcd8fb-6fcb-4237-b7de-88b15eac521e",
+      "code": "AST-B-6eb8",
+      "name": "Asset B"
+    },
+    {
+      "id": "cc6f1063-4e5a-4de3-991e-2ece7bdf8430",
+      "code": "AST-B-7217",
+      "name": "Asset B"
+    },
+    {
+      "id": "93997642-0bf4-40b6-94cf-bf6907a59296",
+      "code": "AST-B-7ad1",
+      "name": "Asset B"
+    },
+    {
+      "id": "13023444-212c-4038-8f77-5e69d6c335bb",
+      "code": "AST-B-a740",
+      "name": "Asset B"
+    },
+    {
+      "id": "9085490d-f8ac-42e2-a004-4eb4f13d0052",
+      "code": "AST-B-d07b",
+      "name": "Asset B"
+    },
+    {
+      "id": "5961d1c2-912d-4200-a372-f16d48bdee41",
+      "code": "AST-B-d778",
+      "name": "Asset B"
+    },
+    {
+      "id": "85ee4345-71fe-453b-bf5f-6742ce8bf258",
+      "code": "AST-B-dee3",
+      "name": "Asset B"
+    },
+    {
+      "id": "c61f4443-0f3e-42fe-bfbd-b595332e6258",
+      "code": "AST-B-e0ee",
+      "name": "Asset B"
+    },
+    {
+      "id": "7597aa69-6080-41ec-a262-775afa43cb57",
+      "code": "AST-C-03d3",
+      "name": "Asset C"
+    },
+    {
+      "id": "a2c295b9-fc08-4062-82e2-9a5c3602fad0",
+      "code": "AST-C-10e2",
+      "name": "Asset C"
+    },
+    {
+      "id": "e66eca38-4fa2-4bde-aee5-91ef2b77d73f",
+      "code": "AST-C-2579",
+      "name": "Asset C"
+    },
+    {
+      "id": "5b7c75ef-6589-4bfe-8a22-28f0be10b973",
+      "code": "AST-C-2c19",
+      "name": "Asset C"
+    },
+    {
+      "id": "e447db4c-9e65-45e4-9d87-089654361a02",
+      "code": "AST-C-3166",
+      "name": "Asset C"
+    },
+    {
+      "id": "ff682e96-fe2a-40f0-8771-c4a966e759b0",
+      "code": "AST-C-34b3",
+      "name": "Asset C"
+    },
+    {
+      "id": "0ed4dd59-a0b5-41cc-8ac8-6e83e20c9926",
+      "code": "AST-C-3a5f",
+      "name": "Asset C"
+    },
+    {
+      "id": "207462f0-4176-400a-8a7a-56385b02cd6d",
+      "code": "AST-C-5b87",
+      "name": "Asset C"
+    },
+    {
+      "id": "764ac602-74d8-44d9-817b-9fb3f5046b6b",
+      "code": "AST-C-8c21",
+      "name": "Asset C"
+    },
+    {
+      "id": "ff8559f3-28ec-4b33-a952-29b7dd36e5eb",
+      "code": "AST-C-8f37",
+      "name": "Asset C"
+    },
+    {
+      "id": "7cfc214d-1d52-4fc7-abf5-1274f6ae293b",
+      "code": "AST-C-9bac",
+      "name": "Asset C"
+    },
+    {
+      "id": "5fe654b1-c46e-41b7-bbef-b9d033347580",
+      "code": "AST-C-ada8",
+      "name": "Asset C"
+    },
+    {
+      "id": "8a7ae7d5-9afa-42bc-a059-2926f126b7ad",
+      "code": "AST-C-d070",
+      "name": "Asset C"
+    },
+    {
+      "id": "de3e9d10-b26f-4d92-b124-e1d45b2f13c9",
+      "code": "AST-C-efc2",
+      "name": "Asset C"
+    },
+    {
+      "id": "68d4352e-dc8f-4b04-8bb6-f27c34b8501b",
+      "code": "AST-CAND-001",
+      "name": "Berth 1 North Station Infrastructure"
+    },
+    {
+      "id": "4503b3d3-9c33-41e7-b0c2-4aa035f74753",
+      "code": "AST-CAND-002",
+      "name": "Berth 2 Auxiliary Barge Wharf"
+    },
+    {
+      "id": "4c88119e-8d53-4244-ade6-3db797bdac1e",
+      "code": "AST-CAND-003",
+      "name": "Rubber-Tired Gantry Crane RTG-01"
+    },
+    {
+      "id": "f1f092c8-78f8-4f67-9baf-6d77757fe7d9",
+      "code": "AST-CAND-004",
+      "name": "Rubber-Tired Gantry Crane RTG-02"
+    },
+    {
+      "id": "4910d7b2-50c3-4947-ad0a-30ba7afb1068",
+      "code": "AST-CAND-005",
+      "name": "Warehouse Main Distribution Board MDB-01"
+    },
+    {
+      "id": "1966a624-d24c-4772-b81b-57cd860f38ec",
+      "code": "AST-CAND-006",
+      "name": "Fire Suppression Pump System"
+    },
+    {
+      "id": "1e741c9f-10a5-4f6d-8b03-d68b7d338fd3",
+      "code": "AST-CAND-007",
+      "name": "Main Gate Barrier Station 1"
+    },
+    {
+      "id": "ee281f2a-087a-4f9a-8673-ec2afa1b70f3",
+      "code": "AST-CAND-008",
+      "name": "Gate Operations Auxiliary Office"
+    },
+    {
+      "id": "aafa5530-ca39-4fae-94a1-a6618e582aed",
+      "code": "AST-CAND-009",
+      "name": "Substation 1 Medium Voltage Feeder"
+    },
+    {
+      "id": "9b0d6e40-622f-4877-a12d-348db902ac4a",
+      "code": "AST-CAND-010",
+      "name": "Substation 2 Load Transformer 2"
+    },
+    {
+      "id": "da234260-ddd2-4efc-9062-2fa29deacffa",
+      "code": "AST-CAND-011",
+      "name": "Mechanical Workshop Machinery Feeder Panel"
+    },
+    {
+      "id": "9d6ed2f0-0e32-46d2-ae69-6c8e4cc86efb",
+      "code": "AST-CAND-012",
+      "name": "Maintenance Workshop Compressed Air System"
+    },
+    {
+      "id": "bc10f293-65a3-47ad-b495-f5d174ceabdc",
+      "code": "AST-CHL-0f4c",
+      "name": "Child Asset"
+    },
+    {
+      "id": "be12a4e2-4638-401e-8a13-ac25edcb3d6c",
+      "code": "AST-CHL-1344",
+      "name": "Child Asset"
+    },
+    {
+      "id": "b408421d-f0dc-4a77-adc5-9db02e1cdd6a",
+      "code": "AST-CHL-17c3",
+      "name": "Child Asset"
+    },
+    {
+      "id": "6b02b25a-5046-41e6-a0c3-57d06257a8bd",
+      "code": "AST-CHL-1bc7",
+      "name": "Child Asset"
+    },
+    {
+      "id": "b4a698fb-f821-44ec-bb15-9d10f58ae433",
+      "code": "AST-CHL-86db",
+      "name": "Child Asset"
+    },
+    {
+      "id": "a8d3b86c-fe1e-4bbc-8e36-26c504c9edbb",
+      "code": "AST-CHL-89d0",
+      "name": "Child Asset"
+    },
+    {
+      "id": "684f0b9e-767e-49ad-84ab-d1dc2efedcbc",
+      "code": "AST-CHL-a688",
+      "name": "Child Asset"
+    },
+    {
+      "id": "ae8c931f-ad80-4fbf-bc20-3dcbb2e6eef7",
+      "code": "AST-CHL-ba39",
+      "name": "Child Asset"
+    },
+    {
+      "id": "2cd17a33-da58-48d5-a721-93d712bf7ff9",
+      "code": "AST-CHL-c234",
+      "name": "Child Asset"
+    },
+    {
+      "id": "979d0794-45f3-4acd-964d-131ce1812935",
+      "code": "AST-CHL-c665",
+      "name": "Child Asset"
+    },
+    {
+      "id": "22aa2b5b-0ac3-4eda-ac17-14a57ad87c55",
+      "code": "AST-CHL-d510",
+      "name": "Child Asset"
+    },
+    {
+      "id": "728ad088-14c2-4916-aaa1-44f8f5f2142e",
+      "code": "AST-CHL-e9b9",
+      "name": "Child Asset"
+    },
+    {
+      "id": "460073f6-69e6-4586-b9d1-467a6590bff0",
+      "code": "AST-CHL-fc4e",
+      "name": "Child Asset"
+    },
+    {
+      "id": "53db7aa3-3687-4851-b383-2cd434d0701c",
+      "code": "AST-EXTRA-1cf7",
+      "name": "Extra Asset"
+    },
+    {
+      "id": "c82c0c37-c412-4a8f-8397-69d401a7313b",
+      "code": "AST-EXTRA-22ce",
+      "name": "Extra Asset"
+    },
+    {
+      "id": "ce38818b-7626-4fa7-b0fd-b9db11a5629b",
+      "code": "AST-EXTRA-30b0",
+      "name": "Extra Asset"
+    },
+    {
+      "id": "82d698f0-8eca-48ae-b879-a25186f57c25",
+      "code": "AST-EXTRA-5f18",
+      "name": "Extra Asset"
+    },
+    {
+      "id": "574bd89b-fe11-4c32-bb4b-c07066c2e3dc",
+      "code": "AST-EXTRA-6010",
+      "name": "Extra Asset"
+    },
+    {
+      "id": "3c807c79-1899-4a9d-b6dc-22a71bf5d8a9",
+      "code": "AST-EXTRA-65b2",
+      "name": "Extra Asset"
+    },
+    {
+      "id": "8c0edb58-af91-4eef-af20-efe66ac023bf",
+      "code": "AST-EXTRA-67c8",
+      "name": "Extra Asset"
+    },
+    {
+      "id": "219ff4de-848d-407f-b9a3-7bbb6d93de09",
+      "code": "AST-EXTRA-6c5b",
+      "name": "Extra Asset"
+    },
+    {
+      "id": "4876fe64-ff5e-4d8a-a8dc-93cc25953b6e",
+      "code": "AST-EXTRA-79a5",
+      "name": "Extra Asset"
+    },
+    {
+      "id": "9886d22f-f591-4950-b8bc-31db2a958dbf",
+      "code": "AST-EXTRA-887c",
+      "name": "Extra Asset"
+    },
+    {
+      "id": "cc7b68e1-e8dd-4064-bccd-69b64d7dc28f",
+      "code": "AST-EXTRA-998f",
+      "name": "Extra Asset"
+    },
+    {
+      "id": "ee1dfbe0-e43c-41fa-8d56-59a2a7e11b3c",
+      "code": "AST-EXTRA-d4cc",
+      "name": "Extra Asset"
+    },
+    {
+      "id": "7e22e73a-997f-4498-995f-61ddcf62c78b",
+      "code": "AST-EXTRA-fb60",
+      "name": "Extra Asset"
+    },
+    {
+      "id": "294332c4-5c38-434d-af05-1fe71dc46203",
+      "code": "AST-EXTRA-ff98",
+      "name": "Extra Asset"
+    },
+    {
+      "id": "2f19b44b-a25a-4362-8960-e923ca3bd691",
+      "code": "AST-FOR-RET-4587",
+      "name": "Asset For Retired Meter"
+    },
+    {
+      "id": "fbe56578-5afe-4866-be60-43498a2fb033",
+      "code": "AST-FOR-RET-4e29",
+      "name": "Asset For Retired Meter"
+    },
+    {
+      "id": "d6387b8a-4688-4dfe-80e8-c29f7be04fd9",
+      "code": "AST-FOR-RET-aece",
+      "name": "Asset For Retired Meter"
+    },
+    {
+      "id": "02f1b2a8-87d9-4494-84ba-b025031de3ba",
+      "code": "AST-NEW-SW-0fce",
+      "name": "Tủ Mới"
+    },
+    {
+      "id": "10953a2b-356a-4873-89f8-e9b16c2f8fb4",
+      "code": "AST-NEW-SW-11a5",
+      "name": "Tủ Mới"
+    },
+    {
+      "id": "7f7fca64-4c56-4023-b16e-2b4f31bc857f",
+      "code": "AST-NEW-SW-2221",
+      "name": "Tủ Mới"
+    },
+    {
+      "id": "1f770755-59db-40b9-8b64-a5c278c2f08c",
+      "code": "AST-NEW-SW-2f17",
+      "name": "Tủ Mới"
+    },
+    {
+      "id": "ffe8f982-1eff-42f4-8925-3bf3fe28f3a6",
+      "code": "AST-NEW-SW-4d8d",
+      "name": "Tủ Mới"
+    },
+    {
+      "id": "955f3190-d361-4e71-b53b-30078b11f13a",
+      "code": "AST-NEW-SW-530d",
+      "name": "Tủ Mới"
+    },
+    {
+      "id": "a624a584-1415-4944-b566-ea0d3b027a37",
+      "code": "AST-NEW-SW-53d8",
+      "name": "Tủ Mới"
+    },
+    {
+      "id": "3e3f3595-fc87-443f-b183-5a8835ec0775",
+      "code": "AST-NEW-SW-561c",
+      "name": "Tủ Mới"
+    },
+    {
+      "id": "046a5063-c10f-40a6-9354-07b9e8a375da",
+      "code": "AST-NEW-SW-6bd1",
+      "name": "Tủ Mới"
+    },
+    {
+      "id": "3ce8f2a0-0fb4-4ceb-bfe1-9ad8e289cfa6",
+      "code": "AST-NEW-SW-7c08",
+      "name": "Tủ Mới"
+    },
+    {
+      "id": "8553fe64-afca-406d-a5fc-8d84b447a26e",
+      "code": "AST-NEW-SW-918c",
+      "name": "Tủ Mới"
+    },
+    {
+      "id": "d822d592-9e1a-4903-93e5-0bc770b90618",
+      "code": "AST-NEW-SW-9979",
+      "name": "Tủ Mới"
+    },
+    {
+      "id": "03cd65bd-ab49-42fc-82af-4ae3d30fce6a",
+      "code": "AST-NEW-SW-e54e",
+      "name": "Tủ Mới"
+    },
+    {
+      "id": "a0fcd95a-05c3-4671-98f3-5a2a2d7638fd",
+      "code": "AST-NEW-SW-ef99",
+      "name": "Tủ Mới"
+    },
+    {
+      "id": "36373545-a59d-45c4-b3b5-a639333a94c9",
+      "code": "AST-PAR-18ee",
+      "name": "Parent Asset"
+    },
+    {
+      "id": "06335fb6-81cb-4717-82be-ef2e0f4607e8",
+      "code": "AST-PAR-259e",
+      "name": "Parent Asset"
+    },
+    {
+      "id": "d7a476ef-56d8-43db-88ba-6ddda9bdaf11",
+      "code": "AST-PAR-327c",
+      "name": "Parent Asset"
+    },
+    {
+      "id": "93d6c51d-e42c-48fc-887c-2bc7199bde8e",
+      "code": "AST-PAR-388a",
+      "name": "Parent Asset"
+    },
+    {
+      "id": "bd4fda0f-5a92-4c54-bf2b-4684ae7a459a",
+      "code": "AST-PAR-5ce9",
+      "name": "Parent Asset"
+    },
+    {
+      "id": "0765334e-a82e-4f88-b13e-8fe70a3b488e",
+      "code": "AST-PAR-6541",
+      "name": "Parent Asset"
+    },
+    {
+      "id": "0c1b992f-2e75-4131-9fad-e792fc2dce0d",
+      "code": "AST-PAR-66a9",
+      "name": "Parent Asset"
+    },
+    {
+      "id": "d8b07849-6b36-4993-a7ee-3106d668ae96",
+      "code": "AST-PAR-73a4",
+      "name": "Parent Asset"
+    },
+    {
+      "id": "d0bc0bdf-f653-4f7e-996b-67cba682b192",
+      "code": "AST-PAR-770e",
+      "name": "Parent Asset"
+    },
+    {
+      "id": "b785ec9e-d37e-4258-ac53-ad63272dae8a",
+      "code": "AST-PAR-b21f",
+      "name": "Parent Asset"
+    },
+    {
+      "id": "2649255f-0e40-490f-a43a-6102fa6459be",
+      "code": "AST-PAR-bec8",
+      "name": "Parent Asset"
+    },
+    {
+      "id": "8bf2c57f-5af0-4c56-824a-c7250939e6fa",
+      "code": "AST-PAR-dbb6",
+      "name": "Parent Asset"
+    },
+    {
+      "id": "376a04d8-ffd2-4f52-aa9a-14149a21679a",
+      "code": "AST-PAR-f162",
+      "name": "Parent Asset"
+    },
+    {
+      "id": "8923c3e3-0c72-4e15-9cea-6c7964d1b1bc",
+      "code": "AST-RTG-180a",
+      "name": "Cẩu Khung RTG-99"
+    },
+    {
+      "id": "8fefd0d6-cc78-46ba-820a-f7d559668270",
+      "code": "AST-RTG-1d93",
+      "name": "Cẩu Khung RTG-99"
+    },
+    {
+      "id": "b80b8d21-7889-4815-9ece-fce133d80278",
+      "code": "AST-RTG-3beb",
+      "name": "Cẩu Khung RTG-99"
+    },
+    {
+      "id": "440dbf96-6c50-4ab2-9656-aadf3358a33f",
+      "code": "AST-RTG-48d4",
+      "name": "Cẩu Khung RTG-99"
+    },
+    {
+      "id": "df41496c-35ac-4bc8-9482-e5a5eae8f5c0",
+      "code": "AST-RTG-4ed5",
+      "name": "Cẩu Khung RTG-99"
+    },
+    {
+      "id": "955d0114-ae49-4152-af6e-a17dd9d448cd",
+      "code": "AST-RTG-5679",
+      "name": "Cẩu Khung RTG-99"
+    },
+    {
+      "id": "4b7c8047-62fd-4cf2-ada5-0865d8757474",
+      "code": "AST-RTG-6260",
+      "name": "Cẩu Khung RTG-99"
+    },
+    {
+      "id": "987caedd-6335-46fd-8e91-3ac7c81504c7",
+      "code": "AST-RTG-62d2",
+      "name": "Cẩu Khung RTG-99"
+    },
+    {
+      "id": "3ee7575c-563c-4f0e-97b8-368dabc7cd76",
+      "code": "AST-RTG-6e60",
+      "name": "Cẩu Khung RTG-99"
+    },
+    {
+      "id": "7baee973-8e1a-45fc-aceb-6a022e8acbf3",
+      "code": "AST-RTG-abf4",
+      "name": "Cẩu Khung RTG-99"
+    },
+    {
+      "id": "a9091ee8-b2c5-4972-8e8e-5b7a164fd8c0",
+      "code": "AST-RTG-e504",
+      "name": "Cẩu Khung RTG-99"
+    },
+    {
+      "id": "aee03e2e-1c5f-4416-94eb-c778774d7ad2",
+      "code": "AST-RTG-ed2e",
+      "name": "Cẩu Khung RTG-99"
+    },
+    {
+      "id": "dffba5d5-2a4b-404b-9b4f-b7d4bea83e43",
+      "code": "AST-RTG-ee7d",
+      "name": "Cẩu Khung RTG-99"
+    },
+    {
+      "id": "5417ae7e-a49e-4b15-84e4-7e09b116b400",
+      "code": "AST-RTG-f601",
+      "name": "Cẩu Khung RTG-99"
+    },
+    {
+      "id": "411f8874-8bf0-4639-a6ff-33d904671e16",
+      "code": "AST-SW-1948",
+      "name": "Tủ Điện Kiosk"
+    },
+    {
+      "id": "236c8d27-c9bc-4fc8-94d1-4875117884f1",
+      "code": "AST-SW-2c30",
+      "name": "Tủ Điện Kiosk"
+    },
+    {
+      "id": "6b4ab245-fbdb-42ee-8cfa-fc9fe8cfe256",
+      "code": "AST-SW-3b29",
+      "name": "Tủ Điện Kiosk"
+    },
+    {
+      "id": "07385007-a2d3-487e-abaa-837e906dff0e",
+      "code": "AST-SW-4925",
+      "name": "Tủ Điện Kiosk"
+    },
+    {
+      "id": "fac5160b-8bf9-44c1-887f-35fc6c788b49",
+      "code": "AST-SW-49b4",
+      "name": "Tủ Điện Kiosk"
+    },
+    {
+      "id": "3fbc0764-fc31-4b5f-8666-31c83b01b470",
+      "code": "AST-SW-8038",
+      "name": "Tủ Điện Kiosk"
+    },
+    {
+      "id": "0f4850bd-9a15-4c41-b6e2-066d1bf118ba",
+      "code": "AST-SW-81d1",
+      "name": "Tủ Điện Kiosk"
+    },
+    {
+      "id": "07ff3390-f6ee-4985-9d2a-e1c2390f5294",
+      "code": "AST-SW-8216",
+      "name": "Tủ Điện Kiosk"
+    },
+    {
+      "id": "675a63ce-f00a-4b1d-b99e-f565b420ff0b",
+      "code": "AST-SW-8280",
+      "name": "Tủ Điện Kiosk"
+    },
+    {
+      "id": "f9180cd5-a545-4cce-a50a-65222c1c3981",
+      "code": "AST-SW-8b07",
+      "name": "Tủ Điện Kiosk"
+    },
+    {
+      "id": "d48157cb-c959-45c8-af2b-b979da5f89ec",
+      "code": "AST-SW-91f9",
+      "name": "Tủ Điện Kiosk"
+    },
+    {
+      "id": "9149701a-26f5-4c79-a790-227d11c02b1f",
+      "code": "AST-SW-a369",
+      "name": "Tủ Điện Kiosk"
+    },
+    {
+      "id": "84fdd89d-3cab-4fc7-85c4-3b56e28eee99",
+      "code": "AST-SW-a5fb",
+      "name": "Tủ Điện Kiosk"
+    },
+    {
+      "id": "aeeec124-79ae-4666-ae32-ee046e16442f",
+      "code": "AST-SW-eaa5",
+      "name": "Tủ Điện Kiosk"
+    },
+    {
+      "id": "6e777901-caf8-448e-9b9c-264fdcf08acf",
+      "code": "AST-TEST-006CF0",
+      "name": "Trạm Biến Áp Kiểm Thử (Đã cập nhật)"
+    },
+    {
+      "id": "8dfd4fcf-b1dc-4adc-868a-c5a50e937ee2",
+      "code": "AST-TEST-0A8A3E",
+      "name": "Trạm Biến Áp Kiểm Thử (Đã cập nhật)"
+    },
+    {
+      "id": "9594373a-f9c3-4d44-80bf-738d14a90f00",
+      "code": "AST-TEST-24B4DA",
+      "name": "Trạm Biến Áp Kiểm Thử (Đã cập nhật)"
+    },
+    {
+      "id": "b0ca28a0-52fa-428e-b6d0-cccba3ce2d78",
+      "code": "AST-TEST-40847B",
+      "name": "Trạm Biến Áp Kiểm Thử (Đã cập nhật)"
+    },
+    {
+      "id": "7a37652e-7a6f-4e43-9b33-d7619c59188d",
+      "code": "AST-TEST-4E54DD",
+      "name": "Trạm Biến Áp Kiểm Thử (Đã cập nhật)"
+    },
+    {
+      "id": "cab603ad-a375-4c5f-b529-21ad05e1c26b",
+      "code": "AST-TEST-6CEC01",
+      "name": "Trạm Biến Áp Kiểm Thử (Đã cập nhật)"
+    },
+    {
+      "id": "80f11caf-a3ef-4eb0-bf7c-82d301185383",
+      "code": "AST-TEST-6FEB16",
+      "name": "Trạm Biến Áp Kiểm Thử (Đã cập nhật)"
+    },
+    {
+      "id": "6cae3a72-e104-45d5-9b18-4b7ea823121f",
+      "code": "AST-TEST-7D8CE8",
+      "name": "Trạm Biến Áp Kiểm Thử (Đã cập nhật)"
+    },
+    {
+      "id": "b9d35305-19c5-4412-9ddf-08593119ac95",
+      "code": "AST-TEST-A16A31",
+      "name": "Trạm Biến Áp Kiểm Thử (Đã cập nhật)"
+    },
+    {
+      "id": "636fbf49-7ff4-4bbf-8635-7d7ddcb8e8f7",
+      "code": "AST-TEST-AF7C37",
+      "name": "Trạm Biến Áp Kiểm Thử (Đã cập nhật)"
+    },
+    {
+      "id": "e843b054-c76d-49a3-b993-2a074eb5790d",
+      "code": "AST-TEST-B1A95F",
+      "name": "Trạm Biến Áp Kiểm Thử (Đã cập nhật)"
+    },
+    {
+      "id": "1c695236-1917-4cbd-94f4-fea419f3aa8e",
+      "code": "AST-TEST-C19E95",
+      "name": "Trạm Biến Áp Kiểm Thử (Đã cập nhật)"
+    },
+    {
+      "id": "dfdaadd7-b2da-45e5-8f06-90742a28ea17",
+      "code": "AST-TEST-C751E7",
+      "name": "Trạm Biến Áp Kiểm Thử (Đã cập nhật)"
+    },
+    {
+      "id": "522eb0f5-0bfa-4422-8c1d-9073054256df",
+      "code": "AST-TOPO-CR-334f",
+      "name": "Cẩu Bờ"
+    },
+    {
+      "id": "7434b506-82d9-4f86-a6b4-69f2667a6245",
+      "code": "AST-TOPO-CR-406d",
+      "name": "Cẩu Bờ"
+    },
+    {
+      "id": "a852398f-fdb9-40f9-ab70-1545c74c3bd2",
+      "code": "AST-TOPO-CR-4cd5",
+      "name": "Cẩu Bờ"
+    },
+    {
+      "id": "c12c4ef6-bff4-4ffd-8f7d-5420ea0ba60f",
+      "code": "AST-TOPO-CR-5244",
+      "name": "Cẩu Bờ"
+    },
+    {
+      "id": "a1a92a50-207b-4d38-87fd-452357509560",
+      "code": "AST-TOPO-CR-6592",
+      "name": "Cẩu Bờ"
+    },
+    {
+      "id": "b1d8c83f-08cb-4707-877f-1215efd7db2e",
+      "code": "AST-TOPO-CR-6b9e",
+      "name": "Cẩu Bờ"
+    },
+    {
+      "id": "1f9a9783-5958-412e-9053-06d4e62e6a70",
+      "code": "AST-TOPO-CR-728b",
+      "name": "Cẩu Bờ"
+    },
+    {
+      "id": "b4e11341-7133-46d2-a11a-894566648276",
+      "code": "AST-TOPO-CR-895f",
+      "name": "Cẩu Bờ"
+    },
+    {
+      "id": "7829cac6-8c6e-42b6-a8fb-638bdf8eb49a",
+      "code": "AST-TOPO-CR-9365",
+      "name": "Cẩu Bờ"
+    },
+    {
+      "id": "0583b629-fb0c-4e27-8e19-2437d316e0c6",
+      "code": "AST-TOPO-CR-a574",
+      "name": "Cẩu Bờ"
+    },
+    {
+      "id": "aae0217e-b562-4939-b405-352689599a75",
+      "code": "AST-TOPO-CR-b6ef",
+      "name": "Cẩu Bờ"
+    },
+    {
+      "id": "1763d502-3171-46d8-99b7-c98d83d712c9",
+      "code": "AST-TOPO-CR-b8de",
+      "name": "Cẩu Bờ"
+    },
+    {
+      "id": "56d080b5-4321-41a6-9084-8f36c1d6d79d",
+      "code": "AST-TOPO-CR-e2b3",
+      "name": "Cẩu Bờ"
+    },
+    {
+      "id": "71053e24-9cc7-403c-9f6a-4258b6a905d5",
+      "code": "AST-TOPO-CR-f680",
+      "name": "Cẩu Bờ"
+    },
+    {
+      "id": "a7c04c3c-73e8-441b-b209-e9f427051b55",
+      "code": "AST-TOPO-SUB-03da",
+      "name": "Trạm TT"
+    },
+    {
+      "id": "169154c2-e645-4926-b5ae-8623ccd7923d",
+      "code": "AST-TOPO-SUB-1a6f",
+      "name": "Trạm TT"
+    },
+    {
+      "id": "b3178fc5-0565-40fa-8aa1-b8de7bab9b3c",
+      "code": "AST-TOPO-SUB-20db",
+      "name": "Trạm TT"
+    },
+    {
+      "id": "27db8fe5-9d12-4b6b-b8c1-4d9c38a45e55",
+      "code": "AST-TOPO-SUB-2a6c",
+      "name": "Trạm TT"
+    },
+    {
+      "id": "eafced99-7d1b-43e8-83aa-b0064ab27f2e",
+      "code": "AST-TOPO-SUB-306c",
+      "name": "Trạm TT"
+    },
+    {
+      "id": "d20ead16-59fa-4d2f-b5e7-977ed183a162",
+      "code": "AST-TOPO-SUB-4d8a",
+      "name": "Trạm TT"
+    },
+    {
+      "id": "6584dd56-d3d1-46b6-9351-b5fd5771e311",
+      "code": "AST-TOPO-SUB-a744",
+      "name": "Trạm TT"
+    },
+    {
+      "id": "490fe555-9fd8-4ecb-a52c-9bf7985445a6",
+      "code": "AST-TOPO-SUB-bba7",
+      "name": "Trạm TT"
+    },
+    {
+      "id": "07a3b1f5-9e69-4ebd-814e-dd5ee7af5ca7",
+      "code": "AST-TOPO-SUB-c021",
+      "name": "Trạm TT"
+    },
+    {
+      "id": "39df8fd2-df56-495d-82c0-8fd14dab7075",
+      "code": "AST-TOPO-SUB-e412",
+      "name": "Trạm TT"
+    },
+    {
+      "id": "1599c15c-0fb0-408a-8a39-c0e94a54bfad",
+      "code": "AST-TOPO-SUB-ea41",
+      "name": "Trạm TT"
+    },
+    {
+      "id": "8a2991f2-a80c-499e-af49-bf07f1a2e66e",
+      "code": "AST-TOPO-SUB-ee81",
+      "name": "Trạm TT"
+    },
+    {
+      "id": "fd79189c-7ee7-4741-981f-d3ca8d12969b",
+      "code": "AST-TOPO-SUB-eeab",
+      "name": "Trạm TT"
+    },
+    {
+      "id": "a39796d7-4841-4045-b145-67268a6499d7",
+      "code": "AST-TOPO-SUB-f263",
+      "name": "Trạm TT"
+    },
+    {
+      "id": "749fadd4-e0ea-4149-8bb4-219335bfcc35",
+      "code": "AST-TOPO-SW-26a1",
+      "name": "Tủ Phân Phối"
+    },
+    {
+      "id": "049b9cf4-252b-49ab-a687-e4a9c4e5b0e7",
+      "code": "AST-TOPO-SW-3c73",
+      "name": "Tủ Phân Phối"
+    },
+    {
+      "id": "38c8e34e-e137-45d1-b08f-ffc1478af9f0",
+      "code": "AST-TOPO-SW-4bab",
+      "name": "Tủ Phân Phối"
+    },
+    {
+      "id": "d5695c00-a84d-403b-b0dd-4472cf592896",
+      "code": "AST-TOPO-SW-4ef5",
+      "name": "Tủ Phân Phối"
+    },
+    {
+      "id": "e9de0bda-56d6-4313-a9ff-dcf1b3ede9bb",
+      "code": "AST-TOPO-SW-5a9b",
+      "name": "Tủ Phân Phối"
+    },
+    {
+      "id": "c366f684-582a-4012-8760-773b788ff279",
+      "code": "AST-TOPO-SW-64e4",
+      "name": "Tủ Phân Phối"
+    },
+    {
+      "id": "08beb6d5-73fb-4957-aad2-2f6b57e6ea86",
+      "code": "AST-TOPO-SW-6b45",
+      "name": "Tủ Phân Phối"
+    },
+    {
+      "id": "bc5d8053-74fc-4001-b27d-24c7a2014b76",
+      "code": "AST-TOPO-SW-8e61",
+      "name": "Tủ Phân Phối"
+    },
+    {
+      "id": "0e6388df-f4e8-4d0e-b9f2-10210f44d380",
+      "code": "AST-TOPO-SW-91a8",
+      "name": "Tủ Phân Phối"
+    },
+    {
+      "id": "694fc98e-f464-44f3-9e79-1a8bb8ac2855",
+      "code": "AST-TOPO-SW-993e",
+      "name": "Tủ Phân Phối"
+    },
+    {
+      "id": "d3af3a4d-e997-4dcb-9f4a-f7c43652b3ec",
+      "code": "AST-TOPO-SW-9ca5",
+      "name": "Tủ Phân Phối"
+    },
+    {
+      "id": "3cb1d56a-4d63-4a09-afa0-8b9be8059a4a",
+      "code": "AST-TOPO-SW-ac46",
+      "name": "Tủ Phân Phối"
+    },
+    {
+      "id": "a2a9fb8a-522a-4086-8299-8e75fba96a1a",
+      "code": "AST-TOPO-SW-ade7",
+      "name": "Tủ Phân Phối"
+    },
+    {
+      "id": "10c6a88d-66a8-4bdf-abcb-6eb67a3b513c",
+      "code": "AST-TOPO-SW-c151",
+      "name": "Tủ Phân Phối"
+    },
+    {
+      "id": "85d94e6b-ce43-4efd-a961-d32e96eb5a7f",
+      "code": "AST-VAL-0F3A6B",
+      "name": "Asset Val"
+    },
+    {
+      "id": "ab42fa04-aff1-4f2f-ab84-7f4f9a1e5e62",
+      "code": "AST-VAL-174E17",
+      "name": "Asset Val"
+    },
+    {
+      "id": "c7970b80-6da5-4ad7-86ff-654cb3a1d4ea",
+      "code": "AST-VAL-33555A",
+      "name": "Asset Val"
+    },
+    {
+      "id": "01ac3a35-55eb-4c37-b40d-348fb57f05c0",
+      "code": "AST-VAL-38FD94",
+      "name": "Asset Val"
+    },
+    {
+      "id": "f30d9e3b-6641-4fa5-a43c-606215da7c0f",
+      "code": "AST-VAL-40440C",
+      "name": "Asset Val"
+    },
+    {
+      "id": "b4dcfac4-c941-4280-95a6-a02638915486",
+      "code": "AST-VAL-422B8B",
+      "name": "Asset Val"
+    },
+    {
+      "id": "b353beb9-e6ca-422c-90ab-e1b03134a1c5",
+      "code": "AST-VAL-50A6A7",
+      "name": "Asset Val"
+    },
+    {
+      "id": "e1c4ac41-3577-40e0-a076-3a299c6ef123",
+      "code": "AST-VAL-68377D",
+      "name": "Asset Val"
+    },
+    {
+      "id": "8a019e20-cf77-471b-8f50-263ac5f0bb6d",
+      "code": "AST-VAL-A7C99B",
+      "name": "Asset Val"
+    },
+    {
+      "id": "2570ebb9-a934-4003-917a-5b0812302c9b",
+      "code": "AST-VAL-BDAA53",
+      "name": "Asset Val"
+    },
+    {
+      "id": "165f8b98-2dd9-4a6f-8925-7c78feb010e5",
+      "code": "AST-VAL-DC46E4",
+      "name": "Asset Val"
+    },
+    {
+      "id": "47b12461-5bad-493a-a58e-fa75ffb65ece",
+      "code": "AST-VAL-E13703",
+      "name": "Asset Val"
+    },
+    {
+      "id": "7cb099d9-6f7c-43aa-bc42-de61a5bba907",
+      "code": "AST-VAL-EF25C0",
+      "name": "Asset Val"
+    },
+    {
+      "id": "17612789-0d4c-4339-8ed9-e9b8eb3dbfef",
+      "code": "AST-VAL-F78312",
+      "name": "Asset Val"
+    },
+    {
+      "id": "e9c3dca1-fc59-489d-8dda-2c17d7d50f2e",
+      "code": "E-DST-08af62",
+      "name": "Cẩu Bờ QC-01"
+    },
+    {
+      "id": "87a71efb-bc86-4902-a32a-d93276fe71d9",
+      "code": "E-DST-7a6512",
+      "name": "Cẩu Bờ QC-01"
+    },
+    {
+      "id": "7e4ad096-651f-4966-9545-62c5aa08fd98",
+      "code": "E-DST-a2e1b2",
+      "name": "Cẩu Bờ QC-01"
+    },
+    {
+      "id": "9ed09078-b82a-46f0-9abc-9839241e1a99",
+      "code": "E-DST-a6ff42",
+      "name": "Cẩu Bờ QC-01"
+    },
+    {
+      "id": "79aced72-5ff6-48d3-bf39-54702a6bb387",
+      "code": "E-DST-b3bf70",
+      "name": "Cẩu Bờ QC-01"
+    },
+    {
+      "id": "46e89b3c-32bf-4145-8e42-2bfbc0703584",
+      "code": "E-DST-d04067",
+      "name": "Cẩu Bờ QC-01"
+    },
+    {
+      "id": "43758a7f-eff5-4d88-b45e-9b75651edd7f",
+      "code": "E-DST-d22fb9",
+      "name": "Cẩu Bờ QC-01"
+    },
+    {
+      "id": "cd0d11b5-cc81-4b44-bcda-fc26351ca864",
+      "code": "E-SRC-273fde",
+      "name": "Trạm Cắt 22kV"
+    },
+    {
+      "id": "d384f567-9ff8-4b09-a893-abd68328537a",
+      "code": "E-SRC-596d44",
+      "name": "Trạm Cắt 22kV"
+    },
+    {
+      "id": "30ee0b45-a419-4c37-a748-bac48945335a",
+      "code": "E-SRC-5c38aa",
+      "name": "Trạm Cắt 22kV"
+    },
+    {
+      "id": "303cb93c-53bb-42b7-a94b-ebf51f7630e0",
+      "code": "E-SRC-99462e",
+      "name": "Trạm Cắt 22kV"
+    },
+    {
+      "id": "de1d8f12-8bb4-4c1e-9754-0bb07c38d232",
+      "code": "E-SRC-d41874",
+      "name": "Trạm Cắt 22kV"
+    },
+    {
+      "id": "8280f517-63a5-48b2-aeb7-b52dd64fc2b2",
+      "code": "E-SRC-d5b34d",
+      "name": "Trạm Cắt 22kV"
+    },
+    {
+      "id": "9ee2b7a6-834c-4551-be9f-02d4ae4c8ade",
+      "code": "E-SRC-ea2824",
+      "name": "Trạm Cắt 22kV"
+    },
+    {
+      "id": "f26cdfdb-1ba5-4a81-9d74-4b530a691f09",
+      "code": "SUB-ST-3662",
+      "name": "Tủ Phân Phối Cầu Tàu"
+    },
+    {
+      "id": "1408b628-042b-4474-8a8d-722a49bf0655",
+      "code": "SUB-ST-6F70",
+      "name": "Tủ Phân Phối Cầu Tàu"
+    },
+    {
+      "id": "46a58ab9-5efc-4a0d-841c-6a34ddd62139",
+      "code": "SUB-ST-8C34",
+      "name": "Tủ Phân Phối Cầu Tàu"
+    },
+    {
+      "id": "13dcf5d4-8e7b-4563-bbe4-ff557588f13f",
+      "code": "SUB-ST-93E8",
+      "name": "Tủ Phân Phối Cầu Tàu"
+    },
+    {
+      "id": "bfa024b1-f220-44d5-848b-85e1d08faad0",
+      "code": "SUB-ST-A0CE",
+      "name": "Tủ Phân Phối Cầu Tàu"
+    },
+    {
+      "id": "69270274-b73d-4494-be5d-8c7897b7f722",
+      "code": "SUB-ST-A502",
+      "name": "Tủ Phân Phối Cầu Tàu"
+    },
+    {
+      "id": "ae2e22b3-5d8b-44c4-aeaa-51f6d5c11d6b",
+      "code": "SUB-ST-AC1D",
+      "name": "Tủ Phân Phối Cầu Tàu"
+    },
+    {
+      "id": "2ab9ab91-25b7-47b7-9053-1f115d22e624",
+      "code": "SUB-ST-C1C2",
+      "name": "Tủ Phân Phối Cầu Tàu"
+    },
+    {
+      "id": "c89d09ae-9c62-411b-91e4-e30505e036f9",
+      "code": "SUB-ST-C563",
+      "name": "Tủ Phân Phối Cầu Tàu"
+    },
+    {
+      "id": "78ea74f1-0205-47b0-aee2-2da2f151be65",
+      "code": "SUB-ST-C7F6",
+      "name": "Tủ Phân Phối Cầu Tàu"
+    },
+    {
+      "id": "7b1a7c8e-0b6f-47fe-be86-26669ed0dcf6",
+      "code": "SUB-ST-D9D3",
+      "name": "Tủ Phân Phối Cầu Tàu"
+    },
+    {
+      "id": "bf877416-a4e9-40bd-978d-4c9260f29440",
+      "code": "SUB-ST-DFFA",
+      "name": "Tủ Phân Phối Cầu Tàu"
+    },
+    {
+      "id": "66b7e9f9-83e6-4e6b-8daa-cc883a6368ed",
+      "code": "TEST-A1-002485",
+      "name": "Thiết bị A1"
+    },
+    {
+      "id": "722cbe76-564a-4523-abe8-8beb3731d574",
+      "code": "TEST-A1-1386AE",
+      "name": "Thiết bị A1"
+    },
+    {
+      "id": "a3e1441c-bdb7-463c-83a9-52eeaf5213e5",
+      "code": "TEST-A1-1C0FF7",
+      "name": "Thiết bị A1"
+    },
+    {
+      "id": "273903dc-d75e-42a3-9afd-97aa1f3c23fa",
+      "code": "TEST-A1-3A496C",
+      "name": "Thiết bị A1"
+    },
+    {
+      "id": "d80403d3-f6a8-4cd9-8a28-97d69c58f321",
+      "code": "TEST-A1-4BF0B3",
+      "name": "Thiết bị A1"
+    },
+    {
+      "id": "27780e99-615d-4397-983a-a08f8027fe05",
+      "code": "TEST-A1-55A031",
+      "name": "Thiết bị A1"
+    },
+    {
+      "id": "cec0ec81-94da-4f98-ac9c-ed7018902981",
+      "code": "TEST-A1-5F0B43",
+      "name": "Thiết bị A1"
+    },
+    {
+      "id": "9367aee6-8b4a-4350-a2fe-c75ad670f697",
+      "code": "TEST-A1-72C18C",
+      "name": "Thiết bị A1"
+    },
+    {
+      "id": "e2fb768f-fd1b-4f1a-8778-b73692def938",
+      "code": "TEST-A1-BB5940",
+      "name": "Thiết bị A1"
+    },
+    {
+      "id": "b0f9312e-d24a-4236-8ad7-ade411f7fa6f",
+      "code": "TEST-A1-BC97BC",
+      "name": "Thiết bị A1"
+    },
+    {
+      "id": "e4a31343-6125-46e1-97f5-4cf06695ed7d",
+      "code": "TEST-A1-CFA71B",
+      "name": "Thiết bị A1"
+    },
+    {
+      "id": "f80c5c1d-739b-4c74-b9c0-a21f18d31e1f",
+      "code": "TEST-A1-E4EB98",
+      "name": "Thiết bị A1"
+    },
+    {
+      "id": "57b7d348-0185-4cb0-a160-efc8f022ab71",
+      "code": "TEST-A1-F4A843",
+      "name": "Thiết bị A1"
+    },
+    {
+      "id": "d6a03f0f-2763-4d02-a928-a4e0f94d7c65",
+      "code": "TEST-A2-01BD1C",
+      "name": "Thiết bị A2"
+    },
+    {
+      "id": "0d6d2a4b-e1c8-415d-a1e0-0613f07a6975",
+      "code": "TEST-A2-25E05E",
+      "name": "Thiết bị A2"
+    },
+    {
+      "id": "c0bc6f10-3ef7-403a-8c1f-1fbd69f2c974",
+      "code": "TEST-A2-3855AA",
+      "name": "Thiết bị A2"
+    },
+    {
+      "id": "e568f3bb-3e87-4f07-8d20-1e36e785a67b",
+      "code": "TEST-A2-78411D",
+      "name": "Thiết bị A2"
+    },
+    {
+      "id": "ade93b97-8635-4612-9779-56b5cd553002",
+      "code": "TEST-A2-8C0889",
+      "name": "Thiết bị A2"
+    },
+    {
+      "id": "85b3c89e-d920-47b2-9669-c2c0c77bf3dc",
+      "code": "TEST-A2-932D7E",
+      "name": "Thiết bị A2"
+    },
+    {
+      "id": "ab77346e-c405-454f-9b09-6746f8d4ca3d",
+      "code": "TEST-A2-9346C3",
+      "name": "Thiết bị A2"
+    },
+    {
+      "id": "b6f6ba4e-cf8b-4c01-964f-a59a5af5d296",
+      "code": "TEST-A2-B27741",
+      "name": "Thiết bị A2"
+    },
+    {
+      "id": "bcd6b11b-0291-400e-a864-e992ca0ef6c9",
+      "code": "TEST-A2-B68DE3",
+      "name": "Thiết bị A2"
+    },
+    {
+      "id": "7ca93ac1-7784-46dd-b540-41143eda21a7",
+      "code": "TEST-A2-B7C489",
+      "name": "Thiết bị A2"
+    },
+    {
+      "id": "9947b581-f564-40cc-85fa-cff5e28b7823",
+      "code": "TEST-A2-BA6D95",
+      "name": "Thiết bị A2"
+    },
+    {
+      "id": "7462cae9-724d-45c0-b4d3-546325e0ba22",
+      "code": "TEST-A2-DAD78D",
+      "name": "Thiết bị A2"
+    },
+    {
+      "id": "ffaca9b4-8811-4302-a586-34094ef83ac8",
+      "code": "TEST-A2-DB8A56",
+      "name": "Thiết bị A2"
+    },
+    {
+      "id": "61d939e1-b06b-4a14-bafb-ec5254b7228f",
+      "code": "TEST-POS-174D9F",
+      "name": "Thiết bị định vị"
+    },
+    {
+      "id": "87108a05-6f3a-4d0e-a3e1-c78a4217c876",
+      "code": "TEST-POS-1D8274",
+      "name": "Thiết bị định vị"
+    },
+    {
+      "id": "f1b587c9-ff0b-438f-982a-28a86d0cb6bb",
+      "code": "TEST-POS-34206D",
+      "name": "Thiết bị định vị"
+    },
+    {
+      "id": "fa56ce7f-f88d-44ca-8e35-994ecb761b41",
+      "code": "TEST-POS-45A087",
+      "name": "Thiết bị định vị"
+    },
+    {
+      "id": "0b0c23ad-a0bc-40d2-8fd4-d3b4c28f8dea",
+      "code": "TEST-POS-572425",
+      "name": "Thiết bị định vị"
+    },
+    {
+      "id": "5890b444-d0de-4afe-9797-d5d531caa598",
+      "code": "TEST-POS-59FEDC",
+      "name": "Thiết bị định vị"
+    },
+    {
+      "id": "ff7a674b-fee3-4f45-91a5-44f0665bf29f",
+      "code": "TEST-POS-79B0BF",
+      "name": "Thiết bị định vị"
+    },
+    {
+      "id": "c46b46d9-ec88-4cef-9b5f-01bd63564cfc",
+      "code": "TEST-POS-92E3F7",
+      "name": "Thiết bị định vị"
+    },
+    {
+      "id": "973f64e1-97c9-4193-b788-184d889af6e0",
+      "code": "TEST-POS-A0C9D2",
+      "name": "Thiết bị định vị"
+    },
+    {
+      "id": "5fa783c0-b0f4-445d-a5c1-590a98bceb42",
+      "code": "TEST-POS-B31694",
+      "name": "Thiết bị định vị"
+    },
+    {
+      "id": "ff91ab47-f5b6-4f86-be88-845bab1e4ca0",
+      "code": "TEST-POS-DDBF0A",
+      "name": "Thiết bị định vị"
+    },
+    {
+      "id": "1a3c4edb-77b7-4d1a-b5ab-4b154c970942",
+      "code": "TEST-POS-F17A40",
+      "name": "Thiết bị định vị"
+    },
+    {
+      "id": "6fb6186a-97e9-44d3-b411-ff32fa3ab351",
+      "code": "TEST-REJ-09A474",
+      "name": "Thiết bị bị đề xuất sai"
+    },
+    {
+      "id": "23373f3b-9699-41ba-9ef2-caaef20bb0a6",
+      "code": "TEST-REJ-3CE15A",
+      "name": "Thiết bị bị đề xuất sai"
+    },
+    {
+      "id": "84e50653-56d3-45ac-9271-b6f1a328b7cd",
+      "code": "TEST-REJ-4BBD73",
+      "name": "Thiết bị bị đề xuất sai"
+    },
+    {
+      "id": "d7278e9f-2349-4834-8338-c4621dc57933",
+      "code": "TEST-REJ-5B0675",
+      "name": "Thiết bị bị đề xuất sai"
+    },
+    {
+      "id": "d7d051b5-d303-4813-bd4a-14c00b10eac5",
+      "code": "TEST-REJ-A53D65",
+      "name": "Thiết bị bị đề xuất sai"
+    },
+    {
+      "id": "2607e257-16a6-42f7-b254-20bb7dc42c41",
+      "code": "TEST-REJ-B4E1E7",
+      "name": "Thiết bị bị đề xuất sai"
+    },
+    {
+      "id": "ac3fdfe3-3362-4218-891b-67e0a58f450b",
+      "code": "TEST-REJ-BAC26F",
+      "name": "Thiết bị bị đề xuất sai"
+    },
+    {
+      "id": "292fb23d-c8c0-452f-90d9-19bd12492613",
+      "code": "TEST-REJ-BBED08",
+      "name": "Thiết bị bị đề xuất sai"
+    },
+    {
+      "id": "72d2b731-6fa2-4710-9903-ac29f8eded4b",
+      "code": "TEST-REJ-C4CEB7",
+      "name": "Thiết bị bị đề xuất sai"
+    },
+    {
+      "id": "a9510f0f-d863-42dc-9104-7c28bb38182b",
+      "code": "TEST-REJ-C62022",
+      "name": "Thiết bị bị đề xuất sai"
+    },
+    {
+      "id": "5b043e27-dbe4-4303-beeb-552ecbf4cc70",
+      "code": "TEST-REJ-E7738C",
+      "name": "Thiết bị bị đề xuất sai"
+    },
+    {
+      "id": "7be3ea33-263f-41ba-b858-c69077e556f4",
+      "code": "TEST-REJ-EE2FF9",
+      "name": "Thiết bị bị đề xuất sai"
+    },
+    {
+      "id": "31ce0065-7b46-4139-a25a-07e2b5a5e0d3",
+      "code": "TEST-VERIF-263751",
+      "name": "Thiết bị kiểm tra xác minh"
+    },
+    {
+      "id": "f2d69b8d-e8b2-4bb8-9527-d94b244081f2",
+      "code": "TEST-VERIF-2A0A18",
+      "name": "Thiết bị kiểm tra xác minh"
+    },
+    {
+      "id": "65e6635d-a25d-40d4-8757-615abef42da0",
+      "code": "TEST-VERIF-411B3C",
+      "name": "Thiết bị kiểm tra xác minh"
+    },
+    {
+      "id": "809cbe4b-674c-4f63-8021-cd980319be40",
+      "code": "TEST-VERIF-560253",
+      "name": "Thiết bị kiểm tra xác minh"
+    },
+    {
+      "id": "8b5f7ef8-3c91-4d41-a9b4-64bc56d30607",
+      "code": "TEST-VERIF-5CF685",
+      "name": "Thiết bị kiểm tra xác minh"
+    },
+    {
+      "id": "6b4bb187-a4ef-41b7-b071-4603f1bf5ce7",
+      "code": "TEST-VERIF-7DFBB0",
+      "name": "Thiết bị kiểm tra xác minh"
+    },
+    {
+      "id": "f94c1d1e-99c2-47ac-9c2b-b7efccc03337",
+      "code": "TEST-VERIF-931B99",
+      "name": "Thiết bị kiểm tra xác minh"
+    },
+    {
+      "id": "a7ec0090-8b10-4f77-a35f-75fa3ffbc189",
+      "code": "TEST-VERIF-ADFB92",
+      "name": "Thiết bị kiểm tra xác minh"
+    },
+    {
+      "id": "a290637d-4ecb-4dbb-8dab-c7e7143d3a2d",
+      "code": "TEST-VERIF-E2C0B3",
+      "name": "Thiết bị kiểm tra xác minh"
+    },
+    {
+      "id": "2d4d8295-eae3-4ed2-9c71-325f6332a3d0",
+      "code": "TEST-VERIF-EC095A",
+      "name": "Thiết bị kiểm tra xác minh"
+    },
+    {
+      "id": "be5c21c8-0272-4826-82c6-8ebee5153cb4",
+      "code": "TEST-VERIF-F60054",
+      "name": "Thiết bị kiểm tra xác minh"
+    },
+    {
+      "id": "01b72053-215e-41e2-9c27-d84b5beb2f47",
+      "code": "TEST-VERIF-F74697",
+      "name": "Thiết bị kiểm tra xác minh"
+    },
+    {
+      "id": "870dbc32-869f-44b8-ba49-7646b69b72fa",
+      "code": "TR-ST-1496",
+      "name": "Trạm Biến Áp Nguồn"
+    },
+    {
+      "id": "ded3de89-f502-4851-a645-0139392c51f8",
+      "code": "TR-ST-21EE",
+      "name": "Trạm Biến Áp Nguồn"
+    },
+    {
+      "id": "8f6763f7-9f02-4c53-a88b-837208fdd6de",
+      "code": "TR-ST-2DE2",
+      "name": "Trạm Biến Áp Nguồn"
+    },
+    {
+      "id": "11b554a5-88f0-4b51-b943-8cf6d8811638",
+      "code": "TR-ST-36D8",
+      "name": "Trạm Biến Áp Nguồn"
+    },
+    {
+      "id": "18785015-5eaa-475c-b91d-fb2a902a2d64",
+      "code": "TR-ST-3A20",
+      "name": "Trạm Biến Áp Nguồn"
+    },
+    {
+      "id": "7465f303-deec-44cc-bc66-54e8b7cb41f6",
+      "code": "TR-ST-5CC1",
+      "name": "Trạm Biến Áp Nguồn"
+    },
+    {
+      "id": "4098f294-2767-44a0-88ee-e7b56683b1c6",
+      "code": "TR-ST-80A4",
+      "name": "Trạm Biến Áp Nguồn"
+    },
+    {
+      "id": "54ca53fc-23c1-4a2a-89d9-207639ea66b2",
+      "code": "TR-ST-B4A0",
+      "name": "Trạm Biến Áp Nguồn"
+    },
+    {
+      "id": "d9f20734-8b64-4de5-96c3-bcbc7c12ff0d",
+      "code": "TR-ST-C6CD",
+      "name": "Trạm Biến Áp Nguồn"
+    },
+    {
+      "id": "58de5cf1-4343-4516-877f-5e7fd7075271",
+      "code": "TR-ST-D69A",
+      "name": "Trạm Biến Áp Nguồn"
+    },
+    {
+      "id": "1d6286a9-68ae-4739-9041-c7adb14510ac",
+      "code": "TR-ST-EAEB",
+      "name": "Trạm Biến Áp Nguồn"
+    },
+    {
+      "id": "b60f04fb-102b-4f89-a4e7-f623ad8fd419",
+      "code": "TR-ST-F45F",
+      "name": "Trạm Biến Áp Nguồn"
+    }
+  ],
+  "edges": [
+    {
+      "id": "ca4d1b1a-6cc0-49f7-8242-fdcb31f96a94",
+      "source": "6ff5778f-a951-498a-a54e-3d08b75f2e63",
+      "sourceCode": "W-SRC-f08093",
+      "target": "dacfe0a7-0a83-4ee6-8bbe-706ea13809df",
+      "targetCode": "W-DST-4767dc",
+      "connection_type": "SUPPLIES",
+      "verification_status": "VERIFIED",
+      "is_verified": true
+    },
+    {
+      "id": "623ec9de-ac94-419b-8aa6-c15fff6fbcfa",
+      "source": "2f295b69-6369-4658-b0a6-e1f556bb3a0e",
+      "sourceCode": "W-SRC-7dc6eb",
+      "target": "4466aa02-79af-422f-b648-cf4ddfc4fbe9",
+      "targetCode": "W-DST-a5d116",
+      "connection_type": "SUPPLIES",
+      "verification_status": "VERIFIED",
+      "is_verified": true
+    },
+    {
+      "id": "c8bc7e33-1967-446c-81fe-2a20895f3496",
+      "source": "d887c3ea-52f3-4cba-b385-487d1e0a4acf",
+      "sourceCode": "W-SRC-c3495e",
+      "target": "07e106a4-dcf7-4bed-92c2-a37901a6c655",
+      "targetCode": "W-DST-b7d248",
+      "connection_type": "SUPPLIES",
+      "verification_status": "VERIFIED",
+      "is_verified": true
+    },
+    {
+      "id": "7326fd7b-27c6-4f89-ac38-378be9150911",
+      "source": "cad9cead-a968-47a5-bb53-7b0bef13b2cf",
+      "sourceCode": "W-SRC-0bb7d8",
+      "target": "aa6e478a-59d1-48bf-9c3a-c56a19d8d36d",
+      "targetCode": "W-DST-850914",
+      "connection_type": "SUPPLIES",
+      "verification_status": "VERIFIED",
+      "is_verified": true
+    },
+    {
+      "id": "42c5355b-1ac1-49b1-a344-1ed5d67d65ca",
+      "source": "4fdf6189-b00a-4243-84d4-c1a3305bed71",
+      "sourceCode": "W-SRC-53ff96",
+      "target": "c0eee923-a4a6-4a79-bde7-6c3291a8d5fb",
+      "targetCode": "W-DST-5fd06c",
+      "connection_type": "SUPPLIES",
+      "verification_status": "VERIFIED",
+      "is_verified": true
+    },
+    {
+      "id": "e10da203-13b6-45d2-8154-b673c37bfa34",
+      "source": "31a59bd7-df1a-4dfd-b17a-d73dc95d7826",
+      "sourceCode": "W-SRC-97a336",
+      "target": "a0e31784-aea6-4e32-a1fe-182da74475c1",
+      "targetCode": "W-DST-beb6b5",
+      "connection_type": "SUPPLIES",
+      "verification_status": "VERIFIED",
+      "is_verified": true
+    },
+    {
+      "id": "b330b75c-8aa4-4b76-8ab5-593e683ddbef",
+      "source": "7fca6baf-ca46-4f9c-b5a7-accc7439d625",
+      "sourceCode": "W-SRC-51ca5a",
+      "target": "a2fdd3a2-6301-4662-bf64-3236f2334ee3",
+      "targetCode": "W-DST-3c0390",
+      "connection_type": "SUPPLIES",
+      "verification_status": "VERIFIED",
+      "is_verified": true
+    }
+  ]
+}

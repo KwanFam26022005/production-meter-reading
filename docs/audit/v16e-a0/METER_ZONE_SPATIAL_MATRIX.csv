@@ -1,0 +1,13 @@
+﻿meterCode,meterName,assignedPresentationZone,actualContainingZones,isInsideAssigned,spatialClassification,normalizedCoord,canonicalCoord,nearestZone,distanceToNearestBoundaryPx
+CT-001,Công tơ Trạm A,pres-technical,NONE,False,NO_CONTAINING_ZONE,"(0.5995, 0.8356)","(1148.04, 686.03)",pres-technical,30.67
+CT-002,Công tơ Kho B,pres-container-west,pres-container-west,True,MATCH,"(0.2648, 0.5664)","(507.09, 465.01)",pres-container-west,0.0
+CT-003,Công tơ Cầu cảng 1,pres-berth,pres-berth,True,MATCH,"(0.176, 0.3849)","(337.04, 316.0)",pres-berth,0.0
+CT-004,Công tơ Cầu cảng 2,pres-berth,pres-berth,True,MATCH,"(0.3624, 0.3837)","(694.0, 315.02)",pres-berth,0.0
+CT-005,Công tơ Kho C,pres-container-west,pres-container-west,True,MATCH,"(0.3337, 0.5786)","(639.04, 475.03)",pres-container-west,0.0
+CT-006,Công tơ Kho D,pres-cfs-east,pres-cfs-east,True,MATCH,"(0.8773, 0.4629)","(1680.03, 380.04)",pres-cfs-east,0.0
+CT-007,Công tơ Trạm B,pres-technical,NONE,False,NO_CONTAINING_ZONE,"(0.5577, 0.877)","(1068.0, 720.02)",pres-technical,51.65
+CT-008,Công tơ Cầu cảng 3,pres-berth,pres-container-center,False,OUTSIDE_ASSIGNED_ZONE,"(0.7311, 0.3021)","(1400.06, 248.02)",pres-container-center,0.0
+CT-009,Công tơ Khu kỹ thuật 1,pres-technical,NONE,False,NO_CONTAINING_ZONE,"(0.6418, 0.8295)","(1229.05, 681.02)",pres-technical,40.23
+CT-010,Công tơ Khu kỹ thuật 2,pres-gate,NONE,False,NO_CONTAINING_ZONE,"(0.8564, 0.6821)","(1640.01, 560.0)",pres-technical,43.58
+CT-011,Công tơ Bãi Container 1,pres-container-center,pres-container-center,True,MATCH,"(0.6115, 0.5323)","(1171.02, 437.02)",pres-container-center,0.0
+CT-012,Công tơ Bãi Container 2,pres-container-center,pres-container-center,True,MATCH,"(0.7321, 0.5164)","(1401.97, 423.96)",pres-container-center,0.0
