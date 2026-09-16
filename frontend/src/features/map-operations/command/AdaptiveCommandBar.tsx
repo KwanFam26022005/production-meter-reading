@@ -243,6 +243,11 @@ export const AdaptiveCommandBar: React.FC<AdaptiveCommandBarProps> = ({
     : currentRoundTime
     ? `Ca 1 (${currentRoundTime})`
     : 'Ca 1 (06:00 - 14:00)';
+  const shiftDisplayCompactLabel = currentRound
+    ? `Ca 1 (${currentRound.scheduled_time})`
+    : currentRoundTime
+    ? `Ca 1 (${currentRoundTime})`
+    : 'Ca 1';
 
   const userInitial = user?.full_name?.charAt(0)?.toUpperCase() || 'P';
   const userRole = user ? formatUserRole(user.role) : 'Quản trị viên';
@@ -436,7 +441,8 @@ export const AdaptiveCommandBar: React.FC<AdaptiveCommandBarProps> = ({
               title="Chọn ca và lượt tác nghiệp"
             >
               <Clock size={13} className="text-cyan-400 shrink-0" aria-hidden="true" />
-              <span className="font-tabular font-medium">{shiftDisplayLabel}</span>
+              <span className="font-tabular font-medium sgp-cmd-shift-full">{shiftDisplayLabel}</span>
+              <span className="font-tabular font-medium sgp-cmd-shift-compact">{shiftDisplayCompactLabel}</span>
               <ChevronDown
                 size={12}
                 className={`sgp-cmd-chevron ${activeSurface === 'shift' ? 'rotate' : ''}`}
@@ -543,19 +549,21 @@ export const AdaptiveCommandBar: React.FC<AdaptiveCommandBarProps> = ({
               {issueCount > 0 ? (
                 <>
                   <AlertTriangle size={13} className="text-amber-400 shrink-0" />
-                  <span className="font-tabular font-semibold text-amber-300">
-                    {model.compactTelemetry
-                      ? `${issueCount} · ${overallKpis.confirmed}/${overallKpis.total}`
-                      : `${issueCount} vấn đề · ${overallKpis.confirmed}/${overallKpis.total}`}
+                  <span className="font-tabular font-semibold text-amber-300 sgp-cmd-kpi-full">
+                    {`${issueCount} vấn đề · ${overallKpis.confirmed}/${overallKpis.total}`}
+                  </span>
+                  <span className="font-tabular font-semibold text-amber-300 sgp-cmd-kpi-compact">
+                    {`${issueCount} · ${overallKpis.confirmed}/${overallKpis.total}`}
                   </span>
                 </>
               ) : (
                 <>
                   <CheckCircle2 size={13} className="text-emerald-400 shrink-0" />
-                  <span className="font-tabular font-medium text-emerald-300">
-                    {model.compactTelemetry
-                      ? `${overallKpis.confirmed}/${overallKpis.total}`
-                      : `${overallKpis.confirmed}/${overallKpis.total} hoàn tất`}
+                  <span className="font-tabular font-medium text-emerald-300 sgp-cmd-kpi-full">
+                    {`${overallKpis.confirmed}/${overallKpis.total} hoàn tất`}
+                  </span>
+                  <span className="font-tabular font-medium text-emerald-300 sgp-cmd-kpi-compact">
+                    {`${overallKpis.confirmed}/${overallKpis.total}`}
                   </span>
                 </>
               )}

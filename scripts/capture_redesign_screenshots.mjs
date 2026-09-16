@@ -13,9 +13,9 @@ async function run() {
   const browser = await chromium.launch({ executablePath: EDGE_PATH, headless: true });
 
   // Helper to log in and capture
-  async function captureViewport(name, width, height) {
-    console.log(`Setting up ${name} (${width}x${height})...`);
-    const context = await browser.newContext({ viewport: { width, height } });
+  async function captureViewport(name, width, height, deviceScaleFactor = 1.0) {
+    console.log(`Setting up ${name} (${width}x${height}, scale=${deviceScaleFactor})...`);
+    const context = await browser.newContext({ viewport: { width, height }, deviceScaleFactor });
     const page = await context.newPage();
 
     await page.goto('http://localhost:5173');
@@ -57,11 +57,17 @@ async function run() {
     await context.close();
   }
 
-  // 1. 14-inch Laptop (1366x768)
-  await captureViewport('01-14inch-laptop', 1366, 768);
+  // 1A. 14-inch Laptop at 150% Scaling (Typical Windows FHD laptop default: 1280x720 CSS)
+  await captureViewport('01-14inch-laptop-150scale', 1280, 720, 1.5);
 
-  // 2. 24-inch Desktop (1920x1080)
-  await captureViewport('02-24inch-desktop', 1920, 1080);
+  // 1B. 14-inch Laptop at 125% Scaling (FHD laptop high productivity: 1536x864 CSS)
+  await captureViewport('01-14inch-laptop-125scale', 1536, 864, 1.25);
+
+  // 1C. 14-inch Laptop at Native WXGA (1366x768 CSS)
+  await captureViewport('01-14inch-laptop-1366', 1366, 768, 1.0);
+
+  // 2. 24-inch Desktop (1920x1080 Full HD at 100% scale)
+  await captureViewport('02-24inch-desktop', 1920, 1080, 1.0);
 
   console.log('All responsive screenshots captured successfully!');
   await browser.close();

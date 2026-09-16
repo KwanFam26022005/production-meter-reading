@@ -17086,9 +17086,13 @@ body:has(.admin-portal-root) {
   .sgp-uwh-tab-full { display: inline; }
   .sgp-uwh-tab-compact { display: none; }
   .sgp-uwh-chip-txt { display: inline; }
+  .sgp-cmd-shift-full { display: inline; }
+  .sgp-cmd-shift-compact { display: none; }
+  .sgp-cmd-kpi-full { display: inline; }
+  .sgp-cmd-kpi-compact { display: none; }
 }
 
-/* STANDARD LAPTOP (14-inch, 1200px - 1599px) */
+/* STANDARD LAPTOP & DESKTOP (1400px - 1599px) */
 @media (max-width: 1599px) {
   .sgp-unified-workspace-header {
     height: 46px;
@@ -17105,10 +17109,89 @@ body:has(.admin-portal-root) {
   .sgp-uwh-chip-txt { display: none; }
   .sgp-uwh-mode-btn { padding: 4px 9px; font-size: 11.5px; }
   .sgp-uwh-chip { padding: 2.5px 6px; font-size: 10.5px; }
+  .sgp-cmd-shift-full { display: inline; }
+  .sgp-cmd-shift-compact { display: none; }
+  .sgp-cmd-kpi-full { display: inline; }
+  .sgp-cmd-kpi-compact { display: none; }
 }
 
-/* COMPACT / TABLET (< 1200px) */
+/* 14-INCH LAPTOP AT 125% OS SCALE OR COMPACT RESOLUTION (1200px - 1399px) */
+@media (max-width: 1399px) {
+  .sgp-unified-workspace-header {
+    padding: 0 10px;
+    gap: 8px;
+  }
+  .sgp-uwh-mode-btn {
+    padding: 4px 7px;
+    font-size: 11px;
+    gap: 4px;
+  }
+  .sgp-uwh-mode-count {
+    padding: 1px 4px;
+    font-size: 9px;
+  }
+  .sgp-uwh-col-right .sgp-cmd-temporal-group {
+    padding: 2px 6px;
+    gap: 4px;
+  }
+  .sgp-cmd-shift-full { display: none; }
+  .sgp-cmd-shift-compact { display: inline; }
+  .sgp-cmd-kpi-full { display: none; }
+  .sgp-cmd-kpi-compact { display: inline; }
+  .sgp-uwh-col-right .sgp-cmd-telemetry-pill {
+    padding: 0 8px;
+  }
+}
+
+/* 14-INCH LAPTOP AT 150% OS SCALE OR NARROW SCREENS (< 1200px) */
 @media (max-width: 1199px) {
+  .sgp-unified-workspace-header {
+    padding: 0 8px;
+    gap: 6px;
+  }
+  .sgp-uwh-identity .sgp-uwh-title-wrap {
+    display: none;
+  }
+  .sgp-uwh-mode-nav {
+    padding: 2px;
+    gap: 2px;
+  }
+  .sgp-uwh-mode-btn {
+    padding: 3px 6px;
+    font-size: 10.5px;
+    gap: 4px;
+  }
+  .sgp-uwh-mode-count {
+    display: none;
+  }
+  .sgp-uwh-nav-divider {
+    margin: 0 2px;
+  }
+  .sgp-uwh-col-right .sgp-cmd-temporal-group {
+    padding: 2px 5px;
+  }
+  .sgp-uwh-col-right .sgp-cmd-round-trigger {
+    font-size: 11px;
+    padding: 0 2px;
+  }
+  .sgp-cmd-shift-full { display: none; }
+  .sgp-cmd-shift-compact { display: inline; }
+  .sgp-cmd-kpi-full { display: none; }
+  .sgp-cmd-kpi-compact { display: inline; }
+  .sgp-uwh-col-right .sgp-cmd-tool-btn {
+    width: 28px;
+    height: 28px;
+  }
+  .sgp-uwh-col-right .sgp-cmd-telemetry-pill {
+    height: 28px;
+    padding: 0 6px;
+    font-size: 11px;
+  }
+  .sgp-uwh-col-right .sgp-user-chip {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+  }
   .sgp-uwh-telemetry .sgp-uwh-chip:not(.sgp-uwh-chip-alert) {
     display: none;
   }
