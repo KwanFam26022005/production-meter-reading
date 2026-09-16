@@ -1,0 +1,36 @@
+{
+  "version": "v0.1-hypothesis",
+  "status": "UNVERIFIED_HYPOTHESIS",
+  "description": "Hypothetical electrical and water distribution networks derived from port facility layout. Strictly unverified until physical electrical single-line drawings and plumbing schematics are validated.",
+  "electrical_network_hypotheses": [
+    {
+      "source_asset_code": "AST-CAND-001",
+      "target_asset_code": "AST-CAND-004",
+      "connection_type": "SUPPLIES",
+      "utility_type": "ELECTRICITY",
+      "confidence": "LOW",
+      "hypothesis_rationale": "Trạm điện phía Bắc nghi vấn cấp nguồn hạ thế cho tuyến tủ nguồn bờ cầu cảng 2.",
+      "verification_prerequisite": "Sơ đồ đơn tuyến điện lực hạ thế Cầu cảng (SLD)"
+    },
+    {
+      "source_asset_code": "AST-CAND-007",
+      "target_asset_code": "AST-CAND-011",
+      "connection_type": "CONNECTED_TO",
+      "utility_type": "ELECTRICITY",
+      "confidence": "LOW",
+      "hypothesis_rationale": "Máy nén khí trung tâm có thể được cấp nguồn từ trạm biến áp dự phòng phân xưởng.",
+      "verification_prerequisite": "Bản vẽ tủ động lực phân xưởng cơ điện"
+    }
+  ],
+  "water_network_hypotheses": [
+    {
+      "source_asset_code": "AST-CAND-009",
+      "target_asset_code": "AST-CAND-010",
+      "connection_type": "SUPPLIES",
+      "utility_type": "WATER",
+      "confidence": "LOW",
+      "hypothesis_rationale": "Tuyến ống nước cứu hỏa / cấp nước có thể liên kết giữa trạm bơm phía Nam và cầu cảng 3.",
+      "verification_prerequisite": "Bản vẽ hoàn công mạng lưới cấp thoát nước ngầm"
+    }
+  ]
+}

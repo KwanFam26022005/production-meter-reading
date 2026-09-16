@@ -1,0 +1,208 @@
+[
+  {
+    "asset_code": "AST-CAND-001",
+    "name": "Berth 1 North Station Infrastructure",
+    "asset_type": "OTHER",
+    "suggested_zone": "cau_tau",
+    "mobility_type": "FIXED",
+    "confidence": "LOW",
+    "source": "DISCOVERY_PROPOSAL",
+    "verification_status": "UNVERIFIED",
+    "position_status": "UNVERIFIED",
+    "associated_meter": "CT-001",
+    "proposed_relation_type": "MEASURES",
+    "verification_checklist": [
+      "Xác định ranh giới phụ tải cấp điện từ trạm phía Bắc",
+      "Phân loại lại asset_type (BERTH_INFRASTRUCTURE hoặc SUBSTATION)",
+      "Đo đạc tọa độ GPS trên mặt bằng cầu cảng 1"
+    ]
+  },
+  {
+    "asset_code": "AST-CAND-002",
+    "name": "Berth 2 Auxiliary Barge Wharf",
+    "asset_type": "OTHER",
+    "suggested_zone": "cau_tau",
+    "mobility_type": "FIXED",
+    "confidence": "LOW",
+    "source": "DISCOVERY_PROPOSAL",
+    "verification_status": "UNVERIFIED",
+    "position_status": "UNVERIFIED",
+    "associated_meter": "CT-002",
+    "proposed_relation_type": "MEASURES",
+    "verification_checklist": [
+      "Kiểm tra tủ điện cấp nguồn cho bến xà lan hay chiếu sáng",
+      "Khảo sát điểm đấu nối thực tế"
+    ]
+  },
+  {
+    "asset_code": "AST-CAND-003",
+    "name": "Rubber-Tired Gantry Crane RTG-01",
+    "asset_type": "RTG",
+    "suggested_zone": "bai_container",
+    "mobility_type": "MOBILE",
+    "confidence": "LOW",
+    "source": "DISCOVERY_PROPOSAL",
+    "verification_status": "UNVERIFIED",
+    "position_status": "UNVERIFIED",
+    "associated_meter": "CT-003",
+    "proposed_relation_type": "MEASURES",
+    "verification_checklist": [
+      "Lưu ý: CT-003 là đồng hồ nước, cần kiểm tra xem có đo RTG hay là điểm cấp nước bến",
+      "Đối chiếu sơ đồ hệ thống cấp nước cầu tàu"
+    ]
+  },
+  {
+    "asset_code": "AST-CAND-004",
+    "name": "Rubber-Tired Gantry Crane RTG-02",
+    "asset_type": "RTG",
+    "suggested_zone": "bai_container",
+    "mobility_type": "MOBILE",
+    "confidence": "LOW",
+    "source": "DISCOVERY_PROPOSAL",
+    "verification_status": "UNVERIFIED",
+    "position_status": "UNVERIFIED",
+    "associated_meter": "CT-004",
+    "proposed_relation_type": "MEASURES",
+    "verification_checklist": [
+      "Kiểm tra tủ nguồn bờ cầu cảng 2 cấp cho cẩu bờ hay cẩu RTG",
+      "Xác minh nhãn mác tủ điện"
+    ]
+  },
+  {
+    "asset_code": "AST-CAND-005",
+    "name": "Berth 3 Deepwater Mooring Infrastructure",
+    "asset_type": "OTHER",
+    "suggested_zone": "cau_tau",
+    "mobility_type": "FIXED",
+    "confidence": "LOW",
+    "source": "DISCOVERY_PROPOSAL",
+    "verification_status": "UNVERIFIED",
+    "position_status": "UNVERIFIED",
+    "associated_meter": "CT-005",
+    "proposed_relation_type": "MEASURES",
+    "verification_checklist": [
+      "Kiểm tra trụ cẩu bãi đông và cáp nguồn hạ thế",
+      "Ghi nhận tọa độ thực địa chân trụ"
+    ]
+  },
+  {
+    "asset_code": "AST-CAND-006",
+    "name": "Warehouse B1 Perimeter Lighting",
+    "asset_type": "OTHER",
+    "suggested_zone": "kho_bai",
+    "mobility_type": "FIXED",
+    "confidence": "LOW",
+    "source": "DISCOVERY_PROPOSAL",
+    "verification_status": "UNVERIFIED",
+    "position_status": "UNVERIFIED",
+    "associated_meter": "CT-006",
+    "proposed_relation_type": "MEASURES",
+    "verification_checklist": [
+      "Kiểm tra tủ động lực kho B1 đo điện toàn bộ kho hay chỉ chiếu sáng",
+      "Phân loại lại thành WAREHOUSE nếu đo tổng phụ tải kho"
+    ]
+  },
+  {
+    "asset_code": "AST-CAND-007",
+    "name": "Mechanical Workshop Maintenance Bay",
+    "asset_type": "WORKSHOP",
+    "suggested_zone": "co_dien",
+    "mobility_type": "FIXED",
+    "confidence": "LOW",
+    "source": "DISCOVERY_PROPOSAL",
+    "verification_status": "UNVERIFIED",
+    "position_status": "UNVERIFIED",
+    "associated_meter": "CT-007",
+    "proposed_relation_type": "MEASURES",
+    "verification_checklist": [
+      "Đối chiếu ranh giới phân xưởng cơ điện (đang SPATIAL REVIEW)",
+      "Kiểm tra máy nén khí trung tâm"
+    ]
+  },
+  {
+    "asset_code": "AST-CAND-008",
+    "name": "Main Gate Complex and Weighbridge",
+    "asset_type": "OTHER",
+    "suggested_zone": "khu_ky_thuat",
+    "mobility_type": "FIXED",
+    "confidence": "LOW",
+    "source": "DISCOVERY_PROPOSAL",
+    "verification_status": "UNVERIFIED",
+    "position_status": "UNVERIFIED",
+    "associated_meter": "CT-008",
+    "proposed_relation_type": "MEASURES",
+    "verification_checklist": [
+      "Kiểm tra tủ barie và trạm cân xe tải",
+      "Đối chiếu vị trí cổng cảng chính (đang SPATIAL REVIEW)"
+    ]
+  },
+  {
+    "asset_code": "AST-CAND-009",
+    "name": "Port Fire Fighting Booster Station",
+    "asset_type": "OTHER",
+    "suggested_zone": "khu_ky_thuat",
+    "mobility_type": "FIXED",
+    "confidence": "LOW",
+    "source": "DISCOVERY_PROPOSAL",
+    "verification_status": "UNVERIFIED",
+    "position_status": "UNVERIFIED",
+    "associated_meter": "CT-009",
+    "proposed_relation_type": "MEASURES",
+    "verification_checklist": [
+      "Xác minh trạm bơm PCCC phía Nam",
+      "Phân loại lại FIRE_PUMP_SYSTEM",
+      "Kiểm tra lưu lượng kế nước chữa cháy"
+    ]
+  },
+  {
+    "asset_code": "AST-CAND-010",
+    "name": "Vessel Potable Water Bunkering Point Berth 3",
+    "asset_type": "OTHER",
+    "suggested_zone": "cau_tau",
+    "mobility_type": "FIXED",
+    "confidence": "LOW",
+    "source": "DISCOVERY_PROPOSAL",
+    "verification_status": "UNVERIFIED",
+    "position_status": "UNVERIFIED",
+    "associated_meter": "CT-010",
+    "proposed_relation_type": "MEASURES",
+    "verification_checklist": [
+      "Kiểm tra họng cấp nước sinh hoạt cho tàu tại Cầu 3",
+      "Đối chiếu vị trí van chặn và đồng hồ (đang SPATIAL REVIEW)"
+    ]
+  },
+  {
+    "asset_code": "AST-CAND-011",
+    "name": "Workshop Air Compressor Station",
+    "asset_type": "OTHER",
+    "suggested_zone": "co_dien",
+    "mobility_type": "FIXED",
+    "confidence": "LOW",
+    "source": "DISCOVERY_PROPOSAL",
+    "verification_status": "UNVERIFIED",
+    "position_status": "UNVERIFIED",
+    "associated_meter": "CT-011",
+    "proposed_relation_type": "MEASURES",
+    "verification_checklist": [
+      "Kiểm tra trạm biến áp dự phòng phân xưởng",
+      "Xác minh phụ tải cấp nguồn cho máy nén khí hay toàn xưởng"
+    ]
+  },
+  {
+    "asset_code": "AST-CAND-012",
+    "name": "Port Operations Administration Office",
+    "asset_type": "OTHER",
+    "suggested_zone": "khu_ky_thuat",
+    "mobility_type": "FIXED",
+    "confidence": "LOW",
+    "source": "DISCOVERY_PROPOSAL",
+    "verification_status": "UNVERIFIED",
+    "position_status": "UNVERIFIED",
+    "associated_meter": "CT-012",
+    "proposed_relation_type": "MEASURES",
+    "verification_checklist": [
+      "Kiểm tra công tơ tổng tòa nhà văn phòng điều hành cảng",
+      "Phân loại thành OFFICE hoặc BUILDING"
+    ]
+  }
+]

@@ -1,0 +1,206 @@
+[
+  {
+    "meter_code": "CT-001",
+    "name": "Trạm Biến Áp Cảng Phía Bắc",
+    "utility": "ELECTRICITY",
+    "proposed_measures": "Berth 1 North Station Infrastructure",
+    "measures_confidence": "LOW",
+    "measures_verification": "UNVERIFIED",
+    "proposed_installed_at": null,
+    "installed_at_verification": "CHƯA LIÊN KẾT",
+    "asset_position_known": false,
+    "reading_method": "OCR",
+    "missing_info": [
+      "Điểm lắp đặt vật lý (INSTALLED_AT)",
+      "Tọa độ thực địa thiết bị"
+    ],
+    "is_spatial_review_required": true
+  },
+  {
+    "meter_code": "CT-002",
+    "name": "Bến Xà Lan Phụ Bãi Tây",
+    "utility": "ELECTRICITY",
+    "proposed_measures": "Berth 2 Auxiliary Barge Wharf",
+    "measures_confidence": "LOW",
+    "measures_verification": "UNVERIFIED",
+    "proposed_installed_at": null,
+    "installed_at_verification": "CHƯA LIÊN KẾT",
+    "asset_position_known": false,
+    "reading_method": "MANUAL",
+    "missing_info": [
+      "Điểm lắp đặt vật lý (INSTALLED_AT)",
+      "Tọa độ thực địa thiết bị"
+    ],
+    "is_spatial_review_required": false
+  },
+  {
+    "meter_code": "CT-003",
+    "name": "Cầu Cảng Số 1 - Điểm Cấp Nước Bến",
+    "utility": "WATER",
+    "proposed_measures": "Rubber-Tired Gantry Crane RTG-01",
+    "measures_confidence": "LOW",
+    "measures_verification": "UNVERIFIED",
+    "proposed_installed_at": null,
+    "installed_at_verification": "CHƯA LIÊN KẾT",
+    "asset_position_known": false,
+    "reading_method": "OCR",
+    "missing_info": [
+      "Điểm lắp đặt vật lý (INSTALLED_AT)",
+      "Tọa độ thực địa thiết bị"
+    ],
+    "is_spatial_review_required": false
+  },
+  {
+    "meter_code": "CT-004",
+    "name": "Cầu Cảng Số 2 - Tủ Nguồn Bờ",
+    "utility": "ELECTRICITY",
+    "proposed_measures": "Rubber-Tired Gantry Crane RTG-02",
+    "measures_confidence": "LOW",
+    "measures_verification": "UNVERIFIED",
+    "proposed_installed_at": null,
+    "installed_at_verification": "CHƯA LIÊN KẾT",
+    "asset_position_known": false,
+    "reading_method": "MANUAL",
+    "missing_info": [
+      "Điểm lắp đặt vật lý (INSTALLED_AT)",
+      "Tọa độ thực địa thiết bị"
+    ],
+    "is_spatial_review_required": false
+  },
+  {
+    "meter_code": "CT-005",
+    "name": "Bãi Container Phía Đông - Trụ Cẩu",
+    "utility": "ELECTRICITY",
+    "proposed_measures": "Berth 3 Deepwater Mooring Infrastructure",
+    "measures_confidence": "LOW",
+    "measures_verification": "UNVERIFIED",
+    "proposed_installed_at": null,
+    "installed_at_verification": "CHƯA LIÊN KẾT",
+    "asset_position_known": false,
+    "reading_method": "MANUAL",
+    "missing_info": [
+      "Điểm lắp đặt vật lý (INSTALLED_AT)",
+      "Tọa độ thực địa thiết bị"
+    ],
+    "is_spatial_review_required": false
+  },
+  {
+    "meter_code": "CT-006",
+    "name": "Nhà Kho B1 - Tủ Động Lực",
+    "utility": "ELECTRICITY",
+    "proposed_measures": "Warehouse B1 Perimeter Lighting",
+    "measures_confidence": "LOW",
+    "measures_verification": "UNVERIFIED",
+    "proposed_installed_at": null,
+    "installed_at_verification": "CHƯA LIÊN KẾT",
+    "asset_position_known": false,
+    "reading_method": "MANUAL",
+    "missing_info": [
+      "Điểm lắp đặt vật lý (INSTALLED_AT)",
+      "Tọa độ thực địa thiết bị"
+    ],
+    "is_spatial_review_required": false
+  },
+  {
+    "meter_code": "CT-007",
+    "name": "Phân Xưởng Cơ Điện - Máy Nén Khí",
+    "utility": "ELECTRICITY",
+    "proposed_measures": "Mechanical Workshop Maintenance Bay",
+    "measures_confidence": "LOW",
+    "measures_verification": "UNVERIFIED",
+    "proposed_installed_at": null,
+    "installed_at_verification": "CHƯA LIÊN KẾT",
+    "asset_position_known": false,
+    "reading_method": "MANUAL",
+    "missing_info": [
+      "Điểm lắp đặt vật lý (INSTALLED_AT)",
+      "Tọa độ thực địa thiết bị"
+    ],
+    "is_spatial_review_required": true
+  },
+  {
+    "meter_code": "CT-008",
+    "name": "Cổng Cảng Chính - Tủ Chiếu Sáng & Barie",
+    "utility": "ELECTRICITY",
+    "proposed_measures": "Main Gate Complex and Weighbridge",
+    "measures_confidence": "LOW",
+    "measures_verification": "UNVERIFIED",
+    "proposed_installed_at": null,
+    "installed_at_verification": "CHƯA LIÊN KẾT",
+    "asset_position_known": false,
+    "reading_method": "MANUAL",
+    "missing_info": [
+      "Điểm lắp đặt vật lý (INSTALLED_AT)",
+      "Tọa độ thực địa thiết bị"
+    ],
+    "is_spatial_review_required": true
+  },
+  {
+    "meter_code": "CT-009",
+    "name": "Trạm Bơm PCCC Phía Nam",
+    "utility": "WATER",
+    "proposed_measures": "Port Fire Fighting Booster Station",
+    "measures_confidence": "LOW",
+    "measures_verification": "UNVERIFIED",
+    "proposed_installed_at": null,
+    "installed_at_verification": "CHƯA LIÊN KẾT",
+    "asset_position_known": false,
+    "reading_method": "MANUAL",
+    "missing_info": [
+      "Điểm lắp đặt vật lý (INSTALLED_AT)",
+      "Tọa độ thực địa thiết bị"
+    ],
+    "is_spatial_review_required": true
+  },
+  {
+    "meter_code": "CT-010",
+    "name": "Hệ Thống Cấp Nước Tàu - Cầu Cảng 3",
+    "utility": "WATER",
+    "proposed_measures": "Vessel Potable Water Bunkering Point Berth 3",
+    "measures_confidence": "LOW",
+    "measures_verification": "UNVERIFIED",
+    "proposed_installed_at": null,
+    "installed_at_verification": "CHƯA LIÊN KẾT",
+    "asset_position_known": false,
+    "reading_method": "MANUAL",
+    "missing_info": [
+      "Điểm lắp đặt vật lý (INSTALLED_AT)",
+      "Tọa độ thực địa thiết bị"
+    ],
+    "is_spatial_review_required": true
+  },
+  {
+    "meter_code": "CT-011",
+    "name": "Trạm Biến Áp Dự Phòng Phân Xưởng",
+    "utility": "ELECTRICITY",
+    "proposed_measures": "Workshop Air Compressor Station",
+    "measures_confidence": "LOW",
+    "measures_verification": "UNVERIFIED",
+    "proposed_installed_at": null,
+    "installed_at_verification": "CHƯA LIÊN KẾT",
+    "asset_position_known": false,
+    "reading_method": "MANUAL",
+    "missing_info": [
+      "Điểm lắp đặt vật lý (INSTALLED_AT)",
+      "Tọa độ thực địa thiết bị"
+    ],
+    "is_spatial_review_required": false
+  },
+  {
+    "meter_code": "CT-012",
+    "name": "Khu Văn Phòng Điều Hành Cảng",
+    "utility": "ELECTRICITY",
+    "proposed_measures": "Port Operations Administration Office",
+    "measures_confidence": "LOW",
+    "measures_verification": "UNVERIFIED",
+    "proposed_installed_at": null,
+    "installed_at_verification": "CHƯA LIÊN KẾT",
+    "asset_position_known": false,
+    "reading_method": "MANUAL",
+    "missing_info": [
+      "Điểm lắp đặt vật lý (INSTALLED_AT)",
+      "Tọa độ thực địa thiết bị"
+    ],
+    "is_spatial_review_required": false
+  }
+]

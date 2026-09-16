@@ -1,0 +1,42 @@
+{
+  "phase": "V16D",
+  "name": "ASSET_METER_DATA_VERIFICATION_AND_CANDIDATE_INGESTION",
+  "workflow_approval_status": "V16D_VERIFICATION_WORKFLOW_APPROVED",
+  "field_data_status": "AWAITING_HUMAN_VERIFICATION",
+  "spatial_baseline": {
+    "file": "docs/design/map-operations/v16a-r2/tan-thuan-spatial-baseline.freeze.json",
+    "canonical_dimensions": "1915x821",
+    "sha256_invariant": "ed5fd8bfa4b0e8a2b59937a418de787c57c6d072f3f790f3dbe84df5299177d3",
+    "status": "PRESERVED"
+  },
+  "meters": {
+    "total_canonical_count": 12,
+    "spatial_review_required": [
+      "CT-001",
+      "CT-007",
+      "CT-008",
+      "CT-009",
+      "CT-010"
+    ],
+    "coordinates_frozen": true
+  },
+  "verification_workflow": {
+    "evidence_table": "verification_evidences",
+    "evidence_mandatory": true,
+    "confidence_separated_from_status": true,
+    "single_active_primary_enforced": true,
+    "topology_verified_only_default": true,
+    "candidate_import_idempotent": true,
+    "candidate_coordinates_null_by_default": true
+  },
+  "database_integrity": {
+    "sqlite_foreign_key_violations": 0,
+    "migrations_applied": 19
+  },
+  "testing": {
+    "frontend_tests_passing": 241,
+    "backend_regression_tests_passing": 36,
+    "v16d_tests_passing": 10,
+    "v16d_tests_failing": 0
+  }
+}
