@@ -1145,6 +1145,8 @@ export interface MapMeterOut {
   exception_state?: string | null;
   exception_label?: string | null;
   reading_id?: string | null;
+  data_origin?: string;
+  scenario_id?: string | null;
 }
 
 export interface MapOverviewResponse {

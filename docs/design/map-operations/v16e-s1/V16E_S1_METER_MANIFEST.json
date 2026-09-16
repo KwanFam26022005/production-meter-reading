@@ -1,0 +1,366 @@
+{
+  "scenario_id": "tan-thuan-demo-v1",
+  "total_meters": 12,
+  "meters": [
+    {
+      "id": "eea00b8b-5ac0-5a18-9945-a1324e44e8a6",
+      "meter_code": "SIM-EM-001",
+      "name": "Công tơ tổng MDB-01 Trạm kỹ thuật",
+      "meter_type": "LCD",
+      "utility_type": "ELECTRICITY",
+      "reading_method": "OCR",
+      "location": null,
+      "zone_id": null,
+      "presentation_zone_id": "pres-technical",
+      "map_x": 0.7258,
+      "map_y": 0.676,
+      "route_status": "VALID",
+      "is_active": true,
+      "lifecycle_status": "ACTIVE",
+      "data_origin": "SIMULATED",
+      "scenario_id": "tan-thuan-demo-v1",
+      "associated_assets": [
+        {
+          "asset_id": "bb1444c4-5b62-5f13-b6a7-55bc0583f91e",
+          "asset_code": "SIM-MDB-01",
+          "relation_type": "INSTALLED_AT"
+        },
+        {
+          "asset_id": "bb1444c4-5b62-5f13-b6a7-55bc0583f91e",
+          "asset_code": "SIM-MDB-01",
+          "relation_type": "MEASURES"
+        }
+      ]
+    },
+    {
+      "id": "02b33065-fe9f-50b2-a163-a7dc15e30073",
+      "meter_code": "SIM-EM-002",
+      "name": "Công tơ xuất tuyến Cầu cảng",
+      "meter_type": "LCD",
+      "utility_type": "ELECTRICITY",
+      "reading_method": "OCR",
+      "location": null,
+      "zone_id": null,
+      "presentation_zone_id": "pres-berth",
+      "map_x": 0.4674,
+      "map_y": 0.3654,
+      "route_status": "VALID",
+      "is_active": true,
+      "lifecycle_status": "ACTIVE",
+      "data_origin": "SIMULATED",
+      "scenario_id": "tan-thuan-demo-v1",
+      "associated_assets": [
+        {
+          "asset_id": "ba90a90c-28d0-5609-83f9-1c761e0cf7c3",
+          "asset_code": "SIM-FDR-BERTH",
+          "relation_type": "INSTALLED_AT"
+        },
+        {
+          "asset_id": "ba90a90c-28d0-5609-83f9-1c761e0cf7c3",
+          "asset_code": "SIM-FDR-BERTH",
+          "relation_type": "MEASURES"
+        }
+      ]
+    },
+    {
+      "id": "952ddea3-87b3-5c14-9198-7c89d41f23e6",
+      "meter_code": "SIM-EM-003",
+      "name": "Công tơ xuất tuyến Bãi Tây",
+      "meter_type": "LCD",
+      "utility_type": "ELECTRICITY",
+      "reading_method": "OCR",
+      "location": null,
+      "zone_id": null,
+      "presentation_zone_id": "pres-container-west",
+      "map_x": 0.3943,
+      "map_y": 0.5542,
+      "route_status": "VALID",
+      "is_active": true,
+      "lifecycle_status": "ACTIVE",
+      "data_origin": "SIMULATED",
+      "scenario_id": "tan-thuan-demo-v1",
+      "associated_assets": [
+        {
+          "asset_id": "9a4aece5-a98b-537c-b905-324a2b39d1f6",
+          "asset_code": "SIM-FDR-WEST",
+          "relation_type": "INSTALLED_AT"
+        },
+        {
+          "asset_id": "9a4aece5-a98b-537c-b905-324a2b39d1f6",
+          "asset_code": "SIM-FDR-WEST",
+          "relation_type": "MEASURES"
+        }
+      ]
+    },
+    {
+      "id": "ee5fc975-0a67-531a-8807-edf2762041ea",
+      "meter_code": "SIM-EM-004",
+      "name": "Công tơ xuất tuyến Bãi Trung tâm",
+      "meter_type": "LCD",
+      "utility_type": "ELECTRICITY",
+      "reading_method": "OCR",
+      "location": null,
+      "zone_id": null,
+      "presentation_zone_id": "pres-container-center",
+      "map_x": 0.5979,
+      "map_y": 0.5786,
+      "route_status": "VALID",
+      "is_active": true,
+      "lifecycle_status": "ACTIVE",
+      "data_origin": "SIMULATED",
+      "scenario_id": "tan-thuan-demo-v1",
+      "associated_assets": [
+        {
+          "asset_id": "1299642d-80ed-58a2-bf59-cb4cc34f9da9",
+          "asset_code": "SIM-FDR-CENTER",
+          "relation_type": "INSTALLED_AT"
+        },
+        {
+          "asset_id": "1299642d-80ed-58a2-bf59-cb4cc34f9da9",
+          "asset_code": "SIM-FDR-CENTER",
+          "relation_type": "MEASURES"
+        }
+      ]
+    },
+    {
+      "id": "c7ee21a3-604e-559f-9c00-3891bb98161c",
+      "meter_code": "SIM-EM-005",
+      "name": "Công tơ xuất tuyến Kho CFS",
+      "meter_type": "LCD",
+      "utility_type": "ELECTRICITY",
+      "reading_method": "OCR",
+      "location": null,
+      "zone_id": null,
+      "presentation_zone_id": "pres-cfs-east",
+      "map_x": 0.8695,
+      "map_y": 0.4446,
+      "route_status": "VALID",
+      "is_active": true,
+      "lifecycle_status": "ACTIVE",
+      "data_origin": "SIMULATED",
+      "scenario_id": "tan-thuan-demo-v1",
+      "associated_assets": [
+        {
+          "asset_id": "cdcdfe85-f259-5dc7-a687-28398b9db08f",
+          "asset_code": "SIM-FDR-CFS",
+          "relation_type": "INSTALLED_AT"
+        },
+        {
+          "asset_id": "cdcdfe85-f259-5dc7-a687-28398b9db08f",
+          "asset_code": "SIM-FDR-CFS",
+          "relation_type": "MEASURES"
+        }
+      ]
+    },
+    {
+      "id": "e3f73104-66a6-5b2f-9a42-bb81dbeac519",
+      "meter_code": "SIM-EM-006",
+      "name": "Công tơ phụ tải Xưởng Cơ điện",
+      "meter_type": "LCD",
+      "utility_type": "ELECTRICITY",
+      "reading_method": "MANUAL",
+      "location": null,
+      "zone_id": null,
+      "presentation_zone_id": "pres-technical",
+      "map_x": 0.6997,
+      "map_y": 0.7004,
+      "route_status": "VALID",
+      "is_active": true,
+      "lifecycle_status": "ACTIVE",
+      "data_origin": "SIMULATED",
+      "scenario_id": "tan-thuan-demo-v1",
+      "associated_assets": [
+        {
+          "asset_id": "826df49f-f583-5ad9-9b28-fe43f55b6897",
+          "asset_code": "SIM-FDR-TECH",
+          "relation_type": "INSTALLED_AT"
+        },
+        {
+          "asset_id": "826df49f-f583-5ad9-9b28-fe43f55b6897",
+          "asset_code": "SIM-FDR-TECH",
+          "relation_type": "MEASURES"
+        }
+      ]
+    },
+    {
+      "id": "11f4b9bf-b45c-5af6-b1dd-236fbf10c94a",
+      "meter_code": "SIM-EM-007",
+      "name": "Công tơ nhánh Cẩu RTG-W01",
+      "meter_type": "LCD",
+      "utility_type": "ELECTRICITY",
+      "reading_method": "OCR",
+      "location": null,
+      "zone_id": null,
+      "presentation_zone_id": "pres-container-west",
+      "map_x": 0.2454,
+      "map_y": 0.5786,
+      "route_status": "VALID",
+      "is_active": true,
+      "lifecycle_status": "ACTIVE",
+      "data_origin": "SIMULATED",
+      "scenario_id": "tan-thuan-demo-v1",
+      "associated_assets": [
+        {
+          "asset_id": "1bb3b0ca-75f9-5956-81ea-a516c2392a8c",
+          "asset_code": "SIM-YDB-W01",
+          "relation_type": "INSTALLED_AT"
+        },
+        {
+          "asset_id": "6c1cbfa8-138a-528b-97b4-9ca5378ac49a",
+          "asset_code": "SIM-RTG-W01",
+          "relation_type": "MEASURES"
+        }
+      ]
+    },
+    {
+      "id": "d43a102e-e3a0-57ed-b831-d940ccad50f0",
+      "meter_code": "SIM-EM-008",
+      "name": "Công tơ Giàn lạnh Container",
+      "meter_type": "LCD",
+      "utility_type": "ELECTRICITY",
+      "reading_method": "OCR",
+      "location": null,
+      "zone_id": null,
+      "presentation_zone_id": "pres-container-center",
+      "map_x": 0.7285,
+      "map_y": 0.4811,
+      "route_status": "VALID",
+      "is_active": true,
+      "lifecycle_status": "ACTIVE",
+      "data_origin": "SIMULATED",
+      "scenario_id": "tan-thuan-demo-v1",
+      "associated_assets": [
+        {
+          "asset_id": "c27164fd-e3bf-5084-9e1c-0ab808e78101",
+          "asset_code": "SIM-YDB-C01",
+          "relation_type": "INSTALLED_AT"
+        },
+        {
+          "asset_id": "3d869324-7afc-5a65-b41b-670f40c5d410",
+          "asset_code": "SIM-RFR-C01",
+          "relation_type": "MEASURES"
+        }
+      ]
+    },
+    {
+      "id": "24bc177a-d8be-53a3-94a4-cd62fb221b5d",
+      "meter_code": "SIM-WM-001",
+      "name": "Đồng hồ nước tổng Cổng Cảng",
+      "meter_type": "MECHANICAL",
+      "utility_type": "WATER",
+      "reading_method": "OCR",
+      "location": null,
+      "zone_id": null,
+      "presentation_zone_id": "pres-technical",
+      "map_x": 0.7363,
+      "map_y": 0.6882,
+      "route_status": "VALID",
+      "is_active": true,
+      "lifecycle_status": "ACTIVE",
+      "data_origin": "SIMULATED",
+      "scenario_id": "tan-thuan-demo-v1",
+      "associated_assets": [
+        {
+          "asset_id": "bca24c17-7f34-5753-8893-72950eef6bf0",
+          "asset_code": "SIM-WIN-01",
+          "relation_type": "INSTALLED_AT"
+        },
+        {
+          "asset_id": "bca24c17-7f34-5753-8893-72950eef6bf0",
+          "asset_code": "SIM-WIN-01",
+          "relation_type": "MEASURES"
+        }
+      ]
+    },
+    {
+      "id": "cb5977b1-0844-5ad8-be01-1d71630b2e34",
+      "meter_code": "SIM-WM-002",
+      "name": "Đồng hồ nước cấp Cầu tàu",
+      "meter_type": "MECHANICAL",
+      "utility_type": "WATER",
+      "reading_method": "MANUAL",
+      "location": null,
+      "zone_id": null,
+      "presentation_zone_id": "pres-berth",
+      "map_x": 0.5901,
+      "map_y": 0.4263,
+      "route_status": "VALID",
+      "is_active": true,
+      "lifecycle_status": "ACTIVE",
+      "data_origin": "SIMULATED",
+      "scenario_id": "tan-thuan-demo-v1",
+      "associated_assets": [
+        {
+          "asset_id": "16010d4c-2c9d-5aac-a2f4-1960ab5c29d2",
+          "asset_code": "SIM-WP-B01",
+          "relation_type": "INSTALLED_AT"
+        },
+        {
+          "asset_id": "16010d4c-2c9d-5aac-a2f4-1960ab5c29d2",
+          "asset_code": "SIM-WP-B01",
+          "relation_type": "MEASURES"
+        }
+      ]
+    },
+    {
+      "id": "f4a21aec-7d5a-5de2-973c-65224cf45ff5",
+      "meter_code": "SIM-WM-003",
+      "name": "Đồng hồ nước sinh hoạt Kho CFS",
+      "meter_type": "MECHANICAL",
+      "utility_type": "WATER",
+      "reading_method": "OCR",
+      "location": null,
+      "zone_id": null,
+      "presentation_zone_id": "pres-cfs-east",
+      "map_x": 0.8668,
+      "map_y": 0.408,
+      "route_status": "VALID",
+      "is_active": true,
+      "lifecycle_status": "ACTIVE",
+      "data_origin": "SIMULATED",
+      "scenario_id": "tan-thuan-demo-v1",
+      "associated_assets": [
+        {
+          "asset_id": "24551384-cb88-5d02-95b4-1b3f7631ccea",
+          "asset_code": "SIM-WP-CFS-01",
+          "relation_type": "INSTALLED_AT"
+        },
+        {
+          "asset_id": "24551384-cb88-5d02-95b4-1b3f7631ccea",
+          "asset_code": "SIM-WP-CFS-01",
+          "relation_type": "MEASURES"
+        }
+      ]
+    },
+    {
+      "id": "15656a3d-15fd-57fb-8194-73d2056db01d",
+      "meter_code": "SIM-WM-004",
+      "name": "Đồng hồ mạng cấp nước Cứu hỏa",
+      "meter_type": "MECHANICAL",
+      "utility_type": "WATER",
+      "reading_method": "MANUAL",
+      "location": null,
+      "zone_id": null,
+      "presentation_zone_id": "pres-technical",
+      "map_x": 0.7389,
+      "map_y": 0.6395,
+      "route_status": "VALID",
+      "is_active": true,
+      "lifecycle_status": "ACTIVE",
+      "data_origin": "SIMULATED",
+      "scenario_id": "tan-thuan-demo-v1",
+      "associated_assets": [
+        {
+          "asset_id": "a5d96dc1-5357-55ab-9251-c8d911391d0f",
+          "asset_code": "SIM-FP-01",
+          "relation_type": "INSTALLED_AT"
+        },
+        {
+          "asset_id": "b531d2b2-19c0-524e-8ae9-321346987ed7",
+          "asset_code": "SIM-FIRE-HDR-01",
+          "relation_type": "MEASURES"
+        }
+      ]
+    }
+  ]
+}

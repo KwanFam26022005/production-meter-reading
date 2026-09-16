@@ -17,6 +17,10 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:5173,http://localhost:3000"
     max_upload_mb: int = 12
 
+    # Simulation & Scenario Settings (Phase V16E-S1)
+    data_mode: str = "SIMULATION"  # "SIMULATION" | "REAL"
+    active_scenario: str = "tan-thuan-demo-v1"
+
     # Database & Storage
     database_url: str = "sqlite:///./data/app.db"
     attendance_photo_dir: Path = Path("data/attendance_photos")
@@ -71,3 +75,6 @@ class Settings(BaseSettings):
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
+
+
+settings = get_settings()

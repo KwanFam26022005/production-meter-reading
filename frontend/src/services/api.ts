@@ -533,12 +533,16 @@ export async function downloadReportCsv(date?: string): Promise<void> {
 export async function getAdminMeters(
   search?: string,
   statusFilter?: string,
-  meterType?: string
+  meterType?: string,
+  scenarioId?: string,
+  dataOrigin?: string
 ): Promise<AdminMeterListResponse> {
   const params = new URLSearchParams();
   if (search && search.trim()) params.set('search', search.trim());
   if (statusFilter && statusFilter.trim()) params.set('status', statusFilter.trim());
   if (meterType && meterType.trim()) params.set('meter_type', meterType.trim());
+  if (scenarioId && scenarioId.trim()) params.set('scenario_id', scenarioId.trim());
+  if (dataOrigin && dataOrigin.trim()) params.set('data_origin', dataOrigin.trim());
 
   const url = `/api/v1/admin/meters?${params.toString()}`;
   const res = await apiFetch(url, { method: 'GET' });
@@ -1635,6 +1639,8 @@ export async function getAdminAssets(params?: {
   verification_status?: string;
   mobility_type?: string;
   search?: string;
+  scenario_id?: string;
+  data_origin?: string;
   limit?: number;
   offset?: number;
 }): Promise<AssetListResponse> {
@@ -1645,6 +1651,8 @@ export async function getAdminAssets(params?: {
   if (params?.verification_status) query.append('verification_status', params.verification_status);
   if (params?.mobility_type) query.append('mobility_type', params.mobility_type);
   if (params?.search) query.append('search', params.search);
+  if (params?.scenario_id) query.append('scenario_id', params.scenario_id);
+  if (params?.data_origin) query.append('data_origin', params.data_origin);
   if (params?.limit) query.append('limit', String(params.limit));
   if (params?.offset) query.append('offset', String(params.offset));
 
@@ -1675,6 +1683,8 @@ export async function createAdminAsset(payload: {
   map_x?: number | null;
   map_y?: number | null;
   verification_status?: string;
+  data_origin?: string;
+  scenario_id?: string | null;
   metadata_json?: string | null;
 }): Promise<Asset> {
   const csrfToken = await getCsrfToken();
@@ -1954,6 +1964,8 @@ export async function createAdminAssetConnection(payload: {
   utility_type: string;
   connection_type?: string;
   verification_status?: string;
+  data_origin?: string;
+  scenario_id?: string | null;
   metadata_json?: string | null;
 }): Promise<AssetConnection> {
   const csrfToken = await getCsrfToken();
@@ -2222,6 +2234,7 @@ export async function getAdminAssetNetwork(params?: {
   utility_type?: string;
   focus_asset_id?: string;
   verified_only?: boolean;
+  scenario_id?: string;
 }): Promise<AssetNetworkResponse> {
   const query = new URLSearchParams();
   if (params?.utility_type && params.utility_type !== 'ALL') {
@@ -2232,6 +2245,9 @@ export async function getAdminAssetNetwork(params?: {
   }
   if (params?.verified_only !== undefined) {
     query.set('verified_only', String(params.verified_only));
+  }
+  if (params?.scenario_id) {
+    query.set('scenario_id', params.scenario_id);
   }
   const qs = query.toString();
   const url = `/api/v1/admin/asset-network${qs ? `?${qs}` : ''}`;

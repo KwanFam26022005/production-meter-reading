@@ -122,9 +122,9 @@ const MapOperationsPageContent: React.FC<MapOperationsPageProps> = ({
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       const u = params.get('utility');
-      if (u === 'ELECTRICITY' || u === 'WATER') return u;
+      if (u === 'ELECTRICITY' || u === 'WATER' || u === 'ALL') return u as UtilityType | 'ALL';
     }
-    return 'ALL';
+    return 'ELECTRICITY';
   });
 
   const [showUnverifiedAssets, setShowUnverifiedAssets] = useState<boolean>(() => {

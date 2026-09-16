@@ -7,7 +7,7 @@ from typing import Any, Optional
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
-from .config import get_settings
+from .config import get_settings, settings
 from .models import AdminAuditLog, MapVersion, MapVersionZone, Meter, MeterReading, MeterReadingEvidence, MeterTrainingSample, OperationalZone, ReadingBatch, ReadingRound, User
 from .schemas import (
     AdminAuditLogItem,
@@ -159,6 +159,8 @@ def build_admin_meter_item(
         map_x=m.map_x,
         map_y=m.map_y,
         route_status=m.route_status or "VALID",
+        data_origin=getattr(m, "data_origin", "SIMULATED"),
+        scenario_id=getattr(m, "scenario_id", None),
         created_at=m.created_at.isoformat() if m.created_at else None,
         updated_at=m.updated_at.isoformat() if m.updated_at else None,
         has_readings=(count > 0),
@@ -173,8 +175,32 @@ def get_admin_meters(
     search: Optional[str] = None,
     status_filter: Optional[str] = None,
     meter_type: Optional[str] = None,
+    scenario_id: Optional[str] = None,
+    data_origin: Optional[str] = None,
 ) -> AdminMeterListResponse:
     query = db.query(Meter)
+
+    # Scoping: default to active scenario in simulation mode unless explicitly "ALL" or legacy origin
+    if scenario_id is not None:
+        if scenario_id.upper() == "ALL":
+            target_scenario = None
+        elif scenario_id.upper() in ("NONE", "NULL"):
+            query = query.filter(Meter.scenario_id.is_(None))
+            target_scenario = None
+        else:
+            target_scenario = scenario_id
+    elif data_origin and data_origin.upper() in ("LEGACY_TEST_DATA", "LEGACY_SIMULATION", "ALL"):
+        target_scenario = None
+    elif settings.data_mode == "SIMULATION":
+        target_scenario = settings.active_scenario
+    else:
+        target_scenario = None
+
+    if target_scenario:
+        query = query.filter(Meter.scenario_id == target_scenario)
+
+    if data_origin and data_origin.upper() != "ALL":
+        query = query.filter(Meter.data_origin == data_origin.strip())
 
     if status_filter:
         sf = status_filter.strip().upper()
@@ -218,7 +244,12 @@ def get_admin_meters(
     inactive_cnt = 0
     retired_cnt = 0
 
-    all_db_meters = db.query(Meter).all()
+    cnt_q = db.query(Meter)
+    if target_scenario and target_scenario.upper() != "ALL":
+        cnt_q = cnt_q.filter(Meter.scenario_id == target_scenario)
+    if data_origin and data_origin.upper() != "ALL":
+        cnt_q = cnt_q.filter(Meter.data_origin == data_origin.strip())
+    all_db_meters = cnt_q.all()
     for m in all_db_meters:
         ls = getattr(m, "lifecycle_status", None) or ("ACTIVE" if m.is_active else "INACTIVE")
         if ls == "ACTIVE":
@@ -303,6 +334,8 @@ def create_admin_meter(
         route_status="ROUTABLE",
         is_active=True,
         lifecycle_status="ACTIVE",
+        data_origin="SIMULATED" if settings.data_mode == "SIMULATION" else "FIELD_VERIFIED",
+        scenario_id=settings.active_scenario if settings.data_mode == "SIMULATION" else None,
     )
     db.add(new_meter)
     db.flush()

@@ -423,6 +423,8 @@ class AdminMeterItem(BaseModel):
     map_x: Optional[float] = None
     map_y: Optional[float] = None
     route_status: str = "VALID"
+    data_origin: Optional[str] = "SIMULATED"
+    scenario_id: Optional[str] = None
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
     has_readings: bool = False
@@ -1045,6 +1047,8 @@ class MapMeterOut(BaseModel):
     exception_state: Optional[str] = None
     exception_label: Optional[str] = None
     reading_id: Optional[str] = None
+    data_origin: Optional[str] = "VERIFIED"
+    scenario_id: Optional[str] = None
 
 
 class MapOverviewResponse(BaseModel):
@@ -1243,7 +1247,7 @@ AssetType = Literal[
 AssetMobilityType = Literal["FIXED", "MOBILE"]
 AssetPositionSource = Literal["STATIC_MAP", "ASSIGNED", "LAST_KNOWN", "GPS", "UNKNOWN"]
 AssetLifecycleStatus = Literal["ACTIVE", "INACTIVE", "RETIRED"]
-AssetVerificationStatus = Literal["UNVERIFIED", "VERIFIED", "REJECTED"]
+AssetVerificationStatus = Literal["UNVERIFIED", "VERIFIED", "REJECTED", "SIMULATION_APPROVED"]
 
 MeterAssetRelationType = Literal["INSTALLED_AT", "MEASURES"]
 UtilityType = Literal["ELECTRICITY", "WATER", "OTHER"]
@@ -1262,6 +1266,8 @@ class AssetCreateRequest(BaseModel):
     map_y: Optional[float] = None
     verification_status: Optional[str] = "UNVERIFIED"
     metadata_json: Optional[str] = None
+    data_origin: Optional[str] = None
+    scenario_id: Optional[str] = None
 
 
 class AssetUpdateRequest(BaseModel):
@@ -1299,6 +1305,8 @@ class AssetSummary(BaseModel):
     asset_type: str
     lifecycle_status: str
     verification_status: str
+    data_origin: Optional[str] = "SIMULATED"
+    scenario_id: Optional[str] = None
 
 
 class AssetResponse(BaseModel):
@@ -1325,6 +1333,8 @@ class AssetResponse(BaseModel):
     metadata_json: Optional[str] = None
     child_count: int = 0
     attached_meters_count: int = 0
+    data_origin: Optional[str] = "SIMULATED"
+    scenario_id: Optional[str] = None
     created_at: str
     updated_at: str
     created_by: Optional[str] = None
@@ -1370,6 +1380,8 @@ class MeterAssetRelationResponse(BaseModel):
     confidence: Optional[str] = "MEDIUM"
     source: Optional[str] = "MANUAL_ENTRY"
     notes: Optional[str] = None
+    data_origin: Optional[str] = "SIMULATED"
+    scenario_id: Optional[str] = None
     valid_from: str
     valid_to: Optional[str] = None
     created_at: str
@@ -1406,6 +1418,8 @@ class AssetConnectionResponse(BaseModel):
     verification_status: str
     confidence: Optional[str] = "MEDIUM"
     source: Optional[str] = "MANUAL_ENTRY"
+    data_origin: Optional[str] = "SIMULATED"
+    scenario_id: Optional[str] = None
     valid_from: str
     valid_to: Optional[str] = None
     metadata_json: Optional[str] = None

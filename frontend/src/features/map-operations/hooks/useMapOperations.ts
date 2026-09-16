@@ -124,6 +124,8 @@ export function useMapOperations(initialDate?: string) {
           zoneId: bm.zone_id || zoneCfg.id,
           zoneCode: bm.zone_code || zoneCfg.code,
           zoneName: bm.zone_name || zoneCfg.name,
+          dataOrigin: bm.data_origin,
+          scenarioId: bm.scenario_id,
           coordinates,
           semanticState: bm.semantic_state,
           stateLabel: getSemanticStateLabel(bm.semantic_state),

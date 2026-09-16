@@ -31,7 +31,7 @@ export type AssetType =
 export type AssetMobilityType = 'FIXED' | 'MOBILE';
 export type AssetPositionSource = 'STATIC_MAP' | 'ASSIGNED' | 'LAST_KNOWN' | 'GPS' | 'UNKNOWN';
 export type AssetLifecycleStatus = 'ACTIVE' | 'INACTIVE' | 'RETIRED';
-export type AssetVerificationStatus = 'UNVERIFIED' | 'VERIFIED' | 'REJECTED';
+export type AssetVerificationStatus = 'UNVERIFIED' | 'VERIFIED' | 'REJECTED' | 'SIMULATION_APPROVED';
 
 export type EvidenceType =
   | 'FIELD_INSPECTION'
@@ -58,6 +58,8 @@ export interface AssetSummary {
   asset_type: AssetType;
   lifecycle_status: AssetLifecycleStatus;
   verification_status: AssetVerificationStatus;
+  data_origin?: string;
+  scenario_id?: string | null;
 }
 
 export interface Asset {
@@ -81,6 +83,8 @@ export interface Asset {
   metadata_json?: string | null;
   child_count: number;
   attached_meters_count: number;
+  data_origin?: string;
+  scenario_id?: string | null;
   created_at: string;
   updated_at: string;
   created_by?: string | null;
@@ -107,6 +111,8 @@ export interface MeterAssetRelation {
   confidence?: 'LOW' | 'MEDIUM' | 'HIGH';
   source?: string | null;
   notes?: string | null;
+  data_origin?: string;
+  scenario_id?: string | null;
   valid_from: string;
   valid_to: string | null;
   created_at: string;
@@ -131,6 +137,8 @@ export interface AssetConnection {
   verification_status: AssetVerificationStatus;
   confidence?: 'LOW' | 'MEDIUM' | 'HIGH';
   source?: string | null;
+  data_origin?: string;
+  scenario_id?: string | null;
   valid_from: string;
   valid_to: string | null;
   metadata_json?: string | null;

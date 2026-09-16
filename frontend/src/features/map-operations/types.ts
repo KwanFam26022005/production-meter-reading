@@ -64,6 +64,8 @@ export interface MapMeterItem {
   zoneName: string;
   presentationZoneId?: string | null;
   routeStatus?: 'VALID' | 'REVIEW_REQUIRED' | string;
+  dataOrigin?: string;
+  scenarioId?: string | null;
   coordinates: NormalizedPoint;
   semanticState: MeterSemanticState;
   stateLabel: string;

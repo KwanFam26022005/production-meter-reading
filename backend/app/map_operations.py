@@ -260,6 +260,8 @@ def get_map_overview(
                 exception_state=exc_state,
                 exception_label=exc_label,
                 reading_id=reading_id,
+                data_origin=getattr(m, "data_origin", "VERIFIED"),
+                scenario_id=getattr(m, "scenario_id", None),
             )
         )
 

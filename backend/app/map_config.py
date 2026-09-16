@@ -427,27 +427,26 @@ def validate_map_version_geometry(db: Session, version_id: str) -> MapValidation
             message=f"Kích thước chuẩn phải là 1915x821 px (hiện tại: {version.canonical_width}x{version.canonical_height})"
         )
 
-    # 2. Exactly 6 Presentation Zones
+    # 2. Exactly 5 or 6 Presentation Zones (5 for V16E-S1 baseline, 6 for legacy versions)
     zones = version.zones
-    if len(zones) != 6:
+    if len(zones) not in (5, 6):
         add_issue(
             code="INVALID_ZONE_COUNT",
             severity="ERROR",
             entity_type="MAP",
             entity_id=version_id,
-            message=f"Số lượng phân vùng hiển thị phải đúng bằng 6 (hiện tại: {len(zones)})"
+            message=f"Số lượng phân vùng hiển thị phải bằng 5 hoặc 6 (hiện tại: {len(zones)})"
         )
 
-    expected_zone_ids = [
+    core_zones = [
         "pres-berth",
         "pres-container-west",
         "pres-container-center",
         "pres-cfs-east",
         "pres-technical",
-        "pres-gate",
     ]
     existing_zone_ids = {z.zone_id for z in zones}
-    for exp_id in expected_zone_ids:
+    for exp_id in core_zones:
         if exp_id not in existing_zone_ids:
             add_issue(
                 code="MISSING_REQUIRED_ZONE",
@@ -456,6 +455,14 @@ def validate_map_version_geometry(db: Session, version_id: str) -> MapValidation
                 entity_id=exp_id,
                 message=f"Thiếu phân vùng bắt buộc: {exp_id}"
             )
+    if len(zones) == 6 and "pres-gate" not in existing_zone_ids:
+        add_issue(
+            code="MISSING_REQUIRED_ZONE",
+            severity="ERROR",
+            entity_type="ZONE",
+            entity_id="pres-gate",
+            message="Thiếu phân vùng bắt buộc: pres-gate"
+        )
 
     # 3. Simple polygons, bounds, areas, anchors
     all_simple = True

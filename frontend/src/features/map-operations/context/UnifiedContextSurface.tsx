@@ -612,7 +612,17 @@ export const UnifiedContextSurface: React.FC<UnifiedContextSurfaceProps> = ({
           {/* SUMMARY */}
           <div className="sgp-rail-summary">
             <div className="flex items-center justify-between">
-              <StatusBadge status={meter.semanticState as any} />
+              <div className="flex items-center gap-1.5">
+                <StatusBadge status={meter.semanticState as any} />
+                {meter.dataOrigin === 'SIMULATED' && (
+                  <span
+                    className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-slate-800 text-slate-300 border border-slate-700"
+                    title="Dữ liệu thiết bị và mạng lưới trong môi trường này được tạo để mô phỏng và không phải dữ liệu hạ tầng thực tế của doanh nghiệp."
+                  >
+                    Mô phỏng
+                  </span>
+                )}
+              </div>
               <span className="text-xs text-slate-400">
                 Khu vực: <strong className="text-slate-200">{meter.zoneName || meter.zoneId}</strong>
               </span>

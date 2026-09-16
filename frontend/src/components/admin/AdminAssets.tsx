@@ -62,6 +62,7 @@ export const AdminAssets: React.FC = () => {
   const [typeFilter, setTypeFilter] = useState<string>('ALL');
   const [lifecycleFilter, setLifecycleFilter] = useState<string>('ALL');
   const [verifFilter, setVerifFilter] = useState<string>('ALL');
+  const [scopeFilter, setScopeFilter] = useState<'ACTIVE_SCENARIO' | 'LEGACY_TEST' | 'ALL'>('ACTIVE_SCENARIO');
 
   // Selected asset for detail drawer
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
@@ -99,6 +100,8 @@ export const AdminAssets: React.FC = () => {
         asset_type: typeFilter === 'ALL' ? undefined : typeFilter,
         lifecycle_status: lifecycleFilter === 'ALL' ? undefined : lifecycleFilter,
         verification_status: verifFilter === 'ALL' ? undefined : verifFilter,
+        scenario_id: scopeFilter === 'ACTIVE_SCENARIO' ? 'tan-thuan-demo-v1' : scopeFilter === 'ALL' ? 'ALL' : undefined,
+        data_origin: scopeFilter === 'LEGACY_TEST' ? 'LEGACY_TEST_DATA' : undefined,
       });
       setAssets(res.assets);
       setTotal(res.total);
@@ -112,7 +115,7 @@ export const AdminAssets: React.FC = () => {
 
   useEffect(() => {
     loadAssets();
-  }, [searchQuery, typeFilter, lifecycleFilter, verifFilter]);
+  }, [searchQuery, typeFilter, lifecycleFilter, verifFilter, scopeFilter]);
 
   const handleSelectAsset = async (asset: Asset) => {
     setSelectedAsset(asset);
@@ -152,7 +155,9 @@ export const AdminAssets: React.FC = () => {
         position_source: formPosSource,
         map_x: mx,
         map_y: my,
-        verification_status: 'UNVERIFIED',
+        verification_status: 'SIMULATION_APPROVED',
+        data_origin: 'SIMULATED',
+        scenario_id: 'tan-thuan-demo-v1',
       });
       setIsCreateOpen(false);
       resetForm();
@@ -202,7 +207,7 @@ export const AdminAssets: React.FC = () => {
         asset_id: selectedAsset.id,
         relation_type: linkRelationType,
         mount_point: linkMountPoint.trim() || undefined,
-        verification_status: 'UNVERIFIED',
+        verification_status: 'SIMULATION_APPROVED',
       });
       setIsLinkMeterOpen(false);
       setLinkMeterId('');
@@ -236,12 +241,45 @@ export const AdminAssets: React.FC = () => {
     }
   };
 
+  const renderDataOriginBadge = (origin?: string, scenarioId?: string | null) => {
+    if (origin === 'SIMULATED') {
+      return (
+        <span
+          className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700 border border-slate-300"
+          title={`Kịch bản: ${scenarioId || 'tan-thuan-demo-v1'}`}
+        >
+          Mô phỏng
+        </span>
+      );
+    }
+    if (origin === 'LEGACY_TEST_DATA') {
+      return (
+        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
+          Dữ liệu cũ
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+        Thực tế
+      </span>
+    );
+  };
+
   const renderVerificationBadge = (status: AssetVerificationStatus) => {
     if (status === 'VERIFIED') {
       return (
         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
           <CheckCircle2 size={12} />
           Đã xác minh
+        </span>
+      );
+    }
+    if (status === 'SIMULATION_APPROVED') {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+          <CheckCircle2 size={12} />
+          Mô phỏng duyệt
         </span>
       );
     }
@@ -310,7 +348,7 @@ export const AdminAssets: React.FC = () => {
       </div>
 
       {/* FILTER CONTROLS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
         <div className="relative">
           <Search className="absolute left-3 top-2.5 text-slate-400" size={16} />
           <input
@@ -320,6 +358,18 @@ export const AdminAssets: React.FC = () => {
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
           />
+        </div>
+
+        <div>
+          <select
+            value={scopeFilter}
+            onChange={(e) => setScopeFilter(e.target.value as 'ACTIVE_SCENARIO' | 'LEGACY_TEST' | 'ALL')}
+            className="w-full py-2 px-3 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 font-medium"
+          >
+            <option value="ACTIVE_SCENARIO">Mô phỏng (tan-thuan-demo-v1)</option>
+            <option value="LEGACY_TEST">Dữ liệu thử nghiệm cũ</option>
+            <option value="ALL">Tất cả nguồn dữ liệu</option>
+          </select>
         </div>
 
         <div>
@@ -358,6 +408,7 @@ export const AdminAssets: React.FC = () => {
           >
             <option value="ALL">Tất cả xác minh</option>
             <option value="VERIFIED">Đã xác minh</option>
+            <option value="SIMULATION_APPROVED">Mô phỏng duyệt</option>
             <option value="UNVERIFIED">Chưa xác minh</option>
             <option value="REJECTED">Từ chối</option>
           </select>
@@ -383,6 +434,7 @@ export const AdminAssets: React.FC = () => {
                   <th className="py-3 px-4">Tên thiết bị</th>
                   <th className="py-3 px-4">Phân loại</th>
                   <th className="py-3 px-4">Khu vực</th>
+                  <th className="py-3 px-4">Nguồn dữ liệu</th>
                   <th className="py-3 px-4">Công tơ</th>
                   <th className="py-3 px-4">Vòng đời</th>
                   <th className="py-3 px-4">Xác minh</th>
@@ -402,6 +454,7 @@ export const AdminAssets: React.FC = () => {
                     <td className="py-3 px-4 font-medium text-slate-800">{a.name}</td>
                     <td className="py-3 px-4 text-xs font-mono text-slate-600">{a.asset_type}</td>
                     <td className="py-3 px-4 text-xs text-slate-600">{a.zone_name || a.zone_code || '—'}</td>
+                    <td className="py-3 px-4">{renderDataOriginBadge(a.data_origin, a.scenario_id)}</td>
                     <td className="py-3 px-4 text-xs text-slate-600">
                       {a.attached_meters_count > 0 ? (
                         <span className="inline-flex items-center gap-1 font-semibold text-sky-700">
@@ -484,6 +537,17 @@ export const AdminAssets: React.FC = () => {
                 <div>
                   <span className="text-xs text-slate-400 block">Tình trạng xác minh:</span>
                   <div className="mt-0.5">{renderVerificationBadge(selectedAsset.verification_status)}</div>
+                </div>
+                <div>
+                  <span className="text-xs text-slate-400 block">Nguồn dữ liệu / Kịch bản:</span>
+                  <div className="mt-0.5 flex items-center gap-1.5 flex-wrap">
+                    {renderDataOriginBadge(selectedAsset.data_origin, selectedAsset.scenario_id)}
+                    {selectedAsset.scenario_id && (
+                      <span className="text-[11px] font-mono text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
+                        {selectedAsset.scenario_id}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 {selectedAsset.parent_asset && (
                   <div className="col-span-2">

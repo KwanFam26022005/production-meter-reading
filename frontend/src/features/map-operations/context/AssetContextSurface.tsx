@@ -19,32 +19,18 @@ import {
   Share2,
   CheckCircle2,
   AlertCircle,
-  Clock,
-  Zap,
-  Droplets,
-  ExternalLink,
   ChevronRight,
   ArrowUpRight,
   ArrowDownRight,
   ShieldCheck,
-  Edit3,
   Layers,
   Gauge,
-  HelpCircle,
 } from 'lucide-react';
 import type {
   Asset,
   AssetOperationalContextResponse,
-  AssetAttachedMeterContext,
 } from '../../assets/types';
 import { getAdminAssetOperationalContext } from '../../../services/api';
-import {
-  ContextSection,
-  MetricLine,
-  StatusBadge,
-  ActionRow,
-  EntityListItem,
-} from './contextRailPrimitives';
 
 export interface AssetContextSurfaceProps {
   assetId: string;
@@ -145,7 +131,7 @@ export const AssetContextSurface: React.FC<AssetContextSurfaceProps> = ({
     );
   }
 
-  const isVerified = asset.verification_status === 'VERIFIED';
+  const isApproved = asset.verification_status === 'VERIFIED' || asset.verification_status === 'SIMULATION_APPROVED';
   const hasCoordinates = asset.map_x !== null && asset.map_y !== null;
 
   // Group attached meters
@@ -222,7 +208,7 @@ export const AssetContextSurface: React.FC<AssetContextSurfaceProps> = ({
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
             {/* Verification Status */}
-            {isVerified ? (
+            {asset.verification_status === 'VERIFIED' ? (
               <span
                 style={{
                   display: 'inline-flex',
@@ -238,6 +224,23 @@ export const AssetContextSurface: React.FC<AssetContextSurfaceProps> = ({
               >
                 <CheckCircle2 size={12} />
                 Đã xác minh
+              </span>
+            ) : asset.verification_status === 'SIMULATION_APPROVED' ? (
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  fontSize: 11,
+                  fontWeight: 600,
+                  backgroundColor: '#EFF6FF',
+                  color: '#1D4ED8',
+                  padding: '2px 8px',
+                  borderRadius: 4,
+                }}
+              >
+                <CheckCircle2 size={12} />
+                Mô phỏng duyệt
               </span>
             ) : (
               <span
@@ -255,6 +258,24 @@ export const AssetContextSurface: React.FC<AssetContextSurfaceProps> = ({
               >
                 <AlertCircle size={12} />
                 Chờ xác minh
+              </span>
+            )}
+
+            {/* Simulation Badge */}
+            {asset.data_origin === 'SIMULATED' && (
+              <span
+                style={{
+                  fontSize: 10,
+                  fontWeight: 600,
+                  backgroundColor: '#F1F5F9',
+                  color: '#475569',
+                  padding: '2px 6px',
+                  borderRadius: 4,
+                  border: '1px solid #E2E8F0',
+                }}
+                title="Dữ liệu thiết bị và mạng lưới trong môi trường này được tạo để mô phỏng và không phải dữ liệu hạ tầng thực tế của doanh nghiệp."
+              >
+                Mô phỏng
               </span>
             )}
 
@@ -577,7 +598,7 @@ export const AssetContextSurface: React.FC<AssetContextSurfaceProps> = ({
       {/* ============================================================ */}
       {/* 6. ADMIN VERIFICATION SHORTCUT                               */}
       {/* ============================================================ */}
-      {!isVerified && canManageVerification && onOpenVerificationReview && (
+      {!isApproved && canManageVerification && onOpenVerificationReview && (
         <div style={{ padding: '16px 20px', backgroundColor: '#FFFBEB' }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 10 }}>
             <ShieldCheck size={16} color="#D97706" style={{ marginTop: 2 }} />

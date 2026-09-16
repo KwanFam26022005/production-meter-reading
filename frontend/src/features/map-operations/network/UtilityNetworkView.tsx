@@ -22,15 +22,8 @@ import {
   Eye,
   EyeOff,
   RotateCcw,
-  Search,
-  CheckCircle2,
-  AlertCircle,
-  HelpCircle,
-  ChevronRight,
-  Maximize2,
   ZoomIn,
   ZoomOut,
-  SlidersHorizontal,
 } from 'lucide-react';
 import type { Asset, AssetConnection, UtilityType } from '../../assets/types';
 
@@ -78,26 +71,29 @@ const HORIZONTAL_GAP = 48;
 const VERTICAL_GAP = 96;
 const PADDING = 64;
 
+const isStatusVerifiedOrSimApproved = (status?: string | null): boolean => {
+  return status === 'VERIFIED' || status === 'SIMULATION_APPROVED';
+};
+
 export const UtilityNetworkView: React.FC<UtilityNetworkViewProps> = ({
   nodes,
   edges,
   selectedAssetId,
   onSelectAsset,
-  selectedUtility = 'ALL',
+  selectedUtility = 'ELECTRICITY',
   onSelectUtility,
   showUnverified = false,
   onToggleShowUnverified,
-  isLoading = false,
-  onRefresh,
+  isLoading: _isLoading = false,
+  onRefresh: _onRefresh,
   canManageVerification = false,
-  onOpenVerificationReview,
+  onOpenVerificationReview: _onOpenVerificationReview,
   onSwitchToMap,
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   // Local Controls
   const [traceMode, setTraceMode] = useState<TraceMode>('ALL');
-  const [searchQuery, setSearchQuery] = useState('');
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [isDragging, setIsDragging] = useState(false);
@@ -108,7 +104,7 @@ export const UtilityNetworkView: React.FC<UtilityNetworkViewProps> = ({
     // Edge filtering
     let activeEdges = edges.filter((e) => {
       // Verification policy
-      if (!showUnverified && e.verification_status !== 'VERIFIED') {
+      if (!showUnverified && !isStatusVerifiedOrSimApproved(e.verification_status)) {
         return false;
       }
       // Utility filtering
@@ -118,14 +114,14 @@ export const UtilityNetworkView: React.FC<UtilityNetworkViewProps> = ({
       return true;
     });
 
-    const verifiedCount = edges.filter((e) => e.verification_status === 'VERIFIED').length;
+    const verifiedCount = edges.filter((e) => isStatusVerifiedOrSimApproved(e.verification_status)).length;
 
     // Node filtering
     let activeNodes = nodes.filter((n) => {
       if (n.lifecycle_status === 'RETIRED' || n.verification_status === 'REJECTED') {
         return false;
       }
-      if (!showUnverified && n.verification_status !== 'VERIFIED') {
+      if (!showUnverified && !isStatusVerifiedOrSimApproved(n.verification_status)) {
         return false;
       }
       return true;
@@ -138,20 +134,12 @@ export const UtilityNetworkView: React.FC<UtilityNetworkViewProps> = ({
       connectedNodeIds.add(e.target_asset_id);
     });
 
-    // If search query is entered
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase().trim();
-      activeNodes = activeNodes.filter(
-        (n) => n.code.toLowerCase().includes(q) || n.name.toLowerCase().includes(q)
-      );
-    }
-
     return {
       filteredNodes: activeNodes,
       filteredEdges: activeEdges,
       verifiedEdgeCount: verifiedCount,
     };
-  }, [nodes, edges, selectedUtility, showUnverified, searchQuery]);
+  }, [nodes, edges, selectedUtility, showUnverified]);
 
   // 2. Trace Path Calculation (Upstream / Downstream from Selected Asset)
   const { highlightedNodeIds, highlightedEdgeIds } = useMemo(() => {
@@ -162,7 +150,7 @@ export const UtilityNetworkView: React.FC<UtilityNetworkViewProps> = ({
     const nodeIds = new Set<string>([selectedAssetId]);
     const edgeIds = new Set<string>();
 
-    if (traceMode === 'UPSTREAM' || traceMode === 'ALL') {
+    if (traceMode === 'UPSTREAM') {
       // Traverse backwards (target -> source)
       const queue = [selectedAssetId];
       const visited = new Set<string>([selectedAssetId]);
@@ -181,7 +169,7 @@ export const UtilityNetworkView: React.FC<UtilityNetworkViewProps> = ({
       }
     }
 
-    if (traceMode === 'DOWNSTREAM' || traceMode === 'ALL') {
+    if (traceMode === 'DOWNSTREAM') {
       // Traverse forwards (source -> target)
       const queue = [selectedAssetId];
       const visited = new Set<string>([selectedAssetId]);
@@ -286,7 +274,7 @@ export const UtilityNetworkView: React.FC<UtilityNetworkViewProps> = ({
     const layoutNodeMap = new Map<string, LayoutNode>();
     let maxLayerWidth = 0;
 
-    layers.forEach((layerNodes, layerIndex) => {
+    layers.forEach((layerNodes) => {
       const layerTotalWidth = layerNodes.length * NODE_WIDTH + Math.max(0, layerNodes.length - 1) * HORIZONTAL_GAP;
       if (layerTotalWidth > maxLayerWidth) maxLayerWidth = layerTotalWidth;
     });
@@ -307,7 +295,7 @@ export const UtilityNetworkView: React.FC<UtilityNetworkViewProps> = ({
           width: NODE_WIDTH,
           height: NODE_HEIGHT,
           layer: layerIndex,
-          isVerified: asset.verification_status === 'VERIFIED',
+          isVerified: isStatusVerifiedOrSimApproved(asset.verification_status),
         };
         layoutNodeMap.set(asset.id, lNode);
       });
@@ -337,7 +325,7 @@ export const UtilityNetworkView: React.FC<UtilityNetworkViewProps> = ({
         pathD,
         sourceNode: src,
         targetNode: tgt,
-        isVerified: conn.verification_status === 'VERIFIED',
+        isVerified: isStatusVerifiedOrSimApproved(conn.verification_status),
         isElectricity: conn.utility_type === 'ELECTRICITY',
         isWater: conn.utility_type === 'WATER',
       });
@@ -447,6 +435,26 @@ export const UtilityNetworkView: React.FC<UtilityNetworkViewProps> = ({
             boxShadow: '0 1px 3px rgba(7, 59, 92, 0.05)',
           }}
         >
+          {/* Simulation Badge */}
+          <span
+            className="sgp-sim-badge"
+            title="Dữ liệu thiết bị và mạng lưới trong môi trường này được tạo để mô phỏng và không phải dữ liệu hạ tầng thực tế của doanh nghiệp."
+            style={{
+              padding: '4px 8px',
+              backgroundColor: '#F1F5F9',
+              color: '#334155',
+              fontSize: 11,
+              fontWeight: 600,
+              borderRadius: 4,
+              border: '1px solid #CBD5E1',
+              cursor: 'help',
+              display: 'inline-flex',
+              alignItems: 'center',
+            }}
+          >
+            Dữ liệu mô phỏng
+          </span>
+
           {/* Utility Selector */}
           <div
             style={{
@@ -456,27 +464,6 @@ export const UtilityNetworkView: React.FC<UtilityNetworkViewProps> = ({
               padding: 2,
             }}
           >
-            <button
-              type="button"
-              onClick={() => onSelectUtility && onSelectUtility('ALL')}
-              style={{
-                border: 'none',
-                backgroundColor: selectedUtility === 'ALL' ? '#073B5C' : 'transparent',
-                color: selectedUtility === 'ALL' ? '#FFFFFF' : '#475569',
-                padding: '4px 10px',
-                borderRadius: 4,
-                fontSize: 12,
-                fontWeight: 600,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 4,
-                transition: 'all 150ms ease',
-              }}
-            >
-              <Layers size={13} />
-              <span>Tất cả</span>
-            </button>
             <button
               type="button"
               onClick={() => onSelectUtility && onSelectUtility('ELECTRICITY')}
@@ -496,7 +483,7 @@ export const UtilityNetworkView: React.FC<UtilityNetworkViewProps> = ({
               }}
             >
               <Zap size={13} />
-              <span>Điện lực</span>
+              <span>Điện</span>
             </button>
             <button
               type="button"
@@ -517,7 +504,28 @@ export const UtilityNetworkView: React.FC<UtilityNetworkViewProps> = ({
               }}
             >
               <Droplets size={13} />
-              <span>Cấp nước</span>
+              <span>Nước</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => onSelectUtility && onSelectUtility('ALL')}
+              style={{
+                border: 'none',
+                backgroundColor: selectedUtility === 'ALL' ? '#073B5C' : 'transparent',
+                color: selectedUtility === 'ALL' ? '#FFFFFF' : '#475569',
+                padding: '4px 10px',
+                borderRadius: 4,
+                fontSize: 12,
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+                transition: 'all 150ms ease',
+              }}
+            >
+              <Layers size={13} />
+              <span>Tổng quan</span>
             </button>
           </div>
 

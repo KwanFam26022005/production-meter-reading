@@ -81,7 +81,23 @@ export const AdminShell: React.FC<AdminShellProps> = ({
           <span className="admin-mobile-title">Quản trị Vận hành</span>
         </div>
 
-        <div className="admin-mobile-user">
+        <div className="admin-mobile-user" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span
+            className="sgp-sim-badge"
+            title="Dữ liệu thiết bị và mạng lưới trong môi trường này được tạo để mô phỏng và không phải dữ liệu hạ tầng thực tế của doanh nghiệp."
+            style={{
+              padding: '2px 8px',
+              backgroundColor: '#F1F5F9',
+              color: '#334155',
+              fontSize: 11,
+              fontWeight: 600,
+              borderRadius: 4,
+              border: '1px solid #CBD5E1',
+              cursor: 'help',
+            }}
+          >
+            Dữ liệu mô phỏng
+          </span>
           <span className="admin-badge-tag">ADMIN</span>
         </div>
       </header>
@@ -181,6 +197,25 @@ export const AdminShell: React.FC<AdminShellProps> = ({
                 <div className="admin-drawer-brand-text">
                   <span className="admin-drawer-brand-corp">CẢNG SÀI GÒN</span>
                   <span className="admin-drawer-brand-sub">Quản trị Vận hành</span>
+                  <span
+                    className="sgp-sim-badge"
+                    title="Dữ liệu thiết bị và mạng lưới trong môi trường này được tạo để mô phỏng và không phải dữ liệu hạ tầng thực tế của doanh nghiệp."
+                    style={{
+                      marginTop: 4,
+                      padding: '2px 6px',
+                      backgroundColor: '#1E293B',
+                      color: '#94A3B8',
+                      fontSize: 10,
+                      fontWeight: 500,
+                      borderRadius: 4,
+                      border: '1px solid #334155',
+                      cursor: 'help',
+                      display: 'inline-block',
+                      width: 'fit-content',
+                    }}
+                  >
+                    Dữ liệu mô phỏng
+                  </span>
                 </div>
               </div>
               <button

@@ -179,6 +179,8 @@ class Meter(Base):
     reading_method = Column(String(32), nullable=True, default="UNKNOWN")  # "MANUAL" | "OCR" | "PULSE" | "MODBUS" | "PLC" | "SCADA" | "UNKNOWN"
     communication_protocol = Column(String(32), nullable=True, default="UNKNOWN")  # "NONE" | "PULSE" | "RS485" | "MODBUS_RTU" | "MODBUS_TCP" | "PLC" | "OTHER" | "UNKNOWN"
     utility_type = Column(String(32), nullable=True, default="UNKNOWN")  # "ELECTRICITY" | "WATER" | "OTHER" | "UNKNOWN"
+    data_origin = Column(String(32), nullable=False, default="REAL", index=True)  # "REAL" | "SIMULATED" | "LEGACY_SIMULATION"
+    scenario_id = Column(String(64), nullable=True, index=True)  # e.g. "tan-thuan-demo-v1"
     retired_at = Column(DateTime(timezone=True), nullable=True)
     retired_by = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     retirement_reason = Column(Text, nullable=True)
@@ -382,6 +384,8 @@ class Asset(Base):
     lifecycle_status = Column(String(32), nullable=False, default="ACTIVE", index=True)  # "ACTIVE" | "INACTIVE" | "RETIRED"
     verification_status = Column(String(32), nullable=False, default="UNVERIFIED", index=True)  # "UNVERIFIED" | "VERIFIED" | "REJECTED"
     position_verification_status = Column(String(32), nullable=False, default="UNVERIFIED", index=True)  # "UNVERIFIED" | "VERIFIED"
+    data_origin = Column(String(32), nullable=False, default="REAL", index=True)  # "REAL" | "SIMULATED" | "LEGACY_TEST_DATA"
+    scenario_id = Column(String(64), nullable=True, index=True)  # e.g. "tan-thuan-demo-v1"
     source = Column(String(50), nullable=False, default="MANUAL_ENTRY", index=True)  # "DISCOVERY_PROPOSAL" | "MANUAL_ENTRY" | "IMPORT"
     metadata_json = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False, default=get_utc_now)
@@ -407,8 +411,10 @@ class MeterAssetRelation(Base):
     relation_type = Column(String(32), nullable=False, index=True)  # "INSTALLED_AT" | "MEASURES"
     mount_point = Column(String(255), nullable=True)
     is_primary = Column(Boolean, nullable=False, default=True)
-    verification_status = Column(String(32), nullable=False, default="UNVERIFIED", index=True)  # "UNVERIFIED" | "VERIFIED" | "REJECTED"
+    verification_status = Column(String(32), nullable=False, default="UNVERIFIED", index=True)  # "UNVERIFIED" | "VERIFIED" | "REJECTED" | "SIMULATION_APPROVED"
     confidence = Column(String(20), nullable=True, default="MEDIUM")  # "LOW" | "MEDIUM" | "HIGH"
+    data_origin = Column(String(32), nullable=False, default="REAL", index=True)  # "REAL" | "SIMULATED" | "LEGACY_TEST_DATA"
+    scenario_id = Column(String(64), nullable=True, index=True)  # e.g. "tan-thuan-demo-v1"
     source = Column(String(50), nullable=True, default="MANUAL_ENTRY")
     notes = Column(Text, nullable=True)
     valid_from = Column(DateTime(timezone=True), nullable=False, default=get_utc_now)
@@ -433,8 +439,10 @@ class AssetConnection(Base):
     target_asset_id = Column(String(36), ForeignKey("assets.id", ondelete="RESTRICT"), nullable=False, index=True)
     utility_type = Column(String(32), nullable=False, index=True)  # "ELECTRICITY" | "WATER" | "OTHER"
     connection_type = Column(String(32), nullable=False, default="SUPPLIES")  # "SUPPLIES" | "CONNECTED_TO"
-    verification_status = Column(String(32), nullable=False, default="UNVERIFIED", index=True)  # "UNVERIFIED" | "VERIFIED" | "REJECTED"
+    verification_status = Column(String(32), nullable=False, default="UNVERIFIED", index=True)  # "UNVERIFIED" | "VERIFIED" | "REJECTED" | "SIMULATION_APPROVED"
     confidence = Column(String(20), nullable=True, default="MEDIUM")  # "LOW" | "MEDIUM" | "HIGH"
+    data_origin = Column(String(32), nullable=False, default="REAL", index=True)  # "REAL" | "SIMULATED" | "LEGACY_TEST_DATA"
+    scenario_id = Column(String(64), nullable=True, index=True)  # e.g. "tan-thuan-demo-v1"
     source = Column(String(50), nullable=True, default="MANUAL_ENTRY")
     valid_from = Column(DateTime(timezone=True), nullable=False, default=get_utc_now)
     valid_to = Column(DateTime(timezone=True), nullable=True)
@@ -469,3 +477,17 @@ class VerificationEvidence(Base):
     __table_args__ = (
         Index("ix_verif_evidence_entity", "entity_type", "entity_id"),
     )
+
+
+class SimulationScenario(Base):
+    __tablename__ = "simulation_scenarios"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    code = Column(String(64), unique=True, index=True, nullable=False)
+    name = Column(String(200), nullable=False)
+    scenario_type = Column(String(32), nullable=False, default="SIMULATION")
+    seed = Column(Integer, nullable=True, default=16092026)
+    status = Column(String(32), nullable=False, default="ACTIVE", index=True)
+    metadata_json = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=get_utc_now)
+

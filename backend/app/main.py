@@ -846,10 +846,19 @@ def get_admin_meters_endpoint(
     search: Optional[str] = None,
     status: Optional[str] = None,
     meter_type: Optional[str] = None,
+    scenario_id: Optional[str] = None,
+    data_origin: Optional[str] = None,
     admin_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ) -> AdminMeterListResponse:
-    return get_admin_meters(db, search=search, status_filter=status, meter_type=meter_type)
+    return get_admin_meters(
+        db,
+        search=search,
+        status_filter=status,
+        meter_type=meter_type,
+        scenario_id=scenario_id,
+        data_origin=data_origin,
+    )
 
 
 @app.post(
@@ -1588,6 +1597,8 @@ def get_admin_assets_endpoint(
     verification_status: Optional[str] = None,
     mobility_type: Optional[str] = None,
     search: Optional[str] = None,
+    scenario_id: Optional[str] = None,
+    data_origin: Optional[str] = None,
     limit: int = 100,
     offset: int = 0,
     admin_user: User = Depends(require_admin),
@@ -1601,6 +1612,8 @@ def get_admin_assets_endpoint(
         verification_status=verification_status,
         mobility_type=mobility_type,
         search=search,
+        scenario_id=scenario_id,
+        data_origin=data_origin,
         limit=limit,
         offset=offset,
     )
@@ -1782,6 +1795,8 @@ def list_asset_connections_endpoint(
     connection_type: Optional[str] = None,
     active_only: bool = True,
     verification_status: Optional[str] = None,
+    scenario_id: Optional[str] = None,
+    data_origin: Optional[str] = None,
     admin_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ) -> AssetConnectionListResponse:
@@ -1793,6 +1808,8 @@ def list_asset_connections_endpoint(
         connection_type=connection_type,
         active_only=active_only,
         verification_status=verification_status,
+        scenario_id=scenario_id,
+        data_origin=data_origin,
     )
 
 
@@ -1872,6 +1889,7 @@ def get_asset_network_endpoint(
     utility_type: Optional[str] = None,
     focus_asset_id: Optional[str] = None,
     verified_only: bool = True,
+    scenario_id: Optional[str] = None,
     admin_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ) -> AssetNetworkResponse:
@@ -1880,6 +1898,7 @@ def get_asset_network_endpoint(
         utility_type=utility_type,
         focus_asset_id=focus_asset_id,
         verified_only=verified_only,
+        scenario_id=scenario_id,
     )
 
 

@@ -18,6 +18,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from .admin import log_admin_action
+from .config import settings
 from .geometry_utils import is_point_in_polygon
 from .models import (
     AdminAuditLog,
@@ -104,7 +105,7 @@ VALID_ASSET_TYPES = {
 VALID_MOBILITY_TYPES = {"FIXED", "MOBILE"}
 VALID_POSITION_SOURCES = {"STATIC_MAP", "ASSIGNED", "LAST_KNOWN", "GPS", "UNKNOWN"}
 VALID_LIFECYCLE_STATUSES = {"ACTIVE", "INACTIVE", "RETIRED"}
-VALID_VERIFICATION_STATUSES = {"UNVERIFIED", "VERIFIED", "REJECTED"}
+VALID_VERIFICATION_STATUSES = {"UNVERIFIED", "VERIFIED", "REJECTED", "SIMULATION_APPROVED"}
 
 VALID_RELATION_TYPES = {"INSTALLED_AT", "MEASURES"}
 VALID_UTILITY_TYPES = {"ELECTRICITY", "WATER", "OTHER"}
@@ -193,6 +194,8 @@ def _serialize_asset(
         metadata_json=asset.metadata_json,
         child_count=child_count,
         attached_meters_count=attached_meters_count,
+        data_origin=getattr(asset, "data_origin", "SIMULATED"),
+        scenario_id=getattr(asset, "scenario_id", None),
         created_at=asset.created_at.isoformat() if asset.created_at else "",
         updated_at=asset.updated_at.isoformat() if asset.updated_at else "",
         created_by=asset.created_by,
@@ -216,6 +219,8 @@ def _serialize_relation(rel: MeterAssetRelation) -> MeterAssetRelationResponse:
         confidence=getattr(rel, "confidence", "MEDIUM") or "MEDIUM",
         source=getattr(rel, "source", "MANUAL_ENTRY") or "MANUAL_ENTRY",
         notes=getattr(rel, "notes", None),
+        data_origin=getattr(rel, "data_origin", "SIMULATED"),
+        scenario_id=getattr(rel, "scenario_id", None),
         valid_from=rel.valid_from.isoformat() if rel.valid_from else "",
         valid_to=rel.valid_to.isoformat() if rel.valid_to else None,
         created_at=rel.created_at.isoformat() if rel.created_at else "",
@@ -237,6 +242,8 @@ def _serialize_connection(conn: AssetConnection) -> AssetConnectionResponse:
         verification_status=conn.verification_status,
         confidence=getattr(conn, "confidence", "MEDIUM") or "MEDIUM",
         source=getattr(conn, "source", "MANUAL_ENTRY") or "MANUAL_ENTRY",
+        data_origin=getattr(conn, "data_origin", "SIMULATED"),
+        scenario_id=getattr(conn, "scenario_id", None),
         valid_from=conn.valid_from.isoformat() if conn.valid_from else "",
         valid_to=conn.valid_to.isoformat() if conn.valid_to else None,
         metadata_json=conn.metadata_json,
@@ -257,10 +264,34 @@ def list_assets(
     verification_status: Optional[str] = None,
     mobility_type: Optional[str] = None,
     search: Optional[str] = None,
+    scenario_id: Optional[str] = None,
+    data_origin: Optional[str] = None,
     limit: int = 100,
     offset: int = 0,
 ) -> AssetListResponse:
     query = db.query(Asset)
+
+    # Scoping: default to active scenario in simulation mode unless explicitly "ALL" or legacy origin
+    if scenario_id is not None:
+        if scenario_id.upper() == "ALL":
+            target_scenario = None
+        elif scenario_id.upper() in ("NONE", "NULL"):
+            query = query.filter(Asset.scenario_id.is_(None))
+            target_scenario = None
+        else:
+            target_scenario = scenario_id
+    elif data_origin and data_origin.upper() in ("LEGACY_TEST_DATA", "LEGACY_SIMULATION", "ALL"):
+        target_scenario = None
+    elif settings.data_mode == "SIMULATION":
+        target_scenario = settings.active_scenario
+    else:
+        target_scenario = None
+
+    if target_scenario:
+        query = query.filter(Asset.scenario_id == target_scenario)
+
+    if data_origin and data_origin.upper() != "ALL":
+        query = query.filter(Asset.data_origin == data_origin.strip())
 
     if asset_type:
         query = query.filter(Asset.asset_type == asset_type.strip().upper())
@@ -369,6 +400,8 @@ def create_asset(db: Session, actor: User, payload: AssetCreateRequest) -> Asset
         )
 
     verif_status = (payload.verification_status or "UNVERIFIED").strip().upper()
+    if verif_status == "UNVERIFIED" and settings.data_mode == "SIMULATION":
+        verif_status = "SIMULATION_APPROVED"
     if verif_status not in VALID_VERIFICATION_STATUSES:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -388,6 +421,8 @@ def create_asset(db: Session, actor: User, payload: AssetCreateRequest) -> Asset
         map_y=map_y,
         lifecycle_status="ACTIVE",
         verification_status=verif_status,
+        data_origin=payload.data_origin or ("SIMULATED" if settings.data_mode == "SIMULATION" else "FIELD_VERIFIED"),
+        scenario_id=payload.scenario_id or (settings.active_scenario if settings.data_mode == "SIMULATION" else None),
         metadata_json=payload.metadata_json,
         created_by=actor.id if actor else None,
         updated_by=actor.id if actor else None,
@@ -762,6 +797,8 @@ def create_meter_asset_relation(
             )
 
     verif_status = (payload.verification_status or "UNVERIFIED").strip().upper()
+    if verif_status == "UNVERIFIED" and settings.data_mode == "SIMULATION":
+        verif_status = "SIMULATION_APPROVED"
     if verif_status not in VALID_VERIFICATION_STATUSES:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid verification_status '{verif_status}'")
 
@@ -773,6 +810,8 @@ def create_meter_asset_relation(
         mount_point=payload.mount_point.strip() if payload.mount_point else None,
         is_primary=payload.is_primary,
         verification_status=verif_status,
+        data_origin="SIMULATED" if settings.data_mode == "SIMULATION" else "FIELD_VERIFIED",
+        scenario_id=settings.active_scenario if settings.data_mode == "SIMULATION" else None,
         valid_from=now_utc,
         valid_to=None,
         created_at=now_utc,
@@ -983,6 +1022,8 @@ def create_asset_connection(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid connection_type '{conn_type}'")
 
     verif_status = (payload.verification_status or "UNVERIFIED").strip().upper()
+    if verif_status == "UNVERIFIED" and settings.data_mode == "SIMULATION":
+        verif_status = "SIMULATION_APPROVED"
     if verif_status not in VALID_VERIFICATION_STATUSES:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid verification_status '{verif_status}'")
 
@@ -994,6 +1035,8 @@ def create_asset_connection(
         utility_type=util_type,
         connection_type=conn_type,
         verification_status=verif_status,
+        data_origin="SIMULATED" if settings.data_mode == "SIMULATION" else "FIELD_VERIFIED",
+        scenario_id=settings.active_scenario if settings.data_mode == "SIMULATION" else None,
         valid_from=now_utc,
         valid_to=None,
         metadata_json=payload.metadata_json,
@@ -1032,8 +1075,32 @@ def list_asset_connections(
     connection_type: Optional[str] = None,
     active_only: bool = True,
     verification_status: Optional[str] = None,
+    scenario_id: Optional[str] = None,
+    data_origin: Optional[str] = None,
 ) -> AssetConnectionListResponse:
     query = db.query(AssetConnection)
+
+    # Scoping: default to active scenario in simulation mode unless explicitly "ALL" or legacy origin
+    if scenario_id is not None:
+        if scenario_id.upper() == "ALL":
+            target_scenario = None
+        elif scenario_id.upper() in ("NONE", "NULL"):
+            query = query.filter(AssetConnection.scenario_id.is_(None))
+            target_scenario = None
+        else:
+            target_scenario = scenario_id
+    elif data_origin and data_origin.upper() in ("LEGACY_TEST_DATA", "LEGACY_SIMULATION", "ALL"):
+        target_scenario = None
+    elif settings.data_mode == "SIMULATION":
+        target_scenario = settings.active_scenario
+    else:
+        target_scenario = None
+
+    if target_scenario:
+        query = query.filter(AssetConnection.scenario_id == target_scenario)
+
+    if data_origin and data_origin.upper() != "ALL":
+        query = query.filter(AssetConnection.data_origin == data_origin.strip())
 
     if source_asset_id:
         query = query.filter(AssetConnection.source_asset_id == source_asset_id.strip())
@@ -2022,19 +2089,31 @@ def get_asset_network(
     utility_type: Optional[str] = None,
     focus_asset_id: Optional[str] = None,
     verified_only: bool = True,
+    scenario_id: Optional[str] = None,
 ) -> AssetNetworkResponse:
     """
     Returns the network topology graph (nodes and edges) for the utility network view.
     Default: verified_only=True. Does NOT leak unverified edges unless explicitly requested.
+    In simulation mode, accepts SIMULATION_APPROVED alongside VERIFIED.
     """
     clean_util = utility_type.strip().upper() if utility_type and utility_type.strip().upper() != "ALL" else None
 
+    # Scoping: default to active scenario in simulation mode unless explicitly "ALL"
+    target_scenario = scenario_id if scenario_id is not None else (settings.active_scenario if settings.data_mode == "SIMULATION" else None)
+    if target_scenario and target_scenario.upper() == "ALL":
+        target_scenario = None
+
+    # Allowed verification statuses when verified_only is True
+    approved_statuses = ["VERIFIED", "SIMULATION_APPROVED"]
+
     # Base connection query (active connections only)
     conn_query = db.query(AssetConnection).filter(AssetConnection.valid_to.is_(None))
+    if target_scenario:
+        conn_query = conn_query.filter(AssetConnection.scenario_id == target_scenario)
     if clean_util:
         conn_query = conn_query.filter(AssetConnection.utility_type == clean_util)
     if verified_only:
-        conn_query = conn_query.filter(AssetConnection.verification_status == "VERIFIED")
+        conn_query = conn_query.filter(AssetConnection.verification_status.in_(approved_statuses))
 
     connections = conn_query.all()
 
@@ -2049,7 +2128,9 @@ def get_asset_network(
         )
         node_map = {focus_asset.id: focus_asset}
         for a in connected_assets:
-            if not verified_only or a.verification_status == "VERIFIED":
+            if target_scenario and a.scenario_id != target_scenario:
+                continue
+            if not verified_only or a.verification_status in approved_statuses:
                 node_map[a.id] = a
         nodes = list(node_map.values())
         # Filter connections to those between the subgraph nodes
@@ -2057,22 +2138,26 @@ def get_asset_network(
         connections = [c for c in connections if c.source_asset_id in node_ids and c.target_asset_id in node_ids]
     else:
         asset_query = db.query(Asset).filter(Asset.lifecycle_status != "RETIRED")
+        if target_scenario:
+            asset_query = asset_query.filter(Asset.scenario_id == target_scenario)
         if verified_only:
-            asset_query = asset_query.filter(Asset.verification_status == "VERIFIED")
+            asset_query = asset_query.filter(Asset.verification_status.in_(approved_statuses))
         nodes = asset_query.all()
 
-    # Calculate global stats
-    total_nodes = db.query(Asset).filter(Asset.lifecycle_status != "RETIRED").count()
-    total_edges = db.query(AssetConnection).filter(AssetConnection.valid_to.is_(None)).count()
+    # Calculate scoped stats
+    base_asset_q = db.query(Asset).filter(Asset.lifecycle_status != "RETIRED")
+    base_conn_q = db.query(AssetConnection).filter(AssetConnection.valid_to.is_(None))
+    if target_scenario:
+        base_asset_q = base_asset_q.filter(Asset.scenario_id == target_scenario)
+        base_conn_q = base_conn_q.filter(AssetConnection.scenario_id == target_scenario)
+
+    total_nodes = base_asset_q.count()
+    total_edges = base_conn_q.count()
     verified_nodes = (
-        db.query(Asset)
-        .filter(Asset.lifecycle_status != "RETIRED", Asset.verification_status == "VERIFIED")
-        .count()
+        base_asset_q.filter(Asset.verification_status.in_(approved_statuses)).count()
     )
     verified_edges = (
-        db.query(AssetConnection)
-        .filter(AssetConnection.valid_to.is_(None), AssetConnection.verification_status == "VERIFIED")
-        .count()
+        base_conn_q.filter(AssetConnection.verification_status.in_(approved_statuses)).count()
     )
 
     stats = AssetNetworkStats(
