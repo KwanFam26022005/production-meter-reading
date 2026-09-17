@@ -3,13 +3,10 @@ import {
   Boxes,
   Gauge,
   Layers,
-  Search,
   Plus,
   MapPin,
-  CheckCircle2,
   AlertTriangle,
   ChevronRight,
-  Navigation,
   X,
 } from 'lucide-react';
 import { useOperationalWorkspace } from '../../context/OperationalWorkspaceContext';
@@ -36,26 +33,35 @@ import {
   getAdminMeterLatestReading,
 } from '../../services/api';
 import { EntityDetailSurface } from './EntityDetailSurface';
+import {
+  SgpButton,
+  SgpSearchField,
+  SgpSelect,
+  SgpSegmentedControl,
+  SgpStatusBadge,
+} from '../../components/ui/SgpPrimitives';
 
-const ASSET_TYPES: AssetType[] = [
-  'SUBSTATION',
-  'TRANSFORMER',
-  'FEEDER',
-  'SWITCHBOARD',
-  'QUAY_CRANE',
-  'RTG',
-  'VEHICLE',
-  'PUMP',
-  'COMPRESSOR',
-  'MACHINE',
-  'WAREHOUSE',
-  'WORKSHOP',
-  'OFFICE',
-  'WATER_POINT',
-  'FIRE_WATER_POINT',
-  'SHORE_POWER_POINT',
-  'OTHER',
-];
+export const formatAssetTypeVn = (type?: string): string => {
+  switch (type) {
+    case 'SUBSTATION': return 'Trạm biến áp';
+    case 'TRANSFORMER': return 'Máy biến áp';
+    case 'FEEDER': return 'Xuất tuyến';
+    case 'SWITCHBOARD': return 'Tủ phân phối';
+    case 'QUAY_CRANE': return 'Cẩu bờ QC';
+    case 'RTG': return 'Cẩu bãi RTG';
+    case 'PUMP': return 'Trạm bơm';
+    case 'COMPRESSOR': return 'Máy nén khí';
+    case 'WATER_POINT': return 'Điểm cấp nước';
+    case 'FIRE_WATER_POINT': return 'Trụ cứu hỏa';
+    case 'SHORE_POWER_POINT': return 'Cấp điện tàu';
+    case 'WAREHOUSE': return 'Kho hàng';
+    case 'WORKSHOP': return 'Xưởng kỹ thuật';
+    case 'OFFICE': return 'Văn phòng';
+    case 'MACHINE': return 'Cơ điện';
+    case 'VEHICLE': return 'Xe cảng';
+    default: return type || 'Hạ tầng';
+  }
+};
 
 const ZONES = [
   { id: 'zone-container', name: 'Bãi Container (CY)' },
@@ -90,10 +96,7 @@ export const DevicesWorkspacePage: React.FC = () => {
   const {
     deviceSegment,
     setDeviceSegment,
-    focusedEntity,
     locateOnMap,
-    inspectingReadingId: _inspectingReadingId,
-    setInspectingReadingId,
   } = workspace;
 
   // Data state
@@ -138,154 +141,25 @@ export const DevicesWorkspacePage: React.FC = () => {
   // Form states for Asset
   const [formAssetCode, setFormAssetCode] = useState('');
   const [formAssetName, setFormAssetName] = useState('');
-  const [formAssetType, setFormAssetType] = useState<AssetType>('OTHER');
-  const [formAssetZone, setFormAssetZone] = useState('');
-  const [formAssetMapX, setFormAssetMapX] = useState('');
-  const [formAssetMapY, setFormAssetMapY] = useState('');
-  const [formAssetSubmitting, setFormAssetSubmitting] = useState(false);
-  const [formAssetError, setFormAssetError] = useState<string | null>(null);
+  const [formAssetType, setFormAssetType] = useState<AssetType>('SWITCHBOARD');
+  const [formAssetZoneId, setFormAssetZoneId] = useState('zone-container');
+  const [formAssetLat, setFormAssetLat] = useState('10.7629');
+  const [formAssetLng, setFormAssetLng] = useState('106.7705');
+  const [createAssetSubmitting, setCreateAssetSubmitting] = useState(false);
 
   // Form states for Meter
+  const [formMeterSerial, setFormMeterSerial] = useState('');
   const [formMeterCode, setFormMeterCode] = useState('');
-  const [formMeterName, setFormMeterName] = useState('');
-  const [formMeterLocation, setFormMeterLocation] = useState('');
-  const [formMeterType, setFormMeterType] = useState('LCD');
-  const [formMeterUtility, setFormMeterUtility] = useState('ELECTRICITY');
-  const [formMeterSubmitting, setFormMeterSubmitting] = useState(false);
-  const [formMeterError, setFormMeterError] = useState<string | null>(null);
+  const [formMeterType, setFormMeterType] = useState<'MECHANICAL' | 'ELECTRONIC_LCD'>('ELECTRONIC_LCD');
+  const [formMeterMultiplier, setFormMeterMultiplier] = useState(1);
+  const [formMeterZoneId, setFormMeterZoneId] = useState('zone-container');
+  const [createMeterSubmitting, setCreateMeterSubmitting] = useState(false);
 
-  // Form states for Link Meter
-  const [linkMeterId, setLinkMeterId] = useState('');
-  const [linkRelationType, setLinkRelationType] = useState<'INSTALLED_AT' | 'MEASURES'>('MEASURES');
-  const [linkMountPoint, setLinkMountPoint] = useState('');
+  // Form states for Linking Meter
+  const [selectedMeterToLink, setSelectedMeterToLink] = useState('');
   const [linkSubmitting, setLinkSubmitting] = useState(false);
 
-  // Load Assets and Meters
-  const loadData = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [assetRes, meterRes] = await Promise.all([
-        getAdminAssets({ limit: 100 }),
-        getAdminMeters('', undefined, undefined),
-      ]);
-      setAssets(assetRes.assets || []);
-      setMeters(meterRes.meters || []);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Không thể tải danh mục thiết bị & công tơ.';
-      setError(msg);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  // Listen for focusedEntity from workspace context (cross-workspace link)
-  useEffect(() => {
-    if (focusedEntity) {
-      setSelectedEntityRef({
-        type: focusedEntity.type,
-        id: focusedEntity.id,
-        code: focusedEntity.code,
-      });
-      if (focusedEntity.type === 'meter' && deviceSegment === 'ASSETS') {
-        setDeviceSegment('METERS');
-      } else if (focusedEntity.type === 'asset' && deviceSegment === 'METERS') {
-        setDeviceSegment('ASSETS');
-      }
-    }
-  }, [focusedEntity]);
-
-  // Load details when selectedEntityRef changes
-  useEffect(() => {
-    if (!selectedEntityRef) {
-      setActiveAssetDetails(null);
-      setActiveMeterDetails(null);
-      setActiveRelations([]);
-      setActiveConnections([]);
-      setActiveLatestReading(null);
-      return;
-    }
-
-    let isCancelled = false;
-    const fetchEntityDetails = async () => {
-      setDetailLoading(true);
-      try {
-        if (selectedEntityRef.type === 'asset') {
-          const [freshAsset, relRes, connRes] = await Promise.all([
-            getAdminAssetById(selectedEntityRef.id),
-            getAdminMeterAssetRelations({ asset_id: selectedEntityRef.id, active_only: false }),
-            getAdminAssetConnections({ source_asset_id: selectedEntityRef.id, active_only: false }),
-          ]);
-          if (isCancelled) return;
-          setActiveAssetDetails(freshAsset);
-          setActiveMeterDetails(null);
-          setActiveRelations(relRes.relations || []);
-          setActiveConnections(connRes.connections || []);
-
-          // Find first attached meter's latest reading if any
-          if (relRes.relations && relRes.relations.length > 0) {
-            try {
-              const reading = await getAdminMeterLatestReading(relRes.relations[0].meter_id);
-              if (!isCancelled && reading) {
-                setActiveLatestReading({
-                  readingId: reading.reading_id,
-                });
-              }
-            } catch {
-              // ignore
-            }
-          } else {
-            setActiveLatestReading(null);
-          }
-        } else {
-          // Meter details
-          const currentMeter = meters.find((m) => m.id === selectedEntityRef.id);
-          setActiveMeterDetails(currentMeter || null);
-          setActiveAssetDetails(null);
-
-          const [relRes, readingRes] = await Promise.allSettled([
-            getAdminMeterRelations(selectedEntityRef.id),
-            getAdminMeterLatestReading(selectedEntityRef.id),
-          ]);
-          if (isCancelled) return;
-
-          if (relRes.status === 'fulfilled') {
-            setActiveRelations(relRes.value.relations || []);
-          } else {
-            setActiveRelations([]);
-          }
-
-          if (readingRes.status === 'fulfilled' && readingRes.value) {
-            setActiveLatestReading({
-              readingValue: currentMeter?.latest_reading,
-              recordedAt: currentMeter?.latest_reading_time,
-              readingId: readingRes.value.reading_id,
-            });
-          } else {
-            setActiveLatestReading({
-              readingValue: currentMeter?.latest_reading,
-              recordedAt: currentMeter?.latest_reading_time,
-            });
-          }
-        }
-      } catch (err) {
-        console.error('Failed to load entity details', err);
-      } finally {
-        if (!isCancelled) setDetailLoading(false);
-      }
-    };
-
-    fetchEntityDetails();
-    return () => {
-      isCancelled = true;
-    };
-  }, [selectedEntityRef, meters]);
-
-  // Handle Add Menu Outside Click
+  // Click outside listener for Add menu
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (addMenuRef.current && !addMenuRef.current.contains(e.target as Node)) {
@@ -298,206 +172,300 @@ export const DevicesWorkspacePage: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isAddMenuOpen]);
 
-  // Unified items list
-  const unifiedItems = useMemo<UnifiedDeviceRow[]>(() => {
-    const assetRows: UnifiedDeviceRow[] = assets.map((a) => {
-      const hasCoords = a.map_x !== null && a.map_x !== undefined && a.map_y !== null && a.map_y !== undefined;
-      const isUnverified = a.verification_status === 'UNVERIFIED';
-      const needsAtt = !hasCoords || isUnverified;
-      const attReason = !hasCoords ? 'Chưa chấm định vị GIS' : isUnverified ? 'Chờ đối soát hồ sơ' : undefined;
-      return {
+  // Load Assets & Meters data
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const [assetsRes, metersRes] = await Promise.all([
+        getAdminAssets({ limit: 100 }).catch((err) => {
+          console.warn('[DevicesWorkspace] Failed to fetch assets:', err);
+          return { assets: [], total: 0 };
+        }),
+        getAdminMeters().catch((err) => {
+          console.warn('[DevicesWorkspace] Failed to fetch meters:', err);
+          return { meters: [], total: 0 };
+        }),
+      ]);
+
+      setAssets(assetsRes.assets || []);
+      setMeters(metersRes.meters || []);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Lỗi tải dữ liệu danh mục thiết bị.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  // Fetch full details when an entity is selected
+  useEffect(() => {
+    if (!selectedEntityRef) {
+      setActiveAssetDetails(null);
+      setActiveMeterDetails(null);
+      setActiveRelations([]);
+      setActiveConnections([]);
+      setActiveLatestReading(null);
+      return;
+    }
+
+    let isMounted = true;
+    const fetchDetails = async () => {
+      setDetailLoading(true);
+      try {
+        if (selectedEntityRef.type === 'asset') {
+          const [asset, relRes, connRes] = await Promise.all([
+            getAdminAssetById(selectedEntityRef.id).catch(() => null),
+            getAdminMeterAssetRelations({ asset_id: selectedEntityRef.id, active_only: false }).catch(() => ({ relations: [] })),
+            getAdminAssetConnections({ source_asset_id: selectedEntityRef.id }).catch(() => ({ connections: [] })),
+          ]);
+
+          if (!isMounted) return;
+          setActiveAssetDetails(asset);
+          setActiveMeterDetails(null);
+          setActiveRelations(relRes.relations || []);
+          setActiveConnections(connRes.connections || []);
+          setActiveLatestReading(null);
+        } else {
+          const foundMeter = meters.find((m) => m.id === selectedEntityRef.id);
+          const [relRes, readingRes] = await Promise.all([
+            getAdminMeterRelations(selectedEntityRef.id).catch(() => ({ relations: [] })),
+            getAdminMeterLatestReading(selectedEntityRef.id).catch(() => null),
+          ]);
+
+          if (!isMounted) return;
+          setActiveAssetDetails(null);
+          setActiveMeterDetails(foundMeter || null);
+          setActiveRelations(relRes.relations || []);
+          setActiveConnections([]);
+          setActiveLatestReading(
+            readingRes
+              ? {
+                  readingValue: readingRes.reading_id ? 'Đã ghi' : null,
+                  recordedAt: null,
+                  readingId: readingRes.reading_id || null,
+                }
+              : null
+          );
+        }
+      } catch (err) {
+        console.warn('[DevicesWorkspace] Error loading entity details:', err);
+      } finally {
+        if (isMounted) setDetailLoading(false);
+      }
+    };
+
+    fetchDetails();
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedEntityRef, meters]);
+
+  // Unified Data Joining
+  const unifiedRows: UnifiedDeviceRow[] = useMemo(() => {
+    const rows: UnifiedDeviceRow[] = [];
+
+    // Map Assets
+    assets.forEach((a) => {
+      const isWater = a.asset_type === 'PUMP' || a.asset_type === 'WATER_POINT' || a.asset_type === 'FIRE_WATER_POINT';
+      const coords: [number, number] | null =
+        a.map_x !== null && a.map_x !== undefined && a.map_y !== null && a.map_y !== undefined
+          ? [a.map_x, a.map_y]
+          : null;
+
+      const needsAttn =
+        !coords ||
+        a.lifecycle_status === 'RETIRED' ||
+        (a.attached_meters_count !== undefined && a.attached_meters_count === 0 && ['SUBSTATION', 'SWITCHBOARD', 'TRANSFORMER'].includes(a.asset_type));
+
+      let attnReason = '';
+      if (!coords) attnReason = 'Chưa có tọa độ bản đồ';
+      else if (a.lifecycle_status !== 'ACTIVE') attnReason = `Trạng thái: ${a.lifecycle_status}`;
+      else if (a.attached_meters_count === 0) attnReason = 'Chưa gắn công tơ theo dõi';
+
+      rows.push({
         kind: 'ASSET',
         id: a.id,
         code: a.code,
         name: a.name,
-        categoryBadge: a.asset_type,
-        categoryType: a.asset_type,
-        zoneName: a.zone_name || a.zone_id || 'Bãi Container (CY)',
+        categoryBadge: formatAssetTypeVn(a.asset_type),
+        categoryType: isWater ? 'WATER' : 'ELECTRICITY',
+        zoneName: a.zone_name || a.zone_id || 'Chưa gán khu vực',
         zoneId: a.zone_id,
-        status: a.lifecycle_status,
-        statusLabel: a.lifecycle_status === 'ACTIVE' ? 'Hoạt động' : a.lifecycle_status === 'RETIRED' ? 'Đã thu hồi' : 'Tạm ngừng',
-        coordinates: hasCoords ? [a.map_x!, a.map_y!] : null,
-        hasCoordinates: hasCoords,
-        needsAttention: needsAtt,
-        attentionReason: attReason,
-        relationSummary: a.attached_meters_count && a.attached_meters_count > 0 ? `${a.attached_meters_count} công tơ đo` : 'Chưa gắn công tơ',
+        status: a.lifecycle_status || 'ACTIVE',
+        statusLabel: a.lifecycle_status === 'ACTIVE' ? 'Hoạt động' : a.lifecycle_status === 'RETIRED' ? 'Đã thu hồi' : 'Tạm dừng',
+        coordinates: coords,
+        hasCoordinates: Boolean(coords),
+        needsAttention: Boolean(needsAttn),
+        attentionReason: attnReason,
+        relationSummary:
+          a.attached_meters_count !== undefined
+            ? a.attached_meters_count > 0
+              ? `${a.attached_meters_count} công tơ`
+              : 'Chưa gắn công tơ'
+            : '—',
         rawAsset: a,
-      };
+      });
     });
 
-    const meterRows: UnifiedDeviceRow[] = meters.map((m) => {
-      const isWater = m.utility_type === 'WATER' || m.meter_code.startsWith('SIM-WM-');
-      const hasCoords = m.map_x !== null && m.map_x !== undefined && m.map_y !== null && m.map_y !== undefined;
-      const isRetired = m.lifecycle_status === 'RETIRED';
-      const isActive = m.is_active && !isRetired;
-      const needsAtt = !hasCoords || !isActive;
-      const attReason = !hasCoords ? 'Chưa chấm định vị GIS' : isRetired ? 'Đã thu hồi' : !m.is_active ? 'Đang tạm dừng' : undefined;
-      const unit = isWater ? 'm³' : 'kWh';
-      const readingText = m.latest_reading ? `${m.latest_reading} ${unit}` : 'Chưa có chỉ số';
-      return {
+    // Map Meters
+    meters.forEach((m) => {
+      const isWater = m.meter_code.startsWith('SIM-WM-') || (m as unknown as { utility_type?: string }).utility_type === 'WATER';
+      const coords: [number, number] | null =
+        m.map_x !== null && m.map_x !== undefined && m.map_y !== null && m.map_y !== undefined
+          ? [m.map_x, m.map_y]
+          : null;
+
+      const needsAttn = !coords || !m.is_active || m.lifecycle_status === 'RETIRED';
+      let attnReason = '';
+      if (!coords) attnReason = 'Chưa có tọa độ bản đồ';
+      else if (!m.is_active) attnReason = 'Công tơ đang ngưng hoạt động';
+
+      rows.push({
         kind: 'METER',
         id: m.id,
         code: m.meter_code,
-        name: m.name,
+        name: m.name || m.meter_code,
         categoryBadge: isWater ? '💧 Nước' : '⚡ Điện',
         categoryType: isWater ? 'WATER' : 'ELECTRICITY',
-        zoneName: m.location || m.zone_name || m.zone_id || 'Bãi Container (CY)',
+        zoneName: m.zone_name || m.zone_id || 'Chưa gán khu vực',
         zoneId: m.zone_id,
-        status: m.lifecycle_status || (m.is_active ? 'ACTIVE' : 'INACTIVE'),
-        statusLabel: isRetired ? 'Đã thu hồi' : m.is_active ? 'Hoạt động' : 'Tạm ngừng',
-        coordinates: hasCoords ? [m.map_x!, m.map_y!] : null,
-        hasCoordinates: hasCoords,
-        needsAttention: needsAtt,
-        attentionReason: attReason,
-        relationSummary: readingText,
+        status: m.is_active ? 'ACTIVE' : 'INACTIVE',
+        statusLabel: m.is_active ? 'Hoạt động' : 'Tạm dừng',
+        coordinates: coords,
+        hasCoordinates: Boolean(coords),
+        needsAttention: Boolean(needsAttn),
+        attentionReason: attnReason,
+        relationSummary: m.latest_reading ? `${m.latest_reading} ${isWater ? 'm³' : 'kWh'}` : 'Chưa có chỉ số',
         rawMeter: m,
-      };
+      });
     });
 
-    return [...assetRows, ...meterRows];
+    return rows;
   }, [assets, meters]);
 
-  // Counts
-  const totalAssetsCount = assets.length;
-  const totalMetersCount = meters.length;
-  const totalAllCount = totalAssetsCount + totalMetersCount;
-
-  // Filtered Items based on segment and search/filters
+  // Filtered rows
   const filteredItems = useMemo(() => {
-    return unifiedItems.filter((item) => {
-      // 1. Segment filter
+    return unifiedRows.filter((item) => {
+      // Segment filter
       if (deviceSegment === 'ASSETS' && item.kind !== 'ASSET') return false;
       if (deviceSegment === 'METERS' && item.kind !== 'METER') return false;
 
-      // 2. Needs Attention Filter
+      // Needs attention quick filter
       if (needsAttentionOnly && !item.needsAttention) return false;
 
-      // 3. Search Query
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase().trim();
-        const matchesCode = item.code.toLowerCase().includes(q);
-        const matchesName = item.name.toLowerCase().includes(q);
-        const matchesZone = item.zoneName.toLowerCase().includes(q);
-        const matchesCategory = item.categoryBadge.toLowerCase().includes(q);
-        if (!matchesCode && !matchesName && !matchesZone && !matchesCategory) return false;
-      }
-
-      // 4. Type filter
+      // Category / Type filter
       if (typeFilter !== 'ALL') {
         if (deviceSegment === 'ALL') {
           if (typeFilter === 'ASSET' && item.kind !== 'ASSET') return false;
           if (typeFilter === 'METER' && item.kind !== 'METER') return false;
         } else if (deviceSegment === 'ASSETS') {
-          if (item.categoryType !== typeFilter) return false;
+          if (item.rawAsset?.asset_type !== typeFilter) return false;
         } else if (deviceSegment === 'METERS') {
           if (item.categoryType !== typeFilter) return false;
         }
       }
 
-      // 5. Zone filter
-      if (zoneFilter !== 'ALL') {
-        if (item.zoneId !== zoneFilter && !item.zoneName.includes(zoneFilter)) {
+      // Zone filter
+      if (zoneFilter !== 'ALL' && item.zoneId !== zoneFilter) return false;
+
+      // Status filter
+      if (statusFilter !== 'ALL') {
+        if (statusFilter === 'ACTIVE' && item.status !== 'OPERATIONAL' && item.status !== 'ACTIVE') return false;
+        if (statusFilter === 'INACTIVE' && item.status !== 'INACTIVE' && item.status !== 'OFFLINE') return false;
+        if (statusFilter === 'RETIRED' && item.status !== 'RETIRED') return false;
+      }
+
+      // Text search
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        const codeMatch = item.code.toLowerCase().includes(q);
+        const nameMatch = item.name.toLowerCase().includes(q);
+        const zoneMatch = item.zoneName.toLowerCase().includes(q);
+        if (!codeMatch && !nameMatch && !zoneMatch) {
           return false;
         }
       }
 
-      // 6. Status filter
-      if (statusFilter !== 'ALL') {
-        if (item.status !== statusFilter) return false;
-      }
-
       return true;
     });
-  }, [unifiedItems, deviceSegment, needsAttentionOnly, searchQuery, typeFilter, zoneFilter, statusFilter]);
+  }, [unifiedRows, deviceSegment, needsAttentionOnly, typeFilter, zoneFilter, statusFilter, searchQuery]);
 
-  // Locate on Map Action
-  const handleLocateEntity = (item: UnifiedDeviceRow) => {
-    locateOnMap({
-      type: item.kind === 'ASSET' ? 'asset' : 'meter',
-      id: item.id,
-      code: item.code,
-      coordinates: item.coordinates || undefined,
-    });
-  };
+  // Counts
+  const totalAllCount = unifiedRows.length;
+  const totalAssetsCount = assets.length;
+  const totalMetersCount = meters.length;
+  const attentionCount = unifiedRows.filter((r) => r.needsAttention).length;
 
-  // Form submit for Asset creation
+  // Handlers for Add forms
   const handleCreateAssetSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setFormAssetSubmitting(true);
-    setFormAssetError(null);
-    const mx = formAssetMapX.trim() ? parseFloat(formAssetMapX.trim()) : null;
-    const my = formAssetMapY.trim() ? parseFloat(formAssetMapY.trim()) : null;
-
+    if (!formAssetCode.trim() || !formAssetName.trim()) {
+      alert('Vui lòng điền mã và tên thiết bị.');
+      return;
+    }
     try {
+      setCreateAssetSubmitting(true);
       await createAdminAsset({
-        code: formAssetCode.trim(),
+        code: formAssetCode.trim().toUpperCase(),
         name: formAssetName.trim(),
         asset_type: formAssetType,
-        zone_id: formAssetZone.trim() || null,
-        map_x: mx,
-        map_y: my,
-        verification_status: 'SIMULATION_APPROVED',
-        data_origin: 'SIMULATED',
-        scenario_id: 'tan-thuan-demo-v1',
+        zone_id: formAssetZoneId,
+        map_x: parseFloat(formAssetLat) || 0.5,
+        map_y: parseFloat(formAssetLng) || 0.5,
       });
       setIsCreateAssetOpen(false);
       setFormAssetCode('');
       setFormAssetName('');
-      setFormAssetMapX('');
-      setFormAssetMapY('');
       await loadData();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Lỗi khi tạo thiết bị hạ tầng.';
-      setFormAssetError(msg);
+      alert(err instanceof Error ? err.message : 'Không thể tạo thiết bị hạ tầng.');
     } finally {
-      setFormAssetSubmitting(false);
+      setCreateAssetSubmitting(false);
     }
   };
 
-  // Form submit for Meter creation
   const handleCreateMeterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setFormMeterSubmitting(true);
-    setFormMeterError(null);
-
+    if (!formMeterSerial.trim()) {
+      alert('Vui lòng điền số serial công tơ.');
+      return;
+    }
     try {
+      setCreateMeterSubmitting(true);
       await createAdminMeter({
-        meter_code: formMeterCode.trim(),
-        name: formMeterName.trim(),
-        location: formMeterLocation.trim() || null,
+        meter_code: formMeterCode.trim() ? formMeterCode.trim().toUpperCase() : `MTR-${formMeterSerial.trim()}`,
+        name: formMeterCode.trim() || `Công tơ ${formMeterSerial.trim()}`,
         meter_type: formMeterType,
+        zone_id: formMeterZoneId,
       });
       setIsCreateMeterOpen(false);
+      setFormMeterSerial('');
       setFormMeterCode('');
-      setFormMeterName('');
-      setFormMeterLocation('');
       await loadData();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Lỗi khi tạo công tơ mới.';
-      setFormMeterError(msg);
+      alert(err instanceof Error ? err.message : 'Không thể tạo công tơ đo đếm.');
     } finally {
-      setFormMeterSubmitting(false);
+      setCreateMeterSubmitting(false);
     }
   };
 
-  // Form submit for Link Meter
   const handleLinkMeterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!activeAssetDetails || !linkMeterId.trim()) return;
-    setLinkSubmitting(true);
-
+    if (!selectedMeterToLink || !activeAssetDetails) return;
     try {
+      setLinkSubmitting(true);
       await createAdminMeterAssetRelation({
-        meter_id: linkMeterId.trim(),
+        meter_id: selectedMeterToLink,
         asset_id: activeAssetDetails.id,
-        relation_type: linkRelationType,
-        mount_point: linkMountPoint.trim() || undefined,
-        verification_status: 'SIMULATION_APPROVED',
+        relation_type: 'MEASURES',
       });
       setIsLinkMeterOpen(false);
-      setLinkMeterId('');
-      setLinkMountPoint('');
-      // Refresh relations
+      setSelectedMeterToLink('');
       const relRes = await getAdminMeterAssetRelations({ asset_id: activeAssetDetails.id, active_only: false });
       setActiveRelations(relRes.relations || []);
       await loadData();
@@ -508,7 +476,6 @@ export const DevicesWorkspacePage: React.FC = () => {
     }
   };
 
-  // Handle retire/deactivate
   const handleRetireOrDeactivate = async () => {
     if (!selectedEntityRef) return;
     if (selectedEntityRef.type === 'asset') {
@@ -538,438 +505,383 @@ export const DevicesWorkspacePage: React.FC = () => {
   };
 
   return (
-    <div className="sgp-devices-workspace flex flex-col w-full h-full bg-slate-100 overflow-hidden">
-      {/* 1. TOP HEADER */}
-      <header className="bg-white border-b border-slate-200 px-6 py-4 shrink-0 shadow-sm">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          {/* Title & Count Badges */}
-          <div>
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-cyan-900 text-white flex items-center justify-center">
-                <Boxes size={18} />
+    <div className="sgp-devices-workspace flex flex-col w-full h-full bg-slate-50 overflow-hidden">
+      {/* 1. WORKSPACE WORK SURFACE CONTAINER */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="sgp-devices-page-container">
+          {/* Header Row */}
+          <div className="sgp-devices-header-row">
+            <div className="sgp-devices-title-block">
+              <h1>Thiết bị</h1>
+              <p>Quản lý hạ tầng và công tơ đo đếm</p>
+            </div>
+
+            {/* Quick Metrics Strip */}
+            <div className="sgp-devices-metrics-strip">
+              <div className="sgp-devices-metric-chip">
+                <span className="sgp-devices-metric-num">{totalAllCount}</span>
+                <span>tổng</span>
               </div>
-              <h1 className="text-xl font-bold text-slate-900 tracking-tight">Thiết Bị</h1>
-              <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium ml-2">
-                <span className="bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200 font-tabular">
-                  {totalAllCount} tổng
-                </span>
-                <span>·</span>
-                <span className="font-tabular">{totalAssetsCount} hạ tầng</span>
-                <span>·</span>
-                <span className="font-tabular">{totalMetersCount} công tơ</span>
+              <div className="sgp-devices-metric-chip">
+                <span className="sgp-devices-metric-num">{totalAssetsCount}</span>
+                <span>hạ tầng</span>
+              </div>
+              <div className="sgp-devices-metric-chip">
+                <span className="sgp-devices-metric-num">{totalMetersCount}</span>
+                <span>công tơ</span>
               </div>
             </div>
-            <p className="text-xs text-slate-500 mt-1">
-              Kho quản trị tài nguyên hạ tầng cảng, thiết bị phụ tải và công tơ đo đếm
-            </p>
           </div>
 
-          {/* Segmented Control & Actions */}
-          <div className="flex items-center gap-3">
-            {/* Segmented Control [Tất cả] [Hạ tầng] [Công tơ] */}
-            <div
-              className="inline-flex p-1 bg-slate-200/80 rounded-xl border border-slate-300/80 text-xs font-semibold"
-              role="tablist"
-              aria-label="Phân loại thiết bị"
-            >
-              <button
-                type="button"
-                role="tab"
-                aria-selected={deviceSegment === 'ALL'}
-                onClick={() => {
-                  setDeviceSegment('ALL');
+          {/* Controls Card */}
+          <div className="sgp-devices-controls-card">
+            {/* Top row: Segmented control + Add button */}
+            <div className="sgp-devices-controls-top">
+              <SgpSegmentedControl<'ALL' | 'ASSETS' | 'METERS'>
+                value={deviceSegment}
+                onChange={(seg) => {
+                  setDeviceSegment(seg);
                   setTypeFilter('ALL');
                 }}
-                className={`px-3.5 py-1.5 rounded-lg transition-all ${
+                options={[
+                  { id: 'ALL', label: 'Tất cả', count: totalAllCount },
+                  { id: 'ASSETS', label: 'Hạ tầng', count: totalAssetsCount },
+                  { id: 'METERS', label: 'Công tơ', count: totalMetersCount },
+                ]}
+              />
+
+              <div className="relative" ref={addMenuRef}>
+                <SgpButton
+                  variant="primary"
+                  size="sm"
+                  icon={<Plus size={14} />}
+                  onClick={() => setIsAddMenuOpen((prev) => !prev)}
+                  title="Thêm mới hạ tầng hoặc công tơ"
+                >
+                  Thêm
+                </SgpButton>
+
+                {isAddMenuOpen && (
+                  <div className="absolute right-0 top-full mt-1.5 w-48 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-30">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsAddMenuOpen(false);
+                        setIsCreateAssetOpen(true);
+                      }}
+                      className="w-full flex items-center gap-2 px-3.5 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 text-left"
+                    >
+                      <Boxes size={14} className="text-sky-700" />
+                      <span>+ Thêm hạ tầng mới</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsAddMenuOpen(false);
+                        setIsCreateMeterOpen(true);
+                      }}
+                      className="w-full flex items-center gap-2 px-3.5 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 text-left"
+                    >
+                      <Gauge size={14} className="text-amber-700" />
+                      <span>+ Thêm công tơ mới</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Bottom row: Search & Dropdown Filters */}
+            <div className="sgp-devices-filter-row">
+              <div className="flex-1 min-w-[200px] max-w-md">
+                <SgpSearchField
+                  sizeVariant="sm"
+                  value={searchQuery}
+                  onChange={setSearchQuery}
+                  placeholder="Tìm theo mã hoặc tên..."
+                />
+              </div>
+
+              {/* Type Filter Dropdown */}
+              <SgpSelect
+                sizeVariant="sm"
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value)}
+                options={
                   deviceSegment === 'ALL'
-                    ? 'bg-white text-slate-900 shadow-sm font-bold'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                Tất cả ({totalAllCount})
-              </button>
+                    ? [
+                        { value: 'ALL', label: 'Tất cả loại' },
+                        { value: 'ASSET', label: 'Hạ tầng' },
+                        { value: 'METER', label: 'Công tơ' },
+                      ]
+                    : deviceSegment === 'ASSETS'
+                    ? [
+                        { value: 'ALL', label: 'Tất cả loại hạ tầng' },
+                        { value: 'SWITCHBOARD', label: 'Tủ phân phối' },
+                        { value: 'SUBSTATION', label: 'Trạm biến áp' },
+                        { value: 'TRANSFORMER', label: 'Máy biến áp' },
+                        { value: 'FEEDER', label: 'Xuất tuyến' },
+                        { value: 'RTG', label: 'Cẩu bãi RTG' },
+                        { value: 'QUAY_CRANE', label: 'Cẩu bờ QC' },
+                        { value: 'PUMP', label: 'Trạm bơm' },
+                        { value: 'WATER_POINT', label: 'Điểm cấp nước' },
+                      ]
+                    : [
+                        { value: 'ALL', label: 'Tất cả nguồn năng lượng' },
+                        { value: 'ELECTRICITY', label: '⚡ Điện' },
+                        { value: 'WATER', label: '💧 Nước' },
+                      ]
+                }
+              />
 
+              {/* Zone Filter Dropdown */}
+              <SgpSelect
+                sizeVariant="sm"
+                value={zoneFilter}
+                onChange={(e) => setZoneFilter(e.target.value)}
+                options={[
+                  { value: 'ALL', label: 'Tất cả phân khu' },
+                  ...ZONES.map((z) => ({ value: z.id, label: z.name })),
+                ]}
+              />
+
+              {/* Status Filter Dropdown */}
+              <SgpSelect
+                sizeVariant="sm"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                options={[
+                  { value: 'ALL', label: 'Tất cả trạng thái' },
+                  { value: 'ACTIVE', label: 'Hoạt động' },
+                  { value: 'INACTIVE', label: 'Tạm dừng' },
+                  { value: 'RETIRED', label: 'Đã thu hồi' },
+                ]}
+              />
+
+              {/* Needs Attention Quick Filter */}
               <button
                 type="button"
-                role="tab"
-                aria-selected={deviceSegment === 'ASSETS'}
-                onClick={() => {
-                  setDeviceSegment('ASSETS');
-                  setTypeFilter('ALL');
-                }}
-                className={`px-3.5 py-1.5 rounded-lg transition-all ${
-                  deviceSegment === 'ASSETS'
-                    ? 'bg-white text-slate-900 shadow-sm font-bold'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
+                onClick={() => setNeedsAttentionOnly((prev) => !prev)}
+                className={`sgp-devices-attention-btn ${needsAttentionOnly ? 'active' : ''}`}
+                title="Lọc các mục chưa chấm tọa độ bản đồ hoặc cần bảo trì"
               >
-                Hạ tầng ({totalAssetsCount})
-              </button>
-
-              <button
-                type="button"
-                role="tab"
-                aria-selected={deviceSegment === 'METERS'}
-                onClick={() => {
-                  setDeviceSegment('METERS');
-                  setTypeFilter('ALL');
-                }}
-                className={`px-3.5 py-1.5 rounded-lg transition-all ${
-                  deviceSegment === 'METERS'
-                    ? 'bg-white text-slate-900 shadow-sm font-bold'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                Công tơ ({totalMetersCount})
+                <AlertTriangle size={13} className={needsAttentionOnly ? 'text-amber-800' : 'text-amber-500'} />
+                <span>Cần chú ý ({attentionCount})</span>
               </button>
             </div>
+          </div>
 
-            {/* Primary Action [+ Thêm] Dropdown */}
-            <div className="relative" ref={addMenuRef}>
-              <button
-                type="button"
-                onClick={() => setIsAddMenuOpen((prev) => !prev)}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-white bg-cyan-900 hover:bg-cyan-800 rounded-lg shadow-sm transition-colors"
-                aria-haspopup="true"
-                aria-expanded={isAddMenuOpen}
-              >
-                <Plus size={14} />
-                <span>Thêm</span>
-              </button>
-
-              {isAddMenuOpen && (
-                <div className="absolute right-0 top-full mt-1.5 w-52 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-30 animate-in fade-in zoom-in-95 duration-100">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsAddMenuOpen(false);
-                      setIsCreateAssetOpen(true);
-                    }}
-                    className="w-full flex items-center gap-2 px-3.5 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900 text-left"
-                  >
-                    <Boxes size={14} className="text-cyan-700" />
-                    <span>Thêm thiết bị hạ tầng</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsAddMenuOpen(false);
-                      setIsCreateMeterOpen(true);
-                    }}
-                    className="w-full flex items-center gap-2 px-3.5 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900 text-left"
-                  >
-                    <Gauge size={14} className="text-amber-600" />
-                    <span>Thêm công tơ mới</span>
-                  </button>
-                </div>
-              )}
+          {/* 2. DATA PRESENTATION */}
+          {loading ? (
+            <div className="py-20 text-center text-slate-500 text-xs font-medium bg-white rounded-xl border border-slate-200">
+              Đang tải danh mục thiết bị cảng...
             </div>
-          </div>
-        </div>
-
-        {/* 2. FILTER TOOLBAR */}
-        <div className="flex flex-wrap items-center gap-3 mt-4 pt-3 border-t border-slate-100">
-          {/* Search Box */}
-          <div className="relative flex-1 min-w-[220px] max-w-md">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Tìm theo mã, tên hoặc phân khu..."
-              className="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg border border-slate-300 bg-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500"
-            />
-            {searchQuery && (
+          ) : error ? (
+            <div className="py-12 text-center bg-white rounded-xl border border-slate-200">
+              <AlertTriangle size={32} className="mx-auto text-rose-500 mb-2" />
+              <p className="text-sm font-semibold text-rose-700">{error}</p>
               <button
                 type="button"
-                onClick={() => setSearchQuery('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                onClick={loadData}
+                className="mt-3 px-3 py-1.5 text-xs font-semibold bg-white border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50"
               >
-                <X size={12} />
+                Thử lại
               </button>
-            )}
-          </div>
+            </div>
+          ) : filteredItems.length === 0 ? (
+            <div className="py-20 text-center bg-white rounded-xl border border-slate-200 p-8 shadow-sm">
+              <Layers size={36} className="mx-auto text-slate-300 mb-3" />
+              <p className="text-sm font-semibold text-slate-700">Không tìm thấy thiết bị phù hợp</p>
+              <p className="text-xs text-slate-400 mt-1">Thử xóa bộ lọc hoặc tìm kiếm với từ khóa khác</p>
+            </div>
+          ) : (
+            <>
+              {/* DESKTOP TABLE VIEW (Section 9 & 10) - hidden on mobile */}
+              <div className="hidden md:block sgp-devices-table-wrap">
+                <table className="sgp-devices-table" aria-label="Danh sách thiết bị và công tơ">
+                  <thead>
+                    <tr>
+                      <th style={{ width: '14%' }}>Mã</th>
+                      <th style={{ width: '26%' }}>
+                        {deviceSegment === 'ASSETS' ? 'Tên thiết bị' : deviceSegment === 'METERS' ? 'Tên công tơ' : 'Thiết bị'}
+                      </th>
+                      <th style={{ width: '14%' }}>
+                        {deviceSegment === 'METERS' ? 'Năng lượng' : 'Phân loại'}
+                      </th>
+                      <th style={{ width: '18%' }}>Khu vực</th>
+                      <th style={{ width: '14%' }}>
+                        {deviceSegment === 'ASSETS' ? 'Công tơ liên kết' : deviceSegment === 'METERS' ? 'Chỉ số gần nhất' : 'Đo lường / Liên kết'}
+                      </th>
+                      <th style={{ width: '14%' }}>Trạng thái</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredItems.map((item) => {
+                      const isSelected = selectedEntityRef?.id === item.id;
+                      const isWater = item.categoryType === 'WATER';
 
-          {/* Dynamic Category/Type Filter */}
-          <select
-            value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
-            className="text-xs py-1.5 px-2.5 rounded-lg border border-slate-300 bg-white text-slate-700 focus:outline-none focus:border-cyan-500"
-          >
-            {deviceSegment === 'ALL' && (
-              <>
-                <option value="ALL">Tất cả phân loại</option>
-                <option value="ASSET">Chỉ thiết bị hạ tầng</option>
-                <option value="METER">Chỉ công tơ đo đếm</option>
-              </>
-            )}
-            {deviceSegment === 'ASSETS' && (
-              <>
-                <option value="ALL">Tất cả loại thiết bị</option>
-                {ASSET_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </>
-            )}
-            {deviceSegment === 'METERS' && (
-              <>
-                <option value="ALL">Tất cả nguồn năng lượng</option>
-                <option value="ELECTRICITY">⚡ Công tơ Điện</option>
-                <option value="WATER">💧 Công tơ Nước</option>
-              </>
-            )}
-          </select>
+                      return (
+                        <tr
+                          key={`${item.kind}-${item.id}`}
+                          onClick={() =>
+                            setSelectedEntityRef({
+                              type: item.kind === 'ASSET' ? 'asset' : 'meter',
+                              id: item.id,
+                              code: item.code,
+                            })
+                          }
+                          className={isSelected ? 'selected' : ''}
+                        >
+                          {/* Mã */}
+                          <td className="font-tabular font-bold text-slate-900">
+                            <div className="flex items-center gap-1.5">
+                              <span>{item.code}</span>
+                              {item.needsAttention && (
+                                <span
+                                  className="w-2 h-2 rounded-full bg-amber-500 shrink-0"
+                                  title={item.attentionReason || 'Cần chú ý'}
+                                />
+                              )}
+                            </div>
+                          </td>
 
-          {/* Zone Filter */}
-          <select
-            value={zoneFilter}
-            onChange={(e) => setZoneFilter(e.target.value)}
-            className="text-xs py-1.5 px-2.5 rounded-lg border border-slate-300 bg-white text-slate-700 focus:outline-none focus:border-cyan-500"
-          >
-            <option value="ALL">Tất cả phân khu</option>
-            {ZONES.map((z) => (
-              <option key={z.id} value={z.id}>
-                {z.name}
-              </option>
-            ))}
-          </select>
+                          {/* Tên */}
+                          <td className="font-semibold text-slate-800">
+                            <span className="truncate block max-w-xs">{item.name}</span>
+                          </td>
 
-          {/* Status Filter */}
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="text-xs py-1.5 px-2.5 rounded-lg border border-slate-300 bg-white text-slate-700 focus:outline-none focus:border-cyan-500"
-          >
-            <option value="ALL">Tất cả trạng thái</option>
-            <option value="ACTIVE">Đang hoạt động</option>
-            <option value="INACTIVE">Tạm ngừng</option>
-            <option value="RETIRED">Đã thu hồi</option>
-          </select>
-
-          {/* Needs Attention Toggle */}
-          <button
-            type="button"
-            onClick={() => setNeedsAttentionOnly((prev) => !prev)}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors border ${
-              needsAttentionOnly
-                ? 'bg-amber-100 text-amber-900 border-amber-300 shadow-sm'
-                : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'
-            }`}
-            title="Lọc các mục chưa chấm tọa độ bản đồ hoặc chờ đối soát"
-          >
-            <AlertTriangle size={13} className={needsAttentionOnly ? 'text-amber-700' : 'text-amber-500'} />
-            <span>Cần chú ý</span>
-          </button>
-        </div>
-      </header>
-
-      {/* 2. MAIN CONTENT AREA */}
-      <main className="flex-1 overflow-y-auto p-6">
-        {loading ? (
-          <div className="py-20 text-center text-slate-500 text-xs font-medium">
-            Đang tải dữ liệu thiết bị và công tơ...
-          </div>
-        ) : error ? (
-          <div className="py-12 text-center">
-            <AlertTriangle size={32} className="mx-auto text-rose-500 mb-2" />
-            <p className="text-sm font-semibold text-rose-700">{error}</p>
-            <button
-              type="button"
-              onClick={loadData}
-              className="mt-3 px-3 py-1.5 text-xs font-semibold bg-white border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50"
-            >
-              Thử lại
-            </button>
-          </div>
-        ) : filteredItems.length === 0 ? (
-          <div className="py-20 text-center bg-white rounded-xl border border-slate-200 p-8 shadow-sm">
-            <Layers size={36} className="mx-auto text-slate-300 mb-3" />
-            <p className="text-sm font-semibold text-slate-700">Không tìm thấy thiết bị phù hợp</p>
-            <p className="text-xs text-slate-400 mt-1">Thử xóa bộ lọc hoặc tìm kiếm với từ khóa khác</p>
-          </div>
-        ) : (
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-            {/* Desktop Table View */}
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs text-slate-700" aria-label="Danh sách thiết bị và công tơ">
-                <thead className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                  <tr>
-                    <th scope="col" className="py-3 px-4">Mã</th>
-                    <th scope="col" className="py-3 px-4">Phân loại</th>
-                    <th scope="col" className="py-3 px-4">Tên thiết bị / Công tơ</th>
-                    <th scope="col" className="py-3 px-4">Phân khu</th>
-                    <th scope="col" className="py-3 px-4">Đo lường / Liên kết</th>
-                    <th scope="col" className="py-3 px-4">Trạng thái</th>
-                    <th scope="col" className="py-3 px-4 text-right">Thao tác</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {filteredItems.map((item) => {
-                    const isSelected = selectedEntityRef?.id === item.id;
-                    return (
-                      <tr
-                        key={`${item.kind}-${item.id}`}
-                        onClick={() =>
-                          setSelectedEntityRef({
-                            type: item.kind === 'ASSET' ? 'asset' : 'meter',
-                            id: item.id,
-                            code: item.code,
-                          })
-                        }
-                        className={`cursor-pointer transition-colors ${
-                          isSelected
-                            ? 'bg-cyan-50/90 font-medium'
-                            : 'hover:bg-slate-50/80'
-                        }`}
-                      >
-                        {/* Mã */}
-                        <td className="py-3 px-4 font-tabular font-bold text-slate-900">
-                          <div className="flex items-center gap-1.5">
-                            <span>{item.code}</span>
-                            {item.needsAttention && (
-                              <span
-                                className="w-2 h-2 rounded-full bg-amber-500 shrink-0"
-                                title={item.attentionReason || 'Cần chú ý'}
-                              />
+                          {/* Phân loại / Năng lượng */}
+                          <td>
+                            {item.kind === 'ASSET' ? (
+                              <span className="sgp-badge-asset-type">
+                                {item.categoryBadge}
+                              </span>
+                            ) : (
+                              <span className={isWater ? 'sgp-badge-meter-water' : 'sgp-badge-meter-elec'}>
+                                {item.categoryBadge}
+                              </span>
                             )}
-                          </div>
-                        </td>
+                          </td>
 
-                        {/* Phân loại Badge */}
-                        <td className="py-3 px-4">
-                          {item.kind === 'ASSET' ? (
-                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 uppercase">
-                              <Boxes size={11} className="text-slate-500" />
-                              {item.categoryBadge}
-                            </span>
-                          ) : (
-                            <span
-                              className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded border ${
-                                item.categoryType === 'WATER'
-                                  ? 'text-sky-700 bg-sky-50 border-sky-200'
-                                  : 'text-amber-700 bg-amber-50 border-amber-200'
-                              }`}
-                            >
-                              {item.categoryBadge}
-                            </span>
+                          {/* Khu vực */}
+                          <td>
+                            <div className="flex items-center gap-1 text-slate-600">
+                              <MapPin size={11} className="text-slate-400 shrink-0" />
+                              <span className="truncate max-w-[160px]">{item.zoneName}</span>
+                            </div>
+                          </td>
+
+                          {/* Đo lường / Liên kết / Chỉ số */}
+                          <td className="font-tabular text-slate-700">
+                            {item.relationSummary}
+                          </td>
+
+                          {/* Trạng thái */}
+                          <td>
+                            <SgpStatusBadge status={item.status} />
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* MOBILE CARDS VIEW (Section 11) - strictly no table on <= 768px */}
+              <div className="block md:hidden space-y-2.5">
+                {filteredItems.map((item) => {
+                  const isWater = item.categoryType === 'WATER';
+
+                  return (
+                    <div
+                      key={`card-${item.kind}-${item.id}`}
+                      onClick={() =>
+                        setSelectedEntityRef({
+                          type: item.kind === 'ASSET' ? 'asset' : 'meter',
+                          id: item.id,
+                          code: item.code,
+                        })
+                      }
+                      className="sgp-device-card"
+                    >
+                      {/* Card Header: Code & Type */}
+                      <div className="sgp-device-card-header">
+                        <div className="flex items-center gap-1.5">
+                          <span className="sgp-device-card-code">{item.code}</span>
+                          {item.needsAttention && (
+                            <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
                           )}
-                        </td>
+                        </div>
+                        {item.kind === 'ASSET' ? (
+                          <span className="sgp-badge-asset-type text-[10px]">
+                            {item.categoryBadge}
+                          </span>
+                        ) : (
+                          <span className={`${isWater ? 'sgp-badge-meter-water' : 'sgp-badge-meter-elec'} text-[10px]`}>
+                            {item.categoryBadge}
+                          </span>
+                        )}
+                      </div>
 
-                        {/* Tên */}
-                        <td className="py-3 px-4 font-medium text-slate-900 max-w-[220px] truncate">
-                          {item.name}
-                        </td>
+                      {/* Card Title */}
+                      <div className="sgp-device-card-title">{item.name}</div>
 
-                        {/* Phân khu */}
-                        <td className="py-3 px-4">
-                          <div className="flex items-center gap-1 text-slate-600">
-                            <MapPin size={11} className="text-slate-400 shrink-0" />
-                            <span className="truncate max-w-[180px]">{item.zoneName}</span>
-                          </div>
-                        </td>
+                      {/* Card Meta: Zone & Relation */}
+                      <div className="sgp-device-card-meta">
+                        <MapPin size={12} className="text-slate-400 shrink-0" />
+                        <span className="truncate">{item.zoneName}</span>
+                        <span>·</span>
+                        <span className="font-tabular">{item.relationSummary}</span>
+                      </div>
 
-                        {/* Đo lường / Liên kết */}
-                        <td className="py-3 px-4 font-tabular">
-                          <span className="text-slate-600">{item.relationSummary}</span>
-                        </td>
+                      {/* Card Footer: Status & Chevron */}
+                      <div className="sgp-device-card-footer">
+                        <SgpStatusBadge status={item.status} />
+                        <ChevronRight size={16} className="text-slate-400" />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
 
-                        {/* Trạng thái */}
-                        <td className="py-3 px-4">
-                          {item.status === 'ACTIVE' ? (
-                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                              <CheckCircle2 size={11} className="text-emerald-600" />
-                              {item.statusLabel}
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
-                              <AlertTriangle size={11} className="text-rose-600" />
-                              {item.statusLabel}
-                            </span>
-                          )}
-                        </td>
-
-                        {/* Thao tác */}
-                        <td className="py-3 px-4 text-right">
-                          <div
-                            className="inline-flex items-center gap-1"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <button
-                              type="button"
-                              onClick={() => handleLocateEntity(item)}
-                              className="p-1.5 text-slate-400 hover:text-cyan-800 hover:bg-cyan-50 rounded-md transition-colors"
-                              title="Xem vị trí trên bản đồ"
-                            >
-                              <Navigation size={14} />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setSelectedEntityRef({
-                                  type: item.kind === 'ASSET' ? 'asset' : 'meter',
-                                  id: item.id,
-                                  code: item.code,
-                                })
-                              }
-                              className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-md transition-colors"
-                              title="Xem chi tiết"
-                            >
-                              <ChevronRight size={15} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-      </main>
-
-      {/* 3. DETAIL DRAWER (Read-First EntityDetailSurface) */}
+      {/* 3. READ-FIRST DETAIL SURFACE DRAWER */}
       {selectedEntityRef && (
         <EntityDetailSurface
-          entityType={selectedEntityRef.type}
+          type={selectedEntityRef.type}
+          id={selectedEntityRef.id}
+          code={selectedEntityRef.code}
           asset={activeAssetDetails}
           meter={activeMeterDetails}
           relations={activeRelations}
           connections={activeConnections}
           latestReading={activeLatestReading}
-          isLoading={detailLoading}
+          loading={detailLoading}
           onClose={() => setSelectedEntityRef(null)}
-          onLocateOnMap={() => {
-            const currentItem = unifiedItems.find((i) => i.id === selectedEntityRef.id);
-            if (currentItem) handleLocateEntity(currentItem);
+          onLocateOnMap={(coords, id, type) => {
+            locateOnMap({
+              type: type || selectedEntityRef.type,
+              id: id || selectedEntityRef.id,
+              code: selectedEntityRef.code || '',
+              coordinates: coords || undefined,
+            });
           }}
-          onEdit={() => {
-            alert('Chức năng chỉnh sửa thông tin.');
-          }}
-          onRelocate={() => {
-            const currentItem = unifiedItems.find((i) => i.id === selectedEntityRef.id);
-            if (currentItem) handleLocateEntity(currentItem);
-          }}
+          onOpenLinkMeter={() => setIsLinkMeterOpen(true)}
           onRetireOrDeactivate={handleRetireOrDeactivate}
-          onLinkMeter={() => setIsLinkMeterOpen(true)}
-          onSelectRelatedEntity={(type, id, code) => {
-            setSelectedEntityRef({ type, id, code });
-          }}
-          onInspectReading={(readingId) => {
-            setInspectingReadingId(readingId);
-          }}
         />
       )}
 
-      {/* 4. MODALS */}
-      {/* Create Asset Modal */}
+      {/* 4. CREATE ASSET MODAL */}
       {isCreateAssetOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md p-6 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <h3 className="text-sm font-bold text-slate-900">Thêm thiết bị hạ tầng mới</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+              <h3 className="font-bold text-base text-slate-900 flex items-center gap-2">
+                <Boxes size={18} className="text-sky-700" />
+                <span>Thêm Thiết Bị Hạ Tầng</span>
+              </h3>
               <button
                 type="button"
                 onClick={() => setIsCreateAssetOpen(false)}
@@ -979,120 +891,117 @@ export const DevicesWorkspacePage: React.FC = () => {
               </button>
             </div>
 
-            {formAssetError && (
-              <div className="mt-3 p-2 bg-rose-50 text-rose-700 text-xs rounded-lg border border-rose-200">
-                {formAssetError}
-              </div>
-            )}
-
-            <form onSubmit={handleCreateAssetSubmit} className="mt-4 space-y-3 text-xs">
+            <form onSubmit={handleCreateAssetSubmit} className="p-6 space-y-4">
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">Mã thiết bị *</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Mã thiết bị (*)</label>
                 <input
                   type="text"
                   required
+                  placeholder="VD: TBA-02, TC-K2-01"
                   value={formAssetCode}
                   onChange={(e) => setFormAssetCode(e.target.value)}
-                  placeholder="VD: RTG-05, TR-03"
-                  className="w-full px-3 py-1.5 border border-slate-300 rounded-lg focus:outline-none focus:border-cyan-500 font-tabular font-bold"
+                  className="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-sky-500"
                 />
               </div>
 
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">Tên thiết bị *</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Tên thiết bị (*)</label>
                 <input
                   type="text"
                   required
+                  placeholder="VD: Trạm biến áp trung thế TBA-02"
                   value={formAssetName}
                   onChange={(e) => setFormAssetName(e.target.value)}
-                  placeholder="VD: Cẩu khung RTG 05"
-                  className="w-full px-3 py-1.5 border border-slate-300 rounded-lg focus:outline-none focus:border-cyan-500"
+                  className="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-sky-500"
                 />
               </div>
 
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">Loại thiết bị *</label>
-                <select
-                  value={formAssetType}
-                  onChange={(e) => setFormAssetType(e.target.value as AssetType)}
-                  className="w-full px-3 py-1.5 border border-slate-300 rounded-lg focus:outline-none focus:border-cyan-500"
-                >
-                  {ASSET_TYPES.map((t) => (
-                    <option key={t} value={t}>
-                      {t}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">Phân khu</label>
-                <select
-                  value={formAssetZone}
-                  onChange={(e) => setFormAssetZone(e.target.value)}
-                  className="w-full px-3 py-1.5 border border-slate-300 rounded-lg focus:outline-none focus:border-cyan-500"
-                >
-                  <option value="">Chưa chọn phân khu</option>
-                  {ZONES.map((z) => (
-                    <option key={z.id} value={z.id}>
-                      {z.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Tọa độ Map X</label>
-                  <input
-                    type="number"
-                    step="0.0001"
-                    value={formAssetMapX}
-                    onChange={(e) => setFormAssetMapX(e.target.value)}
-                    placeholder="0.0000"
-                    className="w-full px-3 py-1.5 border border-slate-300 rounded-lg focus:outline-none focus:border-cyan-500"
-                  />
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Phân loại</label>
+                  <select
+                    value={formAssetType}
+                    onChange={(e) => setFormAssetType(e.target.value as AssetType)}
+                    className="w-full text-xs px-2.5 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-sky-500"
+                  >
+                    <option value="SWITCHBOARD">Tủ phân phối</option>
+                    <option value="SUBSTATION">Trạm biến áp</option>
+                    <option value="TRANSFORMER">Máy biến áp</option>
+                    <option value="FEEDER">Xuất tuyến</option>
+                    <option value="RTG">Cẩu bãi RTG</option>
+                    <option value="QUAY_CRANE">Cẩu bờ QC</option>
+                    <option value="PUMP">Trạm bơm nước</option>
+                    <option value="WATER_POINT">Điểm cấp nước</option>
+                  </select>
                 </div>
+
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Tọa độ Map Y</label>
-                  <input
-                    type="number"
-                    step="0.0001"
-                    value={formAssetMapY}
-                    onChange={(e) => setFormAssetMapY(e.target.value)}
-                    placeholder="0.0000"
-                    className="w-full px-3 py-1.5 border border-slate-300 rounded-lg focus:outline-none focus:border-cyan-500"
-                  />
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Khu vực</label>
+                  <select
+                    value={formAssetZoneId}
+                    onChange={(e) => setFormAssetZoneId(e.target.value)}
+                    className="w-full text-xs px-2.5 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-sky-500"
+                  >
+                    {ZONES.map((z) => (
+                      <option key={z.id} value={z.id}>{z.name}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 mt-4">
-                <button
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Vĩ độ (Lat)</label>
+                  <input
+                    type="text"
+                    value={formAssetLat}
+                    onChange={(e) => setFormAssetLat(e.target.value)}
+                    className="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-sky-500 font-tabular"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Kinh độ (Lng)</label>
+                  <input
+                    type="text"
+                    value={formAssetLng}
+                    onChange={(e) => setFormAssetLng(e.target.value)}
+                    className="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-sky-500 font-tabular"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+                <SgpButton
                   type="button"
+                  variant="ghost"
+                  size="sm"
                   onClick={() => setIsCreateAssetOpen(false)}
-                  className="px-3 py-1.5 text-slate-600 hover:bg-slate-100 rounded-lg font-medium"
                 >
                   Hủy
-                </button>
-                <button
+                </SgpButton>
+                <SgpButton
                   type="submit"
-                  disabled={formAssetSubmitting}
-                  className="px-4 py-1.5 text-white bg-cyan-900 hover:bg-cyan-800 rounded-lg font-bold shadow-sm disabled:opacity-50"
+                  variant="primary"
+                  size="sm"
+                  disabled={createAssetSubmitting}
                 >
-                  {formAssetSubmitting ? 'Đang tạo...' : 'Tạo thiết bị'}
-                </button>
+                  {createAssetSubmitting ? 'Đang tạo...' : 'Tạo thiết bị'}
+                </SgpButton>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* Create Meter Modal */}
+      {/* 5. CREATE METER MODAL */}
       {isCreateMeterOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md p-6 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <h3 className="text-sm font-bold text-slate-900">Thêm công tơ mới</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+              <h3 className="font-bold text-base text-slate-900 flex items-center gap-2">
+                <Gauge size={18} className="text-amber-700" />
+                <span>Thêm Công Tơ Mới</span>
+              </h3>
               <button
                 type="button"
                 onClick={() => setIsCreateMeterOpen(false)}
@@ -1102,101 +1011,99 @@ export const DevicesWorkspacePage: React.FC = () => {
               </button>
             </div>
 
-            {formMeterError && (
-              <div className="mt-3 p-2 bg-rose-50 text-rose-700 text-xs rounded-lg border border-rose-200">
-                {formMeterError}
-              </div>
-            )}
-
-            <form onSubmit={handleCreateMeterSubmit} className="mt-4 space-y-3 text-xs">
+            <form onSubmit={handleCreateMeterSubmit} className="p-6 space-y-4">
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">Mã công tơ *</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Số Serial (*)</label>
                 <input
                   type="text"
                   required
+                  placeholder="VD: EM-2024-009"
+                  value={formMeterSerial}
+                  onChange={(e) => setFormMeterSerial(e.target.value)}
+                  className="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-sky-500 font-tabular"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Mã công tơ (Tùy chọn)</label>
+                <input
+                  type="text"
+                  placeholder="VD: PE-09 (để trống sẽ tự tạo)"
                   value={formMeterCode}
                   onChange={(e) => setFormMeterCode(e.target.value)}
-                  placeholder="VD: SIM-EM-13, SIM-WM-05"
-                  className="w-full px-3 py-1.5 border border-slate-300 rounded-lg focus:outline-none focus:border-cyan-500 font-tabular font-bold"
+                  className="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-sky-500"
                 />
               </div>
 
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">Tên công tơ *</label>
-                <input
-                  type="text"
-                  required
-                  value={formMeterName}
-                  onChange={(e) => setFormMeterName(e.target.value)}
-                  placeholder="VD: Công tơ điện Trạm CY-03"
-                  className="w-full px-3 py-1.5 border border-slate-300 rounded-lg focus:outline-none focus:border-cyan-500"
-                />
-              </div>
-
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">Vị trí / Phân khu</label>
-                <input
-                  type="text"
-                  value={formMeterLocation}
-                  onChange={(e) => setFormMeterLocation(e.target.value)}
-                  placeholder="VD: Khu vực Bãi Container (CY)"
-                  className="w-full px-3 py-1.5 border border-slate-300 rounded-lg focus:outline-none focus:border-cyan-500"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Loại công tơ</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Công nghệ</label>
                   <select
                     value={formMeterType}
-                    onChange={(e) => setFormMeterType(e.target.value)}
-                    className="w-full px-3 py-1.5 border border-slate-300 rounded-lg focus:outline-none focus:border-cyan-500"
+                    onChange={(e) => setFormMeterType(e.target.value as 'MECHANICAL' | 'ELECTRONIC_LCD')}
+                    className="w-full text-xs px-2.5 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-sky-500"
                   >
-                    <option value="LCD">Điện tử (LCD)</option>
-                    <option value="MECHANICAL">Cơ khí (Kim quay)</option>
+                    <option value="ELECTRONIC_LCD">Điện tử LCD</option>
+                    <option value="MECHANICAL">Cơ khí</option>
                   </select>
                 </div>
+
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Nguồn năng lượng</label>
-                  <select
-                    value={formMeterUtility}
-                    onChange={(e) => setFormMeterUtility(e.target.value)}
-                    className="w-full px-3 py-1.5 border border-slate-300 rounded-lg focus:outline-none focus:border-cyan-500"
-                  >
-                    <option value="ELECTRICITY">⚡ Điện (kWh)</option>
-                    <option value="WATER">💧 Nước (m³)</option>
-                  </select>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Hệ số nhân</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={formMeterMultiplier}
+                    onChange={(e) => setFormMeterMultiplier(parseInt(e.target.value, 10) || 1)}
+                    className="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-sky-500 font-tabular"
+                  />
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 mt-4">
-                <button
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Khu vực</label>
+                <select
+                  value={formMeterZoneId}
+                  onChange={(e) => setFormMeterZoneId(e.target.value)}
+                  className="w-full text-xs px-2.5 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-sky-500"
+                >
+                  {ZONES.map((z) => (
+                    <option key={z.id} value={z.id}>{z.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+                <SgpButton
                   type="button"
+                  variant="ghost"
+                  size="sm"
                   onClick={() => setIsCreateMeterOpen(false)}
-                  className="px-3 py-1.5 text-slate-600 hover:bg-slate-100 rounded-lg font-medium"
                 >
                   Hủy
-                </button>
-                <button
+                </SgpButton>
+                <SgpButton
                   type="submit"
-                  disabled={formMeterSubmitting}
-                  className="px-4 py-1.5 text-white bg-cyan-900 hover:bg-cyan-800 rounded-lg font-bold shadow-sm disabled:opacity-50"
+                  variant="primary"
+                  size="sm"
+                  disabled={createMeterSubmitting}
                 >
-                  {formMeterSubmitting ? 'Đang tạo...' : 'Tạo công tơ'}
-                </button>
+                  {createMeterSubmitting ? 'Đang tạo...' : 'Tạo công tơ'}
+                </SgpButton>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* Link Meter to Asset Modal */}
+      {/* 6. LINK METER MODAL */}
       {isLinkMeterOpen && activeAssetDetails && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md p-6 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <h3 className="text-sm font-bold text-slate-900">
-                Liên kết công tơ cho {activeAssetDetails.code}
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+              <h3 className="font-bold text-base text-slate-900 flex items-center gap-2">
+                <Boxes size={18} className="text-sky-700" />
+                <span>Gán Công Tơ Vào Hạ Tầng</span>
               </h3>
               <button
                 type="button"
@@ -1207,62 +1114,45 @@ export const DevicesWorkspacePage: React.FC = () => {
               </button>
             </div>
 
-            <form onSubmit={handleLinkMeterSubmit} className="mt-4 space-y-3 text-xs">
+            <form onSubmit={handleLinkMeterSubmit} className="p-6 space-y-4">
+              <div className="p-3 bg-slate-50 rounded-lg text-xs text-slate-700">
+                <span className="font-semibold text-slate-900">{activeAssetDetails.code}</span> — {activeAssetDetails.name}
+              </div>
+
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">Chọn công tơ *</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Chọn công tơ đo đếm (*)</label>
                 <select
                   required
-                  value={linkMeterId}
-                  onChange={(e) => setLinkMeterId(e.target.value)}
-                  className="w-full px-3 py-1.5 border border-slate-300 rounded-lg focus:outline-none focus:border-cyan-500"
+                  value={selectedMeterToLink}
+                  onChange={(e) => setSelectedMeterToLink(e.target.value)}
+                  className="w-full text-xs px-2.5 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-sky-500"
                 >
-                  <option value="">-- Chọn công tơ đo đếm --</option>
+                  <option value="">-- Chọn công tơ trong kho --</option>
                   {meters.map((m) => (
                     <option key={m.id} value={m.id}>
-                      {m.meter_code} — {m.name}
+                      {m.meter_code} ({m.name || m.meter_type}) - {m.meter_type}
                     </option>
                   ))}
                 </select>
               </div>
 
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">Loại quan hệ</label>
-                <select
-                  value={linkRelationType}
-                  onChange={(e) => setLinkRelationType(e.target.value as 'MEASURES' | 'INSTALLED_AT')}
-                  className="w-full px-3 py-1.5 border border-slate-300 rounded-lg focus:outline-none focus:border-cyan-500"
-                >
-                  <option value="MEASURES">MEASURES — Đo lường tiêu thụ điện/nước</option>
-                  <option value="INSTALLED_AT">INSTALLED_AT — Lắp đặt vật lý trên thiết bị</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">Điểm gá lắp (tùy chọn)</label>
-                <input
-                  type="text"
-                  value={linkMountPoint}
-                  onChange={(e) => setLinkMountPoint(e.target.value)}
-                  placeholder="VD: Tủ điện nhánh số 2, Cột nguồn số 4"
-                  className="w-full px-3 py-1.5 border border-slate-300 rounded-lg focus:outline-none focus:border-cyan-500"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 mt-4">
-                <button
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+                <SgpButton
                   type="button"
+                  variant="ghost"
+                  size="sm"
                   onClick={() => setIsLinkMeterOpen(false)}
-                  className="px-3 py-1.5 text-slate-600 hover:bg-slate-100 rounded-lg font-medium"
                 >
                   Hủy
-                </button>
-                <button
+                </SgpButton>
+                <SgpButton
                   type="submit"
+                  variant="primary"
+                  size="sm"
                   disabled={linkSubmitting}
-                  className="px-4 py-1.5 text-white bg-cyan-900 hover:bg-cyan-800 rounded-lg font-bold shadow-sm disabled:opacity-50"
                 >
-                  {linkSubmitting ? 'Đang liên kết...' : 'Xác nhận liên kết'}
-                </button>
+                  {linkSubmitting ? 'Đang gán...' : 'Gán liên kết'}
+                </SgpButton>
               </div>
             </form>
           </div>

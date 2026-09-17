@@ -20,7 +20,10 @@ import type { Asset, MeterAssetRelation, AssetConnection } from '../assets/types
 import type { AdminMeterItem } from '../../types';
 
 export interface EntityDetailSurfaceProps {
-  entityType: 'asset' | 'meter';
+  entityType?: 'asset' | 'meter';
+  type?: 'asset' | 'meter';
+  id?: string;
+  code?: string;
   asset?: Asset | null;
   meter?: AdminMeterItem | null;
   relations?: MeterAssetRelation[];
@@ -31,33 +34,43 @@ export interface EntityDetailSurfaceProps {
     readingId?: string | null;
   } | null;
   isLoading?: boolean;
+  loading?: boolean;
   onClose: () => void;
-  onLocateOnMap?: () => void;
+  onLocateOnMap?: (coords?: [number, number] | null, id?: string, type?: 'asset' | 'meter') => void;
   onEdit?: () => void;
   onRelocate?: () => void;
   onRetireOrDeactivate?: () => void;
   onLinkMeter?: () => void;
+  onOpenLinkMeter?: () => void;
   onSelectRelatedEntity?: (type: 'asset' | 'meter', id: string, code?: string) => void;
   onInspectReading?: (readingId: string) => void;
 }
 
 export const EntityDetailSurface: React.FC<EntityDetailSurfaceProps> = ({
-  entityType,
+  entityType: propEntityType,
+  type: propType,
+  id: _id,
+  code: _code,
   asset,
   meter,
   relations = [],
   connections = [],
   latestReading,
-  isLoading = false,
+  isLoading: propIsLoading,
+  loading: propLoading,
   onClose,
   onLocateOnMap,
   onEdit,
   onRelocate,
   onRetireOrDeactivate,
-  onLinkMeter,
+  onLinkMeter: propOnLinkMeter,
+  onOpenLinkMeter: propOnOpenLinkMeter,
   onSelectRelatedEntity,
   onInspectReading,
 }) => {
+  const entityType = propEntityType || propType || 'asset';
+  const isLoading = propIsLoading ?? propLoading ?? false;
+  const onLinkMeter = propOnLinkMeter || propOnOpenLinkMeter;
   const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'RELATIONS'>('OVERVIEW');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -102,6 +115,14 @@ export const EntityDetailSurface: React.FC<EntityDetailSurfaceProps> = ({
     ? hasCoordinates ? `X: ${asset?.map_x?.toFixed(4)}, Y: ${asset?.map_y?.toFixed(4)}` : null
     : hasCoordinates ? `X: ${meter?.map_x?.toFixed(4)}, Y: ${meter?.map_y?.toFixed(4)}` : null;
 
+  const currentCoords: [number, number] | null = hasCoordinates
+    ? (entityType === 'asset' ? [asset!.map_x!, asset!.map_y!] : [meter!.map_x!, meter!.map_y!])
+    : null;
+
+  const handleLocate = () => {
+    onLocateOnMap?.(currentCoords, _id, entityType);
+  };
+
   const isWater = entityType === 'meter'
     ? (meter?.utility_type === 'WATER' || meter?.meter_code?.startsWith('SIM-WM-'))
     : (asset?.asset_type?.includes('WATER') || asset?.asset_type === 'PUMP');
@@ -118,7 +139,7 @@ export const EntityDetailSurface: React.FC<EntityDetailSurfaceProps> = ({
 
   return (
     <div
-      className="sgp-entity-detail-surface-container fixed inset-y-0 right-0 z-50 flex"
+      className="sgp-entity-detail-surface-container fixed inset-0 z-50 flex justify-end"
       role="dialog"
       aria-modal="true"
       aria-label={`Chi tiết ${entityType === 'asset' ? 'thiết bị' : 'công tơ'} ${code}`}
@@ -190,11 +211,11 @@ export const EntityDetailSurface: React.FC<EntityDetailSurfaceProps> = ({
           <div className="flex items-center gap-2 mt-3 pt-3 border-t border-slate-200/80">
             <button
               type="button"
-              onClick={onLocateOnMap}
-              className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-cyan-900 bg-cyan-50 hover:bg-cyan-100/80 border border-cyan-300 rounded-lg transition-colors shadow-sm"
+              onClick={handleLocate}
+              className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-sky-900 bg-sky-50 hover:bg-sky-100 border border-sky-300 rounded-lg transition-colors shadow-sm"
               title="Xem và phóng to vị trí trên bản đồ không gian"
             >
-              <Navigation size={13} className="text-cyan-700" />
+              <Navigation size={13} className="text-sky-700" />
               <span>Xem trên bản đồ</span>
             </button>
 
@@ -382,7 +403,7 @@ export const EntityDetailSurface: React.FC<EntityDetailSurfaceProps> = ({
                     </div>
                     <button
                       type="button"
-                      onClick={onLocateOnMap}
+                      onClick={handleLocate}
                       className="text-cyan-700 hover:text-cyan-900 font-semibold text-xs flex items-center gap-1"
                     >
                       <span>Mở bản đồ</span>
