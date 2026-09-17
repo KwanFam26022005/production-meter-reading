@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import type { AdminTab } from '../components/admin/AdminShell';
 
 export interface FocusedEntity {
@@ -59,8 +59,23 @@ export const OperationalWorkspaceProvider: React.FC<OperationalWorkspaceProvider
 }) => {
   const [activeTab, setActiveTabState] = useState<AdminTab>(initialTab);
   const [focusedEntity, setFocusedEntity] = useState<FocusedEntity | null>(null);
-  const [deviceSegment, setDeviceSegment] = useState<DeviceSegment>('ALL');
+  const [deviceSegment, setDeviceSegment] = useState<DeviceSegment>(() => {
+    if (initialTab === 'meters') return 'METERS';
+    if (initialTab === 'assets') return 'ASSETS';
+    return 'ALL';
+  });
   const [isShiftPanelOpen, setIsShiftPanelOpen] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTabState(initialTab);
+      if (initialTab === 'meters') {
+        setDeviceSegment('METERS');
+      } else if (initialTab === 'assets') {
+        setDeviceSegment('ASSETS');
+      }
+    }
+  }, [initialTab]);
   const [selectedDate, setSelectedDate] = useState<string>(() => {
     return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date());
   });

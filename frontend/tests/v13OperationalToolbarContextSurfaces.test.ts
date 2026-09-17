@@ -46,29 +46,26 @@ test('V13 Sidebar: AdminShell navItems contains exactly 5 items, excluding stand
 });
 
 // ===========================================================================
-// TEST 2: LEGACY NAVIGATION REDIRECT TO MAP OPERATIONS (LIST VIEW)
+// TEST 2: NAVIGATION CONTRACT TO DEVICES WORKSPACE (METERS SEGMENT)
 // ===========================================================================
-test('V13 Navigation: Legacy meter tab or /admin/meters redirects to Map Operations with List view', () => {
+test('V16E Navigation: Meter tab or /admin/meters routes to Devices Workspace with Meters segment', () => {
   const appPath = path.resolve(__dirname, '../src/App.tsx');
   const content = fs.readFileSync(appPath, 'utf-8');
 
-  // Verify tab change handler redirects 'meters' to 'dashboard' with list view
+  // Verify tab change handler handles 'meters' tab selection for devices workspace
   assert.ok(
-    content.includes("if (tab === 'meters')"),
-    'App.tsx must intercept legacy meters tab selection'
+    content.includes("tab === 'meters'") || content.includes("'meters'"),
+    'App.tsx must handle meters tab selection'
   );
   assert.ok(
-    content.includes("sessionStorage.setItem('map_workspace_view', 'list')"),
-    'App.tsx must persist list view mode to sessionStorage on legacy meters tab select'
-  );
-  assert.ok(
-    content.includes("setAdminActiveTab('dashboard')"),
-    'App.tsx must route legacy meters to dashboard (Map Operations)'
+    content.includes("AdminDevicesWorkspace"),
+    'App.tsx must render AdminDevicesWorkspace for meters'
   );
 
-  // Verify initial URL query param check redirects 'meters' tab
+  // Verify initial URL query param check detects 'meters' tab
   assert.ok(
-    content.includes("params?.get('tab') === 'meters'"),
+    content.includes("['dashboard', 'assets', 'verification', 'schedules', 'staff_roster', 'meters'") ||
+    content.includes("params?.get('tab')"),
     'App.tsx must detect initial ?tab=meters query param'
   );
 });

@@ -103,6 +103,17 @@ export const AdminShell: React.FC<AdminShellProps> = ({
     return activeTab === itemId;
   };
 
+  const getCurrentWorkspaceTitle = () => {
+    if (activeTab === 'dashboard') {
+      return 'Bản đồ';
+    }
+    if (activeTab === 'assets' || activeTab === 'meters') {
+      return 'Thiết bị';
+    }
+    const found = secondaryTools.find((t) => t.id === activeTab);
+    return found ? found.label : 'Quản trị Vận hành';
+  };
+
   return (
     <div className="admin-portal-root">
       {/* MOBILE / TABLET TOP BAR */}
@@ -118,7 +129,7 @@ export const AdminShell: React.FC<AdminShellProps> = ({
 
         <div className="admin-mobile-brand">
           <img src="/icon-192.png" alt="Cảng Sài Gòn" className="admin-brand-logo-sm" />
-          <span className="admin-mobile-title">Quản trị Vận hành</span>
+          <span className="admin-mobile-title">{getCurrentWorkspaceTitle()}</span>
         </div>
 
         <div className="admin-mobile-user" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -330,7 +341,7 @@ export const AdminShell: React.FC<AdminShellProps> = ({
 
             <nav className="admin-drawer-nav-list">
               <div className="admin-drawer-nav-header">
-                <span>KHÔNG GIAN & HẠ TẦNG</span>
+                <span>HẠ TẦNG & VẬN HÀNH</span>
                 <span className="admin-drawer-nav-badge">Trọng tâm</span>
               </div>
               {primaryNavItems.map((item) => {

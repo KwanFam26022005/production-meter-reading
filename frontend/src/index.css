@@ -17197,6 +17197,44 @@ body:has(.admin-portal-root) {
   }
 }
 
+/* MOBILE VIEWPORT (<= 768px): COMPACT INTERNAL MAP VIEW SWITCHER */
+@media (max-width: 768px) {
+  .sgp-unified-workspace-header {
+    height: 42px;
+    min-height: 42px;
+    max-height: 42px;
+    padding: 0 8px;
+    gap: 6px;
+    justify-content: center;
+  }
+  .sgp-uwh-col-left {
+    display: none;
+  }
+  .sgp-uwh-col-center {
+    flex: 1;
+    justify-content: center;
+  }
+  .sgp-uwh-mode-nav {
+    width: 100%;
+    max-width: 360px;
+    display: flex;
+    justify-content: center;
+    padding: 2px;
+    gap: 3px;
+    background: rgba(15, 23, 42, 0.85);
+  }
+  .sgp-uwh-mode-btn {
+    flex: 1;
+    justify-content: center;
+    padding: 4px 6px;
+    font-size: 11px;
+    gap: 4px;
+  }
+  .sgp-uwh-col-right {
+    display: none;
+  }
+}
+
 /* ==========================================================================
    SLIDE-OVER INLINE DRAWERS FOR MAP
    ========================================================================== */

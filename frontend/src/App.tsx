@@ -227,15 +227,11 @@ export default function App() {
   const [adminActiveTab, setAdminActiveTab] = useState<AdminTab>(() => {
     try {
       const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
-      if (params?.get('tab') === 'meters' || (typeof window !== 'undefined' && window.location.pathname.includes('/meters'))) {
-        sessionStorage.setItem('map_workspace_view', 'list');
-        return 'dashboard';
+      const tabParam = params?.get('tab');
+      if (tabParam && ['dashboard', 'assets', 'verification', 'schedules', 'staff_roster', 'meters', 'reports', 'audit'].includes(tabParam)) {
+        return tabParam as AdminTab;
       }
       const saved = sessionStorage.getItem('admin_active_tab');
-      if (saved === 'meters') {
-        sessionStorage.setItem('map_workspace_view', 'list');
-        return 'dashboard';
-      }
       if (saved && ['dashboard', 'assets', 'verification', 'schedules', 'staff_roster', 'meters', 'reports', 'audit'].includes(saved)) {
         return saved as AdminTab;
       }
@@ -244,22 +240,30 @@ export default function App() {
   });
 
   const handleSelectAdminTab = (tab: AdminTab) => {
-    // V13: Legacy meter navigation redirects into Map Operations -> List view
-    if (tab === 'meters') {
-      try {
-        sessionStorage.setItem('map_workspace_view', 'list');
-      } catch {}
-      setAdminActiveTab('dashboard');
-      try {
-        sessionStorage.setItem('admin_active_tab', 'dashboard');
-      } catch {}
-      return;
-    }
     setAdminActiveTab(tab);
     try {
       sessionStorage.setItem('admin_active_tab', tab);
+      if (typeof window !== 'undefined') {
+        const url = new URL(window.location.href);
+        url.searchParams.set('tab', tab);
+        window.history.replaceState({}, '', url.toString());
+      }
     } catch {}
   };
+
+  useEffect(() => {
+    const handleLocationChange = () => {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const tabParam = params.get('tab');
+        if (tabParam && ['dashboard', 'assets', 'verification', 'schedules', 'staff_roster', 'meters', 'reports', 'audit'].includes(tabParam)) {
+          setAdminActiveTab(tabParam as AdminTab);
+        }
+      } catch {}
+    };
+    window.addEventListener('popstate', handleLocationChange);
+    return () => window.removeEventListener('popstate', handleLocationChange);
+  }, []);
 
   // Selected Meter, Batch & Round Context
   const [selectedMeter, setSelectedMeter] = useState<Meter | null>(null);
