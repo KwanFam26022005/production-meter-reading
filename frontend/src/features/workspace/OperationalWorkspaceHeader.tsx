@@ -3,7 +3,6 @@ import {
   Map,
   Share2,
   List,
-  Boxes,
   ClipboardCheck,
   Zap,
   Droplets,
@@ -20,7 +19,7 @@ export interface OperationalWorkspaceHeaderProps {
 }
 
 export const OperationalWorkspaceHeader: React.FC<OperationalWorkspaceHeaderProps> = ({
-  currentTab,
+  currentTab: _currentTab,
   viewMode = 'map',
   onViewModeChange,
   rightControls,
@@ -49,14 +48,13 @@ export const OperationalWorkspaceHeader: React.FC<OperationalWorkspaceHeaderProp
         </div>
       </div>
 
-      {/* 2. CENTER: Unified Operational Modes (5 Direct Views) */}
+      {/* 2. CENTER: Map Internal View Modes */}
       <div className="sgp-uwh-col-center">
-        <nav className="sgp-uwh-mode-nav" aria-label="Chế độ làm việc">
-          {/* Nhóm 1: Tác nghiệp ca trực */}
+        <nav className="sgp-uwh-mode-nav" aria-label="Chế độ xem bản đồ">
           <button
             type="button"
             data-tab="dashboard-map"
-            className={`sgp-uwh-mode-btn ${currentTab === 'dashboard' && viewMode === 'map' ? 'active' : ''}`}
+            className={`sgp-uwh-mode-btn ${viewMode === 'map' ? 'active' : ''}`}
             onClick={() => {
               setActiveTab('dashboard');
               onViewModeChange?.('map');
@@ -71,7 +69,7 @@ export const OperationalWorkspaceHeader: React.FC<OperationalWorkspaceHeaderProp
           <button
             type="button"
             data-tab="dashboard-network"
-            className={`sgp-uwh-mode-btn ${currentTab === 'dashboard' && viewMode === 'network' ? 'active' : ''}`}
+            className={`sgp-uwh-mode-btn ${viewMode === 'network' ? 'active' : ''}`}
             onClick={() => {
               setActiveTab('dashboard');
               onViewModeChange?.('network');
@@ -86,7 +84,7 @@ export const OperationalWorkspaceHeader: React.FC<OperationalWorkspaceHeaderProp
           <button
             type="button"
             data-tab="dashboard-list"
-            className={`sgp-uwh-mode-btn ${currentTab === 'dashboard' && viewMode === 'list' ? 'active' : ''}`}
+            className={`sgp-uwh-mode-btn ${viewMode === 'list' ? 'active' : ''}`}
             onClick={() => {
               setActiveTab('dashboard');
               onViewModeChange?.('list');
@@ -97,35 +95,6 @@ export const OperationalWorkspaceHeader: React.FC<OperationalWorkspaceHeaderProp
             <span className="sgp-uwh-tab-full">Sổ ca ghi</span>
             <span className="sgp-uwh-tab-compact">Sổ ca</span>
             <span className="sgp-uwh-mode-count">12</span>
-          </button>
-
-          <span className="sgp-uwh-nav-divider" aria-hidden="true" />
-
-          {/* Nhóm 2: Quản trị hạ tầng & thẩm định đối soát */}
-          <button
-            type="button"
-            data-tab="assets"
-            className={`sgp-uwh-mode-btn ${currentTab === 'assets' ? 'active' : ''}`}
-            onClick={() => setActiveTab('assets')}
-            title="Kho danh mục thiết bị và điểm đấu nối hạ tầng"
-          >
-            <Boxes size={14} />
-            <span className="sgp-uwh-tab-full">Kho Thiết bị</span>
-            <span className="sgp-uwh-tab-compact">Thiết bị</span>
-            <span className="sgp-uwh-mode-count">32</span>
-          </button>
-
-          <button
-            type="button"
-            data-tab="verification"
-            className={`sgp-uwh-mode-btn ${currentTab === 'verification' ? 'active' : ''}`}
-            onClick={() => setActiveTab('verification')}
-            title="Trung tâm thẩm định hồ sơ hạ tầng và đối soát ca ghi"
-          >
-            <ClipboardCheck size={14} />
-            <span className="sgp-uwh-tab-full">Trung tâm Đối soát</span>
-            <span className="sgp-uwh-tab-compact">Đối soát</span>
-            <span className="sgp-uwh-mode-count sgp-count-highlight">2</span>
           </button>
         </nav>
       </div>
