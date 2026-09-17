@@ -33,6 +33,7 @@ import { useOperationalWorkspace } from '../../context/OperationalWorkspaceConte
 import { OperationalWorkspaceHeader } from '../workspace/OperationalWorkspaceHeader';
 import { AdaptiveCommandBar } from './command/AdaptiveCommandBar';
 import { MapInlineDrawers } from './components/MapInlineDrawers';
+import { ShiftMeterPanel } from './components/ShiftMeterPanel';
 import './motion/mapMotion.css';
 
 interface MapOperationsPageProps {
@@ -704,6 +705,7 @@ const MapOperationsPageContent: React.FC<MapOperationsPageProps> = ({
         currentTab="dashboard"
         viewMode={viewMode}
         onViewModeChange={setViewMode}
+        shiftSummaryText={`${overallKpis.currentRoundStatus || 'Ca 1'} · ${overallKpis.currentRoundTime || '06:00'} · ${overallKpis.confirmed}/${overallKpis.total}`}
         rightControls={
           <AdaptiveCommandBar
             isDocked={true}
@@ -889,6 +891,19 @@ const MapOperationsPageContent: React.FC<MapOperationsPageProps> = ({
             setInlineDrawer(null);
           }}
         />
+        {workspace?.isShiftPanelOpen && (
+          <ShiftMeterPanel
+            meters={mapMeters}
+            selectedMeterId={mapState.selectedEntity?.type === 'meter' ? mapState.selectedEntity.id : null}
+            onSelectMeter={(meterId) => {
+              if (viewMode !== 'map') setViewMode('map');
+              focusMeter(meterId);
+            }}
+            onClose={() => workspace?.setIsShiftPanelOpen(false)}
+            shiftTitle={overallKpis.currentRoundStatus || 'Ca 1'}
+            shiftTime={overallKpis.currentRoundTime ? `${overallKpis.currentRoundTime} - 14:00` : '06:00 - 14:00'}
+          />
+        )}
       </div>
     </div>
   );

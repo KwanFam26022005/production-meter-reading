@@ -49,6 +49,10 @@ artifacts/
 !docs/design/map-operations/v7/screenshots/**
 !docs/design/map-operations/reference/**
 !docs/design/map-operations/v16e-s1/screenshots/**
+!docs/design/map-operations/v16e-s2/screenshots/**
+
+# Local backups
+backup/
 
 # Agent local artifacts
 .agents/

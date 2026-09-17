@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
   Map as MapIcon,
-  List as ListIcon,
   Clock,
   ChevronDown,
   ChevronUp,
@@ -455,7 +454,7 @@ export const AdaptiveCommandBar: React.FC<AdaptiveCommandBarProps> = ({
             <>
               <span className="sgp-cmd-divider" aria-hidden="true">·</span>
 
-              {/* View Switch: [Bản đồ] | [Mạng lưới] | [Danh sách] */}
+              {/* View Switch: [Không gian] | [Mạng lưới] */}
               <div
                 className="sgp-cmd-view-switch"
                 role="radiogroup"
@@ -470,7 +469,7 @@ export const AdaptiveCommandBar: React.FC<AdaptiveCommandBarProps> = ({
                   title="Chuyển sang chế độ Bản đồ không gian"
                 >
                   <MapIcon size={14} aria-hidden="true" />
-                  <span>Bản đồ</span>
+                  <span>Không gian</span>
                 </button>
                 <button
                   type="button"
@@ -482,17 +481,6 @@ export const AdaptiveCommandBar: React.FC<AdaptiveCommandBarProps> = ({
                 >
                   <Share2 size={14} aria-hidden="true" />
                   <span>Mạng lưới</span>
-                </button>
-                <button
-                  type="button"
-                  className={`sgp-cmd-switch-btn ${viewMode === 'list' ? 'active' : ''}`}
-                  onClick={() => onViewModeChange('list')}
-                  role="radio"
-                  aria-checked={viewMode === 'list'}
-                  title="Chuyển sang Sổ ca ghi: Danh sách 12 công tơ cần ghi nhận trong ca trực"
-                >
-                  <ListIcon size={14} aria-hidden="true" />
-                  <span>Sổ ca ghi</span>
                 </button>
               </div>
             </>

@@ -1,0 +1,114 @@
+{
+  "audit_id": "V16E-UX-A0",
+  "timestamp": "2026-09-17T10:55:00+07:00",
+  "repository": "D:\\Projects\\production-meter-reading\\production-meter-reading",
+  "branch": "feature/v10-landmark-calibration-minimal-hud",
+  "commit_head": "d0165a90753bf812f5d2cb551a8aa4116e31d5e6",
+  "runtime": {
+    "frontend": "Vite 6.4.3 (http://localhost:5173)",
+    "backend": "FastAPI 0.115 (http://localhost:8000)",
+    "database": "backend/data/app.db (SQLite)",
+    "data_mode": "SIMULATION",
+    "active_scenario": "tan-thuan-demo-v1",
+    "active_map_version": "tan-thuan-v10 (PUBLISHED)",
+    "audited_role": "ADMIN (52300119)"
+  },
+  "files": {
+    "CURRENT_API_UI_MAP.csv": {
+      "size_bytes": 3670,
+      "sha256": "e98606406d1390e8d12328eb63f1d8f364272b06fdd383868b62e8ebc2285abd"
+    },
+    "CURRENT_COMPONENT_MAP.md": {
+      "size_bytes": 3731,
+      "sha256": "39b6e1697af9c35daa91537d0f4fdbe1b2022bf0a5893d9bee502f2721771131"
+    },
+    "CURRENT_CROSS_NAVIGATION.md": {
+      "size_bytes": 5514,
+      "sha256": "7618e5841d1f4a50e413490ca594d34a18e237016f81692ca5f8aec3ed8a742a"
+    },
+    "CURRENT_CRUD_OWNERSHIP.csv": {
+      "size_bytes": 3156,
+      "sha256": "b116f7ac0800f81358cbdc0e29317bc207b186a071570d18ca657677ae5eecdb"
+    },
+    "CURRENT_DUPLICATION_MATRIX.csv": {
+      "size_bytes": 2999,
+      "sha256": "fc231fa38123f2dd8eae37e3dce600b11b9cbfcb63f74c4b74257ff324a2e972"
+    },
+    "CURRENT_ENTITY_UI_MATRIX.csv": {
+      "size_bytes": 2377,
+      "sha256": "b33af0fdf20f8c60421ae435de5ece425bbb78a1a8202cf3b6c14432787b145c"
+    },
+    "CURRENT_NAVIGATION_AUDIT.md": {
+      "size_bytes": 4686,
+      "sha256": "0c3ed6b7ca466c874bd189422441d8cdcaa215394a29183f5dcb891ec80e6c3c"
+    },
+    "CURRENT_PRODUCT_MODEL.md": {
+      "size_bytes": 5753,
+      "sha256": "784c4acd8c3637db70f548b5c51bd0ac5d60391d363a7838ff7167c03fab4cfc"
+    },
+    "CURRENT_ROLE_PERMISSIONS.md": {
+      "size_bytes": 2688,
+      "sha256": "40efe2ee459ab9cf908dacae489b1a0947089a3adcd5e11e70251ec9f1161211"
+    },
+    "CURRENT_RUNTIME_WORKFLOWS.md": {
+      "size_bytes": 5317,
+      "sha256": "ffd255e99cbd192145f73df76d5dec5ed7cdce066cce3a16416e2a95daab2f69"
+    },
+    "CURRENT_SELECTION_STATE.md": {
+      "size_bytes": 2929,
+      "sha256": "65bcb9d81869497fc2df3421b18754321d4cb20ac428c779a5237e4308561b5d"
+    },
+    "CURRENT_TERMINOLOGY.md": {
+      "size_bytes": 4185,
+      "sha256": "402b59a5a9c4c9b73ed4809c9d333a3b2acd80f4c6a972c566eff88338d359b9"
+    },
+    "CURRENT_VIEW_MATRIX.csv": {
+      "size_bytes": 1294,
+      "sha256": "629ab8c7de4cd999a29991c09a2d946d263fd7531f7fec74ce453fc5cd19c2a2"
+    },
+    "PRODUCT_RESPONSIBILITY_MATRIX.csv": {
+      "size_bytes": 2700,
+      "sha256": "94158ed561f0224635d1aabd5a49c59083baaee80e22e50d83d781b2a3cb95e2"
+    },
+    "V16E_UX_A0_FINDINGS.md": {
+      "size_bytes": 9230,
+      "sha256": "79bd92ffba398d3d9bc09fbf58bb028d5a448a828c46923dd983d7581ea6845a"
+    },
+    "screenshots/01-sidebar-map.png": {
+      "size_bytes": 1399109,
+      "sha256": "8aa5b5ee8c222b316023fddb5251ff71e081407de31a23d86db168caaa2e182d"
+    },
+    "screenshots/02-map-meter-selected.png": {
+      "size_bytes": 1399078,
+      "sha256": "55f427b0f171b072d582679622be76122431f8b2e914cbd8f514d4a137e0e796"
+    },
+    "screenshots/03-network-asset-selected.png": {
+      "size_bytes": 97197,
+      "sha256": "db6de5932a550344f0a7077b7dfc59eb795d47a25c879ad657e8f099282a2cc9"
+    },
+    "screenshots/04-list-default.png": {
+      "size_bytes": 163923,
+      "sha256": "3864cf642b54988c6e390b800f4e092ebbcadd1be6941783a3fd68c2aeddc5d7"
+    },
+    "screenshots/05-list-meter-selected.png": {
+      "size_bytes": 184453,
+      "sha256": "c94d8c373a13801cd7989d8e5ccf90edd62e1014e92cefd727754f86acb6aa03"
+    },
+    "screenshots/06-assets-default.png": {
+      "size_bytes": 220249,
+      "sha256": "12e353bdc396da9466182bee5cfcee2e22844efe4868c453621bf685c6c64713"
+    },
+    "screenshots/07-asset-selected.png": {
+      "size_bytes": 219834,
+      "sha256": "cae340c2e0ae3f563e1654dfe29c84932a7864060e3442a41aa923e3cb6060bc"
+    },
+    "screenshots/08-verification-default.png": {
+      "size_bytes": 124467,
+      "sha256": "e82f4651a6b85f2169e43f51a82cb818403b88c98f5471ed2882675916588dd8"
+    },
+    "screenshots/09-verification-detail.png": {
+      "size_bytes": 124465,
+      "sha256": "227ce496656ee4107a110419bc129b82a47f539323083b1e6421d8b605d696b6"
+    }
+  }
+}

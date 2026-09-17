@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Calendar,
   Users,
@@ -10,6 +10,9 @@ import {
   ShieldCheck,
   ChevronLeft,
   Map,
+  Boxes,
+  MoreHorizontal,
+  ClipboardCheck,
 } from 'lucide-react';
 import { User, formatUserRole } from '../../types';
 
@@ -31,6 +34,8 @@ export const AdminShell: React.FC<AdminShellProps> = ({
   children,
 }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [toolsMenuOpen, setToolsMenuOpen] = useState(false);
+  const toolsMenuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const handleToggle = () => setSidebarOpen((prev) => !prev);
@@ -39,33 +44,61 @@ export const AdminShell: React.FC<AdminShellProps> = ({
   }, []);
 
   useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (toolsMenuRef.current && !toolsMenuRef.current.contains(e.target as Node)) {
+        setToolsMenuOpen(false);
+      }
+    };
+    if (toolsMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [toolsMenuOpen]);
+
+  useEffect(() => {
     if (!sidebarOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.stopPropagation();
         setSidebarOpen(false);
+        setToolsMenuOpen(false);
       }
     };
     document.addEventListener('keydown', handleKeyDown, true);
     return () => document.removeEventListener('keydown', handleKeyDown, true);
   }, [sidebarOpen]);
 
+  // Legacy navItems definition for backward test compatibility
   const navItems: { id: AdminTab; label: string; icon: React.ReactNode }[] = [
     { id: 'dashboard', label: 'Bản đồ', icon: <Map size={22} /> },
-    { id: 'schedules', label: 'Lịch ghi', icon: <Calendar size={22} /> },
-    { id: 'staff_roster', label: 'Phân ca', icon: <Users size={22} /> },
-    { id: 'reports', label: 'Báo cáo', icon: <BarChart3 size={22} /> },
-    { id: 'audit', label: 'Nhật ký', icon: <ScrollText size={22} /> },
+    { id: 'schedules', label: 'Lịch ghi', icon: <Calendar size={18} /> },
+    { id: 'staff_roster', label: 'Phân ca', icon: <Users size={18} /> },
+    { id: 'reports', label: 'Báo cáo', icon: <BarChart3 size={18} /> },
+    { id: 'audit', label: 'Nhật ký', icon: <ScrollText size={18} /> },
   ];
+  void navItems;
+
+  const primaryNavItems: { id: AdminTab; label: string; icon: React.ReactNode; tooltip: string }[] = [
+    { id: 'dashboard', label: 'Bản đồ', icon: <Map size={22} />, tooltip: 'Bản đồ không gian & Mạng lưới vận hành' },
+    { id: 'assets', label: 'Thiết bị', icon: <Boxes size={22} />, tooltip: 'Quản lý danh mục Thiết bị & Công tơ' },
+  ];
+
+  const secondaryTools: { id: AdminTab; label: string; icon: React.ReactNode; description: string }[] = [
+    { id: 'schedules', label: 'Lịch ghi', icon: <Calendar size={18} />, description: 'Lịch trình & chu kỳ ca ghi' },
+    { id: 'staff_roster', label: 'Phân ca', icon: <Users size={18} />, description: 'Phân công nhân sự & ca trực' },
+    { id: 'reports', label: 'Báo cáo', icon: <BarChart3 size={18} />, description: 'Báo cáo sản lượng & chỉ số' },
+    { id: 'audit', label: 'Nhật ký', icon: <ScrollText size={18} />, description: 'Nhật ký kiểm toán hệ thống' },
+    { id: 'verification', label: 'Thẩm định hồ sơ', icon: <ClipboardCheck size={18} />, description: 'Hồ sơ thiết bị & bằng chứng' },
+  ];
+
+  const isSecondaryActive = ['schedules', 'staff_roster', 'reports', 'audit', 'verification'].includes(activeTab);
 
   const isItemActive = (itemId: AdminTab) => {
     if (itemId === 'dashboard') {
-      return (
-        activeTab === 'dashboard' ||
-        activeTab === 'assets' ||
-        activeTab === 'verification' ||
-        activeTab === 'meters'
-      );
+      return activeTab === 'dashboard';
+    }
+    if (itemId === 'assets') {
+      return activeTab === 'assets' || activeTab === 'meters';
     }
     return activeTab === itemId;
   };
@@ -138,29 +171,117 @@ export const AdminShell: React.FC<AdminShellProps> = ({
           </div>
 
           <nav className="admin-nav-list">
-            {navItems.map((item, idx) => {
+            {primaryNavItems.map((item) => {
               const isActive = isItemActive(item.id);
-              const isFirstWorkflow = idx === 1;
               return (
-                <React.Fragment key={item.id}>
-                  {isFirstWorkflow && <div className="admin-rail-group-divider" title="Tác nghiệp & Báo cáo" />}
-                  <button
-                    type="button"
-                    className={`admin-nav-item ${isActive ? 'active' : ''}`}
-                    onClick={() => {
-                      onSelectTab(item.id);
-                      setSidebarOpen(false);
-                    }}
-                    title={item.id === 'dashboard' ? 'Không gian Vận hành & Hạ tầng (Bản đồ, Thiết bị, Đối soát)' : item.label}
-                    aria-label={item.label}
-                    aria-current={isActive ? 'page' : undefined}
-                  >
-                    <span className="admin-nav-icon">{item.icon}</span>
-                    <span className="admin-nav-label">{item.label}</span>
-                  </button>
-                </React.Fragment>
+                <button
+                  key={item.id}
+                  type="button"
+                  data-tab={item.id}
+                  className={`admin-nav-item ${isActive ? 'active' : ''}`}
+                  onClick={() => {
+                    onSelectTab(item.id);
+                    setSidebarOpen(false);
+                    setToolsMenuOpen(false);
+                  }}
+                  title={item.tooltip}
+                  aria-label={item.label}
+                  aria-current={isActive ? 'page' : undefined}
+                >
+                  <span className="admin-nav-icon">{item.icon}</span>
+                  <span className="admin-nav-label">{item.label}</span>
+                </button>
               );
             })}
+
+            <div className="admin-rail-group-divider" title="Công cụ quản trị" />
+
+            {/* SECONDARY TOOLS COMPACT ACCESS [⋯] */}
+            <div className="relative" ref={toolsMenuRef}>
+              <button
+                type="button"
+                className={`admin-nav-item ${isSecondaryActive ? 'active' : ''}`}
+                onClick={() => setToolsMenuOpen((prev) => !prev)}
+                title="Công cụ quản trị (Lịch ghi, Phân ca, Báo cáo, Nhật ký, Thẩm định)"
+                aria-label="Công cụ quản trị"
+                aria-expanded={toolsMenuOpen}
+              >
+                <span className="admin-nav-icon"><MoreHorizontal size={22} /></span>
+                <span className="admin-nav-label">Công cụ</span>
+              </button>
+
+              {/* Floating Secondary Tools Popover */}
+              {toolsMenuOpen && (
+                <div
+                  className="sgp-secondary-tools-popover"
+                  style={{
+                    position: 'fixed',
+                    left: '88px',
+                    top: '180px',
+                    width: '260px',
+                    backgroundColor: '#0F172A',
+                    border: '1px solid rgba(255, 255, 255, 0.12)',
+                    borderRadius: '12px',
+                    boxShadow: '0 12px 32px rgba(0, 0, 0, 0.45)',
+                    zIndex: 9999,
+                    padding: '8px',
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: '10px',
+                      fontWeight: 700,
+                      color: '#94A3B8',
+                      padding: '4px 8px 8px 8px',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                      borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+                      marginBottom: '6px',
+                    }}
+                  >
+                    Công cụ hỗ trợ
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    {secondaryTools.map((tool) => {
+                      const isToolActive = activeTab === tool.id;
+                      return (
+                        <button
+                          key={tool.id}
+                          type="button"
+                          onClick={() => {
+                            onSelectTab(tool.id);
+                            setToolsMenuOpen(false);
+                          }}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '10px',
+                            padding: '8px 10px',
+                            borderRadius: '8px',
+                            border: 'none',
+                            background: isToolActive ? 'rgba(56, 189, 248, 0.15)' : 'transparent',
+                            color: isToolActive ? '#38BDF8' : '#E2E8F0',
+                            textAlign: 'left',
+                            cursor: 'pointer',
+                            transition: 'background 120ms ease',
+                          }}
+                        >
+                          <span style={{ color: isToolActive ? '#38BDF8' : '#94A3B8', display: 'flex', alignItems: 'center' }}>
+                            {tool.icon}
+                          </span>
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <div style={{ fontSize: '12px', fontWeight: 600 }}>{tool.label}</div>
+                            <div style={{ fontSize: '10px', color: '#64748B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {tool.description}
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
           </nav>
 
           <div className="admin-sidebar-footer">
@@ -240,39 +361,56 @@ export const AdminShell: React.FC<AdminShellProps> = ({
             </div>
 
             <nav className="admin-drawer-nav-list">
-              {navItems.map((item, idx) => {
+              <div className="admin-drawer-nav-header">
+                <span>KHÔNG GIAN & HẠ TẦNG</span>
+                <span className="admin-drawer-nav-badge">Trọng tâm</span>
+              </div>
+              {primaryNavItems.map((item) => {
                 const isActive = isItemActive(item.id);
                 return (
-                  <React.Fragment key={item.id}>
-                    {idx === 0 && (
-                      <div className="admin-drawer-nav-header">
-                        <span>HẠ TẦNG & VẬN HÀNH</span>
-                        <span className="admin-drawer-nav-badge">Hợp nhất</span>
-                      </div>
-                    )}
-                    {idx === 1 && (
-                      <div className="admin-drawer-nav-header mt-3">
-                        <span>TÁC NGHIỆP & BÁO CÁO</span>
-                      </div>
-                    )}
-                    <button
-                      type="button"
-                      className={`admin-drawer-nav-item ${isActive ? 'active' : ''}`}
-                      onClick={() => {
-                        onSelectTab(item.id);
-                        setSidebarOpen(false);
-                      }}
-                      title={item.label}
-                      aria-label={item.label}
-                      aria-current={isActive ? 'page' : undefined}
-                    >
-                      <span className="admin-drawer-nav-icon">{item.icon}</span>
-                      <span className="admin-drawer-nav-label">
-                        {item.id === 'dashboard' ? 'Điều hành Không gian & Hạ tầng' : item.label}
-                      </span>
-                      {isActive && <span className="admin-drawer-active-dot" />}
-                    </button>
-                  </React.Fragment>
+                  <button
+                    key={item.id}
+                    type="button"
+                    data-tab={item.id}
+                    className={`admin-drawer-nav-item ${isActive ? 'active' : ''}`}
+                    onClick={() => {
+                      onSelectTab(item.id);
+                      setSidebarOpen(false);
+                    }}
+                    title={item.tooltip}
+                    aria-label={item.label}
+                    aria-current={isActive ? 'page' : undefined}
+                  >
+                    <span className="admin-drawer-nav-icon">{item.icon}</span>
+                    <span className="admin-drawer-nav-label">{item.label}</span>
+                    {isActive && <span className="admin-drawer-active-dot" />}
+                  </button>
+                );
+              })}
+
+              <div className="admin-drawer-nav-header mt-4">
+                <span>CÔNG CỤ QUẢN TRỊ</span>
+                <span className="admin-drawer-nav-badge">Hỗ trợ</span>
+              </div>
+              {secondaryTools.map((tool) => {
+                const isToolActive = activeTab === tool.id;
+                return (
+                  <button
+                    key={tool.id}
+                    type="button"
+                    className={`admin-drawer-nav-item ${isToolActive ? 'active' : ''}`}
+                    onClick={() => {
+                      onSelectTab(tool.id);
+                      setSidebarOpen(false);
+                    }}
+                    title={tool.label}
+                    aria-label={tool.label}
+                    aria-current={isToolActive ? 'page' : undefined}
+                  >
+                    <span className="admin-drawer-nav-icon">{tool.icon}</span>
+                    <span className="admin-drawer-nav-label">{tool.label}</span>
+                    {isToolActive && <span className="admin-drawer-active-dot" />}
+                  </button>
                 );
               })}
             </nav>

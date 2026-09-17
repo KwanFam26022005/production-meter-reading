@@ -1,0 +1,27 @@
+Endpoint,HTTP Method,Consumer Component,Primary Entity,Purpose,Read / Write,Scenario Scoped?
+/api/v1/map/overview,GET,useMapOperations (MapOperationsPage),"Meter, ReadingRound, Zone",Fetch consolidated spatial meter operational state and current shift,Read,Yes (active_scenario)
+/api/v1/map/operators,GET,useMapOperations,User (Operator),Fetch list of operators available for shift reassignment,Read,No
+/api/v1/admin/dashboard,GET,"AdminDashboard, useMapOperations","KPI, ReadingRound, Exception","Fetch shift KPIs, round progress, reading exceptions",Read,Yes
+/api/v1/admin/assets,GET,"AdminAssets, AdminVerification",Asset,Paginated filterable catalog of infrastructure assets,Read,Yes (scenario_id filter)
+/api/v1/admin/assets,POST,AdminAssets,Asset,Create new physical port infrastructure asset,Write,Yes
+/api/v1/admin/assets/{id},GET,AdminAssets,Asset,Fetch single asset details with parent/child attributes,Read,Yes
+/api/v1/admin/assets/{id},PUT,AdminAssets,Asset,"Update asset metadata, name, zone, mobility",Write,Yes
+/api/v1/admin/assets/{id}/retire,POST,AdminAssets,Asset,Non-destructive asset retirement,Write,Yes
+/api/v1/admin/assets/{id}/relocate,POST,AdminAssets,Asset,"Update canonical map coordinates (map_x, map_y)",Write,Yes
+/api/v1/admin/assets/{id}/operational-context,GET,AssetContextSurface,"Asset, Meter, AssetConnection","Fetch complete operational context: attached meters, readings, topology",Read,Yes
+/api/v1/admin/asset-network,GET,"MapOperationsPage, UtilityNetworkView","Asset, AssetConnection",Fetch complete DAG nodes and edges for network diagram and map layer,Read,Yes
+/api/v1/admin/meter-asset-relations,GET,"AdminAssets, AdminVerification",MeterAssetRelation,List active or pending meter-asset associations,Read,Yes
+/api/v1/admin/meter-asset-relations,POST,AdminAssets,MeterAssetRelation,Create INSTALLED_AT or MEASURES relation,Write,Yes
+/api/v1/admin/meter-asset-relations/{id},DELETE,AdminAssets,MeterAssetRelation,Close relation (sets valid_to timestamp),Write,Yes
+/api/v1/admin/asset-connections,GET,"AdminAssets, AdminVerification",AssetConnection,List utility network connections between assets,Read,Yes
+/api/v1/admin/asset-verification/overview,GET,AdminVerification,VerificationSummary,"KPIs for pending, verified, rejected assets and relations",Read,Yes
+/api/v1/admin/asset-verification/matrix,GET,AdminVerification,MeterReviewMatrixItem,Meter-to-Asset verification review matrix,Read,Yes
+/api/v1/admin/assets/{id}/verify,POST,AdminVerification,"Asset, VerificationEvidence",Verify unverified candidate asset with attached evidence reference,Write,Yes
+/api/v1/admin/assets/{id}/reject,POST,AdminVerification,Asset,Reject candidate proposal,Write,Yes
+/api/v1/admin/meter-asset-relations/{id}/verify,POST,AdminVerification,MeterAssetRelation,Verify meter-asset relation with evidence,Write,Yes
+/api/v1/admin/meters,GET,"AdminMeters, useMapOperations (fallback)",Meter,"List meters with latest reading, status, and zone filter",Read,Yes
+/api/v1/admin/meters,POST,"AdminMeters, UnifiedContextSurface",Meter,Create new meter,Write,Yes
+/api/v1/admin/meters/{id},PUT,"AdminMeters, UnifiedContextSurface",Meter,Update meter properties,Write,Yes
+/api/v1/admin/meters/{id}/retire,POST,"UnifiedContextSurface, AdminMeters",Meter,Non-destructive meter retirement with reason and audit log,Write,Yes
+/api/v1/admin/meters/{id}/relocate,POST,MapOperationsPage (SpatialPlacementOverlay),Meter,Relocate meter pin on map to new canonical coordinates,Write,Yes
+/api/v1/meter-readings/confirm,POST,App.tsx (Mobile capture / manual entry),MeterReading,Confirm OCR or manual meter reading with audit tracking,Write,Yes

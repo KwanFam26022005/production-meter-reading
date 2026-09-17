@@ -10,11 +10,17 @@ export interface FocusedEntity {
   coordinates?: [number, number]; // [map_x, map_y]
 }
 
+export type DeviceSegment = 'ALL' | 'ASSETS' | 'METERS';
+
 export interface OperationalWorkspaceContextType {
   activeTab: AdminTab;
   setActiveTab: (tab: AdminTab) => void;
   focusedEntity: FocusedEntity | null;
   setFocusedEntity: (entity: FocusedEntity | null) => void;
+  deviceSegment: DeviceSegment;
+  setDeviceSegment: (segment: DeviceSegment) => void;
+  isShiftPanelOpen: boolean;
+  setIsShiftPanelOpen: (open: boolean | ((prev: boolean) => boolean)) => void;
   selectedDate: string;
   setSelectedDate: (date: string) => void;
   selectedRoundId: string | null;
@@ -25,6 +31,7 @@ export interface OperationalWorkspaceContextType {
   setInspectingReadingId: (readingId: string | null) => void;
   locateOnMap: (entity: FocusedEntity) => void;
   openAssetDetails: (assetId: string, assetCode?: string) => void;
+  openMeterDetails: (meterId: string, meterCode?: string) => void;
   openVerification: (assetId?: string) => void;
   openReadingInspection: (readingId: string) => void;
 }
@@ -52,6 +59,8 @@ export const OperationalWorkspaceProvider: React.FC<OperationalWorkspaceProvider
 }) => {
   const [activeTab, setActiveTabState] = useState<AdminTab>(initialTab);
   const [focusedEntity, setFocusedEntity] = useState<FocusedEntity | null>(null);
+  const [deviceSegment, setDeviceSegment] = useState<DeviceSegment>('ALL');
+  const [isShiftPanelOpen, setIsShiftPanelOpen] = useState<boolean>(false);
   const [selectedDate, setSelectedDate] = useState<string>(() => {
     return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date());
   });
@@ -78,6 +87,18 @@ export const OperationalWorkspaceProvider: React.FC<OperationalWorkspaceProvider
       id: assetId,
       code: assetCode || assetId,
     });
+    setDeviceSegment('ASSETS');
+    setInspectingReadingId(null);
+    setActiveTab('assets');
+  }, [setActiveTab]);
+
+  const openMeterDetails = useCallback((meterId: string, meterCode?: string) => {
+    setFocusedEntity({
+      type: 'meter',
+      id: meterId,
+      code: meterCode || meterId,
+    });
+    setDeviceSegment('METERS');
     setInspectingReadingId(null);
     setActiveTab('assets');
   }, [setActiveTab]);
@@ -103,6 +124,10 @@ export const OperationalWorkspaceProvider: React.FC<OperationalWorkspaceProvider
     setActiveTab,
     focusedEntity,
     setFocusedEntity,
+    deviceSegment,
+    setDeviceSegment,
+    isShiftPanelOpen,
+    setIsShiftPanelOpen,
     selectedDate,
     setSelectedDate,
     selectedRoundId,
@@ -113,6 +138,7 @@ export const OperationalWorkspaceProvider: React.FC<OperationalWorkspaceProvider
     setInspectingReadingId,
     locateOnMap,
     openAssetDetails,
+    openMeterDetails,
     openVerification,
     openReadingInspection,
   };

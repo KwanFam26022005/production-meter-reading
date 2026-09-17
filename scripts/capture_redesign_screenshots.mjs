@@ -54,6 +54,15 @@ async function run() {
       await page.screenshot({ path: path.join(ARTIFACT_OUT_DIR, `${name}-verification.png`) });
     }
 
+    // Open Schedules tab (sidebar)
+    const schedulesTabBtn = await page.$('.admin-nav-item:has(span:text("Lịch ghi")), button.admin-nav-item[title*="Lịch ghi"]');
+    if (schedulesTabBtn) {
+      await schedulesTabBtn.click();
+      await page.waitForTimeout(1500);
+      console.log(`Capturing: ${name}-schedules.png...`);
+      await page.screenshot({ path: path.join(ARTIFACT_OUT_DIR, `${name}-schedules.png`) });
+    }
+
     await context.close();
   }
 

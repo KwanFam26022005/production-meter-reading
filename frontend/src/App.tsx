@@ -35,12 +35,11 @@ import { AdminShell, AdminTab } from './components/admin/AdminShell';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 import { AdminSchedules } from './components/admin/AdminSchedules';
 import { AdminStaffRoster } from './components/admin/AdminStaffRoster';
-import { AdminMeters } from './components/admin/AdminMeters';
 import { AdminAudit } from './components/admin/AdminAudit';
 import { AdminReports } from './components/admin/AdminReports';
 import { AdminReadingInspection } from './components/admin/AdminReadingInspection';
-import { AdminAssets } from './components/admin/AdminAssets';
 import { AdminVerification } from './components/admin/AdminVerification';
+import { DevicesWorkspacePage } from './features/devices/DevicesWorkspacePage';
 import { OperationalWorkspaceProvider, useOperationalWorkspace } from './context/OperationalWorkspaceContext';
 
 const MAX_IMAGE_SIZE_BYTES = 12 * 1024 * 1024; // 12MB
@@ -142,6 +141,7 @@ const AdminWorkspaceApp: React.FC<AdminWorkspaceAppProps> = ({
     setActiveTab,
     inspectingReadingId,
     setInspectingReadingId,
+    setDeviceSegment,
   } = useOperationalWorkspace();
 
   const adminActiveTab = activeTab;
@@ -149,10 +149,8 @@ const AdminWorkspaceApp: React.FC<AdminWorkspaceAppProps> = ({
   const handleSelectTab = (tab: AdminTab) => {
     setInspectingReadingId(null);
     if (tab === 'meters') {
-      try {
-        sessionStorage.setItem('map_workspace_view', 'list');
-      } catch {}
-      setActiveTab('dashboard');
+      setDeviceSegment('METERS');
+      setActiveTab('assets');
       return;
     }
     setActiveTab(tab);
@@ -180,13 +178,11 @@ const AdminWorkspaceApp: React.FC<AdminWorkspaceAppProps> = ({
           {adminActiveTab === 'dashboard' && (
             <AdminDashboard user={currentUser} onInspectReading={(rId) => setInspectingReadingId(rId)} />
           )}
-          {adminActiveTab === 'assets' && <AdminAssets />}
+          {adminActiveTab === 'assets' && <DevicesWorkspacePage />}
           {adminActiveTab === 'verification' && <AdminVerification />}
           {adminActiveTab === 'schedules' && <AdminSchedules />}
           {adminActiveTab === 'staff_roster' && <AdminStaffRoster user={currentUser} />}
-          {adminActiveTab === 'meters' && (
-            <AdminMeters onInspectReading={(rId) => setInspectingReadingId(rId)} />
-          )}
+          {adminActiveTab === 'meters' && <DevicesWorkspacePage />}
           {adminActiveTab === 'reports' && (
             <AdminReports
               user={currentUser}
@@ -223,13 +219,11 @@ export default function App() {
     try {
       const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
       if (params?.get('tab') === 'meters' || (typeof window !== 'undefined' && window.location.pathname.includes('/meters'))) {
-        sessionStorage.setItem('map_workspace_view', 'list');
-        return 'dashboard';
+        return 'assets';
       }
       const saved = sessionStorage.getItem('admin_active_tab');
       if (saved === 'meters') {
-        sessionStorage.setItem('map_workspace_view', 'list');
-        return 'dashboard';
+        return 'assets';
       }
       if (saved && ['dashboard', 'assets', 'verification', 'schedules', 'staff_roster', 'meters', 'reports', 'audit'].includes(saved)) {
         return saved as AdminTab;
@@ -239,14 +233,14 @@ export default function App() {
   });
 
   const handleSelectAdminTab = (tab: AdminTab) => {
-    // V13: Legacy meter navigation redirects into Map Operations -> List view
     if (tab === 'meters') {
+      // V16E-S2: 'meters' routes to 'assets' (Thiết bị)
+      // V13 legacy compatibility comment:
+      // sessionStorage.setItem('map_workspace_view', 'list')
+      // setAdminActiveTab('dashboard')
+      setAdminActiveTab('assets');
       try {
-        sessionStorage.setItem('map_workspace_view', 'list');
-      } catch {}
-      setAdminActiveTab('dashboard');
-      try {
-        sessionStorage.setItem('admin_active_tab', 'dashboard');
+        sessionStorage.setItem('admin_active_tab', 'assets');
       } catch {}
       return;
     }
