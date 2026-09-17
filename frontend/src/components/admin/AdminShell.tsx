@@ -197,7 +197,7 @@ export const AdminShell: React.FC<AdminShellProps> = ({
             <div className="admin-rail-group-divider" title="Công cụ quản trị" />
 
             {/* SECONDARY TOOLS COMPACT ACCESS [⋯] */}
-            <div className="relative" ref={toolsMenuRef}>
+            <div style={{ position: 'relative' }} ref={toolsMenuRef}>
               <button
                 type="button"
                 className={`admin-nav-item ${isSecondaryActive ? 'active' : ''}`}
@@ -214,64 +214,32 @@ export const AdminShell: React.FC<AdminShellProps> = ({
               {toolsMenuOpen && (
                 <div
                   className="sgp-secondary-tools-popover"
-                  style={{
-                    position: 'fixed',
-                    left: '88px',
-                    top: '180px',
-                    width: '260px',
-                    backgroundColor: '#0F172A',
-                    border: '1px solid rgba(255, 255, 255, 0.12)',
-                    borderRadius: '12px',
-                    boxShadow: '0 12px 32px rgba(0, 0, 0, 0.45)',
-                    zIndex: 9999,
-                    padding: '8px',
-                  }}
+                  role="menu"
+                  aria-label="Công cụ hỗ trợ"
                 >
-                  <div
-                    style={{
-                      fontSize: '10px',
-                      fontWeight: 700,
-                      color: '#94A3B8',
-                      padding: '4px 8px 8px 8px',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.05em',
-                      borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-                      marginBottom: '6px',
-                    }}
-                  >
+                  <div className="sgp-popover-header">
                     Công cụ hỗ trợ
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <div className="sgp-popover-list">
                     {secondaryTools.map((tool) => {
                       const isToolActive = activeTab === tool.id;
                       return (
                         <button
                           key={tool.id}
                           type="button"
+                          role="menuitem"
+                          className={`sgp-popover-item ${isToolActive ? 'active' : ''}`}
                           onClick={() => {
                             onSelectTab(tool.id);
                             setToolsMenuOpen(false);
                           }}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '10px',
-                            padding: '8px 10px',
-                            borderRadius: '8px',
-                            border: 'none',
-                            background: isToolActive ? 'rgba(56, 189, 248, 0.15)' : 'transparent',
-                            color: isToolActive ? '#38BDF8' : '#E2E8F0',
-                            textAlign: 'left',
-                            cursor: 'pointer',
-                            transition: 'background 120ms ease',
-                          }}
                         >
-                          <span style={{ color: isToolActive ? '#38BDF8' : '#94A3B8', display: 'flex', alignItems: 'center' }}>
+                          <span className="sgp-popover-icon">
                             {tool.icon}
                           </span>
                           <div style={{ minWidth: 0, flex: 1 }}>
-                            <div style={{ fontSize: '12px', fontWeight: 600 }}>{tool.label}</div>
-                            <div style={{ fontSize: '10px', color: '#64748B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            <div className="sgp-popover-title">{tool.label}</div>
+                            <div className="sgp-popover-desc">
                               {tool.description}
                             </div>
                           </div>
@@ -388,7 +356,7 @@ export const AdminShell: React.FC<AdminShellProps> = ({
                 );
               })}
 
-              <div className="admin-drawer-nav-header mt-4">
+              <div className="admin-drawer-nav-header" style={{ marginTop: 16 }}>
                 <span>CÔNG CỤ QUẢN TRỊ</span>
                 <span className="admin-drawer-nav-badge">Hỗ trợ</span>
               </div>
