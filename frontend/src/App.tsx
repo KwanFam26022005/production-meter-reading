@@ -39,7 +39,7 @@ import { AdminAudit } from './components/admin/AdminAudit';
 import { AdminReports } from './components/admin/AdminReports';
 import { AdminReadingInspection } from './components/admin/AdminReadingInspection';
 import { AdminVerification } from './components/admin/AdminVerification';
-import { DevicesWorkspacePage } from './features/devices/DevicesWorkspacePage';
+import { AdminDevicesWorkspace } from './components/admin/AdminDevicesWorkspace';
 import { OperationalWorkspaceProvider, useOperationalWorkspace } from './context/OperationalWorkspaceContext';
 
 const MAX_IMAGE_SIZE_BYTES = 12 * 1024 * 1024; // 12MB
@@ -150,6 +150,11 @@ const AdminWorkspaceApp: React.FC<AdminWorkspaceAppProps> = ({
     setInspectingReadingId(null);
     if (tab === 'meters') {
       setDeviceSegment('METERS');
+      setActiveTab('meters');
+      return;
+    }
+    if (tab === 'assets') {
+      setDeviceSegment('ASSETS');
       setActiveTab('assets');
       return;
     }
@@ -163,7 +168,7 @@ const AdminWorkspaceApp: React.FC<AdminWorkspaceAppProps> = ({
       onSelectTab={handleSelectTab}
       onLogout={onLogout}
     >
-      {/* If inspecting a reading, show inspection view */}
+      {/* Detail overlay: inspect reading evidence modal */}
       {inspectingReadingId && (
         <AdminReadingInspection
           readingId={inspectingReadingId}
@@ -178,11 +183,15 @@ const AdminWorkspaceApp: React.FC<AdminWorkspaceAppProps> = ({
           {adminActiveTab === 'dashboard' && (
             <AdminDashboard user={currentUser} onInspectReading={(rId) => setInspectingReadingId(rId)} />
           )}
-          {adminActiveTab === 'assets' && <DevicesWorkspacePage />}
+          {adminActiveTab === 'assets' && (
+            <AdminDevicesWorkspace onInspectReading={(rId) => setInspectingReadingId(rId)} />
+          )}
           {adminActiveTab === 'verification' && <AdminVerification />}
           {adminActiveTab === 'schedules' && <AdminSchedules />}
           {adminActiveTab === 'staff_roster' && <AdminStaffRoster user={currentUser} />}
-          {adminActiveTab === 'meters' && <DevicesWorkspacePage />}
+          {adminActiveTab === 'meters' && (
+            <AdminDevicesWorkspace onInspectReading={(rId) => setInspectingReadingId(rId)} />
+          )}
           {adminActiveTab === 'reports' && (
             <AdminReports
               user={currentUser}
@@ -219,11 +228,13 @@ export default function App() {
     try {
       const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
       if (params?.get('tab') === 'meters' || (typeof window !== 'undefined' && window.location.pathname.includes('/meters'))) {
-        return 'assets';
+        sessionStorage.setItem('map_workspace_view', 'list');
+        return 'dashboard';
       }
       const saved = sessionStorage.getItem('admin_active_tab');
       if (saved === 'meters') {
-        return 'assets';
+        sessionStorage.setItem('map_workspace_view', 'list');
+        return 'dashboard';
       }
       if (saved && ['dashboard', 'assets', 'verification', 'schedules', 'staff_roster', 'meters', 'reports', 'audit'].includes(saved)) {
         return saved as AdminTab;
@@ -233,14 +244,14 @@ export default function App() {
   });
 
   const handleSelectAdminTab = (tab: AdminTab) => {
+    // V13: Legacy meter navigation redirects into Map Operations -> List view
     if (tab === 'meters') {
-      // V16E-S2: 'meters' routes to 'assets' (Thiết bị)
-      // V13 legacy compatibility comment:
-      // sessionStorage.setItem('map_workspace_view', 'list')
-      // setAdminActiveTab('dashboard')
-      setAdminActiveTab('assets');
       try {
-        sessionStorage.setItem('admin_active_tab', 'assets');
+        sessionStorage.setItem('map_workspace_view', 'list');
+      } catch {}
+      setAdminActiveTab('dashboard');
+      try {
+        sessionStorage.setItem('admin_active_tab', 'dashboard');
       } catch {}
       return;
     }
