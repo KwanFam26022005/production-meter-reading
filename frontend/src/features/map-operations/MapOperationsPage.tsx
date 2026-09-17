@@ -31,7 +31,6 @@ import type { Asset, AssetConnection, UtilityType } from '../assets/types';
 import { canAdministerMapConfiguration } from '../../types';
 import { useOperationalWorkspace } from '../../context/OperationalWorkspaceContext';
 import { OperationalWorkspaceHeader } from '../workspace/OperationalWorkspaceHeader';
-import { AdaptiveCommandBar } from './command/AdaptiveCommandBar';
 import { MapInlineDrawers } from './components/MapInlineDrawers';
 import { ShiftMeterPanel } from './components/ShiftMeterPanel';
 import './motion/mapMotion.css';
@@ -705,41 +704,17 @@ const MapOperationsPageContent: React.FC<MapOperationsPageProps> = ({
         currentTab="dashboard"
         viewMode={viewMode}
         onViewModeChange={setViewMode}
-        shiftSummaryText={`${overallKpis.currentRoundStatus || 'Ca 1'} · ${overallKpis.currentRoundTime || '06:00'} · ${overallKpis.confirmed}/${overallKpis.total}`}
-        rightControls={
-          <AdaptiveCommandBar
-            isDocked={true}
-            user={user}
-            viewMode={viewMode}
-            onViewModeChange={setViewMode}
-            selectedDate={selectedDate}
-            onDateChange={setSelectedDate}
-            rounds={dashboardData?.round_progress || []}
-            selectedRoundId={selectedRoundId || filters.selectedRoundId}
-            onSelectRound={(roundId) => {
-              setSelectedRoundId(roundId);
-              setFilters({ ...filters, selectedRoundId: roundId });
-            }}
-            currentRoundTime={overallKpis.currentRoundTime}
-            overallKpis={overallKpis}
-            filters={filters}
-            onApplyFilters={setFilters}
-            searchQuery={searchQuery}
-            onSearchQueryChange={setSearchQuery}
-            mapMeters={mapMeters}
-            mapZones={mapZones}
-            availableOperators={availableOperators}
-            onSelectMeter={focusMeter}
-            onSelectZone={focusZone}
-            onSelectOperator={handleSelectOperator}
-            onRefresh={refresh}
-            isLoading={loading}
-            onExportCsv={exportCsv}
-            onOpenAnalytics={() => setAnalyticsOpen(!analyticsOpen)}
-            isAnalyticsOpen={analyticsOpen}
-            onOpenCalibration={calibrationWorkspace.openMapCalibration}
-          />
-        }
+        selectedDate={selectedDate}
+        onDateChange={setSelectedDate}
+        shiftName={overallKpis.currentRoundStatus || 'Ca 1'}
+        shiftTime={overallKpis.currentRoundTime ? `${overallKpis.currentRoundTime}–14:00` : '06:00–14:00'}
+        completedCount={overallKpis.confirmed}
+        totalCount={overallKpis.total}
+        searchQuery={searchQuery}
+        onSearchQueryChange={setSearchQuery}
+        onRefresh={refresh}
+        onExportCsv={exportCsv}
+        onOpenAnalytics={() => setAnalyticsOpen(!analyticsOpen)}
       />
       <div style={{ flex: 1, position: 'relative', overflow: 'hidden', minHeight: 0 }}>
         <ImmersiveSceneShell
