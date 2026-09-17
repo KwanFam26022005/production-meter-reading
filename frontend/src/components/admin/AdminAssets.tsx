@@ -73,6 +73,7 @@ export const AdminAssets: React.FC<AdminAssetsProps> = ({ hideWorkspaceHeader = 
   const [lifecycleFilter, setLifecycleFilter] = useState<string>('ALL');
   const [verifFilter, setVerifFilter] = useState<string>('ALL');
   const [scopeFilter, setScopeFilter] = useState<'ACTIVE_SCENARIO' | 'LEGACY_TEST' | 'ALL'>('ACTIVE_SCENARIO');
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState<boolean>(false);
 
   // Selected asset for detail drawer
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
@@ -98,6 +99,17 @@ export const AdminAssets: React.FC<AdminAssetsProps> = ({ hideWorkspaceHeader = 
       }
     }
   }, [workspace?.focusedEntity, assets]);
+
+  // Close detail drawer on Escape
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && selectedAsset) {
+        setSelectedAsset(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedAsset]);
 
   // Create / Edit modal
   const [isCreateOpen, setIsCreateOpen] = useState<boolean>(false);
@@ -364,7 +376,7 @@ export const AdminAssets: React.FC<AdminAssetsProps> = ({ hideWorkspaceHeader = 
       <div className="admin-assets-page p-6 max-w-7xl w-full mx-auto space-y-6 flex-1">
 
       {/* HEADER (Section 15: Production Polish) */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
+      <div className="admin-assets-desktop-header flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
         <div>
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
@@ -406,7 +418,7 @@ export const AdminAssets: React.FC<AdminAssetsProps> = ({ hideWorkspaceHeader = 
       </div>
 
       {/* SUMMARY STRIP (Section 17) */}
-      <div className="flex items-center gap-4 text-xs text-slate-600 bg-slate-50 px-4 py-2.5 rounded-xl border border-slate-200">
+      <div className="admin-assets-desktop-header flex items-center gap-4 text-xs text-slate-600 bg-slate-50 px-4 py-2.5 rounded-xl border border-slate-200">
         <span className="font-semibold text-slate-900">{total} Thiết bị</span>
         <span className="text-slate-300">|</span>
         <span className="text-emerald-700 font-medium">{activeCount} Đang sử dụng</span>
@@ -418,7 +430,7 @@ export const AdminAssets: React.FC<AdminAssetsProps> = ({ hideWorkspaceHeader = 
 
       {/* LEGACY QUARANTINE BANNER (Section 18: Quiet, informational banner when looking at legacy data) */}
       {scopeFilter === 'LEGACY_TEST' && (
-        <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-xs text-slate-600 flex items-center gap-2.5">
+        <div className="admin-assets-desktop-header bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-xs text-slate-600 flex items-center gap-2.5">
           <Info size={16} className="text-slate-400 shrink-0" />
           <span>
             Dữ liệu này được giữ để phục vụ kiểm thử và lịch sử kỹ thuật; không tham gia vận hành của kịch bản hiện tại.
@@ -427,7 +439,7 @@ export const AdminAssets: React.FC<AdminAssetsProps> = ({ hideWorkspaceHeader = 
       )}
 
       {/* FILTER CONTROLS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+      <div className="admin-assets-desktop-filters grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
         <div className="relative">
           <Search className="absolute left-3 top-2.5 text-slate-400" size={16} />
           <input
@@ -494,8 +506,111 @@ export const AdminAssets: React.FC<AdminAssetsProps> = ({ hideWorkspaceHeader = 
         </div>
       </div>
 
-      {/* TABLE */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      {/* MOBILE HEADER & FILTER DISCLOSURE */}
+      <div className="admin-assets-mobile-header">
+        <div className="admin-assets-mobile-title-row">
+          <div>
+            <h1 className="admin-assets-mobile-title">Thiết bị & hạ tầng</h1>
+            <p className="admin-assets-mobile-subtitle">{total} thiết bị • {activeCount} đang dùng</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              resetForm();
+              setIsCreateOpen(true);
+            }}
+            className="admin-assets-mobile-add-btn"
+          >
+            <Plus size={16} />
+            <span>Thêm</span>
+          </button>
+        </div>
+
+        <div className="admin-assets-mobile-search-row">
+          <div className="admin-assets-mobile-search-box">
+            <Search size={15} className="text-slate-400 shrink-0" />
+            <input
+              type="text"
+              placeholder="Tìm theo mã hoặc tên..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="admin-assets-mobile-search-input"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => setMobileFiltersOpen(!mobileFiltersOpen)}
+            className={`admin-assets-mobile-filter-toggle ${mobileFiltersOpen ? 'active' : ''}`}
+          >
+            Bộ lọc
+          </button>
+        </div>
+
+        {mobileFiltersOpen && (
+          <div className="admin-assets-mobile-filter-panel">
+            <div className="admin-assets-mobile-filter-field">
+              <label>Nguồn dữ liệu</label>
+              <select
+                value={scopeFilter}
+                onChange={(e) => setScopeFilter(e.target.value as 'ACTIVE_SCENARIO' | 'LEGACY_TEST' | 'ALL')}
+              >
+                <option value="ACTIVE_SCENARIO">Mô phỏng (tan-thuan-demo-v1)</option>
+                <option value="LEGACY_TEST">Dữ liệu thử nghiệm cũ</option>
+                <option value="ALL">Tất cả nguồn dữ liệu</option>
+              </select>
+            </div>
+            <div className="admin-assets-mobile-filter-field">
+              <label>Loại thiết bị</label>
+              <select
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value)}
+              >
+                <option value="ALL">Tất cả loại thiết bị</option>
+                {ASSET_TYPES.map((t) => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
+            </div>
+            <div className="admin-assets-mobile-filter-field">
+              <label>Vòng đời</label>
+              <select
+                value={lifecycleFilter}
+                onChange={(e) => setLifecycleFilter(e.target.value)}
+              >
+                <option value="ALL">Tất cả trạng thái</option>
+                <option value="ACTIVE">Hoạt động (Active)</option>
+                <option value="INACTIVE">Ngừng sử dụng</option>
+                <option value="RETIRED">Đã thu hồi (Retired)</option>
+              </select>
+            </div>
+            <div className="admin-assets-mobile-filter-field">
+              <label>Xác minh</label>
+              <select
+                value={verifFilter}
+                onChange={(e) => setVerifFilter(e.target.value)}
+              >
+                <option value="ALL">Tất cả xác minh</option>
+                <option value="VERIFIED">Đã xác minh</option>
+                <option value="SIMULATION_APPROVED">Mô phỏng duyệt</option>
+                <option value="UNVERIFIED">Chưa xác minh</option>
+                <option value="REJECTED">Từ chối</option>
+              </select>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* DESKTOP TABLE */}
+      <div className="admin-assets-desktop-table bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         {loading ? (
           <div className="p-8 text-center text-slate-500 text-sm">Đang tải danh sách thiết bị...</div>
         ) : error ? (
@@ -586,6 +701,81 @@ export const AdminAssets: React.FC<AdminAssetsProps> = ({ hideWorkspaceHeader = 
         )}
       </div>
 
+      {/* MOBILE ASSETS LIST */}
+      <div className="admin-assets-mobile-list">
+        {loading ? (
+          <div className="p-8 text-center text-slate-500 text-sm">Đang tải danh sách thiết bị...</div>
+        ) : error ? (
+          <div className="p-8 text-center text-rose-600 text-sm">{error}</div>
+        ) : assets.length === 0 ? (
+          <div className="p-12 text-center text-slate-400 text-sm">
+            Không tìm thấy thiết bị nào.
+          </div>
+        ) : (
+          assets.map((a) => (
+            <div
+              key={a.id}
+              onClick={() => handleSelectAsset(a)}
+              className={`admin-asset-mobile-card ${selectedAsset?.id === a.id ? 'selected' : ''}`}
+            >
+              <div className="admin-asset-card-top">
+                <span className="admin-asset-card-code font-mono font-bold">{a.code}</span>
+                <span className="admin-asset-card-type">{a.asset_type}</span>
+              </div>
+              <div className="admin-asset-card-name">{a.name}</div>
+              <div className="admin-asset-card-meta">
+                <div className="admin-asset-card-zone">
+                  <MapPin size={13} className="shrink-0 text-slate-400" />
+                  <span>{a.zone_name || a.zone_code || 'Chưa gán khu vực'}</span>
+                </div>
+                {a.attached_meters_count > 0 && (
+                  <div className="admin-asset-card-meters">
+                    <Gauge size={13} className="shrink-0" />
+                    <span>{a.attached_meters_count} công tơ</span>
+                  </div>
+                )}
+              </div>
+              <div className="admin-asset-card-bottom">
+                <div className="admin-asset-card-status">
+                  {renderLifecycleBadge(a.lifecycle_status)}
+                  {renderVerificationBadge(a.verification_status)}
+                </div>
+                <div className="admin-asset-card-actions" onClick={(e) => e.stopPropagation()}>
+                  {a.map_x !== null && a.map_y !== null && workspace && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        workspace.locateOnMap({
+                          type: 'asset',
+                          id: a.id,
+                          code: a.code,
+                          name: a.name,
+                          coordinates: [a.map_x!, a.map_y!],
+                        })
+                      }
+                      className="admin-asset-card-locate-btn"
+                      title="Định vị thiết bị trên Bản đồ"
+                      aria-label={`Định vị ${a.code} trên Bản đồ`}
+                    >
+                      <MapPin size={16} />
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => handleSelectAsset(a)}
+                    className="p-1 text-slate-400 hover:text-slate-600 rounded"
+                    title="Xem chi tiết"
+                    aria-label={`Xem chi tiết ${a.code}`}
+                  >
+                    <ChevronRight size={16} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
       {/* DETAIL DRAWER */}
       {selectedAsset && (
         <div
@@ -641,6 +831,7 @@ export const AdminAssets: React.FC<AdminAssetsProps> = ({ hideWorkspaceHeader = 
                   type="button"
                   onClick={() => setSelectedAsset(null)}
                   className="p-1 text-slate-400 hover:text-slate-600 rounded"
+                  aria-label="Đóng chi tiết"
                 >
                   <X size={20} />
                 </button>
