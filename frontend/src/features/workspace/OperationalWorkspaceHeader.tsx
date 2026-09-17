@@ -1,266 +1,160 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React from 'react';
 import {
   Map,
   Share2,
-  Clock,
-  Search,
-  Filter,
-  MoreHorizontal,
-  RefreshCw,
-  Download,
-  BarChart3,
-  X,
+  List,
+  Boxes,
+  ClipboardCheck,
+  Zap,
+  Droplets,
+  Activity,
 } from 'lucide-react';
 import { useOperationalWorkspace } from '../../context/OperationalWorkspaceContext';
 import type { MapWorkspaceView } from '../../types';
 
 export interface OperationalWorkspaceHeaderProps {
-  currentTab?: 'dashboard' | 'assets' | 'verification';
+  currentTab: 'dashboard' | 'assets' | 'verification';
   viewMode?: MapWorkspaceView;
   onViewModeChange?: (mode: MapWorkspaceView) => void;
-  selectedDate?: string;
-  onDateChange?: (date: string) => void;
-  shiftName?: string;
-  shiftTime?: string;
-  completedCount?: number;
-  totalCount?: number;
-  shiftSummaryText?: string;
-  searchQuery?: string;
-  onSearchQueryChange?: (q: string) => void;
-  onRefresh?: () => void;
-  onExportCsv?: () => void;
-  onOpenAnalytics?: () => void;
-  onOpenFilter?: () => void;
   rightControls?: React.ReactNode;
 }
 
 export const OperationalWorkspaceHeader: React.FC<OperationalWorkspaceHeaderProps> = ({
-  currentTab: _currentTab = 'dashboard',
+  currentTab,
   viewMode = 'map',
   onViewModeChange,
-  selectedDate = '17/09/2026',
-  onDateChange: _onDateChange,
-  shiftName = 'Ca 1',
-  shiftTime = '06:00–14:00',
-  completedCount = 0,
-  totalCount = 12,
-  shiftSummaryText,
-  searchQuery = '',
-  onSearchQueryChange,
-  onRefresh,
-  onExportCsv,
-  onOpenAnalytics,
-  onOpenFilter,
   rightControls,
 }) => {
-  const { isShiftPanelOpen, setIsShiftPanelOpen } = useOperationalWorkspace();
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [isOverflowOpen, setIsOverflowOpen] = useState(false);
-  const overflowRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (overflowRef.current && !overflowRef.current.contains(e.target as Node)) {
-        setIsOverflowOpen(false);
-      }
-    };
-    if (isOverflowOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isOverflowOpen]);
-
-  // Format date display (e.g. 17/09/2026)
-  const displayDate = selectedDate.includes('-')
-    ? selectedDate.split('-').reverse().join('/')
-    : selectedDate;
-
-  // Authoritative progress string (e.g. "0/12 hoàn tất")
-  const progressText = shiftSummaryText
-    ? (shiftSummaryText.includes('/') ? shiftSummaryText.split('·').pop()?.trim() + ' hoàn tất' : shiftSummaryText)
-    : `${completedCount}/${totalCount} hoàn tất`;
+  const { setActiveTab } = useOperationalWorkspace();
 
   return (
     <header
-      className="sgp-unified-workspace-header sgp-map-cockpit-header"
+      className="sgp-unified-workspace-header"
       role="region"
-      aria-label="Thanh điều hành không gian cảng"
+      aria-label="Thanh điều hành hạ tầng & không gian hợp nhất"
     >
-      {/* 1. LEFT: Brand Title & Quiet Simulation Badge */}
-      <div className="sgp-map-cockpit-left">
-        <h1 className="sgp-map-cockpit-title">
-          <span>Điều hành Cảng</span>
-        </h1>
-        <span
-          className="sgp-map-cockpit-sim-badge"
-          title="Kịch bản vận hành chuẩn tan-thuan-demo-v1"
-        >
-          Dữ liệu mô phỏng
-        </span>
+      {/* 1. LEFT: Brand & Cockpit Identity */}
+      <div className="sgp-uwh-col-left">
+        <div className="sgp-uwh-identity">
+          <div className="sgp-uwh-dot-badge" title="Không gian Vận hành Hợp nhất">
+            <span className="sgp-uwh-dot" />
+          </div>
+          <div className="sgp-uwh-title-wrap">
+            <h1 className="sgp-uwh-title">
+              <span className="sgp-uwh-title-full">Điều Hành Không Gian & Hạ Tầng Cảng</span>
+              <span className="sgp-uwh-title-compact">Điều Hành Hạ Tầng</span>
+            </h1>
+            <span className="sgp-uwh-scenario-tag" title="Mã kịch bản cảng">tan-thuan-demo-v1</span>
+          </div>
+        </div>
       </div>
 
-      {/* 2. CENTER: Segmented View Mode Toggle */}
-      <div className="sgp-map-cockpit-center">
-        <nav
-          className="sgp-map-cockpit-mode-toggle"
-          aria-label="Chế độ hiển thị không gian"
-        >
+      {/* 2. CENTER: Unified Operational Modes (5 Direct Views) */}
+      <div className="sgp-uwh-col-center">
+        <nav className="sgp-uwh-mode-nav" aria-label="Chế độ làm việc">
+          {/* Nhóm 1: Tác nghiệp ca trực */}
           <button
             type="button"
             data-tab="dashboard-map"
-            className={`sgp-map-cockpit-mode-btn ${viewMode === 'map' ? 'active' : ''}`}
-            onClick={() => onViewModeChange?.('map')}
-            title="Bản đồ không gian GIS & Vị trí công tơ"
+            className={`sgp-uwh-mode-btn ${currentTab === 'dashboard' && viewMode === 'map' ? 'active' : ''}`}
+            onClick={() => {
+              setActiveTab('dashboard');
+              onViewModeChange?.('map');
+            }}
+            title="Bản đồ không gian GIS & Vị trí 12 công tơ"
           >
             <Map size={14} />
-            <span>Không gian</span>
+            <span className="sgp-uwh-tab-full">Bản đồ</span>
+            <span className="sgp-uwh-tab-compact">Bản đồ</span>
           </button>
 
           <button
             type="button"
             data-tab="dashboard-network"
-            className={`sgp-map-cockpit-mode-btn ${viewMode === 'network' ? 'active' : ''}`}
-            onClick={() => onViewModeChange?.('network')}
-            title="Sơ đồ đơn tuyến mạng lưới điện & nước"
+            className={`sgp-uwh-mode-btn ${currentTab === 'dashboard' && viewMode === 'network' ? 'active' : ''}`}
+            onClick={() => {
+              setActiveTab('dashboard');
+              onViewModeChange?.('network');
+            }}
+            title="Sơ đồ đơn tuyến mạng lưới điện & cấp nước"
           >
             <Share2 size={14} />
-            <span>Mạng lưới</span>
+            <span className="sgp-uwh-tab-full">Mạng lưới</span>
+            <span className="sgp-uwh-tab-compact">Mạng lưới</span>
+          </button>
+
+          <button
+            type="button"
+            data-tab="dashboard-list"
+            className={`sgp-uwh-mode-btn ${currentTab === 'dashboard' && viewMode === 'list' ? 'active' : ''}`}
+            onClick={() => {
+              setActiveTab('dashboard');
+              onViewModeChange?.('list');
+            }}
+            title="Sổ ca ghi: Danh sách 12 công tơ cần ghi nhận trong ca trực"
+          >
+            <List size={14} />
+            <span className="sgp-uwh-tab-full">Sổ ca ghi</span>
+            <span className="sgp-uwh-tab-compact">Sổ ca</span>
+            <span className="sgp-uwh-mode-count">12</span>
+          </button>
+
+          <span className="sgp-uwh-nav-divider" aria-hidden="true" />
+
+          {/* Nhóm 2: Quản trị hạ tầng & thẩm định đối soát */}
+          <button
+            type="button"
+            data-tab="assets"
+            className={`sgp-uwh-mode-btn ${currentTab === 'assets' ? 'active' : ''}`}
+            onClick={() => setActiveTab('assets')}
+            title="Kho danh mục thiết bị và điểm đấu nối hạ tầng"
+          >
+            <Boxes size={14} />
+            <span className="sgp-uwh-tab-full">Kho Thiết bị</span>
+            <span className="sgp-uwh-tab-compact">Thiết bị</span>
+            <span className="sgp-uwh-mode-count">32</span>
+          </button>
+
+          <button
+            type="button"
+            data-tab="verification"
+            className={`sgp-uwh-mode-btn ${currentTab === 'verification' ? 'active' : ''}`}
+            onClick={() => setActiveTab('verification')}
+            title="Trung tâm thẩm định hồ sơ hạ tầng và đối soát ca ghi"
+          >
+            <ClipboardCheck size={14} />
+            <span className="sgp-uwh-tab-full">Trung tâm Đối soát</span>
+            <span className="sgp-uwh-tab-compact">Đối soát</span>
+            <span className="sgp-uwh-mode-count sgp-count-highlight">2</span>
           </button>
         </nav>
       </div>
 
-      {/* 3. RIGHT: ONE Authoritative Time/Shift/Progress Group + Quick Tools */}
-      <div className="sgp-map-cockpit-right">
+      {/* 3. RIGHT: Docked Command Bar OR Telemetry Dashboard */}
+      <div className="sgp-uwh-col-right">
         {rightControls ? (
           rightControls
         ) : (
-          <div className="sgp-map-cockpit-shift-group">
-            {/* Authoritative Single Temporal Context */}
-            <div className="sgp-map-cockpit-time-info">
-              <span className="sgp-map-cockpit-shift-text font-tabular">
-                {displayDate} · {shiftName} {shiftTime}
-              </span>
+          <div className="sgp-uwh-telemetry" aria-label="Chỉ số hạ tầng thời gian thực">
+            <div className="sgp-uwh-chip" title="24 thiết bị và 8 tuyến cáp điện đang vận hành">
+              <Zap size={13} className="sgp-text-amber" />
+              <span className="sgp-uwh-chip-val">24</span>
+              <span className="sgp-uwh-chip-txt">Điện</span>
             </div>
-
-            {/* Authoritative Shift Progress Pill (Toggles Shift Meter Panel) */}
-            <button
-              type="button"
-              data-testid="shift-summary-btn"
-              className={`sgp-map-cockpit-progress-btn ${isShiftPanelOpen ? 'active' : ''}`}
-              onClick={() => setIsShiftPanelOpen((prev) => !prev)}
-              title="Mở Sổ ca ghi nhận công tơ"
-              aria-label="Sổ ca ghi tác nghiệp"
-              aria-expanded={isShiftPanelOpen}
-            >
-              <Clock size={13} className="text-sky-400 shrink-0" />
-              <span className="sgp-map-cockpit-progress-val">
-                {progressText}
-              </span>
-            </button>
-
-            {/* Quick Tools */}
-            <div className="flex items-center gap-1.5 ml-1">
-              {/* Search Toggle */}
-              {isSearchOpen ? (
-                <div className="relative flex items-center">
-                  <input
-                    type="text"
-                    autoFocus
-                    value={searchQuery}
-                    onChange={(e) => onSearchQueryChange?.(e.target.value)}
-                    placeholder="Tìm kiếm công tơ..."
-                    className="h-8 px-3 pr-7 text-xs rounded-md bg-slate-800 border border-slate-700 text-white placeholder-slate-400 outline-none focus:border-sky-500 w-44 transition-all"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsSearchOpen(false);
-                      onSearchQueryChange?.('');
-                    }}
-                    className="absolute right-1.5 text-slate-400 hover:text-white p-0.5"
-                    title="Đóng tìm kiếm"
-                  >
-                    <X size={12} />
-                  </button>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white transition-colors"
-                  onClick={() => setIsSearchOpen(true)}
-                  title="Tìm kiếm mã, tên công tơ"
-                >
-                  <Search size={14} />
-                </button>
-              )}
-
-              {/* Filter Button */}
-              {onOpenFilter && (
-                <button
-                  type="button"
-                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white transition-colors"
-                  onClick={onOpenFilter}
-                  title="Lọc dữ liệu"
-                >
-                  <Filter size={14} />
-                </button>
-              )}
-
-              {/* Overflow Menu */}
-              <div className="relative" ref={overflowRef}>
-                <button
-                  type="button"
-                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white transition-colors"
-                  onClick={() => setIsOverflowOpen((prev) => !prev)}
-                  title="Thao tác khác"
-                >
-                  <MoreHorizontal size={14} />
-                </button>
-
-                {isOverflowOpen && (
-                  <div className="absolute right-0 mt-2 w-48 bg-slate-900 border border-slate-800 rounded-lg shadow-xl py-1 z-50 text-xs text-slate-200">
-                    {onRefresh && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          onRefresh();
-                          setIsOverflowOpen(false);
-                        }}
-                        className="w-full text-left px-3 py-2 hover:bg-slate-800 flex items-center gap-2"
-                      >
-                        <RefreshCw size={13} className="text-slate-400" />
-                        <span>Làm mới dữ liệu</span>
-                      </button>
-                    )}
-                    {onExportCsv && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          onExportCsv();
-                          setIsOverflowOpen(false);
-                        }}
-                        className="w-full text-left px-3 py-2 hover:bg-slate-800 flex items-center gap-2"
-                      >
-                        <Download size={13} className="text-slate-400" />
-                        <span>Xuất báo cáo CSV</span>
-                      </button>
-                    )}
-                    {onOpenAnalytics && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          onOpenAnalytics();
-                          setIsOverflowOpen(false);
-                        }}
-                        className="w-full text-left px-3 py-2 hover:bg-slate-800 flex items-center gap-2"
-                      >
-                        <BarChart3 size={13} className="text-slate-400" />
-                        <span>Thống kê phân tích</span>
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
+            <div className="sgp-uwh-chip" title="8 điểm đấu nối và van mạng nước sạch cảng">
+              <Droplets size={13} className="sgp-text-cyan" />
+              <span className="sgp-uwh-chip-val">8</span>
+              <span className="sgp-uwh-chip-txt">Nước</span>
+            </div>
+            <div className="sgp-uwh-chip" title="12 công tơ đo đếm điện năng & lưu lượng nước">
+              <Activity size={13} className="sgp-text-emerald" />
+              <span className="sgp-uwh-chip-val">12</span>
+              <span className="sgp-uwh-chip-txt">Công tơ</span>
+            </div>
+            <div className="sgp-uwh-chip sgp-uwh-chip-alert" title="2 mục hồ sơ & chỉ số chờ đối soát">
+              <ClipboardCheck size={13} className="sgp-text-blue" />
+              <span className="sgp-uwh-chip-val">2</span>
+              <span className="sgp-uwh-chip-txt">Chờ đối soát</span>
             </div>
           </div>
         )}
