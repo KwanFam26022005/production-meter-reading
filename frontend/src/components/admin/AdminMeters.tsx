@@ -13,6 +13,8 @@ import {
   Layers,
   Map,
   List,
+  ChevronRight,
+  MapPin,
 } from 'lucide-react';
 import { AdminMeterItem, AdminMeterListResponse } from '../../types';
 import {
@@ -55,6 +57,7 @@ export const AdminMeters: React.FC<AdminMetersProps> = ({ onInspectReading }) =>
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [typeFilter, setTypeFilter] = useState<string>('ALL');
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState<boolean>(false);
 
   // Overflow menu state (tracks which meter ID's menu is open)
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
@@ -254,7 +257,7 @@ export const AdminMeters: React.FC<AdminMetersProps> = ({ onInspectReading }) =>
   return (
     <div className="admin-page-container">
       {/* 1. PAGE HEADER */}
-      <div className="admin-page-header">
+      <div className="admin-page-header admin-meters-desktop-header">
         <div className="admin-page-title-group">
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <h1 className="admin-page-title">Danh mục công tơ</h1>
@@ -311,7 +314,7 @@ export const AdminMeters: React.FC<AdminMetersProps> = ({ onInspectReading }) =>
       </div>
 
       {/* 2. FILTER TOOLBAR */}
-      <div className="admin-toolbar-card" role="search" aria-label="Tìm kiếm và lọc công tơ">
+      <div className="admin-toolbar-card admin-meters-desktop-toolbar" role="search" aria-label="Tìm kiếm và lọc công tơ">
         <div className="admin-toolbar-search-wrap">
           <Search size={16} className="admin-search-icon" aria-hidden="true" />
           <input
@@ -370,6 +373,84 @@ export const AdminMeters: React.FC<AdminMetersProps> = ({ onInspectReading }) =>
         </div>
       </div>
 
+      {/* MOBILE HEADER & FILTER DISCLOSURE */}
+      <div className="admin-meters-mobile-header">
+        <div className="admin-meters-mobile-title-row">
+          <div>
+            <h1 className="admin-meters-mobile-title">Danh mục công tơ</h1>
+            <p className="admin-meters-mobile-subtitle">
+              {data ? `${data.total} công tơ • ${data.meters.filter((m) => m.is_active).length} đang dùng` : 'Quản lý công tơ'}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={handleOpenAdd}
+            className="admin-meters-mobile-add-btn"
+            aria-label="Thêm công tơ mới"
+          >
+            <Plus size={16} strokeWidth={2.2} />
+            <span>Thêm</span>
+          </button>
+        </div>
+
+        <div className="admin-meters-mobile-search-row">
+          <div className="admin-meters-mobile-search-box">
+            <Search size={15} className="text-slate-400 shrink-0" />
+            <input
+              type="text"
+              placeholder="Tìm mã, tên hoặc vị trí..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="admin-meters-mobile-search-input"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}
+                aria-label="Xóa tìm kiếm"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => setMobileFiltersOpen(!mobileFiltersOpen)}
+            className={`admin-meters-mobile-filter-toggle ${mobileFiltersOpen ? 'active' : ''}`}
+          >
+            Bộ lọc
+          </button>
+        </div>
+
+        {mobileFiltersOpen && (
+          <div className="admin-meters-mobile-filter-panel">
+            <div className="admin-meters-mobile-filter-field">
+              <label>Trạng thái</label>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+              >
+                <option value="ALL">Tất cả trạng thái</option>
+                <option value="ACTIVE">Đang dùng</option>
+                <option value="INACTIVE">Ngừng sử dụng</option>
+              </select>
+            </div>
+            <div className="admin-meters-mobile-filter-field">
+              <label>Loại công tơ</label>
+              <select
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value)}
+              >
+                <option value="ALL">Tất cả loại</option>
+                <option value="LCD">LCD</option>
+                <option value="MECHANICAL">Cơ</option>
+              </select>
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* 3. METERS MASTER DATA TABLE */}
       {loading ? (
         <LoadingState message="Đang tải danh mục công tơ..." />
@@ -402,72 +483,250 @@ export const AdminMeters: React.FC<AdminMetersProps> = ({ onInspectReading }) =>
           )}
         </div>
       ) : (
-        <div className="admin-surface-card table-card">
-          <div className="admin-card-header">
-            <h2 className="admin-card-title">Danh sách thiết bị</h2>
-            <span className="admin-card-badge font-tabular">
-              {data.total} công tơ
-            </span>
+        <>
+          <div className="admin-surface-card table-card admin-meters-desktop-table">
+            <div className="admin-card-header">
+              <h2 className="admin-card-title">Danh sách thiết bị</h2>
+              <span className="admin-card-badge font-tabular">
+                {data.total} công tơ
+              </span>
+            </div>
+
+            <div className="admin-table-container">
+              <table className="admin-table admin-meters-table" aria-label="Bảng danh mục công tơ">
+                <thead>
+                  <tr>
+                    <th scope="col" style={{ width: '12%' }}>Mã công tơ</th>
+                    <th scope="col" style={{ width: '22%' }}>Tên công tơ</th>
+                    <th scope="col" style={{ width: '20%' }}>Vị trí</th>
+                    <th scope="col" style={{ width: '10%' }}>Loại</th>
+                    <th scope="col" style={{ width: '14%' }}>Trạng thái</th>
+                    <th scope="col" style={{ width: '22%' }}>Chỉ số gần nhất</th>
+                    <th scope="col" style={{ width: '56px', textAlign: 'center' }}>
+                      <span className="sr-only">Thao tác</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.meters.map((m) => {
+                    const formattedTime = formatLatestReadingTime(m.latest_reading_time);
+                    const isMenuOpen = openMenuId === m.id;
+                    const typeLabel =
+                      m.meter_type.toUpperCase() === 'MECHANICAL' ? 'Cơ' : 'LCD';
+
+                    return (
+                      <tr
+                        key={m.id}
+                        className={`admin-meter-row ${!m.is_active ? 'row-meter-inactive' : ''}`}
+                      >
+                        {/* Column 1: Mã công tơ */}
+                        <td>
+                          <button
+                            type="button"
+                            className="admin-meter-code-link font-mono font-bold font-tabular"
+                            onClick={() => handleOpenEdit(m)}
+                            title={`Chỉnh sửa công tơ ${m.meter_code}`}
+                          >
+                            {m.meter_code}
+                          </button>
+                        </td>
+
+                        {/* Column 2: Tên công tơ */}
+                        <td>
+                          <span className="admin-meter-name font-medium">{m.name}</span>
+                        </td>
+
+                        {/* Column 3: Vị trí */}
+                        <td>
+                          <span className="admin-meter-location">
+                            {m.location || <span className="text-muted">—</span>}
+                          </span>
+                        </td>
+
+                        {/* Column 4: Loại */}
+                        <td>
+                          <span className="admin-meter-type-text">{typeLabel}</span>
+                        </td>
+
+                        {/* Column 5: Trạng thái */}
+                        <td>
+                          {m.is_active ? (
+                            <span className="admin-meter-status-active">
+                              <span className="meter-dot dot-active" aria-hidden="true" />
+                              <span>Đang dùng</span>
+                            </span>
+                          ) : (
+                            <span className="admin-meter-status-inactive">
+                              <span className="meter-dot dot-inactive" aria-hidden="true" />
+                              <span>Ngừng sử dụng</span>
+                            </span>
+                          )}
+                        </td>
+
+                        {/* Column 6: Chỉ số gần nhất (Canonical String Preserved) */}
+                        <td>
+                          {m.latest_reading ? (
+                            <div className="admin-reading-cell-v2">
+                              <span className="admin-reading-val font-mono font-semibold font-tabular">
+                                {m.latest_reading} {m.utility_type === 'WATER' ? 'm³' : 'kWh'}
+                              </span>
+                              {formattedTime && (
+                                <span className="admin-reading-time font-tabular">
+                                  {formattedTime}
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-muted text-sm">Chưa có dữ liệu</span>
+                          )}
+                        </td>
+
+                        {/* Column 7: Single Overflow Actions Menu [ ⋯ ] */}
+                        <td style={{ textAlign: 'center', position: 'relative' }}>
+                          <div
+                            className="admin-overflow-wrapper"
+                            ref={isMenuOpen ? menuRef : null}
+                          >
+                            <button
+                              type="button"
+                              className={`admin-menu-trigger ${isMenuOpen ? 'active' : ''}`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setOpenMenuId(isMenuOpen ? null : m.id);
+                              }}
+                              aria-expanded={isMenuOpen}
+                              aria-haspopup="menu"
+                              aria-label={`Thao tác với ${m.meter_code}`}
+                              title="Thao tác"
+                            >
+                              <MoreVertical size={16} aria-hidden="true" />
+                            </button>
+
+                            {isMenuOpen && (
+                              <div
+                                className="admin-overflow-menu"
+                                role="menu"
+                                aria-orientation="vertical"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <button
+                                  type="button"
+                                  className="admin-menu-item"
+                                  role="menuitem"
+                                  onClick={() => handleOpenEdit(m)}
+                                >
+                                  <Edit2 size={14} aria-hidden="true" />
+                                  <span>Chỉnh sửa</span>
+                                </button>
+
+                                {onInspectReading && (
+                                  <button
+                                    type="button"
+                                    className="admin-menu-item"
+                                    role="menuitem"
+                                    onClick={async () => {
+                                     setOpenMenuId(null);
+                                      try {
+                                        const res = await getAdminMeterLatestReading(m.id);
+                                        onInspectReading(res.reading_id);
+                                      } catch (err: unknown) {
+                                        const msg = err instanceof Error ? err.message : 'Công tơ chưa có bản ghi để kiểm tra.';
+                                        alert(msg);
+                                      }
+                                    }}
+                                  >
+                                    <Search size={14} aria-hidden="true" />
+                                    <span>Kiểm tra bản ghi gần nhất</span>
+                                  </button>
+                                )}
+
+                                <div className="admin-menu-divider" role="separator" />
+
+                                {m.is_active ? (
+                                  <button
+                                    type="button"
+                                    className="admin-menu-item text-danger"
+                                    role="menuitem"
+                                    onClick={() => {
+                                      setOpenMenuId(null);
+                                      setDeactivateError(null);
+                                      setDeactivatingMeter(m);
+                                    }}
+                                  >
+                                    <Power size={14} aria-hidden="true" />
+                                    <span>Ngừng sử dụng</span>
+                                  </button>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    className="admin-menu-item text-brand"
+                                    role="menuitem"
+                                    onClick={() => {
+                                      setOpenMenuId(null);
+                                      setDeactivateError(null);
+                                      setDeactivatingMeter(m);
+                                    }}
+                                  >
+                                    <Power size={14} aria-hidden="true" />
+                                    <span>Kích hoạt lại</span>
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
 
-          <div className="admin-table-container">
-            <table className="admin-table admin-meters-table" aria-label="Bảng danh mục công tơ">
-              <thead>
-                <tr>
-                  <th scope="col" style={{ width: '12%' }}>Mã công tơ</th>
-                  <th scope="col" style={{ width: '22%' }}>Tên công tơ</th>
-                  <th scope="col" style={{ width: '20%' }}>Vị trí</th>
-                  <th scope="col" style={{ width: '10%' }}>Loại</th>
-                  <th scope="col" style={{ width: '14%' }}>Trạng thái</th>
-                  <th scope="col" style={{ width: '22%' }}>Chỉ số gần nhất</th>
-                  <th scope="col" style={{ width: '56px', textAlign: 'center' }}>
-                    <span className="sr-only">Thao tác</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.meters.map((m) => {
-                  const formattedTime = formatLatestReadingTime(m.latest_reading_time);
-                  const isMenuOpen = openMenuId === m.id;
-                  const typeLabel =
-                    m.meter_type.toUpperCase() === 'MECHANICAL' ? 'Cơ' : 'LCD';
+          {/* MOBILE METERS LIST */}
+          <div className="admin-meters-mobile-list">
+            {data.meters.map((m) => {
+              const formattedTime = formatLatestReadingTime(m.latest_reading_time);
+              const isWater = m.utility_type === 'WATER';
 
-                  return (
-                    <tr
-                      key={m.id}
-                      className={`admin-meter-row ${!m.is_active ? 'row-meter-inactive' : ''}`}
-                    >
-                      {/* Column 1: Mã công tơ */}
-                      <td>
-                        <button
-                          type="button"
-                          className="admin-meter-code-link font-mono font-bold font-tabular"
-                          onClick={() => handleOpenEdit(m)}
-                          title={`Chỉnh sửa công tơ ${m.meter_code}`}
-                        >
-                          {m.meter_code}
-                        </button>
-                      </td>
+              return (
+                <div
+                  key={m.id}
+                  onClick={() => handleOpenEdit(m)}
+                  className="admin-meter-mobile-card"
+                >
+                  <div className="admin-meter-card-top">
+                    <span className="admin-meter-card-code font-mono font-bold">{m.meter_code}</span>
+                    <span className={`admin-meter-card-utility ${isWater ? 'water' : 'electricity'}`}>
+                      {isWater ? '💧 Nước' : '⚡ Điện'}
+                    </span>
+                  </div>
 
-                      {/* Column 2: Tên công tơ */}
-                      <td>
-                        <span className="admin-meter-name font-medium">{m.name}</span>
-                      </td>
+                  <div className="admin-meter-card-name">{m.name}</div>
 
-                      {/* Column 3: Vị trí */}
-                      <td>
-                        <span className="admin-meter-location">
-                          {m.location || <span className="text-muted">—</span>}
-                        </span>
-                      </td>
+                  <div className="admin-meter-card-zone">
+                    <MapPin size={13} className="shrink-0 text-slate-400" />
+                    <span>{m.location || 'Chưa có vị trí'}</span>
+                  </div>
 
-                      {/* Column 4: Loại */}
-                      <td>
-                        <span className="admin-meter-type-text">{typeLabel}</span>
-                      </td>
+                  <div className="admin-meter-card-bottom">
+                    <div className="admin-meter-card-reading-wrap">
+                      {m.latest_reading ? (
+                        <>
+                          <span className="admin-meter-card-reading-val font-mono">
+                            {m.latest_reading} {isWater ? 'm³' : 'kWh'}
+                          </span>
+                          {formattedTime && (
+                            <span className="admin-meter-card-reading-time">{formattedTime}</span>
+                          )}
+                        </>
+                      ) : (
+                        <span className="text-muted text-xs">Chưa có chỉ số</span>
+                      )}
+                    </div>
 
-                      {/* Column 5: Trạng thái */}
-                      <td>
+                    <div className="admin-meter-card-status-row">
+                      <div className="admin-meter-card-status">
                         {m.is_active ? (
                           <span className="admin-meter-status-active">
                             <span className="meter-dot dot-active" aria-hidden="true" />
@@ -476,130 +735,18 @@ export const AdminMeters: React.FC<AdminMetersProps> = ({ onInspectReading }) =>
                         ) : (
                           <span className="admin-meter-status-inactive">
                             <span className="meter-dot dot-inactive" aria-hidden="true" />
-                            <span>Ngừng sử dụng</span>
+                            <span>Ngừng</span>
                           </span>
                         )}
-                      </td>
-
-                      {/* Column 6: Chỉ số gần nhất (Canonical String Preserved) */}
-                      <td>
-                        {m.latest_reading ? (
-                          <div className="admin-reading-cell-v2">
-                            <span className="admin-reading-val font-mono font-semibold font-tabular">
-                              {m.latest_reading} {m.utility_type === 'WATER' ? 'm³' : 'kWh'}
-                            </span>
-                            {formattedTime && (
-                              <span className="admin-reading-time font-tabular">
-                                {formattedTime}
-                              </span>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="text-muted text-sm">Chưa có dữ liệu</span>
-                        )}
-                      </td>
-
-                      {/* Column 7: Single Overflow Actions Menu [ ⋯ ] */}
-                      <td style={{ textAlign: 'center', position: 'relative' }}>
-                        <div
-                          className="admin-overflow-wrapper"
-                          ref={isMenuOpen ? menuRef : null}
-                        >
-                          <button
-                            type="button"
-                            className={`admin-menu-trigger ${isMenuOpen ? 'active' : ''}`}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setOpenMenuId(isMenuOpen ? null : m.id);
-                            }}
-                            aria-expanded={isMenuOpen}
-                            aria-haspopup="menu"
-                            aria-label={`Thao tác với ${m.meter_code}`}
-                            title="Thao tác"
-                          >
-                            <MoreVertical size={16} aria-hidden="true" />
-                          </button>
-
-                          {isMenuOpen && (
-                            <div
-                              className="admin-overflow-menu"
-                              role="menu"
-                              aria-orientation="vertical"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <button
-                                type="button"
-                                className="admin-menu-item"
-                                role="menuitem"
-                                onClick={() => handleOpenEdit(m)}
-                              >
-                                <Edit2 size={14} aria-hidden="true" />
-                                <span>Chỉnh sửa</span>
-                              </button>
-
-                              {onInspectReading && (
-                                <button
-                                  type="button"
-                                  className="admin-menu-item"
-                                  role="menuitem"
-                                  onClick={async () => {
-                                    setOpenMenuId(null);
-                                    try {
-                                      const res = await getAdminMeterLatestReading(m.id);
-                                      onInspectReading(res.reading_id);
-                                    } catch (err: unknown) {
-                                      const msg = err instanceof Error ? err.message : 'Công tơ chưa có bản ghi để kiểm tra.';
-                                      alert(msg);
-                                    }
-                                  }}
-                                >
-                                  <Search size={14} aria-hidden="true" />
-                                  <span>Kiểm tra bản ghi gần nhất</span>
-                                </button>
-                              )}
-
-                              <div className="admin-menu-divider" role="separator" />
-
-                              {m.is_active ? (
-                                <button
-                                  type="button"
-                                  className="admin-menu-item text-danger"
-                                  role="menuitem"
-                                  onClick={() => {
-                                    setOpenMenuId(null);
-                                    setDeactivateError(null);
-                                    setDeactivatingMeter(m);
-                                  }}
-                                >
-                                  <Power size={14} aria-hidden="true" />
-                                  <span>Ngừng sử dụng</span>
-                                </button>
-                              ) : (
-                                <button
-                                  type="button"
-                                  className="admin-menu-item text-brand"
-                                  role="menuitem"
-                                  onClick={() => {
-                                    setOpenMenuId(null);
-                                    setDeactivateError(null);
-                                    setDeactivatingMeter(m);
-                                  }}
-                                >
-                                  <Power size={14} aria-hidden="true" />
-                                  <span>Kích hoạt lại</span>
-                                </button>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                      </div>
+                      <ChevronRight size={16} className="text-slate-400 shrink-0" />
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
-        </div>
+        </>
       )}
 
       {/* 4. SLIDE-OVER DRAWER (ADD / EDIT) */}
