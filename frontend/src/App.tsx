@@ -187,7 +187,9 @@ const AdminWorkspaceApp: React.FC<AdminWorkspaceAppProps> = ({
             <AdminDevicesWorkspace onInspectReading={(rId) => setInspectingReadingId(rId)} />
           )}
           {adminActiveTab === 'verification' && <AdminVerification />}
-          {adminActiveTab === 'schedules' && <AdminSchedules />}
+          {adminActiveTab === 'schedules' && (
+            <AdminSchedules onInspectReading={(rId) => setInspectingReadingId(rId)} />
+          )}
           {adminActiveTab === 'staff_roster' && <AdminStaffRoster user={currentUser} />}
           {adminActiveTab === 'meters' && (
             <AdminDevicesWorkspace onInspectReading={(rId) => setInspectingReadingId(rId)} />

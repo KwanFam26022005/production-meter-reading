@@ -86,10 +86,9 @@ export const OperationalWorkspaceHeader: React.FC<OperationalWorkspaceHeaderProp
             data-tab="dashboard-list"
             className={`sgp-uwh-mode-btn ${viewMode === 'list' ? 'active' : ''}`}
             onClick={() => {
-              setActiveTab('dashboard');
-              onViewModeChange?.('list');
+              setActiveTab('schedules');
             }}
-            title="Sổ ca ghi: Danh sách 12 công tơ cần ghi nhận trong ca trực"
+            title="Chuyển đến Lịch ghi: Sổ ca ghi 12 công tơ theo ca trực"
           >
             <List size={14} />
             <span className="sgp-uwh-tab-full">Sổ ca ghi</span>

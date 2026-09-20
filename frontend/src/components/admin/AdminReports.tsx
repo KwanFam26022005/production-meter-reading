@@ -32,6 +32,7 @@ import {
 import { LoadingState } from '../ui/LoadingState';
 import { ErrorState } from '../ui/ErrorState';
 import { VnDatePicker, addDaysToIso } from '../ui/VnDatePicker';
+import { AdminAudit } from './AdminAudit';
 
 export type HistorySortField = 'datetime' | 'status' | 'reading' | 'recorded_at';
 export type SortOrder = 'asc' | 'desc';
@@ -85,11 +86,11 @@ export const AdminReports: React.FC<AdminReportsProps> = ({ onInspectReading }) 
   const [selectedSource, setSelectedSource] = useState<string>('ALL');
 
   // Navigation Tab State
-  const [activeTab, setActiveTab] = useState<'overview' | 'quality' | 'meters' | 'data'>(() => {
+  const [activeTab, setActiveTab] = useState<'overview' | 'quality' | 'meters' | 'data' | 'audit'>(() => {
     try {
       const saved = sessionStorage.getItem('admin_reports_subTab');
-      if (saved && ['overview', 'quality', 'meters', 'data'].includes(saved)) {
-        return saved as 'overview' | 'quality' | 'meters' | 'data';
+      if (saved && ['overview', 'quality', 'meters', 'data', 'audit'].includes(saved)) {
+        return saved as 'overview' | 'quality' | 'meters' | 'data' | 'audit';
       }
     } catch {}
     return 'overview';
@@ -367,190 +368,33 @@ export const AdminReports: React.FC<AdminReportsProps> = ({ onInspectReading }) 
           </p>
         </div>
 
-        <button
-          type="button"
-          className="admin-btn-secondary"
-          onClick={handleExportCsv}
-          title="Xuất dữ liệu chi tiết dạng CSV (UTF-8 BOM)"
-          aria-label="Xuất dữ liệu CSV"
-        >
-          <Download size={14} aria-hidden="true" />
-          <span>Xuất dữ liệu CSV</span>
-        </button>
-      </div>
-
-      {/* 2. COMPACT GLOBAL TECHNICAL FILTER TOOLBAR */}
-      <div className="admin-toolbar-card admin-tech-toolbar-compact" role="search" aria-label="Bộ lọc báo cáo kỹ thuật">
-        {/* Mode Toggle: Theo ngày vs Khoảng ngày */}
-        <div className="admin-report-mode-toggle" role="radiogroup" aria-label="Chế độ thời gian báo cáo">
+        {activeTab !== 'audit' && (
           <button
             type="button"
-            className={`admin-mode-pill ${reportMode === 'single' ? 'active' : ''}`}
-            onClick={() => {
-              setReportMode('single');
-              setStartDate(endDate);
-            }}
+            className="admin-btn-secondary"
+            onClick={handleExportCsv}
+            title="Xuất dữ liệu chi tiết dạng CSV (UTF-8 BOM)"
+            aria-label="Xuất dữ liệu CSV"
           >
-            Theo ngày
+            <Download size={14} aria-hidden="true" />
+            <span>Xuất dữ liệu CSV</span>
           </button>
-          <button
-            type="button"
-            className={`admin-mode-pill ${reportMode === 'range' ? 'active' : ''}`}
-            onClick={() => {
-              setReportMode('range');
-              if (startDate === endDate) {
-                setStartDate(getFirstDayOfMonth());
-              }
-            }}
-          >
-            Khoảng ngày
-          </button>
-        </div>
-
-        {/* Dynamic Controls based on reportMode */}
-        {reportMode === 'single' ? (
-          <>
-            <div className="admin-date-presets" role="group" aria-label="Chọn ngày nhanh">
-              <button
-                type="button"
-                className={`admin-preset-btn ${endDate === getTodayLocal() ? 'active' : ''}`}
-                onClick={() => handlePreset('today')}
-              >
-                Hôm nay
-              </button>
-              <button
-                type="button"
-                className={`admin-preset-btn ${endDate === addDaysToIso(getTodayLocal(), -1) ? 'active' : ''}`}
-                onClick={() => handlePreset('yesterday')}
-              >
-                Hôm qua
-              </button>
-            </div>
-
-            <VnDatePicker
-              size="sm"
-              value={endDate}
-              onChange={(newDate) => {
-                setStartDate(newDate);
-                setEndDate(newDate);
-              }}
-              showSteppers={true}
-              ariaLabel="Chọn ngày xem báo cáo"
-              title="Chọn ngày xem báo cáo (DD/MM/YYYY)"
-            />
-          </>
-        ) : (
-          <>
-            {/* Presets Segmented Control */}
-            <div className="admin-date-presets" role="group" aria-label="Chọn khoảng thời gian nhanh">
-              <button
-                type="button"
-                className="admin-preset-btn"
-                onClick={() => handlePreset('7days')}
-              >
-                7 ngày
-              </button>
-              <button
-                type="button"
-                className="admin-preset-btn"
-                onClick={() => handlePreset('30days')}
-              >
-                30 ngày
-              </button>
-              <button
-                type="button"
-                className={`admin-preset-btn ${startDate === getFirstDayOfMonth() && endDate === getTodayLocal() ? 'active' : ''}`}
-                onClick={() => handlePreset('thisMonth')}
-              >
-                Tháng này
-              </button>
-            </div>
-
-            {/* Vietnamese Formatted Date Range Picker */}
-            <div className="admin-tech-date-range-badge" title="Khoảng thời gian phân tích (DD/MM/YYYY)">
-              <VnDatePicker
-                size="sm"
-                value={startDate}
-                onChange={(d) => setStartDate(d)}
-                ariaLabel="Từ ngày"
-                title="Từ ngày (DD/MM/YYYY)"
-              />
-              <span className="text-muted text-xs">&rarr;</span>
-              <VnDatePicker
-                size="sm"
-                value={endDate}
-                onChange={(d) => setEndDate(d)}
-                ariaLabel="Đến ngày"
-                title="Đến ngày (DD/MM/YYYY)"
-              />
-            </div>
-          </>
         )}
-
-        {/* Dimension Filters */}
-        <div className="admin-tech-select-group">
-          <select
-            className="admin-select admin-select-sm"
-            value={selectedLocation}
-            onChange={(e) => setSelectedLocation(e.target.value)}
-            aria-label="Lọc theo khu vực"
-          >
-            <option value="ALL">Tất cả khu vực</option>
-            {overviewData?.available_locations.map((loc) => (
-              <option key={loc} value={loc}>
-                {loc}
-              </option>
-            ))}
-          </select>
-
-          <select
-            className="admin-select admin-select-sm"
-            value={selectedType}
-            onChange={(e) => setSelectedType(e.target.value)}
-            aria-label="Lọc theo loại công tơ"
-          >
-            <option value="ALL">Tất cả loại</option>
-            <option value="LCD">LCD</option>
-            <option value="MECHANICAL">Cơ</option>
-          </select>
-
-          <select
-            className="admin-select admin-select-sm"
-            value={selectedSource}
-            onChange={(e) => setSelectedSource(e.target.value)}
-            aria-label="Lọc theo nguồn xác nhận"
-          >
-            <option value="ALL">Tất cả nguồn</option>
-            <option value="OCR_CONFIRMED">Xác nhận từ OCR</option>
-            <option value="USER_CORRECTED">Đã hiệu chỉnh</option>
-            <option value="MANUAL_ENTRY">Nhập thủ công</option>
-          </select>
-
-          <button
-            type="button"
-            className="admin-btn-refresh btn-sm"
-            onClick={() => {
-              loadOverview();
-              if (activeTab === 'meters') loadMetersData();
-              if (activeTab === 'data') loadDetailsData(1);
-            }}
-            disabled={overviewLoading}
-            title="Làm mới dữ liệu"
-            aria-label="Làm mới báo cáo"
-          >
-            <RefreshCw size={13} className={overviewLoading ? 'animate-spin' : ''} aria-hidden="true" />
-          </button>
-        </div>
       </div>
 
-      {/* 3. TECHNICAL WORKSPACE TABS */}
+      {/* 2. TECHNICAL WORKSPACE TABS */}
       <div className="admin-tech-tabs" role="tablist" aria-label="Chuyển đổi góc nhìn phân tích">
         <button
           type="button"
           role="tab"
           aria-selected={activeTab === 'overview'}
           className={`admin-tech-tab ${activeTab === 'overview' ? 'active' : ''}`}
-          onClick={() => setActiveTab('overview')}
+          onClick={() => {
+            setActiveTab('overview');
+            try {
+              sessionStorage.setItem('admin_reports_subTab', 'overview');
+            } catch {}
+          }}
         >
           <Activity size={14} aria-hidden="true" />
           <span>Tổng quan kỹ thuật</span>
@@ -561,7 +405,12 @@ export const AdminReports: React.FC<AdminReportsProps> = ({ onInspectReading }) 
           role="tab"
           aria-selected={activeTab === 'quality'}
           className={`admin-tech-tab ${activeTab === 'quality' ? 'active' : ''}`}
-          onClick={() => setActiveTab('quality')}
+          onClick={() => {
+            setActiveTab('quality');
+            try {
+              sessionStorage.setItem('admin_reports_subTab', 'quality');
+            } catch {}
+          }}
         >
           <BarChart3 size={14} aria-hidden="true" />
           <span>Chất lượng nhận dạng</span>
@@ -572,7 +421,12 @@ export const AdminReports: React.FC<AdminReportsProps> = ({ onInspectReading }) 
           role="tab"
           aria-selected={activeTab === 'meters'}
           className={`admin-tech-tab ${activeTab === 'meters' ? 'active' : ''}`}
-          onClick={() => setActiveTab('meters')}
+          onClick={() => {
+            setActiveTab('meters');
+            try {
+              sessionStorage.setItem('admin_reports_subTab', 'meters');
+            } catch {}
+          }}
         >
           <Layers size={14} aria-hidden="true" />
           <span>Theo công tơ</span>
@@ -583,24 +437,212 @@ export const AdminReports: React.FC<AdminReportsProps> = ({ onInspectReading }) 
           role="tab"
           aria-selected={activeTab === 'data'}
           className={`admin-tech-tab ${activeTab === 'data' ? 'active' : ''}`}
-          onClick={() => setActiveTab('data')}
+          onClick={() => {
+            setActiveTab('data');
+            try {
+              sessionStorage.setItem('admin_reports_subTab', 'data');
+            } catch {}
+          }}
         >
           <FileText size={14} aria-hidden="true" />
           <span>Ngoại lệ & dữ liệu</span>
         </button>
+
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === 'audit'}
+          className={`admin-tech-tab ${activeTab === 'audit' ? 'active' : ''}`}
+          onClick={() => {
+            setActiveTab('audit');
+            try {
+              sessionStorage.setItem('admin_reports_subTab', 'audit');
+            } catch {}
+          }}
+        >
+          <ShieldCheck size={14} aria-hidden="true" />
+          <span>Nhật ký kiểm toán</span>
+        </button>
       </div>
 
-      {/* 4. TAB CONTENT */}
-      {overviewLoading && !overviewData ? (
-        <LoadingState message="Đang tải dữ liệu phân tích kỹ thuật..." />
-      ) : overviewError ? (
-        <ErrorState
-          title="Không thể tải báo cáo kỹ thuật"
-          message={overviewError}
-          onRetry={loadOverview}
-        />
-      ) : overviewData && (
-        <>
+      {/* 3. COMPACT GLOBAL TECHNICAL FILTER TOOLBAR */}
+      {activeTab !== 'audit' && (
+        <div className="admin-toolbar-card admin-tech-toolbar-compact" role="search" aria-label="Bộ lọc báo cáo kỹ thuật">
+          {/* Mode Toggle: Theo ngày vs Khoảng ngày */}
+          <div className="admin-report-mode-toggle" role="radiogroup" aria-label="Chế độ thời gian báo cáo">
+            <button
+              type="button"
+              className={`admin-mode-pill ${reportMode === 'single' ? 'active' : ''}`}
+              onClick={() => {
+                setReportMode('single');
+                setStartDate(endDate);
+              }}
+            >
+              Theo ngày
+            </button>
+            <button
+              type="button"
+              className={`admin-mode-pill ${reportMode === 'range' ? 'active' : ''}`}
+              onClick={() => {
+                setReportMode('range');
+                if (startDate === endDate) {
+                  setStartDate(getFirstDayOfMonth());
+                }
+              }}
+            >
+              Khoảng ngày
+            </button>
+          </div>
+
+          {/* Dynamic Controls based on reportMode */}
+          {reportMode === 'single' ? (
+            <>
+              <div className="admin-date-presets" role="group" aria-label="Chọn ngày nhanh">
+                <button
+                  type="button"
+                  className={`admin-preset-btn ${endDate === getTodayLocal() ? 'active' : ''}`}
+                  onClick={() => handlePreset('today')}
+                >
+                  Hôm nay
+                </button>
+                <button
+                  type="button"
+                  className={`admin-preset-btn ${endDate === addDaysToIso(getTodayLocal(), -1) ? 'active' : ''}`}
+                  onClick={() => handlePreset('yesterday')}
+                >
+                  Hôm qua
+                </button>
+              </div>
+
+              <VnDatePicker
+                size="sm"
+                value={endDate}
+                onChange={(newDate) => {
+                  setStartDate(newDate);
+                  setEndDate(newDate);
+                }}
+                showSteppers={true}
+                ariaLabel="Chọn ngày xem báo cáo"
+                title="Chọn ngày xem báo cáo (DD/MM/YYYY)"
+              />
+            </>
+          ) : (
+            <>
+              {/* Presets Segmented Control */}
+              <div className="admin-date-presets" role="group" aria-label="Chọn khoảng thời gian nhanh">
+                <button
+                  type="button"
+                  className="admin-preset-btn"
+                  onClick={() => handlePreset('7days')}
+                >
+                  7 ngày
+                </button>
+                <button
+                  type="button"
+                  className="admin-preset-btn"
+                  onClick={() => handlePreset('30days')}
+                >
+                  30 ngày
+                </button>
+                <button
+                  type="button"
+                  className={`admin-preset-btn ${startDate === getFirstDayOfMonth() && endDate === getTodayLocal() ? 'active' : ''}`}
+                  onClick={() => handlePreset('thisMonth')}
+                >
+                  Tháng này
+                </button>
+              </div>
+
+              {/* Vietnamese Formatted Date Range Picker */}
+              <div className="admin-tech-date-range-badge" title="Khoảng thời gian phân tích (DD/MM/YYYY)">
+                <VnDatePicker
+                  size="sm"
+                  value={startDate}
+                  onChange={(d) => setStartDate(d)}
+                  ariaLabel="Từ ngày"
+                  title="Từ ngày (DD/MM/YYYY)"
+                />
+                <span className="text-muted text-xs">&rarr;</span>
+                <VnDatePicker
+                  size="sm"
+                  value={endDate}
+                  onChange={(d) => setEndDate(d)}
+                  ariaLabel="Đến ngày"
+                  title="Đến ngày (DD/MM/YYYY)"
+                />
+              </div>
+            </>
+          )}
+
+          {/* Dimension Filters */}
+          <div className="admin-tech-select-group">
+            <select
+              className="admin-select admin-select-sm"
+              value={selectedLocation}
+              onChange={(e) => setSelectedLocation(e.target.value)}
+              aria-label="Lọc theo khu vực"
+            >
+              <option value="ALL">Tất cả khu vực</option>
+              {overviewData?.available_locations.map((loc) => (
+                <option key={loc} value={loc}>
+                  {loc}
+                </option>
+              ))}
+            </select>
+
+            <select
+              className="admin-select admin-select-sm"
+              value={selectedType}
+              onChange={(e) => setSelectedType(e.target.value)}
+              aria-label="Lọc theo loại công tơ"
+            >
+              <option value="ALL">Tất cả loại</option>
+              <option value="LCD">LCD</option>
+              <option value="MECHANICAL">Cơ</option>
+            </select>
+
+            <select
+              className="admin-select admin-select-sm"
+              value={selectedSource}
+              onChange={(e) => setSelectedSource(e.target.value)}
+              aria-label="Lọc theo nguồn xác nhận"
+            >
+              <option value="ALL">Tất cả nguồn</option>
+              <option value="OCR_CONFIRMED">Xác nhận từ OCR</option>
+              <option value="USER_CORRECTED">Đã hiệu chỉnh</option>
+              <option value="MANUAL_ENTRY">Nhập thủ công</option>
+            </select>
+
+            <button
+              type="button"
+              className="admin-btn-refresh btn-sm"
+              onClick={() => {
+                loadOverview();
+                if (activeTab === 'meters') loadMetersData();
+                if (activeTab === 'data') loadDetailsData(1);
+              }}
+              disabled={overviewLoading}
+              title="Làm mới dữ liệu"
+              aria-label="Làm mới báo cáo"
+            >
+              <RefreshCw size={13} className={overviewLoading ? 'animate-spin' : ''} aria-hidden="true" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 4. TECHNICAL TAB CONTENT */}
+      {activeTab !== 'audit' && (
+        overviewLoading && !overviewData ? (
+          <LoadingState message="Đang tải dữ liệu phân tích kỹ thuật..." />
+        ) : overviewError ? (
+          <ErrorState
+            title="Không thể tải báo cáo kỹ thuật"
+            message={overviewError}
+            onRetry={loadOverview}
+          />
+        ) : overviewData && (
+          <>
           {/* ======================================================== */}
           {/* TAB 1: TỔNG QUAN KỸ THUẬT (4-CARD DENSITY)               */}
           {/* ======================================================== */}
@@ -1684,6 +1726,14 @@ export const AdminReports: React.FC<AdminReportsProps> = ({ onInspectReading }) 
             </div>
           )}
         </>
+        )
+      )}
+
+      {/* 5. AUDIT LOG TAB CONTENT */}
+      {activeTab === 'audit' && (
+        <div className="admin-tech-content" style={{ marginTop: '12px' }}>
+          <AdminAudit />
+        </div>
       )}
     </div>
   );

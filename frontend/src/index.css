@@ -7169,6 +7169,11 @@ body:has(.admin-portal-root) {
   border-left: 3px solid var(--sgp-brand-700);
 }
 
+.admin-sched-row.row-selected {
+  background-color: var(--sgp-brand-050);
+  border-left: 3px solid var(--sgp-brand-600);
+}
+
 .admin-sched-row.row-upcoming {
   opacity: 0.85;
 }

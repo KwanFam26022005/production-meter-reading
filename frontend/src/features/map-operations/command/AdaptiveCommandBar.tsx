@@ -20,7 +20,9 @@ import {
   Zap,
   Check,
   Share2,
+  Boxes,
 } from 'lucide-react';
+import type { Asset } from '../../assets/types';
 import { VnDatePicker } from '../../../components/ui/VnDatePicker';
 import type {
   AdminDashboardRoundProgress,
@@ -67,9 +69,11 @@ export interface AdaptiveCommandBarProps {
   mapMeters?: MapMeterItem[];
   mapZones?: MapOperationalZone[];
   availableOperators?: User[];
+  assets?: Asset[];
   onSelectMeter?: (meterId: string) => void;
   onSelectZone?: (zoneId: string) => void;
   onSelectOperator?: (operatorId: string) => void;
+  onSelectAsset?: (assetId: string) => void;
 
   // Actions
   onRefresh: () => void;
@@ -113,9 +117,11 @@ export const AdaptiveCommandBar: React.FC<AdaptiveCommandBarProps> = ({
   mapMeters = [],
   mapZones = [],
   availableOperators = [],
+  assets = [],
   onSelectMeter,
   onSelectZone,
   onSelectOperator,
+  onSelectAsset,
   onRefresh,
   isLoading,
   onExportCsv,
@@ -256,7 +262,7 @@ export const AdaptiveCommandBar: React.FC<AdaptiveCommandBarProps> = ({
   // Search matching results in Map Mode
   const searchResults = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    if (!q || viewMode !== 'map') return { meters: [], zones: [], operators: [] };
+    if (!q || viewMode !== 'map') return { meters: [], zones: [], operators: [], assets: [] };
 
     const matchedMeters = mapMeters
       .filter((m) => (m.meterCode || '').toLowerCase().includes(q) || (m.name || '').toLowerCase().includes(q))
@@ -270,13 +276,18 @@ export const AdaptiveCommandBar: React.FC<AdaptiveCommandBarProps> = ({
       .filter((o) => o.full_name?.toLowerCase().includes(q) || o.employee_code?.toLowerCase().includes(q))
       .slice(0, 3);
 
-    return { meters: matchedMeters, zones: matchedZones, operators: matchedOps };
-  }, [searchQuery, viewMode, mapMeters, mapZones, availableOperators]);
+    const matchedAssets = assets
+      .filter((a) => (a.code || '').toLowerCase().includes(q) || (a.name || '').toLowerCase().includes(q))
+      .slice(0, 5);
+
+    return { meters: matchedMeters, zones: matchedZones, operators: matchedOps, assets: matchedAssets };
+  }, [searchQuery, viewMode, mapMeters, mapZones, availableOperators, assets]);
 
   const hasSearchResults =
     searchResults.meters.length > 0 ||
     searchResults.zones.length > 0 ||
-    searchResults.operators.length > 0;
+    searchResults.operators.length > 0 ||
+    searchResults.assets.length > 0;
 
   // Effective rounds list for dropdown (ensures at least 1 selectable item)
   const displayRounds: AdminDashboardRoundProgress[] = useMemo(() => {
@@ -785,12 +796,48 @@ export const AdaptiveCommandBar: React.FC<AdaptiveCommandBarProps> = ({
                   ))}
                 </div>
               )}
+              {searchResults.assets.length > 0 && (
+                <div className="sgp-cmd-search-group">
+                  <span className="sgp-cmd-search-header">Thiết bị hạ tầng</span>
+                  {searchResults.assets.map((a) => (
+                    <button
+                      key={a.id}
+                      type="button"
+                      className="sgp-cmd-search-item"
+                      onClick={() => {
+                        onSelectAsset?.(a.id);
+                        closeSurface();
+                      }}
+                    >
+                      <Boxes size={13} className="text-blue-400 shrink-0" />
+                      <span className="font-tabular font-medium">{a.code}</span>
+                      <span className="truncate text-slate-400 text-xs">{a.name}</span>
+                      {(a.map_x === null || a.map_y === null) && (
+                        <span
+                          style={{
+                            fontSize: 10,
+                            padding: '1px 5px',
+                            borderRadius: 3,
+                            backgroundColor: 'rgba(148, 163, 184, 0.15)',
+                            color: '#94a3b8',
+                            marginLeft: 'auto',
+                            whiteSpace: 'nowrap',
+                          }}
+                          title="Thiết bị chưa gắn tọa độ trên bản đồ"
+                        >
+                          Chưa định vị
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
           {searchQuery && viewMode === 'map' && !hasSearchResults && (
             <div className="py-4 text-center text-xs text-slate-400">
-              Không tìm thấy công tơ hoặc khu vực phù hợp
+              Không tìm thấy công tơ, thiết bị hoặc khu vực phù hợp
             </div>
           )}
         </div>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Calendar,
   Users,
@@ -10,9 +10,6 @@ import {
   ShieldCheck,
   ChevronLeft,
   Map,
-  Boxes,
-  MoreHorizontal,
-  ClipboardCheck,
 } from 'lucide-react';
 import { User, formatUserRole } from '../../types';
 
@@ -34,8 +31,6 @@ export const AdminShell: React.FC<AdminShellProps> = ({
   children,
 }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [toolsMenuOpen, setToolsMenuOpen] = useState(false);
-  const toolsMenuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const handleToggle = () => setSidebarOpen((prev) => !prev);
@@ -44,24 +39,11 @@ export const AdminShell: React.FC<AdminShellProps> = ({
   }, []);
 
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (toolsMenuRef.current && !toolsMenuRef.current.contains(e.target as Node)) {
-        setToolsMenuOpen(false);
-      }
-    };
-    if (toolsMenuOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [toolsMenuOpen]);
-
-  useEffect(() => {
     if (!sidebarOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.stopPropagation();
         setSidebarOpen(false);
-        setToolsMenuOpen(false);
       }
     };
     document.addEventListener('keydown', handleKeyDown, true);
@@ -79,39 +61,42 @@ export const AdminShell: React.FC<AdminShellProps> = ({
   void navItems;
 
   const primaryNavItems: { id: AdminTab; label: string; icon: React.ReactNode; tooltip: string }[] = [
-    { id: 'dashboard', label: 'Bản đồ', icon: <Map size={22} />, tooltip: 'Bản đồ không gian & Mạng lưới vận hành' },
-    { id: 'assets', label: 'Thiết bị', icon: <Boxes size={22} />, tooltip: 'Quản lý danh mục Thiết bị & Công tơ' },
+    { id: 'dashboard', label: 'Bản đồ', icon: <Map size={22} />, tooltip: 'Bản đồ không gian GIS & Mạng lưới vận hành' },
+    { id: 'schedules', label: 'Lịch ghi', icon: <Calendar size={22} />, tooltip: 'Lịch trình ca đọc & Sổ ca ghi' },
+    { id: 'staff_roster', label: 'Phân ca', icon: <Users size={22} />, tooltip: 'Phân công nhân sự & Điều độ ca trực' },
+    { id: 'reports', label: 'Báo cáo', icon: <BarChart3 size={22} />, tooltip: 'Báo cáo sản lượng, KPI & Nhật ký kiểm toán' },
   ];
-
-  const secondaryTools: { id: AdminTab; label: string; icon: React.ReactNode; description: string }[] = [
-    { id: 'schedules', label: 'Lịch ghi', icon: <Calendar size={18} />, description: 'Lịch trình & chu kỳ ca ghi' },
-    { id: 'staff_roster', label: 'Phân ca', icon: <Users size={18} />, description: 'Phân công nhân sự & ca trực' },
-    { id: 'reports', label: 'Báo cáo', icon: <BarChart3 size={18} />, description: 'Báo cáo sản lượng & chỉ số' },
-    { id: 'audit', label: 'Nhật ký', icon: <ScrollText size={18} />, description: 'Nhật ký kiểm toán hệ thống' },
-    { id: 'verification', label: 'Thẩm định hồ sơ', icon: <ClipboardCheck size={18} />, description: 'Hồ sơ thiết bị & bằng chứng' },
-  ];
-
-  const isSecondaryActive = ['schedules', 'staff_roster', 'reports', 'audit', 'verification'].includes(activeTab);
 
   const isItemActive = (itemId: AdminTab) => {
     if (itemId === 'dashboard') {
-      return activeTab === 'dashboard';
+      return activeTab === 'dashboard' || activeTab === 'assets' || activeTab === 'meters';
     }
-    if (itemId === 'assets') {
-      return activeTab === 'assets' || activeTab === 'meters';
+    if (itemId === 'schedules') {
+      return activeTab === 'schedules';
+    }
+    if (itemId === 'staff_roster') {
+      return activeTab === 'staff_roster';
+    }
+    if (itemId === 'reports') {
+      return activeTab === 'reports' || activeTab === 'audit' || activeTab === 'verification';
     }
     return activeTab === itemId;
   };
 
   const getCurrentWorkspaceTitle = () => {
-    if (activeTab === 'dashboard') {
+    if (activeTab === 'dashboard' || activeTab === 'assets' || activeTab === 'meters') {
       return 'Bản đồ';
     }
-    if (activeTab === 'assets' || activeTab === 'meters') {
-      return 'Thiết bị';
+    if (activeTab === 'schedules') {
+      return 'Lịch ghi';
     }
-    const found = secondaryTools.find((t) => t.id === activeTab);
-    return found ? found.label : 'Quản trị Vận hành';
+    if (activeTab === 'staff_roster') {
+      return 'Phân ca';
+    }
+    if (activeTab === 'reports' || activeTab === 'audit' || activeTab === 'verification') {
+      return 'Báo cáo';
+    }
+    return 'Bản đồ';
   };
 
   return (
@@ -193,7 +178,6 @@ export const AdminShell: React.FC<AdminShellProps> = ({
                   onClick={() => {
                     onSelectTab(item.id);
                     setSidebarOpen(false);
-                    setToolsMenuOpen(false);
                   }}
                   title={item.tooltip}
                   aria-label={item.label}
@@ -204,63 +188,6 @@ export const AdminShell: React.FC<AdminShellProps> = ({
                 </button>
               );
             })}
-
-            <div className="admin-rail-group-divider" title="Công cụ quản trị" />
-
-            {/* SECONDARY TOOLS COMPACT ACCESS [⋯] */}
-            <div style={{ position: 'relative' }} ref={toolsMenuRef}>
-              <button
-                type="button"
-                className={`admin-nav-item ${isSecondaryActive ? 'active' : ''}`}
-                onClick={() => setToolsMenuOpen((prev) => !prev)}
-                title="Công cụ quản trị (Lịch ghi, Phân ca, Báo cáo, Nhật ký, Thẩm định)"
-                aria-label="Công cụ quản trị"
-                aria-expanded={toolsMenuOpen}
-              >
-                <span className="admin-nav-icon"><MoreHorizontal size={22} /></span>
-                <span className="admin-nav-label">Công cụ</span>
-              </button>
-
-              {/* Floating Secondary Tools Popover */}
-              {toolsMenuOpen && (
-                <div
-                  className="sgp-secondary-tools-popover"
-                  role="menu"
-                  aria-label="Công cụ hỗ trợ"
-                >
-                  <div className="sgp-popover-header">
-                    Công cụ hỗ trợ
-                  </div>
-                  <div className="sgp-popover-list">
-                    {secondaryTools.map((tool) => {
-                      const isToolActive = activeTab === tool.id;
-                      return (
-                        <button
-                          key={tool.id}
-                          type="button"
-                          role="menuitem"
-                          className={`sgp-popover-item ${isToolActive ? 'active' : ''}`}
-                          onClick={() => {
-                            onSelectTab(tool.id);
-                            setToolsMenuOpen(false);
-                          }}
-                        >
-                          <span className="sgp-popover-icon">
-                            {tool.icon}
-                          </span>
-                          <div style={{ minWidth: 0, flex: 1 }}>
-                            <div className="sgp-popover-title">{tool.label}</div>
-                            <div className="sgp-popover-desc">
-                              {tool.description}
-                            </div>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
           </nav>
 
           <div className="admin-sidebar-footer">
@@ -341,8 +268,8 @@ export const AdminShell: React.FC<AdminShellProps> = ({
 
             <nav className="admin-drawer-nav-list">
               <div className="admin-drawer-nav-header">
-                <span>HẠ TẦNG & VẬN HÀNH</span>
-                <span className="admin-drawer-nav-badge">Trọng tâm</span>
+                <span>ĐIỀU HÀNH TÁC NGHIỆP</span>
+                <span className="admin-drawer-nav-badge">4 Workspaces</span>
               </div>
               {primaryNavItems.map((item) => {
                 const isActive = isItemActive(item.id);
@@ -363,32 +290,6 @@ export const AdminShell: React.FC<AdminShellProps> = ({
                     <span className="admin-drawer-nav-icon">{item.icon}</span>
                     <span className="admin-drawer-nav-label">{item.label}</span>
                     {isActive && <span className="admin-drawer-active-dot" />}
-                  </button>
-                );
-              })}
-
-              <div className="admin-drawer-nav-header" style={{ marginTop: 16 }}>
-                <span>CÔNG CỤ QUẢN TRỊ</span>
-                <span className="admin-drawer-nav-badge">Hỗ trợ</span>
-              </div>
-              {secondaryTools.map((tool) => {
-                const isToolActive = activeTab === tool.id;
-                return (
-                  <button
-                    key={tool.id}
-                    type="button"
-                    className={`admin-drawer-nav-item ${isToolActive ? 'active' : ''}`}
-                    onClick={() => {
-                      onSelectTab(tool.id);
-                      setSidebarOpen(false);
-                    }}
-                    title={tool.label}
-                    aria-label={tool.label}
-                    aria-current={isToolActive ? 'page' : undefined}
-                  >
-                    <span className="admin-drawer-nav-icon">{tool.icon}</span>
-                    <span className="admin-drawer-nav-label">{tool.label}</span>
-                    {isToolActive && <span className="admin-drawer-active-dot" />}
                   </button>
                 );
               })}

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   Calendar,
   Clock,
@@ -13,11 +13,14 @@ import {
   ChevronLeft,
   ChevronRight,
   Trash2,
+  Search,
+  MapPin,
 } from 'lucide-react';
 import {
   AdminSchedulePreviewResponse,
   ReadingRoundListResponse,
   ReadingRound,
+  RoundMeterListResponse,
 } from '../../types';
 import {
   createAdminSchedule,
@@ -25,7 +28,9 @@ import {
   deleteAdminSchedulesByDate,
   getAdminSchedules,
   previewAdminSchedule,
+  getRoundMeters,
 } from '../../services/api';
+import { useOperationalWorkspace } from '../../context/OperationalWorkspaceContext';
 import { LoadingState } from '../ui/LoadingState';
 import { ErrorState } from '../ui/ErrorState';
 import { VnDatePicker } from '../ui/VnDatePicker';
@@ -133,7 +138,20 @@ export const deriveRoundTimingState = (
   };
 };
 
-export const AdminSchedules: React.FC = () => {
+export interface AdminSchedulesProps {
+  onInspectReading?: (readingId: string) => void;
+}
+
+export const AdminSchedules: React.FC<AdminSchedulesProps> = ({ onInspectReading }) => {
+  const {
+    locateOnMap,
+    openReadingInspection,
+    selectedRoundId,
+    setSelectedRoundId,
+    selectedDate: wsDate,
+    setSelectedDate: setWsDate,
+  } = useOperationalWorkspace();
+
   const getTodayLocal = () => {
     return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date());
   };
@@ -151,11 +169,93 @@ export const AdminSchedules: React.FC = () => {
     try {
       sessionStorage.setItem('admin_schedules_date', selectedDate);
     } catch {}
-  }, [selectedDate]);
+    if (setWsDate && wsDate !== selectedDate) {
+      setWsDate(selectedDate);
+    }
+  }, [selectedDate, setWsDate, wsDate]);
 
   const [scheduleData, setScheduleData] = useState<ReadingRoundListResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Round Logbook State
+  const [selectedRoundForMeters, setSelectedRoundForMeters] = useState<ReadingRound | null>(null);
+  const [roundMetersData, setRoundMetersData] = useState<RoundMeterListResponse | null>(null);
+  const [roundMetersLoading, setRoundMetersLoading] = useState<boolean>(false);
+  const [roundMetersError, setRoundMetersError] = useState<string | null>(null);
+
+  // Filters for round meters
+  const [meterSearch, setMeterSearch] = useState<string>('');
+  const [meterStatusFilter, setMeterStatusFilter] = useState<'ALL' | 'CONFIRMED' | 'REVIEW' | 'PENDING'>('ALL');
+  const [meterUtilityFilter, setMeterUtilityFilter] = useState<'ALL' | 'ELECTRICITY' | 'WATER'>('ALL');
+
+  const loadRoundMeters = useCallback(async (roundId: string) => {
+    setRoundMetersLoading(true);
+    setRoundMetersError(null);
+    try {
+      const res = await getRoundMeters(roundId);
+      setRoundMetersData(res);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Không thể tải danh sách công tơ của ca này.';
+      setRoundMetersError(msg);
+    } finally {
+      setRoundMetersLoading(false);
+    }
+  }, []);
+
+  const handleSelectRoundForMeters = (round: ReadingRound) => {
+    if (selectedRoundForMeters?.id === round.id) {
+      setSelectedRoundForMeters(null);
+      setRoundMetersData(null);
+      setSelectedRoundId(null);
+    } else {
+      setSelectedRoundForMeters(round);
+      setSelectedRoundId(round.id);
+      loadRoundMeters(round.id);
+    }
+  };
+
+  // Sync with workspace selectedRoundId
+  useEffect(() => {
+    if (scheduleData && scheduleData.rounds.length > 0 && selectedRoundId) {
+      const matchingRound = scheduleData.rounds.find((r) => r.id === selectedRoundId);
+      if (matchingRound && selectedRoundForMeters?.id !== matchingRound.id) {
+        setSelectedRoundForMeters(matchingRound);
+        loadRoundMeters(matchingRound.id);
+      }
+    }
+  }, [scheduleData, selectedRoundId, loadRoundMeters]);
+
+  const filteredMeters = useMemo(() => {
+    if (!roundMetersData?.meters) return [];
+    return roundMetersData.meters.filter((item) => {
+      const meterCode = item.meter.meter_code || (item.meter as any).code || '';
+      const meterName = item.meter.name || '';
+      const isWater =
+        (item.meter as any).utility_type === 'WATER' ||
+        meterCode.startsWith('W-') ||
+        meterCode.startsWith('SIM-W');
+
+      // Search filter
+      if (meterSearch.trim()) {
+        const q = meterSearch.trim().toLowerCase();
+        if (!meterCode.toLowerCase().includes(q) && !meterName.toLowerCase().includes(q)) {
+          return false;
+        }
+      }
+
+      // Status filter
+      if (meterStatusFilter !== 'ALL' && item.reading_status !== meterStatusFilter) {
+        return false;
+      }
+
+      // Utility filter
+      if (meterUtilityFilter === 'ELECTRICITY' && isWater) return false;
+      if (meterUtilityFilter === 'WATER' && !isWater) return false;
+
+      return true;
+    });
+  }, [roundMetersData, meterSearch, meterStatusFilter, meterUtilityFilter]);
 
   // Create Modal State
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
@@ -546,7 +646,7 @@ export const AdminSchedules: React.FC = () => {
                   <th scope="col" style={{ width: '140px' }}>Trạng thái</th>
                   <th scope="col">Tiến độ</th>
                   <th scope="col" style={{ width: '180px' }}>Ngoại lệ</th>
-                  <th scope="col" style={{ width: '80px', textAlign: 'center' }}>Thao tác</th>
+                  <th scope="col" style={{ width: '150px', textAlign: 'center' }}>Thao tác</th>
                 </tr>
               </thead>
               <tbody>
@@ -567,7 +667,9 @@ export const AdminSchedules: React.FC = () => {
                       key={r.id}
                       className={`admin-sched-row ${
                         timing.isCurrent ? 'row-current' : timing.isUpcoming ? 'row-upcoming' : ''
-                      }`}
+                      } ${selectedRoundForMeters?.id === r.id ? 'row-selected' : ''}`}
+                      onClick={() => handleSelectRoundForMeters(r)}
+                      style={{ cursor: 'pointer' }}
                     >
                       {/* Column 1: Lượt */}
                       <td>
@@ -622,15 +724,33 @@ export const AdminSchedules: React.FC = () => {
 
                       {/* Column 5: Thao tác */}
                       <td style={{ textAlign: 'center' }}>
-                        <button
-                          type="button"
-                          className="admin-sched-delete-btn"
-                          onClick={() => handleOpenDeleteRound(r)}
-                          title={`Xóa lượt ghi lúc ${r.scheduled_time_only}`}
-                          aria-label={`Xóa lượt ghi lúc ${r.scheduled_time_only}`}
-                        >
-                          <Trash2 size={15} aria-hidden="true" />
-                        </button>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                          <button
+                            type="button"
+                            className={`admin-btn-secondary btn-sm ${selectedRoundForMeters?.id === r.id ? 'active' : ''}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSelectRoundForMeters(r);
+                            }}
+                            title={selectedRoundForMeters?.id === r.id ? 'Đóng sổ ca' : 'Xem sổ ca ghi công tơ'}
+                            aria-label={`Xem sổ ca khung giờ ${r.scheduled_time_only}`}
+                          >
+                            <Layers size={13} aria-hidden="true" />
+                            <span>{selectedRoundForMeters?.id === r.id ? 'Đang xem' : 'Sổ ca'}</span>
+                          </button>
+                          <button
+                            type="button"
+                            className="admin-sched-delete-btn"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenDeleteRound(r);
+                            }}
+                            title={`Xóa lượt ghi lúc ${r.scheduled_time_only}`}
+                            aria-label={`Xóa lượt ghi lúc ${r.scheduled_time_only}`}
+                          >
+                            <Trash2 size={15} aria-hidden="true" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -638,6 +758,250 @@ export const AdminSchedules: React.FC = () => {
               </tbody>
             </table>
           </div>
+        </div>
+      )}
+
+      {/* 3.1. ROUND METER LOGBOOK (IN-PLACE INSPECTION) */}
+      {selectedRoundForMeters && (
+        <div className="admin-surface-card table-card" style={{ marginTop: '18px' }} id="round-meter-logbook">
+          <div className="admin-card-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+            <div className="admin-card-title-group" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <Clock size={16} className="text-brand" aria-hidden="true" />
+              <h2 className="admin-card-title" style={{ fontSize: '15px' }}>
+                Sổ ca ghi: Khung giờ {selectedRoundForMeters.scheduled_time_only} &mdash; Ngày {formatDisplayDateVN(selectedDate)}
+              </h2>
+              {roundMetersData && (
+                <span className="admin-daily-summary-tag font-tabular">
+                  {roundMetersData.progress.confirmed}/{roundMetersData.progress.total} đã ghi ({roundMetersData.progress.review} cần kiểm tra)
+                </span>
+              )}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button
+                type="button"
+                className="admin-btn-refresh"
+                onClick={() => loadRoundMeters(selectedRoundForMeters.id)}
+                disabled={roundMetersLoading}
+                title="Làm mới sổ ca"
+                aria-label="Làm mới sổ ca"
+              >
+                <RefreshCw size={14} className={roundMetersLoading ? 'animate-spin' : ''} aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                className="admin-btn-secondary btn-sm"
+                onClick={() => {
+                  setSelectedRoundForMeters(null);
+                  setRoundMetersData(null);
+                  setSelectedRoundId(null);
+                }}
+                title="Đóng sổ ca"
+                aria-label="Đóng sổ ca"
+              >
+                <X size={13} aria-hidden="true" />
+                <span>Đóng sổ ca</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Filters Toolbar */}
+          <div style={{ padding: '10px 18px', borderBottom: '1px solid var(--sgp-border)', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', background: 'var(--sgp-surface)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--sgp-canvas)', padding: '5px 10px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--sgp-border)', flex: '1', minWidth: '180px', maxWidth: '320px' }}>
+              <Search size={14} className="text-muted" aria-hidden="true" />
+              <input
+                type="text"
+                placeholder="Tìm theo mã hoặc tên..."
+                value={meterSearch}
+                onChange={(e) => setMeterSearch(e.target.value)}
+                style={{ border: 'none', background: 'transparent', outline: 'none', width: '100%', fontSize: '12px', color: 'var(--sgp-ink)' }}
+              />
+              {meterSearch && (
+                <button
+                  type="button"
+                  onClick={() => setMeterSearch('')}
+                  style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: 0, color: 'var(--sgp-ink-muted)' }}
+                  aria-label="Xóa tìm kiếm"
+                >
+                  <X size={12} />
+                </button>
+              )}
+            </div>
+
+            <select
+              className="admin-select admin-select-sm"
+              value={meterStatusFilter}
+              onChange={(e) => setMeterStatusFilter(e.target.value as any)}
+              aria-label="Lọc theo trạng thái đọc"
+              style={{ width: 'auto' }}
+            >
+              <option value="ALL">Tất cả trạng thái</option>
+              <option value="CONFIRMED">Đã xác nhận</option>
+              <option value="REVIEW">Cần kiểm tra</option>
+              <option value="PENDING">Chờ ghi</option>
+            </select>
+
+            <select
+              className="admin-select admin-select-sm"
+              value={meterUtilityFilter}
+              onChange={(e) => setMeterUtilityFilter(e.target.value as any)}
+              aria-label="Lọc theo loại tiện ích"
+              style={{ width: 'auto' }}
+            >
+              <option value="ALL">Tất cả tiện ích</option>
+              <option value="ELECTRICITY">⚡ Điện</option>
+              <option value="WATER">💧 Nước</option>
+            </select>
+
+            <span className="font-tabular text-xs text-muted" style={{ marginLeft: 'auto' }}>
+              Hiển thị {filteredMeters.length} / {roundMetersData?.meters?.length || 0} công tơ
+            </span>
+          </div>
+
+          {/* Meters Table */}
+          {roundMetersLoading ? (
+            <div style={{ padding: '32px' }}>
+              <LoadingState message="Đang tải danh sách công tơ theo ca..." />
+            </div>
+          ) : roundMetersError ? (
+            <div style={{ padding: '24px' }}>
+              <ErrorState
+                title="Không thể tải sổ ca"
+                message={roundMetersError}
+                onRetry={() => loadRoundMeters(selectedRoundForMeters.id)}
+              />
+            </div>
+          ) : filteredMeters.length === 0 ? (
+            <div style={{ padding: '32px 18px', textAlign: 'center', color: 'var(--sgp-ink-muted)', fontSize: '13px' }}>
+              Không có công tơ nào khớp với bộ lọc tìm kiếm.
+            </div>
+          ) : (
+            <div className="admin-table-container">
+              <table className="admin-table" aria-label="Danh sách công tơ trong ca">
+                <thead>
+                  <tr>
+                    <th scope="col" style={{ width: '60px' }}>STT</th>
+                    <th scope="col">Mã &amp; Tên công tơ</th>
+                    <th scope="col" style={{ width: '100px' }}>Tiện ích</th>
+                    <th scope="col">Vị trí</th>
+                    <th scope="col" style={{ width: '140px' }}>Chỉ số ghi</th>
+                    <th scope="col" style={{ width: '130px' }}>Trạng thái</th>
+                    <th scope="col" style={{ width: '190px', textAlign: 'center' }}>Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredMeters.map((item, idx) => {
+                    const meterCode = item.meter.meter_code || (item.meter as any).code;
+                    const isWater =
+                      (item.meter as any).utility_type === 'WATER' ||
+                      meterCode.startsWith('W-') ||
+                      meterCode.startsWith('SIM-W');
+
+                    return (
+                      <tr key={item.meter.id || idx}>
+                        <td className="font-tabular text-muted">{idx + 1}</td>
+                        <td>
+                          <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            <span className="font-mono font-bold" style={{ color: 'var(--sgp-ink)' }}>
+                              {meterCode}
+                            </span>
+                            <span className="text-xs text-muted" style={{ maxWidth: '240px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {item.meter.name}
+                            </span>
+                          </div>
+                        </td>
+                        <td>
+                          <span className={`admin-badge ${isWater ? 'badge-info' : 'badge-warning'} font-tabular`}>
+                            {isWater ? '💧 Nước' : '⚡ Điện'}
+                          </span>
+                        </td>
+                        <td>
+                          <span className="text-sm" style={{ color: 'var(--sgp-ink-secondary)' }}>
+                            {item.meter.location || 'Chưa định vị'}
+                          </span>
+                        </td>
+                        <td>
+                          {item.reading ? (
+                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                              <span className="font-tabular font-bold" style={{ color: 'var(--sgp-ink)' }}>
+                                {item.reading} {isWater ? 'm³' : 'kWh'}
+                              </span>
+                              {item.formatted_recorded_at && (
+                                <span className="text-xs text-muted font-tabular">
+                                  {item.formatted_recorded_at}
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-muted text-sm">—</span>
+                          )}
+                        </td>
+                        <td>
+                          {item.reading_status === 'CONFIRMED' ? (
+                            <span className="admin-badge badge-active font-tabular">
+                              Đã xác nhận
+                            </span>
+                          ) : item.reading_status === 'REVIEW' ? (
+                            <span className="admin-badge badge-review font-tabular">
+                              Cần kiểm tra
+                            </span>
+                          ) : (
+                            <span className="admin-badge badge-inactive font-tabular">
+                              Chờ ghi
+                            </span>
+                          )}
+                        </td>
+                        <td style={{ textAlign: 'center' }}>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                            <button
+                              type="button"
+                              className="admin-btn-secondary btn-sm"
+                              onClick={() => {
+                                locateOnMap({
+                                  type: 'meter',
+                                  id: item.meter.id,
+                                  code: meterCode,
+                                  name: item.meter.name,
+                                });
+                              }}
+                              title={`Xem công tơ ${meterCode} trên Bản đồ`}
+                              aria-label={`Xem công tơ ${meterCode} trên Bản đồ`}
+                            >
+                              <MapPin size={12} aria-hidden="true" />
+                              <span>Bản đồ</span>
+                            </button>
+
+                            {item.reading_status === 'REVIEW' && item.reading_id && (
+                              <button
+                                type="button"
+                                className="admin-btn-secondary btn-sm"
+                                onClick={() => {
+                                  if (onInspectReading) {
+                                    onInspectReading(item.reading_id!);
+                                  } else {
+                                    openReadingInspection(item.reading_id!);
+                                  }
+                                }}
+                                title="Đối soát ngoại lệ chỉ số này"
+                                aria-label="Đối soát ngoại lệ"
+                                style={{
+                                  color: '#b45309',
+                                  borderColor: '#fcd34d',
+                                  backgroundColor: '#fffbeb',
+                                }}
+                              >
+                                <AlertTriangle size={12} aria-hidden="true" />
+                                <span>Kiểm tra</span>
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
 
