@@ -16869,11 +16869,11 @@ body:has(.admin-portal-root) {
 }
 
 .sgp-uwh-mode-btn.active {
-  background: rgba(30, 41, 59, 0.95);
+  background: #073B5C;
   color: #ffffff;
   font-weight: 600;
-  border: 1px solid rgba(56, 189, 248, 0.38);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35), 0 0 10px rgba(56, 189, 248, 0.15);
+  border: 1px solid #12658F;
+  box-shadow: 0 2px 6px rgba(7, 59, 92, 0.25);
 }
 
 .sgp-uwh-mode-count {
@@ -16887,29 +16887,15 @@ body:has(.admin-portal-root) {
 }
 
 .sgp-uwh-mode-btn.active .sgp-uwh-mode-count {
-  background: rgba(15, 23, 42, 0.8);
-  color: #38bdf8;
-  border-color: rgba(56, 189, 248, 0.25);
+  background: rgba(11, 79, 117, 0.6);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
 .sgp-count-highlight {
   background: #b91c1c !important;
   color: #ffffff !important;
   font-weight: 700;
-}
-
-/* Digital Twin Pulse Flow on Active Routes */
-@keyframes sgpNetworkFlow {
-  from {
-    stroke-dashoffset: 52;
-  }
-  to {
-    stroke-dashoffset: 0;
-  }
-}
-
-.sgp-network-pulse-flow {
-  animation: sgpNetworkFlow 1.6s linear infinite;
 }
 
 .sgp-network-hud-toolbar {

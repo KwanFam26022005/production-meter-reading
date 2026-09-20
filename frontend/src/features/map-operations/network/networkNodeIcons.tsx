@@ -19,44 +19,44 @@ export interface NodeVisualProps {
 }
 
 /**
- * Returns distinct visual color tokens for utilities and statuses
+ * Returns distinct visual color tokens for utilities and statuses (Saigon Port Design System)
  */
 export const getUtilityColor = (utility: UtilityType | 'OTHER' | undefined): {
   core: string;
-  glow: string;
+  casing: string;
   fill: string;
   border: string;
 } => {
   if (utility === 'WATER') {
     return {
-      core: '#06B6D4',
-      glow: 'rgba(6, 182, 212, 0.55)',
-      fill: '#082f49',
-      border: '#38bdf8',
+      core: '#12658F', // --sgp-brand-600
+      casing: '#FFFFFF', // Neutral contrast casing
+      fill: '#073B5C', // --sgp-brand-800 base
+      border: '#FFFFFF', // Clean white border
     };
   }
   // Default Electricity
   return {
-    core: '#00F0FF',
-    glow: 'rgba(0, 240, 255, 0.55)',
-    fill: '#062033',
-    border: '#22d3ee',
+    core: '#073B5C', // --sgp-brand-800
+    casing: '#FFFFFF', // Neutral contrast casing
+    fill: '#073B5C', // --sgp-brand-800 base
+    border: '#FFFFFF', // Clean white border
   };
 };
 
 export const getStatusHaloColor = (
   statusState: 'NORMAL' | 'WARNING' | 'CRITICAL' | 'OFFLINE' = 'NORMAL'
-): { stroke: string; glow: string; badge: string } => {
+): { stroke: string; badge: string } => {
   switch (statusState) {
     case 'CRITICAL':
-      return { stroke: '#EF4444', glow: 'rgba(239, 68, 68, 0.65)', badge: '#DC2626' };
+      return { stroke: '#B43A3A', badge: '#B43A3A' }; // --sgp-danger
     case 'WARNING':
-      return { stroke: '#F59E0B', glow: 'rgba(245, 158, 11, 0.65)', badge: '#D97706' };
+      return { stroke: '#A86200', badge: '#A86200' }; // --sgp-warning
     case 'OFFLINE':
-      return { stroke: '#64748B', glow: 'rgba(100, 116, 139, 0.35)', badge: '#475569' };
+      return { stroke: '#74838C', badge: '#74838C' }; // --sgp-ink-muted
     case 'NORMAL':
     default:
-      return { stroke: '#10B981', glow: 'rgba(16, 185, 129, 0.45)', badge: '#059669' };
+      return { stroke: 'transparent', badge: 'transparent' };
   }
 };
 
@@ -210,7 +210,7 @@ export const NetworkNodeMarker: React.FC<NodeVisualProps & {
   statusState = 'NORMAL',
   isSelected = false,
   isHovered = false,
-  isTraced = false,
+  isTraced: _isTraced = false,
   isDimmed = false,
   isVerified = true,
   x,
@@ -220,19 +220,16 @@ export const NetworkNodeMarker: React.FC<NodeVisualProps & {
   onMouseLeave,
 }) => {
   const isMeter = type === 'METER';
-  const utilCol = getUtilityColor(utilityType);
   const statusHalo = getStatusHaloColor(statusState);
 
-  // Footprint dimensions: meters are compact circles (22px), assets are 30px rounded-boxes
-  const nodeRadius = isMeter ? 13 : 17;
+  // Footprint dimensions: meters are compact circles (26px), assets are 32px rounded-boxes
+  const nodeRadius = isMeter ? 13 : 16;
   const glyphSize = isMeter ? 15 : 18;
 
   // Unverified assets have amber dashed styling
   const isUnverified = !isVerified && verificationStatus !== 'VERIFIED' && verificationStatus !== 'SIMULATION_APPROVED';
 
-  // Active / Selected / Traced emphasis
-  const activeColor = isSelected ? '#FFFFFF' : isTraced ? utilCol.core : utilCol.border;
-  const haloColor = isSelected ? '#38BDF8' : statusHalo.stroke;
+  // Active / Selected emphasis
   const baseOpacity = isDimmed ? 0.22 : 1.0;
 
   return (
@@ -252,37 +249,59 @@ export const NetworkNodeMarker: React.FC<NodeVisualProps & {
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
     >
-      {/* 1. SELECTION / TRACE / STATUS GLOW RING */}
-      {(isSelected || isHovered || isTraced || statusState === 'CRITICAL' || statusState === 'WARNING') && (
+      {/* 1. SELECTION / FOCUS RING (CRISP MARITIME CASING, ZERO GLOW) */}
+      {isSelected && (
+        <>
+          <circle
+            cx={0}
+            cy={0}
+            r={nodeRadius + 7}
+            fill="none"
+            stroke="#073B5C"
+            strokeWidth={2.2}
+          />
+          <circle
+            cx={0}
+            cy={0}
+            r={nodeRadius + 4.8}
+            fill="none"
+            stroke="#FFFFFF"
+            strokeWidth={1.5}
+          />
+        </>
+      )}
+      {!isSelected && isHovered && (
         <circle
           cx={0}
           cy={0}
-          r={nodeRadius + (isSelected ? 9 : isHovered ? 6 : 5)}
+          r={nodeRadius + 5}
           fill="none"
-          stroke={haloColor}
-          strokeWidth={isSelected ? 2.5 : 1.8}
-          strokeOpacity={isSelected ? 0.9 : 0.65}
-          strokeDasharray={isUnverified ? '4 3' : 'none'}
-          style={{
-            filter: `drop-shadow(0 0 6px ${haloColor})`,
-            transition: 'all 200ms ease',
-          }}
+          stroke="#0B4F75"
+          strokeWidth={1.5}
+        />
+      )}
+      {!isSelected && (statusState === 'CRITICAL' || statusState === 'WARNING') && (
+        <circle
+          cx={0}
+          cy={0}
+          r={nodeRadius + 5}
+          fill="none"
+          stroke={statusHalo.stroke}
+          strokeWidth={1.5}
+          strokeDasharray="3 2"
         />
       )}
 
-      {/* 2. HIGH-CONTRAST OBSIDIAN BACKING BASE */}
+      {/* 2. HIGH-CONTRAST BASE FOOTPRINT: DISTINCT METER CIRCLE VS ASSET ROUNDED BOX */}
       {isMeter ? (
         <circle
           cx={0}
           cy={0}
           r={nodeRadius}
-          fill="#05141e"
-          stroke={isUnverified ? '#D97706' : activeColor}
-          strokeWidth={isSelected ? 2.2 : 1.6}
+          fill="#073B5C"
+          stroke={isUnverified ? '#A86200' : '#FFFFFF'}
+          strokeWidth={1.8}
           strokeDasharray={isUnverified ? '3 2' : 'none'}
-          style={{
-            filter: 'drop-shadow(0 2px 5px rgba(0, 0, 0, 0.75))',
-          }}
         />
       ) : (
         <rect
@@ -290,14 +309,11 @@ export const NetworkNodeMarker: React.FC<NodeVisualProps & {
           y={-nodeRadius}
           width={nodeRadius * 2}
           height={nodeRadius * 2}
-          rx={type === 'SUBSTATION' || type === 'SOURCE' ? 4 : 7}
-          fill="#061826"
-          stroke={isUnverified ? '#D97706' : activeColor}
-          strokeWidth={isSelected ? 2.2 : 1.6}
+          rx={type === 'SUBSTATION' || type === 'SOURCE' ? 4 : 6}
+          fill="#073B5C"
+          stroke={isUnverified ? '#A86200' : '#FFFFFF'}
+          strokeWidth={1.8}
           strokeDasharray={isUnverified ? '3 2' : 'none'}
-          style={{
-            filter: 'drop-shadow(0 2px 5px rgba(0, 0, 0, 0.75))',
-          }}
         />
       )}
 
@@ -305,29 +321,26 @@ export const NetworkNodeMarker: React.FC<NodeVisualProps & {
       <NetworkNodeGlyph
         type={type}
         utilityType={utilityType}
-        color={isUnverified ? '#F59E0B' : activeColor}
+        color={isUnverified ? '#FFF4DF' : '#FFFFFF'}
         size={glyphSize}
       />
 
-      {/* 4. STATUS INDICATOR DOT (Top-Right) */}
+      {/* 4. STATUS INDICATOR DOT (Top-Right, amber for warning, red for critical) */}
       {statusState !== 'NORMAL' && (
         <circle
           cx={nodeRadius - 2}
           cy={-nodeRadius + 2}
           r={3.5}
           fill={statusHalo.badge}
-          stroke="#061826"
+          stroke="#FFFFFF"
           strokeWidth={1.2}
-          style={{
-            filter: `drop-shadow(0 0 3px ${statusHalo.badge})`,
-          }}
         />
       )}
 
       {/* 5. VERIFICATION UNAPPROVED BADGE (if unverified) */}
       {isUnverified && (
         <g transform={`translate(${-nodeRadius + 3}, ${nodeRadius - 3})`}>
-          <circle cx={0} cy={0} r={3} fill="#D97706" />
+          <circle cx={0} cy={0} r={3.2} fill="#A86200" stroke="#FFFFFF" strokeWidth={0.8} />
           <text
             x={0}
             y={2}
@@ -350,27 +363,24 @@ export const NetworkNodeMarker: React.FC<NodeVisualProps & {
         >
           {/* Label Backdrop Pill */}
           <rect
-            x={-(code.length * 4.2 + 10)}
+            x={-(code.length * 3.8 + 10)}
             y={-10}
-            width={code.length * 8.4 + 20}
+            width={code.length * 7.6 + 20}
             height={20}
             rx={4}
-            fill="rgba(5, 18, 30, 0.94)"
-            stroke={isSelected ? '#38BDF8' : 'rgba(56, 189, 248, 0.4)'}
+            fill="#073B5C"
+            stroke="#FFFFFF"
             strokeWidth={1}
-            style={{
-              filter: 'drop-shadow(0 2px 8px rgba(0, 0, 0, 0.8))',
-            }}
           />
           <text
             x={0}
-            y={4}
+            y={3.5}
             textAnchor="middle"
             fill="#FFFFFF"
             fontSize={10.5}
             fontWeight={600}
-            letterSpacing={0.3}
-            fontFamily="monospace, system-ui, sans-serif"
+            letterSpacing={0.2}
+            fontFamily="Be Vietnam Pro, system-ui, -apple-system, sans-serif"
           >
             {code}
           </text>
