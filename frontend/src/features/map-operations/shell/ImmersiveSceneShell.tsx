@@ -389,6 +389,10 @@ export const ImmersiveSceneShell: React.FC<ImmersiveSceneShellProps> = ({
               canManageVerification={canManageVerification}
               onOpenVerificationReview={onOpenVerificationReview}
               onSwitchToMap={() => onViewModeChange('map')}
+              meters={filteredMeters}
+              zones={mapZones}
+              onSelectMeter={onSelectMeter}
+              selectedMeterId={selection.selectedMeterId}
             />
           ) : (
             <OperationalScene

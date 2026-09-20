@@ -478,7 +478,7 @@ export const AdaptiveCommandBar: React.FC<AdaptiveCommandBarProps> = ({
                   onClick={() => onViewModeChange('network')}
                   role="radio"
                   aria-checked={viewMode === 'network'}
-                  title="Chuyển sang chế độ Sơ đồ mạng lưới tiện ích"
+                  title="Chuyển sang chế độ Mạng lưới tiện ích trên bản đồ (Digital Twin)"
                 >
                   <Share2 size={14} aria-hidden="true" />
                   <span>Mạng lưới</span>

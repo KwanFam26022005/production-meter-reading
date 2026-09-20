@@ -16799,13 +16799,7 @@ body:has(.admin-portal-root) {
   height: 6px;
   border-radius: 50%;
   background-color: #38bdf8;
-  box-shadow: 0 0 6px #38bdf8;
-  animation: sgpPulseDot 2s infinite ease-in-out;
-}
-
-@keyframes sgpPulseDot {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.5; transform: scale(0.85); }
+  box-shadow: 0 0 5px #38bdf8;
 }
 
 .sgp-uwh-title-wrap {
@@ -16834,7 +16828,7 @@ body:has(.admin-portal-root) {
   white-space: nowrap;
 }
 
-/* 2. CENTER COLUMN: Core Tabs */
+/* 2. CENTER COLUMN: Core Tabs / Unified Segmented Control */
 .sgp-uwh-col-center {
   display: flex;
   align-items: center;
@@ -16845,58 +16839,101 @@ body:has(.admin-portal-root) {
 .sgp-uwh-mode-nav {
   display: inline-flex;
   align-items: center;
-  background: rgba(15, 23, 42, 0.75);
+  background: rgba(15, 23, 42, 0.88);
   padding: 3px;
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.22);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4);
   gap: 3px;
 }
 
 .sgp-uwh-mode-btn {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  padding: 6px 13px;
+  gap: 6px;
+  padding: 5px 12px;
   border-radius: 6px;
-  border: none;
+  border: 1px solid transparent;
   background: transparent;
   color: #94a3b8;
-  font-size: 12.5px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 500;
   cursor: pointer;
   white-space: nowrap;
-  transition: all 0.15s ease;
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .sgp-uwh-mode-btn:hover {
-  color: #ffffff;
-  background: rgba(255, 255, 255, 0.05);
+  color: #f1f5f9;
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .sgp-uwh-mode-btn.active {
-  background: #0284c7;
+  background: rgba(30, 41, 59, 0.95);
   color: #ffffff;
-  box-shadow: 0 2px 6px rgba(2, 132, 199, 0.35);
+  font-weight: 600;
+  border: 1px solid rgba(56, 189, 248, 0.38);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35), 0 0 10px rgba(56, 189, 248, 0.15);
 }
 
 .sgp-uwh-mode-count {
   font-size: 9.5px;
   font-weight: 600;
   padding: 1px 5px;
-  background: rgba(0, 0, 0, 0.3);
+  background: rgba(15, 23, 42, 0.6);
   border-radius: 4px;
-  color: #e2e8f0;
+  color: #94a3b8;
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .sgp-uwh-mode-btn.active .sgp-uwh-mode-count {
-  background: rgba(0, 0, 0, 0.25);
-  color: #ffffff;
+  background: rgba(15, 23, 42, 0.8);
+  color: #38bdf8;
+  border-color: rgba(56, 189, 248, 0.25);
 }
 
 .sgp-count-highlight {
   background: #b91c1c !important;
   color: #ffffff !important;
   font-weight: 700;
+}
+
+/* Digital Twin Pulse Flow on Active Routes */
+@keyframes sgpNetworkFlow {
+  from {
+    stroke-dashoffset: 52;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.sgp-network-pulse-flow {
+  animation: sgpNetworkFlow 1.6s linear infinite;
+}
+
+.sgp-network-hud-toolbar {
+  scrollbar-width: none;
+}
+.sgp-network-hud-toolbar::-webkit-scrollbar {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .sgp-network-hud-toolbar {
+    top: 8px !important;
+    left: 8px !important;
+    max-width: calc(100vw - 16px) !important;
+    padding: 3px 6px !important;
+    gap: 5px !important;
+  }
+  .sgp-network-hud-title-full {
+    display: none !important;
+  }
+  .sgp-network-filter-btn {
+    padding: 3px 6px !important;
+    font-size: 11px !important;
+  }
 }
 
 /* 3. RIGHT COLUMN: Telemetry */

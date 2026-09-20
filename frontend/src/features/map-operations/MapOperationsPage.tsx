@@ -144,7 +144,7 @@ const MapOperationsPageContent: React.FC<MapOperationsPageProps> = ({
       const u = params.get('utility');
       if (u === 'ELECTRICITY' || u === 'WATER' || u === 'ALL') return u as UtilityType | 'ALL';
     }
-    return 'ELECTRICITY';
+    return 'ALL';
   });
 
   const [showUnverifiedAssets, setShowUnverifiedAssets] = useState<boolean>(() => {

@@ -74,7 +74,7 @@ export const OperationalWorkspaceHeader: React.FC<OperationalWorkspaceHeaderProp
               setActiveTab('dashboard');
               onViewModeChange?.('network');
             }}
-            title="Sơ đồ đơn tuyến mạng lưới điện & cấp nước"
+            title="Lớp phủ mạng lưới điện & cấp nước trên nền bản đồ cảng (Digital Twin)"
           >
             <Share2 size={14} />
             <span className="sgp-uwh-tab-full">Mạng lưới</span>
