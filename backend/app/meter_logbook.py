@@ -14,7 +14,18 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from .config import get_settings
-from .models import Meter, MeterReading, MeterReadingEvidence, MeterTrainingSample, ReadingBatch, ReadingRound, User
+from .models import (
+    MapVersion,
+    MapVersionZone,
+    Meter,
+    MeterReading,
+    MeterReadingEvidence,
+    MeterTrainingSample,
+    OperationalZone,
+    ReadingBatch,
+    ReadingRound,
+    User,
+)
 from .schemas import (
     BatchMeterItem,
     BatchProgress,
@@ -225,6 +236,26 @@ def get_batch_rounds_with_progress(
     return results
 
 
+def _get_zone_resolution_maps(db: Session) -> tuple[dict[str, str], dict[str, str]]:
+    all_op_zones = db.query(OperationalZone).all()
+    op_zone_map = {z.id: z.name for z in all_op_zones}
+
+    active_map = (
+        db.query(MapVersion)
+        .filter(MapVersion.status == "PUBLISHED")
+        .order_by(MapVersion.created_at.desc())
+        .first()
+    )
+    map_zone_labels: dict[str, str] = {}
+    if active_map:
+        mv_zones = db.query(MapVersionZone).filter(MapVersionZone.map_version_id == active_map.id).all()
+        for mvz in mv_zones:
+            map_zone_labels[mvz.zone_id] = mvz.display_label or mvz.business_name
+            if mvz.business_zone_id:
+                map_zone_labels[mvz.business_zone_id] = mvz.display_label or mvz.business_name
+    return op_zone_map, map_zone_labels
+
+
 def get_round_meters_with_status(
     db: Session,
     round_obj: ReadingRound,
@@ -242,6 +273,7 @@ def get_round_meters_with_status(
         )
 
     meters = query.order_by(Meter.meter_code.asc()).all()
+    op_zone_map, map_zone_labels = _get_zone_resolution_maps(db)
 
     # Pre-fetch readings for this specific round
     readings = (
@@ -283,6 +315,17 @@ def get_round_meters_with_status(
                 if r_status != filter_norm:
                     continue
 
+        pres_zid = getattr(m, "presentation_zone_id", None)
+        pres_zname = map_zone_labels.get(pres_zid) if pres_zid else None
+        z_name = op_zone_map.get(m.zone_id) if m.zone_id else pres_zname
+        u_type = getattr(m, "utility_type", "UNKNOWN") or "UNKNOWN"
+        if u_type == "UNKNOWN":
+            m_code = m.meter_code or ""
+            if m_code.startswith("W-") or m_code.startswith("SIM-W"):
+                u_type = "WATER"
+            elif m_code.startswith("CT-") or m_code.startswith("SIM-E"):
+                u_type = "ELECTRICITY"
+
         results.append(
             BatchMeterItem(
                 meter=MeterOut(
@@ -291,7 +334,15 @@ def get_round_meters_with_status(
                     name=m.name,
                     location=m.location,
                     meter_type=m.meter_type,
+                    utility_type=u_type,
                     is_active=m.is_active,
+                    zone_id=m.zone_id,
+                    zone_name=z_name,
+                    presentation_zone_id=m.presentation_zone_id,
+                    presentation_zone_name=pres_zname,
+                    map_x=m.map_x,
+                    map_y=m.map_y,
+                    route_status=m.route_status or "VALID",
                 ),
                 reading_status=r_status,
                 reading=r_val,
@@ -322,6 +373,7 @@ def get_batch_meters_with_status(
         )
 
     meters = query.order_by(Meter.meter_code.asc()).all()
+    op_zone_map, map_zone_labels = _get_zone_resolution_maps(db)
 
     readings = (
         db.query(MeterReading)
@@ -362,6 +414,17 @@ def get_batch_meters_with_status(
                 if r_status != filter_norm:
                     continue
 
+        pres_zid = getattr(m, "presentation_zone_id", None)
+        pres_zname = map_zone_labels.get(pres_zid) if pres_zid else None
+        z_name = op_zone_map.get(m.zone_id) if m.zone_id else pres_zname
+        u_type = getattr(m, "utility_type", "UNKNOWN") or "UNKNOWN"
+        if u_type == "UNKNOWN":
+            m_code = m.meter_code or ""
+            if m_code.startswith("W-") or m_code.startswith("SIM-W"):
+                u_type = "WATER"
+            elif m_code.startswith("CT-") or m_code.startswith("SIM-E"):
+                u_type = "ELECTRICITY"
+
         results.append(
             BatchMeterItem(
                 meter=MeterOut(
@@ -370,7 +433,15 @@ def get_batch_meters_with_status(
                     name=m.name,
                     location=m.location,
                     meter_type=m.meter_type,
+                    utility_type=u_type,
                     is_active=m.is_active,
+                    zone_id=m.zone_id,
+                    zone_name=z_name,
+                    presentation_zone_id=m.presentation_zone_id,
+                    presentation_zone_name=pres_zname,
+                    map_x=m.map_x,
+                    map_y=m.map_y,
+                    route_status=m.route_status or "VALID",
                 ),
                 reading_status=r_status,
                 reading=r_val,

@@ -92,11 +92,19 @@ export interface Meter {
   name: string;
   location: string | null;
   meter_type: string;
+  utility_type?: string | null;
   is_active: boolean;
   lifecycle_status?: 'ACTIVE' | 'INACTIVE' | 'RETIRED';
   retired_at?: string | null;
   retired_by?: string | null;
   retirement_reason?: string | null;
+  zone_id?: string | null;
+  zone_name?: string | null;
+  presentation_zone_id?: string | null;
+  presentation_zone_name?: string | null;
+  map_x?: number | null;
+  map_y?: number | null;
+  route_status?: 'VALID' | 'REVIEW_REQUIRED' | string;
 }
 
 export interface BatchProgress {

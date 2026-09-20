@@ -7297,6 +7297,34 @@ body:has(.admin-portal-root) {
   border-color: #dc2626;
 }
 
+.admin-shift-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--sgp-ink-secondary);
+  background: var(--sgp-surface);
+  border: 1px solid var(--sgp-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.admin-shift-tab:hover {
+  background: var(--sgp-brand-050);
+  border-color: var(--sgp-brand-600);
+  color: var(--sgp-brand-800);
+}
+
+.admin-shift-tab.active {
+  background: var(--sgp-brand-800);
+  border-color: var(--sgp-brand-800);
+  color: #ffffff;
+  font-weight: 600;
+}
+
 .admin-sched-delete-btn {
   display: inline-flex;
   align-items: center;

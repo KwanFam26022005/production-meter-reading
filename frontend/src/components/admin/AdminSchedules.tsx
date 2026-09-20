@@ -184,10 +184,14 @@ export const AdminSchedules: React.FC<AdminSchedulesProps> = ({ onInspectReading
   const [roundMetersLoading, setRoundMetersLoading] = useState<boolean>(false);
   const [roundMetersError, setRoundMetersError] = useState<string | null>(null);
 
-  // Filters for round meters
   const [meterSearch, setMeterSearch] = useState<string>('');
   const [meterStatusFilter, setMeterStatusFilter] = useState<'ALL' | 'CONFIRMED' | 'REVIEW' | 'PENDING'>('ALL');
   const [meterUtilityFilter, setMeterUtilityFilter] = useState<'ALL' | 'ELECTRICITY' | 'WATER'>('ALL');
+
+  // Shift filter for 24-hour rounds table
+  const [shiftFilter, setShiftFilter] = useState<'ALL' | 'CA1' | 'CA2' | 'CA3'>('ALL');
+  const [mapLocateWarning, setMapLocateWarning] = useState<string | null>(null);
+  const [deleteConfirmChecked, setDeleteConfirmChecked] = useState<boolean>(false);
 
   const loadRoundMeters = useCallback(async (roundId: string) => {
     setRoundMetersLoading(true);
@@ -256,6 +260,32 @@ export const AdminSchedules: React.FC<AdminSchedulesProps> = ({ onInspectReading
       return true;
     });
   }, [roundMetersData, meterSearch, meterStatusFilter, meterUtilityFilter]);
+
+  const filteredRounds = useMemo(() => {
+    if (!scheduleData?.rounds) return [];
+    if (shiftFilter === 'ALL') return scheduleData.rounds;
+    return scheduleData.rounds.filter((r) => {
+      const h = parseInt(r.scheduled_time_only.split(':')[0], 10);
+      if (shiftFilter === 'CA1') return h >= 6 && h < 14;
+      if (shiftFilter === 'CA2') return h >= 14 && h < 22;
+      if (shiftFilter === 'CA3') return h >= 22 || h < 6;
+      return true;
+    });
+  }, [scheduleData, shiftFilter]);
+
+  const shiftCounts = useMemo(() => {
+    if (!scheduleData?.rounds) return { all: 0, ca1: 0, ca2: 0, ca3: 0 };
+    let ca1 = 0;
+    let ca2 = 0;
+    let ca3 = 0;
+    scheduleData.rounds.forEach((r) => {
+      const h = parseInt(r.scheduled_time_only.split(':')[0], 10);
+      if (h >= 6 && h < 14) ca1++;
+      else if (h >= 14 && h < 22) ca2++;
+      else ca3++;
+    });
+    return { all: scheduleData.rounds.length, ca1, ca2, ca3 };
+  }, [scheduleData]);
 
   // Create Modal State
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
@@ -444,6 +474,7 @@ export const AdminSchedules: React.FC<AdminSchedulesProps> = ({ onInspectReading
       (acc, r) => acc + (r.progress.confirmed || 0),
       0
     );
+    setDeleteConfirmChecked(false);
     setDeleteTarget({
       type: 'day',
       date: selectedDate,
@@ -457,23 +488,30 @@ export const AdminSchedules: React.FC<AdminSchedulesProps> = ({ onInspectReading
     if (!deleting) {
       setDeleteTarget(null);
       setDeleteError(null);
+      setDeleteConfirmChecked(false);
     }
   };
 
   const handleConfirmDelete = async () => {
     if (!deleteTarget) return;
+    if (deleteTarget.type === 'day' && (deleteTarget.confirmedCount || 0) > 0 && !deleteConfirmChecked) {
+      setDeleteError('Vui lòng tích chọn xác nhận trước khi thực hiện xóa dữ liệu.');
+      return;
+    }
     setDeleting(true);
     setDeleteError(null);
     try {
       if (deleteTarget.type === 'round' && deleteTarget.round) {
         const res = await deleteAdminScheduleRound(deleteTarget.round.id, true);
         setDeleteTarget(null);
+        setDeleteConfirmChecked(false);
         setDeleteSuccessMsg(res.message);
         await loadSchedules(selectedDate);
         setTimeout(() => setDeleteSuccessMsg(null), 5000);
       } else if (deleteTarget.type === 'day' && deleteTarget.date) {
         const res = await deleteAdminSchedulesByDate(deleteTarget.date, true);
         setDeleteTarget(null);
+        setDeleteConfirmChecked(false);
         setDeleteSuccessMsg(res.message);
         await loadSchedules(selectedDate);
         setTimeout(() => setDeleteSuccessMsg(null), 5000);
@@ -628,14 +666,48 @@ export const AdminSchedules: React.FC<AdminSchedulesProps> = ({ onInspectReading
               </span>
               <button
                 type="button"
-                className="admin-btn-delete-all"
+                className="admin-btn-secondary btn-sm text-muted"
                 onClick={handleOpenDeleteDay}
                 title={`Xóa tất cả các lượt ghi ngày ${formatDisplayDateVN(selectedDate)}`}
+                aria-label={`Xóa toàn bộ lịch ngày ${formatDisplayDateVN(selectedDate)}`}
               >
                 <Trash2 size={13} aria-hidden="true" />
-                <span>Xóa toàn bộ lịch ngày</span>
+                <span>Xóa lịch ngày</span>
               </button>
             </div>
+          </div>
+
+          {/* Shift Filter Toolbar */}
+          <div style={{ padding: '8px 18px', borderBottom: '1px solid var(--sgp-border)', background: 'var(--sgp-canvas)', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <span className="text-xs font-semibold text-muted" style={{ marginRight: '4px' }}>Ca tác nghiệp:</span>
+            <button
+              type="button"
+              className={`admin-shift-tab ${shiftFilter === 'ALL' ? 'active' : ''}`}
+              onClick={() => setShiftFilter('ALL')}
+            >
+              Tất cả ({shiftCounts.all})
+            </button>
+            <button
+              type="button"
+              className={`admin-shift-tab ${shiftFilter === 'CA1' ? 'active' : ''}`}
+              onClick={() => setShiftFilter('CA1')}
+            >
+              Ca 1 · Sáng ({shiftCounts.ca1})
+            </button>
+            <button
+              type="button"
+              className={`admin-shift-tab ${shiftFilter === 'CA2' ? 'active' : ''}`}
+              onClick={() => setShiftFilter('CA2')}
+            >
+              Ca 2 · Chiều ({shiftCounts.ca2})
+            </button>
+            <button
+              type="button"
+              className={`admin-shift-tab ${shiftFilter === 'CA3' ? 'active' : ''}`}
+              onClick={() => setShiftFilter('CA3')}
+            >
+              Ca 3 · Đêm ({shiftCounts.ca3})
+            </button>
           </div>
 
           <div className="admin-table-container">
@@ -650,7 +722,7 @@ export const AdminSchedules: React.FC<AdminSchedulesProps> = ({ onInspectReading
                 </tr>
               </thead>
               <tbody>
-                {scheduleData.rounds.map((r) => {
+                {filteredRounds.map((r) => {
                   const timing = deriveRoundTimingState(
                     r,
                     selectedDate,
@@ -804,6 +876,27 @@ export const AdminSchedules: React.FC<AdminSchedulesProps> = ({ onInspectReading
             </div>
           </div>
 
+          {mapLocateWarning && (
+            <div
+              style={{
+                margin: '10px 18px 0',
+                padding: '8px 12px',
+                background: '#fffbeb',
+                border: '1px solid #fcd34d',
+                borderRadius: 'var(--radius-sm)',
+                color: '#92400e',
+                fontSize: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+              role="alert"
+            >
+              <AlertTriangle size={14} style={{ flexShrink: 0 }} />
+              <span>{mapLocateWarning}</span>
+            </div>
+          )}
+
           {/* Filters Toolbar */}
           <div style={{ padding: '10px 18px', borderBottom: '1px solid var(--sgp-border)', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', background: 'var(--sgp-surface)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--sgp-canvas)', padding: '5px 10px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--sgp-border)', flex: '1', minWidth: '180px', maxWidth: '320px' }}>
@@ -915,9 +1008,21 @@ export const AdminSchedules: React.FC<AdminSchedulesProps> = ({ onInspectReading
                           </span>
                         </td>
                         <td>
-                          <span className="text-sm" style={{ color: 'var(--sgp-ink-secondary)' }}>
-                            {item.meter.location || 'Chưa định vị'}
-                          </span>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                            <span className="text-sm font-medium" style={{ color: 'var(--sgp-ink)' }}>
+                              {item.meter.location || item.meter.presentation_zone_name || item.meter.zone_name || 'Chưa định vị'}
+                            </span>
+                            {item.meter.map_x !== null && item.meter.map_x !== undefined && item.meter.map_y !== null && item.meter.map_y !== undefined ? (
+                              <span className="text-xs font-tabular" style={{ color: 'var(--sgp-brand-600)', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                                <MapPin size={10} aria-hidden="true" />
+                                {item.meter.presentation_zone_name || 'Đã định vị trên bản đồ'}
+                              </span>
+                            ) : (
+                              <span className="text-xs text-muted font-tabular">
+                                Chưa có tọa độ bản đồ
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td>
                           {item.reading ? (
@@ -956,14 +1061,19 @@ export const AdminSchedules: React.FC<AdminSchedulesProps> = ({ onInspectReading
                               type="button"
                               className="admin-btn-secondary btn-sm"
                               onClick={() => {
-                                locateOnMap({
-                                  type: 'meter',
-                                  id: item.meter.id,
-                                  code: meterCode,
-                                  name: item.meter.name,
-                                });
+                                if (item.meter.map_x !== null && item.meter.map_x !== undefined && item.meter.map_y !== null && item.meter.map_y !== undefined) {
+                                  locateOnMap({
+                                    type: 'meter',
+                                    id: item.meter.id,
+                                    code: meterCode,
+                                    name: item.meter.name,
+                                  });
+                                } else {
+                                  setMapLocateWarning(`Công tơ ${meterCode} chưa có tọa độ không gian trên bản đồ.`);
+                                  setTimeout(() => setMapLocateWarning(null), 5000);
+                                }
                               }}
-                              title={`Xem công tơ ${meterCode} trên Bản đồ`}
+                              title={item.meter.map_x !== null && item.meter.map_x !== undefined ? `Xem công tơ ${meterCode} trên Bản đồ` : `Công tơ chưa có tọa độ trên bản đồ`}
                               aria-label={`Xem công tơ ${meterCode} trên Bản đồ`}
                             >
                               <MapPin size={12} aria-hidden="true" />
@@ -1292,6 +1402,20 @@ export const AdminSchedules: React.FC<AdminSchedulesProps> = ({ onInspectReading
                       </div>
                     </div>
                   )}
+
+                  {(deleteTarget.confirmedCount || 0) > 0 && (
+                    <label style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginTop: '12px', fontSize: '13px', cursor: 'pointer', userSelect: 'none', color: 'var(--sgp-ink)' }}>
+                      <input
+                        type="checkbox"
+                        checked={deleteConfirmChecked}
+                        onChange={(e) => setDeleteConfirmChecked(e.target.checked)}
+                        style={{ marginTop: '3px' }}
+                      />
+                      <span>
+                        Tôi xác nhận muốn xóa vĩnh viễn <strong>{deleteTarget.confirmedCount}</strong> dữ liệu chỉ số công tơ này.
+                      </span>
+                    </label>
+                  )}
                 </div>
               )}
 
@@ -1308,7 +1432,7 @@ export const AdminSchedules: React.FC<AdminSchedulesProps> = ({ onInspectReading
                 type="button"
                 className="admin-btn-danger"
                 onClick={handleConfirmDelete}
-                disabled={deleting}
+                disabled={deleting || (deleteTarget.type === 'day' && (deleteTarget.confirmedCount || 0) > 0 && !deleteConfirmChecked)}
               >
                 <Trash2 size={15} aria-hidden="true" />
                 <span>{deleting ? 'Đang xóa...' : 'Xác nhận xóa'}</span>

@@ -749,6 +749,11 @@ export const AdminReports: React.FC<AdminReportsProps> = ({ onInspectReading }) 
                     <p className="text-muted text-xs mt-3 font-tabular">
                       Tính trên {overviewData.summary.total_confirmed.toLocaleString()} lượt đã xác nhận hợp lệ trong kỳ.
                     </p>
+                    {overviewData.summary.recording_latency_p50_minutes === 0 && overviewData.summary.recording_latency_p95_minutes === 0 && (
+                      <div className="text-xs font-tabular mt-2" style={{ color: 'var(--sgp-brand-600)', background: 'var(--sgp-brand-50, #f0f7ff)', padding: '4px 8px', borderRadius: '4px', display: 'inline-block' }}>
+                        Dữ liệu mô phỏng chuẩn (Độ trễ tức thời)
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -762,6 +767,13 @@ export const AdminReports: React.FC<AdminReportsProps> = ({ onInspectReading }) 
                   </div>
                   <span className="text-muted text-xs">Sắp xếp theo tỷ lệ can thiệp giảm dần (&ge; 5 lượt)</span>
                 </div>
+
+                {overviewData.watchlist_meters.length > 0 && overviewData.watchlist_meters.every((wm) => wm.human_intervention_rate === 0 && wm.review_count === 0) && (
+                  <div style={{ padding: '8px 18px', background: 'var(--sgp-canvas)', borderBottom: '1px solid var(--sgp-border)', fontSize: '12px', color: 'var(--sgp-ink-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <ShieldCheck size={14} className="text-success" aria-hidden="true" />
+                    <span>Tất cả công tơ trong kỳ đều đạt 100% nhận diện tự động qua OCR, không phát sinh can thiệp.</span>
+                  </div>
+                )}
 
                 <div className="admin-table-container">
                   <table className="admin-table admin-tech-table" aria-label="Bảng công tơ cần theo dõi">

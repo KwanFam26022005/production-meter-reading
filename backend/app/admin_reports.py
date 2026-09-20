@@ -9,7 +9,16 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from .config import get_settings
-from .models import Meter, MeterReading, ReadingBatch, ReadingRound, User
+from .models import (
+    MapVersion,
+    MapVersionZone,
+    Meter,
+    MeterReading,
+    OperationalZone,
+    ReadingBatch,
+    ReadingRound,
+    User,
+)
 from .schemas import (
     AdminTechnicalOverviewResponse,
     AdminTechnicalMeterListResponse,
@@ -97,6 +106,41 @@ def compute_percentile(data: list[float], percentile: float) -> Optional[float]:
     return round(val, 1)
 
 
+def _get_zone_resolution_maps(db: Session) -> tuple[dict[str, str], dict[str, str]]:
+    all_op_zones = db.query(OperationalZone).all()
+    op_zone_map = {z.id: z.name for z in all_op_zones}
+
+    active_map = (
+        db.query(MapVersion)
+        .filter(MapVersion.status == "PUBLISHED")
+        .order_by(MapVersion.created_at.desc())
+        .first()
+    )
+    map_zone_labels: dict[str, str] = {}
+    if active_map:
+        mv_zones = db.query(MapVersionZone).filter(MapVersionZone.map_version_id == active_map.id).all()
+        for mvz in mv_zones:
+            map_zone_labels[mvz.zone_id] = mvz.display_label or mvz.business_name
+            if mvz.business_zone_id:
+                map_zone_labels[mvz.business_zone_id] = mvz.display_label or mvz.business_name
+    return op_zone_map, map_zone_labels
+
+
+def _resolve_meter_location(
+    m: Meter,
+    op_zone_map: dict[str, str],
+    map_zone_labels: dict[str, str],
+) -> str:
+    if m.location and m.location.strip():
+        return m.location.strip()
+    pres_zid = getattr(m, "presentation_zone_id", None)
+    if pres_zid and pres_zid in map_zone_labels:
+        return map_zone_labels[pres_zid]
+    if m.zone_id and m.zone_id in op_zone_map:
+        return op_zone_map[m.zone_id]
+    return "Chưa phân loại"
+
+
 def get_admin_technical_overview(
     db: Session,
     start_date: Optional[str] = None,
@@ -111,14 +155,16 @@ def get_admin_technical_overview(
     now_local = now_utc.astimezone(LOCAL_TZ)
     today_str = now_local.strftime("%Y-%m-%d")
 
-    # 1. Meters query (1 query)
-    meters_q = db.query(Meter)
-    if location and location != "ALL":
-        meters_q = meters_q.filter(Meter.location == location)
+    # 1. Meters query (1 query - active meters only)
+    meters_q = db.query(Meter).filter(Meter.is_active == True)
     if meter_type and meter_type != "ALL":
         meters_q = meters_q.filter(Meter.meter_type.ilike(f"%{meter_type}%"))
 
     meters = meters_q.order_by(Meter.meter_code.asc()).all()
+    op_zone_map, map_zone_labels = _get_zone_resolution_maps(db)
+    if location and location != "ALL":
+        meters = [m for m in meters if _resolve_meter_location(m, op_zone_map, map_zone_labels) == location or m.location == location]
+
     meter_ids = [m.id for m in meters]
     meter_map = {m.id: m for m in meters}
     total_meters_count = len(meters)
@@ -293,10 +339,10 @@ def get_admin_technical_overview(
         )
 
     # 6. Quality by Location
-    loc_set = sorted(list({m.location or "Chưa phân loại" for m in meters}))
+    loc_set = sorted(list({_resolve_meter_location(m, op_zone_map, map_zone_labels) for m in meters}))
     quality_by_location: list[QualityByLocationItem] = []
     for loc_name in loc_set:
-        loc_meter_ids = {m.id for m in meters if (m.location or "Chưa phân loại") == loc_name}
+        loc_meter_ids = {m.id for m in meters if _resolve_meter_location(m, op_zone_map, map_zone_labels) == loc_name}
         loc_readings = [rd for rd in confirmed_readings if rd.meter_id in loc_meter_ids]
         loc_reviews = [rd for rd in review_readings if rd.meter_id in loc_meter_ids]
         l_total = len(loc_readings)
@@ -334,7 +380,7 @@ def get_admin_technical_overview(
                 meter_id=m.id,
                 meter_code=m.meter_code,
                 name=m.name,
-                location=m.location or "Chưa phân loại",
+                location=_resolve_meter_location(m, op_zone_map, map_zone_labels),
                 meter_type="Cơ" if m.meter_type.upper() == "MECHANICAL" else "LCD",
                 confirmed_count=m_total,
                 user_corrected_count=m_corr,
@@ -464,13 +510,15 @@ def get_admin_technical_meters(
     now_local = now_utc.astimezone(LOCAL_TZ)
     today_str = now_local.strftime("%Y-%m-%d")
 
-    meters_q = db.query(Meter)
-    if location and location != "ALL":
-        meters_q = meters_q.filter(Meter.location == location)
+    meters_q = db.query(Meter).filter(Meter.is_active == True)
     if meter_type and meter_type != "ALL":
         meters_q = meters_q.filter(Meter.meter_type.ilike(f"%{meter_type}%"))
 
     meters = meters_q.order_by(Meter.meter_code.asc()).all()
+    op_zone_map, map_zone_labels = _get_zone_resolution_maps(db)
+    if location and location != "ALL":
+        meters = [m for m in meters if _resolve_meter_location(m, op_zone_map, map_zone_labels) == location or m.location == location]
+
     meter_map = {m.id: m for m in meters}
 
     # Range rounds
@@ -536,7 +584,7 @@ def get_admin_technical_meters(
                 meter_id=m.id,
                 meter_code=m.meter_code,
                 name=m.name,
-                location=m.location or "Chưa phân loại",
+                location=_resolve_meter_location(m, op_zone_map, map_zone_labels),
                 meter_type="Cơ" if m.meter_type.upper() == "MECHANICAL" else "LCD",
                 is_active=m.is_active,
                 scheduled_rounds_count=len(in_range_rounds),
@@ -638,13 +686,15 @@ def get_admin_technical_details(
     now_local = now_utc.astimezone(LOCAL_TZ)
     today_str = now_local.strftime("%Y-%m-%d")
 
-    meters_q = db.query(Meter)
-    if location and location != "ALL":
-        meters_q = meters_q.filter(Meter.location == location)
+    meters_q = db.query(Meter).filter(Meter.is_active == True)
     if meter_type and meter_type != "ALL":
         meters_q = meters_q.filter(Meter.meter_type.ilike(f"%{meter_type}%"))
 
     meters = meters_q.all()
+    op_zone_map, map_zone_labels = _get_zone_resolution_maps(db)
+    if location and location != "ALL":
+        meters = [m for m in meters if _resolve_meter_location(m, op_zone_map, map_zone_labels) == location or m.location == location]
+
     meter_map = {m.id: m for m in meters}
     user_map = {u.id: u for u in db.query(User).all()}
 
@@ -727,7 +777,7 @@ def get_admin_technical_details(
                     scheduled_time=get_round_time_only_str(r_sched),
                     meter_code=m.meter_code,
                     meter_name=m.name,
-                    location=m.location or "Chưa phân loại",
+                    location=_resolve_meter_location(m, op_zone_map, map_zone_labels),
                     meter_type="Cơ" if m.meter_type.upper() == "MECHANICAL" else "LCD",
                     status=st,
                     reading=reading_val,
