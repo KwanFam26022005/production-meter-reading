@@ -1,0 +1,228 @@
+{
+  "version": "1.0",
+  "canonical_map": "tan_thuan_1_zones_edited.json",
+  "coordinate_system": {
+    "width": 1536,
+    "height": 1024,
+    "origin": "top-left",
+    "unit": "image-pixels"
+  },
+  "meters": [
+    {
+      "meter_code": "CT-001",
+      "map_x": null,
+      "map_y": null,
+      "source": "unverified_legacy",
+      "source_reference": "backend/app/db.py:migrate_db",
+      "verified": false,
+      "notes": "Legacy Map V1 1915x821 coordinates (0.5995, 0.8356). Retired meter; unverified on Map V2."
+    },
+    {
+      "meter_code": "CT-002",
+      "map_x": null,
+      "map_y": null,
+      "source": "unverified_legacy",
+      "source_reference": "backend/app/db.py:migrate_db",
+      "verified": false,
+      "notes": "Legacy Map V1 1915x821 coordinates (0.2648, 0.5664). Retired meter; unverified on Map V2."
+    },
+    {
+      "meter_code": "CT-003",
+      "map_x": null,
+      "map_y": null,
+      "source": "unverified_legacy",
+      "source_reference": "backend/app/db.py:migrate_db",
+      "verified": false,
+      "notes": "Legacy Map V1 1915x821 coordinates (0.1760, 0.3849). Retired meter; unverified on Map V2."
+    },
+    {
+      "meter_code": "CT-004",
+      "map_x": null,
+      "map_y": null,
+      "source": "unverified_legacy",
+      "source_reference": "backend/app/db.py:migrate_db",
+      "verified": false,
+      "notes": "Legacy Map V1 1915x821 coordinates (0.3624, 0.3837). Retired meter; unverified on Map V2."
+    },
+    {
+      "meter_code": "CT-005",
+      "map_x": null,
+      "map_y": null,
+      "source": "unverified_legacy",
+      "source_reference": "backend/app/db.py:migrate_db",
+      "verified": false,
+      "notes": "Legacy Map V1 1915x821 coordinates (0.3337, 0.5786). Retired meter; unverified on Map V2."
+    },
+    {
+      "meter_code": "CT-006",
+      "map_x": null,
+      "map_y": null,
+      "source": "unverified_legacy",
+      "source_reference": "backend/app/db.py:migrate_db",
+      "verified": false,
+      "notes": "Legacy Map V1 1915x821 coordinates (0.8773, 0.4629). Retired meter; unverified on Map V2."
+    },
+    {
+      "meter_code": "CT-007",
+      "map_x": null,
+      "map_y": null,
+      "source": "unverified_legacy",
+      "source_reference": "backend/app/db.py:migrate_db",
+      "verified": false,
+      "notes": "Legacy Map V1 1915x821 coordinates (0.5577, 0.8770). Retired meter; unverified on Map V2."
+    },
+    {
+      "meter_code": "CT-008",
+      "map_x": null,
+      "map_y": null,
+      "source": "unverified_legacy",
+      "source_reference": "backend/app/db.py:migrate_db",
+      "verified": false,
+      "notes": "Legacy Map V1 1915x821 coordinates (0.7311, 0.3021). Retired meter; unverified on Map V2."
+    },
+    {
+      "meter_code": "CT-009",
+      "map_x": null,
+      "map_y": null,
+      "source": "unverified_legacy",
+      "source_reference": "backend/app/db.py:migrate_db",
+      "verified": false,
+      "notes": "Legacy Map V1 1915x821 coordinates (0.6418, 0.8295). Retired meter; unverified on Map V2."
+    },
+    {
+      "meter_code": "CT-010",
+      "map_x": null,
+      "map_y": null,
+      "source": "unverified_legacy",
+      "source_reference": "backend/app/db.py:migrate_db",
+      "verified": false,
+      "notes": "Legacy Map V1 1915x821 coordinates (0.8564, 0.6821). Retired meter; unverified on Map V2."
+    },
+    {
+      "meter_code": "CT-011",
+      "map_x": null,
+      "map_y": null,
+      "source": "unverified_legacy",
+      "source_reference": "backend/app/db.py:migrate_db",
+      "verified": false,
+      "notes": "Legacy Map V1 1915x821 coordinates (0.6115, 0.5323). Retired meter; unverified on Map V2."
+    },
+    {
+      "meter_code": "CT-012",
+      "map_x": null,
+      "map_y": null,
+      "source": "unverified_legacy",
+      "source_reference": "backend/app/db.py:migrate_db",
+      "verified": false,
+      "notes": "Legacy Map V1 1915x821 coordinates (0.7321, 0.5164). Retired meter; unverified on Map V2."
+    },
+    {
+      "meter_code": "SIM-EM-001",
+      "map_x": null,
+      "map_y": null,
+      "source": "simulated_b2_topology",
+      "source_reference": "frontend/src/components/map-v2/utilityDemoLayout.ts:LAYOUT_B2_COORDS",
+      "verified": false,
+      "notes": "Simulated scenario demo meter at B2 node SIM-MDB-01 (740, 570). Not verified physical port infrastructure."
+    },
+    {
+      "meter_code": "SIM-EM-002",
+      "map_x": null,
+      "map_y": null,
+      "source": "simulated_b2_topology",
+      "source_reference": "frontend/src/components/map-v2/utilityDemoLayout.ts:LAYOUT_B2_COORDS",
+      "verified": false,
+      "notes": "Simulated scenario demo meter at B2 node SIM-FDR-BERTH (520, 355). Not verified physical port infrastructure."
+    },
+    {
+      "meter_code": "SIM-EM-003",
+      "map_x": null,
+      "map_y": null,
+      "source": "simulated_b2_topology",
+      "source_reference": "frontend/src/components/map-v2/utilityDemoLayout.ts:LAYOUT_B2_COORDS",
+      "verified": false,
+      "notes": "Simulated scenario demo meter at B2 node SIM-FDR-WEST (470, 570). Not verified physical port infrastructure."
+    },
+    {
+      "meter_code": "SIM-EM-004",
+      "map_x": null,
+      "map_y": null,
+      "source": "simulated_b2_topology",
+      "source_reference": "frontend/src/components/map-v2/utilityDemoLayout.ts:LAYOUT_B2_COORDS",
+      "verified": false,
+      "notes": "Simulated scenario demo meter at B2 node SIM-FDR-CENTER (990, 480). Not verified physical port infrastructure."
+    },
+    {
+      "meter_code": "SIM-EM-005",
+      "map_x": null,
+      "map_y": null,
+      "source": "simulated_b2_topology",
+      "source_reference": "frontend/src/components/map-v2/utilityDemoLayout.ts:LAYOUT_B2_COORDS",
+      "verified": false,
+      "notes": "Simulated scenario demo meter at B2 node SIM-FDR-CFS (1160, 555). Not verified physical port infrastructure."
+    },
+    {
+      "meter_code": "SIM-EM-006",
+      "map_x": null,
+      "map_y": null,
+      "source": "simulated_b2_topology",
+      "source_reference": "frontend/src/components/map-v2/utilityDemoLayout.ts:LAYOUT_B2_COORDS",
+      "verified": false,
+      "notes": "Simulated scenario demo meter at B2 node SIM-FDR-TECH (670, 570). Not verified physical port infrastructure."
+    },
+    {
+      "meter_code": "SIM-EM-007",
+      "map_x": null,
+      "map_y": null,
+      "source": "simulated_b2_topology",
+      "source_reference": "frontend/src/components/map-v2/utilityDemoLayout.ts:LAYOUT_B2_COORDS",
+      "verified": false,
+      "notes": "Simulated scenario demo meter at B2 node SIM-YDB-W01 (140, 510). Not verified physical port infrastructure."
+    },
+    {
+      "meter_code": "SIM-EM-008",
+      "map_x": null,
+      "map_y": null,
+      "source": "simulated_b2_topology",
+      "source_reference": "frontend/src/components/map-v2/utilityDemoLayout.ts:LAYOUT_B2_COORDS",
+      "verified": false,
+      "notes": "Simulated scenario demo meter at B2 node SIM-YDB-C01 (1360, 410). Not verified physical port infrastructure."
+    },
+    {
+      "meter_code": "SIM-WM-001",
+      "map_x": null,
+      "map_y": null,
+      "source": "simulated_b2_topology",
+      "source_reference": "frontend/src/components/map-v2/utilityDemoLayout.ts:LAYOUT_B2_COORDS",
+      "verified": false,
+      "notes": "Simulated scenario demo water meter at B2 node SIM-WIN-01 (800, 690). Not verified physical port infrastructure."
+    },
+    {
+      "meter_code": "SIM-WM-002",
+      "map_x": null,
+      "map_y": null,
+      "source": "simulated_b2_topology",
+      "source_reference": "frontend/src/components/map-v2/utilityDemoLayout.ts:LAYOUT_B2_COORDS",
+      "verified": false,
+      "notes": "Simulated scenario demo water meter at B2 node SIM-WP-B01 (610, 375). Not verified physical port infrastructure."
+    },
+    {
+      "meter_code": "SIM-WM-003",
+      "map_x": null,
+      "map_y": null,
+      "source": "simulated_b2_topology",
+      "source_reference": "frontend/src/components/map-v2/utilityDemoLayout.ts:LAYOUT_B2_COORDS",
+      "verified": false,
+      "notes": "Simulated scenario demo water meter at B2 node SIM-WP-CFS-01 (1160, 620). Not verified physical port infrastructure."
+    },
+    {
+      "meter_code": "SIM-WM-004",
+      "map_x": null,
+      "map_y": null,
+      "source": "simulated_b2_topology",
+      "source_reference": "frontend/src/components/map-v2/utilityDemoLayout.ts:LAYOUT_B2_COORDS",
+      "verified": false,
+      "notes": "Simulated scenario demo water meter at B2 node SIM-FP-01 (840, 625). Not verified physical port infrastructure."
+    }
+  ]
+}

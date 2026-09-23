@@ -1,0 +1,39 @@
+================================================================================
+ SAIGON PORT MAP V2 ΓÇö SAFE SPATIAL SEEDER EXECUTION REPORT
+================================================================================
+Mode                : DRY-RUN (Simulated ΓÇö no changes committed)
+Manifest Source     : D:\Projects\production-meter-reading\production-meter-reading\config\map_v2_meter_coordinate_seed.json
+Target Database     : D:\Projects\production-meter-reading\production-meter-reading\data\app.db
+Total Records       : 24
+Planned Updates     : 0
+Already Up-To-Date  : 0
+Skipped / Unverified: 24
+--------------------------------------------------------------------------------
+SKIPPED RECORDS:
+  [SKIPPED] CT-001       : Record has verified=False (unverified spatial provenance)
+  [SKIPPED] CT-002       : Record has verified=False (unverified spatial provenance)
+  [SKIPPED] CT-003       : Record has verified=False (unverified spatial provenance)
+  [SKIPPED] CT-004       : Record has verified=False (unverified spatial provenance)
+  [SKIPPED] CT-005       : Record has verified=False (unverified spatial provenance)
+  [SKIPPED] CT-006       : Record has verified=False (unverified spatial provenance)
+  [SKIPPED] CT-007       : Record has verified=False (unverified spatial provenance)
+  [SKIPPED] CT-008       : Record has verified=False (unverified spatial provenance)
+  [SKIPPED] CT-009       : Record has verified=False (unverified spatial provenance)
+  [SKIPPED] CT-010       : Record has verified=False (unverified spatial provenance)
+  [SKIPPED] CT-011       : Record has verified=False (unverified spatial provenance)
+  [SKIPPED] CT-012       : Record has verified=False (unverified spatial provenance)
+  [SKIPPED] SIM-EM-001   : Record has verified=False (unverified spatial provenance)
+  [SKIPPED] SIM-EM-002   : Record has verified=False (unverified spatial provenance)
+  [SKIPPED] SIM-EM-003   : Record has verified=False (unverified spatial provenance)
+  [SKIPPED] SIM-EM-004   : Record has verified=False (unverified spatial provenance)
+  [SKIPPED] SIM-EM-005   : Record has verified=False (unverified spatial provenance)
+  [SKIPPED] SIM-EM-006   : Record has verified=False (unverified spatial provenance)
+  [SKIPPED] SIM-EM-007   : Record has verified=False (unverified spatial provenance)
+  [SKIPPED] SIM-EM-008   : Record has verified=False (unverified spatial provenance)
+  [SKIPPED] SIM-WM-001   : Record has verified=False (unverified spatial provenance)
+  [SKIPPED] SIM-WM-002   : Record has verified=False (unverified spatial provenance)
+  [SKIPPED] SIM-WM-003   : Record has verified=False (unverified spatial provenance)
+  [SKIPPED] SIM-WM-004   : Record has verified=False (unverified spatial provenance)
+--------------------------------------------------------------------------------
+[DRY-RUN COMPLETE] Zero rows modified in database. Use --apply to execute.
+================================================================================
