@@ -119,6 +119,37 @@ class ZoneAssignment(Base):
     user = relationship("User")
 
 
+class OperationalAssignment(Base):
+    """Published date/shift zone responsibility, separate from Map default ownership."""
+
+    __tablename__ = "operational_assignments"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="RESTRICT"), nullable=False, index=True)
+    zone_id = Column(String(36), ForeignKey("operational_zones.id", ondelete="RESTRICT"), nullable=False, index=True)
+    work_date = Column(String(10), nullable=False, index=True)
+    shift_code = Column(String(20), nullable=False, index=True)
+    assignment_role = Column(String(20), nullable=False)
+    status = Column(String(20), nullable=False, default="ASSIGNED", index=True)
+    source = Column(String(20), nullable=False, default="MANUAL")
+    notes = Column(Text, nullable=True)
+    created_by = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=get_utc_now)
+    updated_at = Column(DateTime(timezone=True), nullable=False, default=get_utc_now, onupdate=get_utc_now)
+    cancelled_at = Column(DateTime(timezone=True), nullable=True)
+    cancelled_by = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    cancel_reason = Column(String(100), nullable=True)
+
+    user = relationship("User", foreign_keys=[user_id])
+    zone = relationship("OperationalZone")
+
+    __table_args__ = (
+        Index("ix_operational_assignment_date_shift", "work_date", "shift_code"),
+        Index("uq_operational_assignment_active_user_zone_shift", "user_id", "zone_id", "work_date", "shift_code", unique=True, sqlite_where=(status == "ASSIGNED")),
+        Index("uq_operational_assignment_active_primary", "zone_id", "work_date", "shift_code", unique=True, sqlite_where=((status == "ASSIGNED") & (assignment_role == "PRIMARY"))),
+    )
+
+
 class MapVersion(Base):
     __tablename__ = "map_versions"
 

@@ -1,8 +1,8 @@
 from contextlib import asynccontextmanager
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from typing import Optional
 
-from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, Response, UploadFile, status
+from fastapi import Depends, FastAPI, File, Form, HTTPException, Query, Request, Response, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
 from sqlalchemy.orm import Session
@@ -1277,7 +1277,85 @@ from .schemas import (
     AdminShiftAssignRequest,
     AdminAutoPatternRequest,
     AdminAutoPatternPreviewResponse,
+    OperationalAssignmentBatchRequest,
+    OperationalAssignmentBoardResponse,
+    OperationalAssignmentCancelRequest,
+    OperationalAssignmentOut,
+    OperationalAssignmentPreviewResponse,
 )
+from . import operational_assignments as operational_staffing
+from .models import OperationalAssignment
+from .attendance import LOCAL_TZ
+
+
+@app.get("/api/v1/admin/operational-assignments", response_model=OperationalAssignmentBoardResponse)
+def get_operational_assignment_board(
+    work_date: date = Query(alias="date"),
+    shift_code: str = Query(),
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> OperationalAssignmentBoardResponse:
+    return OperationalAssignmentBoardResponse(**operational_staffing.board(db, work_date.isoformat(), shift_code))
+
+
+@app.post("/api/v1/admin/operational-assignments/preview", response_model=OperationalAssignmentPreviewResponse, dependencies=[Depends(enforce_csrf)])
+def preview_operational_assignments(
+    payload: OperationalAssignmentBatchRequest,
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> OperationalAssignmentPreviewResponse:
+    data = operational_staffing.preview(db, payload.work_date.isoformat(), payload.shift_code,
+                                        [item.model_dump() for item in payload.items])
+    return OperationalAssignmentPreviewResponse(**data)
+
+
+@app.post("/api/v1/admin/operational-assignments/apply", response_model=list[OperationalAssignmentOut], dependencies=[Depends(enforce_csrf)])
+def apply_operational_assignments(
+    payload: OperationalAssignmentBatchRequest,
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> list[OperationalAssignmentOut]:
+    records = operational_staffing.apply(db, payload.work_date.isoformat(), payload.shift_code,
+                                         [item.model_dump() for item in payload.items], admin_user.id)
+    return [OperationalAssignmentOut(**item) for item in records]
+
+
+@app.post("/api/v1/admin/operational-assignments/{assignment_id}/cancel", response_model=OperationalAssignmentOut, dependencies=[Depends(enforce_csrf)])
+def cancel_operational_assignment(
+    assignment_id: str,
+    payload: OperationalAssignmentCancelRequest,
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> OperationalAssignmentOut:
+    record = db.get(OperationalAssignment, assignment_id)
+    if record is None:
+        raise HTTPException(status_code=404, detail="Không tìm thấy phân khu tác nghiệp.")
+    operational_staffing.cancel(db, record, admin_user.id, payload.reason)
+    db.commit()
+    return OperationalAssignmentOut(**operational_staffing.serialize(record, db))
+
+
+@app.get("/api/v1/operational-assignments/me", response_model=list[OperationalAssignmentOut])
+def get_my_operational_assignments(
+    work_date: date | None = Query(default=None, alias="date"),
+    month: str | None = None,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> list[OperationalAssignmentOut]:
+    query = db.query(OperationalAssignment).filter_by(user_id=current_user.id, status="ASSIGNED")
+    if work_date is not None:
+        query = query.filter(OperationalAssignment.work_date == work_date.isoformat())
+    elif month is not None:
+        try:
+            start = date.fromisoformat(month + "-01")
+        except ValueError:
+            raise HTTPException(status_code=422, detail="Tháng không hợp lệ.")
+        if start.strftime("%Y-%m") != month:
+            raise HTTPException(status_code=422, detail="Tháng không hợp lệ.")
+        query = query.filter(OperationalAssignment.work_date.startswith(month))
+    else:
+        query = query.filter(OperationalAssignment.work_date == datetime.now(LOCAL_TZ).date().isoformat())
+    return [OperationalAssignmentOut(**operational_staffing.serialize(item, db)) for item in query.order_by(OperationalAssignment.work_date, OperationalAssignment.shift_code).all()]
 
 
 

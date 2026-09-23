@@ -19815,6 +19815,37 @@ body:has(.focused-capture-shell) {
   margin-bottom: 8px;
 }
 
+/* Thread 9B: date and shift zone responsibility board */
+.operational-assignment-board { max-width: none; }
+.operational-assignment-board h3,
+.operational-assignment-board h4,
+.operational-assignment-board h5 { margin: 0; color: var(--sgp-ink); }
+.operational-assignment-board > p { margin: 0; color: var(--sgp-ink-secondary); }
+.assignment-toolbar,
+.assignment-controls,
+.assignment-active-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.assignment-toolbar label,
+.assignment-controls label { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 650; color: var(--sgp-ink); }
+.assignment-toolbar input,
+.assignment-toolbar select,
+.assignment-controls select { min-height: 42px; padding: 7px 9px; border: 1px solid var(--sgp-border-strong); border-radius: 7px; background: var(--sgp-surface); color: var(--sgp-ink); }
+.assignment-toolbar :is(input, select):focus-visible,
+.assignment-controls select:focus-visible,
+.assignment-zone-row button:focus-visible { outline: 3px solid #0068FF; outline-offset: 2px; }
+.assignment-panel { padding: 16px 18px; border: 1px solid var(--sgp-border); border-radius: 10px; background: #fff; }
+.assignment-panel h4 { margin-bottom: 12px; }
+.assignment-staff-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 8px; padding: 0; margin: 0; list-style: none; }
+.assignment-staff-list li { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 9px 10px; border: 1px solid var(--sgp-border); border-radius: 8px; font-size: 13px; }
+.assignment-state { padding: 3px 7px; border-radius: 5px; font-size: 11px; font-weight: 700; }
+.assignment-state.is-available { color: #167A5A; background: #EAF6F1; }
+.assignment-state.is-blocked { color: #A86200; background: #FFF4DF; }
+.assignment-warning { width: 100%; color: #A86200; font-size: 12px; }
+.assignment-zone-row { border-top: 1px solid var(--sgp-border); padding: 14px 0; }
+.assignment-zone-row p { margin: 5px 0; font-size: 13px; }
+.assignment-active-row { margin: 5px 0; font-size: 13px; }
+.assignment-active-row button { min-height: 36px; }
+.assignment-controls { margin-top: 10px; }
+
 .verify-section-eyebrow {
   font-size: 11px;
   font-weight: 700;

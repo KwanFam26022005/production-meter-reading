@@ -41,6 +41,10 @@ import {
   UserMonthlyScheduleResponse,
   MapOverviewResponse,
   OperationalZoneOut,
+  OperationalAssignment,
+  OperationalAssignmentBoard,
+  OperationalAssignmentCandidate,
+  OperationalAssignmentPreview,
   MapMeterOut,
   ZoneReassignRequest,
   ZoneReassignResponse,
@@ -53,6 +57,48 @@ import {
   MapPublishResponse,
   ActiveMapConfiguration,
 } from '../types';
+
+export async function getOperationalAssignmentBoard(date: string, shiftCode: string): Promise<OperationalAssignmentBoard> {
+  const query = new URLSearchParams({ date, shift_code: shiftCode });
+  const res = await apiFetch(`/api/v1/admin/operational-assignments?${query}`);
+  if (!res.ok) throw new ApiError(res.status, 'Không thể tải phân khu tác nghiệp.');
+  return res.json();
+}
+
+export async function previewOperationalAssignments(date: string, shiftCode: string, items: OperationalAssignmentCandidate[]): Promise<OperationalAssignmentPreview> {
+  const csrf = await getCsrfToken();
+  const res = await apiFetch('/api/v1/admin/operational-assignments/preview', {
+    method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
+    body: JSON.stringify({ work_date: date, shift_code: shiftCode, items }),
+  });
+  if (!res.ok) throw new ApiError(res.status, 'Không thể xem trước phân khu.');
+  return res.json();
+}
+
+export async function applyOperationalAssignments(date: string, shiftCode: string, items: OperationalAssignmentCandidate[]): Promise<OperationalAssignment[]> {
+  const csrf = await getCsrfToken();
+  const res = await apiFetch('/api/v1/admin/operational-assignments/apply', {
+    method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
+    body: JSON.stringify({ work_date: date, shift_code: shiftCode, items }),
+  });
+  if (!res.ok) throw new ApiError(res.status, 'Không thể lưu phân khu. Vui lòng xem trước lại.');
+  return res.json();
+}
+
+export async function cancelOperationalAssignment(id: string, reason: string): Promise<OperationalAssignment> {
+  const csrf = await getCsrfToken();
+  const res = await apiFetch(`/api/v1/admin/operational-assignments/${encodeURIComponent(id)}/cancel`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf }, body: JSON.stringify({ reason }),
+  });
+  if (!res.ok) throw new ApiError(res.status, 'Không thể hủy phân khu.');
+  return res.json();
+}
+
+export async function getMyOperationalAssignments(month: string): Promise<OperationalAssignment[]> {
+  const res = await apiFetch(`/api/v1/operational-assignments/me?month=${encodeURIComponent(month)}`);
+  if (!res.ok) throw new ApiError(res.status, 'Không thể tải khu vực phụ trách.');
+  return res.json();
+}
 
 
 const API_BASE_URL =
@@ -2381,7 +2427,6 @@ export async function getAdminAssetOperationalContext(assetId: string): Promise<
   }
   return res.json();
 }
-
 
 
 

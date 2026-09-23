@@ -1043,7 +1043,53 @@ export interface AdminMeterLatestReadingResponse {
 // WORK SCHEDULE & LEAVE MANAGEMENT TYPES
 // ==============================================================================
 
-export type ShiftCode = 'CA1' | 'CA2' | 'CA3' | 'HC' | 'OFF' | 'LEAVE';
+export type ShiftCode = 'CA1' | 'CA2' | 'CA3' | 'HC' | 'OFF' | 'LEAVE' | 'UNASSIGNED';
+
+export interface OperationalAssignment {
+  id: string;
+  user_id: string;
+  employee_code: string;
+  employee_name: string;
+  zone_id: string;
+  zone_code: string;
+  zone_name: string;
+  work_date: string;
+  shift_code: string;
+  assignment_role: 'PRIMARY' | 'SUPPORT';
+  status: 'ASSIGNED' | 'CANCELLED';
+  timing_state: 'UPCOMING' | 'CURRENT' | 'PAST' | 'CANCELLED';
+  source: string;
+  notes?: string | null;
+  created_at?: string | null;
+  cancelled_at?: string | null;
+  cancel_reason?: string | null;
+  actionable: boolean;
+}
+
+export interface OperationalAssignmentCandidate {
+  user_id: string;
+  zone_id: string;
+  assignment_role: 'PRIMARY' | 'SUPPORT';
+  notes?: string | null;
+}
+
+export interface OperationalAssignmentPreview {
+  work_date: string;
+  shift_code: string;
+  conflict_count: number;
+  warning_count: number;
+  items: Array<OperationalAssignmentCandidate & { errors: string[]; warnings: string[]; outcome: 'CREATE' | 'CONFLICT' }>;
+}
+
+export interface OperationalAssignmentBoard {
+  work_date: string;
+  shift_code: string;
+  shift_start: string;
+  shift_end: string;
+  staff: Array<{ id: string; employee_code: string; full_name: string; state: string; assignable: boolean; warning?: string | null; shift_code?: string | null }>;
+  zones: Array<{ id: string; code: string; name: string; is_active: boolean; default_user_id?: string | null; assignments: OperationalAssignment[] }>;
+  cancelled: OperationalAssignment[];
+}
 
 export interface ShiftDefinition {
   code: string;
@@ -1191,6 +1237,7 @@ export interface AdminAutoPatternPreviewResponse {
   changed_count: number;
   unchanged_count: number;
   leave_conflicts_count: number;
+  assignment_impact_count?: number;
   insufficient_rest_count: number;
   understaffed_shifts_count: number;
   sample_changes: AutoPatternSampleChange[];
