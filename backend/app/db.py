@@ -872,6 +872,114 @@ def migrate_db(db_engine=None) -> None:
             if "source" not in conn_cols:
                 cursor.execute("ALTER TABLE asset_connections ADD COLUMN source VARCHAR(50) DEFAULT 'MANUAL_ENTRY'")
 
+            # ── Thread 9A: Reading Round Scope ────────────────────────────────────
+            # 20a. Add scope_mode to reading_rounds
+            cursor.execute("PRAGMA table_info(reading_rounds)")
+            rr_cols = [c[1] for c in cursor.fetchall()]
+            if "scope_mode" not in rr_cols:
+                cursor.execute(
+                    "ALTER TABLE reading_rounds ADD COLUMN scope_mode VARCHAR(20) NOT NULL DEFAULT 'LEGACY_DYNAMIC'"
+                )
+
+            # 20b. Create reading_round_meters table (immutable scope snapshot)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS reading_round_meters (
+                    id VARCHAR(36) PRIMARY KEY,
+                    reading_round_id VARCHAR(36) NOT NULL REFERENCES reading_rounds(id) ON DELETE RESTRICT,
+                    meter_id VARCHAR(36) REFERENCES meters(id) ON DELETE SET NULL,
+                    meter_code_snapshot VARCHAR(100) NOT NULL,
+                    meter_name_snapshot VARCHAR(200),
+                    zone_id_snapshot VARCHAR(36),
+                    presentation_zone_id_snapshot VARCHAR(36),
+                    utility_type_snapshot VARCHAR(50),
+                    scope_origin VARCHAR(30) NOT NULL,
+                    scope_status VARCHAR(20) NOT NULL DEFAULT 'SCHEDULED',
+                    created_at DATETIME NOT NULL,
+                    UNIQUE (reading_round_id, meter_id),
+                    UNIQUE (reading_round_id, meter_code_snapshot)
+                )
+            """)
+            # CREATE TABLE IF NOT EXISTS does not add constraints to a table created
+            # by an earlier bootstrap. This unique index enforces the meter identity
+            # invariant on both fresh and already-created databases.
+            cursor.execute(
+                "CREATE UNIQUE INDEX IF NOT EXISTS uq_rrm_round_meter_id ON reading_round_meters (reading_round_id, meter_id)"
+            )
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS ix_rrm_round_id ON reading_round_meters (reading_round_id)"
+            )
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS ix_rrm_meter_id ON reading_round_meters (meter_id)"
+            )
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS ix_rrm_scope_status ON reading_round_meters (scope_status)"
+            )
+            # Guard operational history even for code paths that bypass the admin
+            # delete service. The route cancels these rounds; this trigger prevents
+            # accidental hard deletion from erasing readings through FK cascades.
+            cursor.execute("""
+                CREATE TRIGGER IF NOT EXISTS trg_reading_round_history_restrict_delete
+                BEFORE DELETE ON reading_rounds
+                WHEN EXISTS (SELECT 1 FROM meter_readings WHERE reading_round_id = OLD.id)
+                BEGIN
+                    SELECT RAISE(ABORT, 'reading round has operational readings');
+                END
+            """)
+            # Protect legacy databases whose meter_readings.meter_id FK was created
+            # with ON DELETE CASCADE. The admin API already blocks this operation;
+            # the trigger also protects direct SQL/ORM deletes from losing history.
+            cursor.execute("""
+                CREATE TRIGGER IF NOT EXISTS trg_meter_reading_history_restrict_delete
+                BEFORE DELETE ON meters
+                WHEN EXISTS (SELECT 1 FROM meter_readings WHERE meter_id = OLD.id)
+                BEGIN
+                    SELECT RAISE(ABORT, 'meter has operational readings');
+                END
+            """)
+            # Scope snapshots are immutable. Allow meter_id to become NULL through
+            # ON DELETE SET NULL, while preventing changes to published facts.
+            cursor.execute("""
+                CREATE TRIGGER IF NOT EXISTS trg_reading_round_meter_snapshot_immutable
+                BEFORE UPDATE OF
+                    id, reading_round_id, meter_code_snapshot, meter_name_snapshot,
+                    zone_id_snapshot, presentation_zone_id_snapshot,
+                    utility_type_snapshot, scope_origin, scope_status, created_at
+                ON reading_round_meters
+                BEGIN
+                    SELECT RAISE(ABORT, 'reading round meter snapshots are immutable');
+                END
+            """)
+            # Meter deletion may set the live FK to NULL, but a published scope
+            # item can never be reassigned to a different meter identity.
+            cursor.execute("""
+                CREATE TRIGGER IF NOT EXISTS trg_reading_round_meter_identity_immutable
+                BEFORE UPDATE OF meter_id ON reading_round_meters
+                WHEN OLD.meter_id IS NOT NEW.meter_id
+                    AND NOT (OLD.meter_id IS NOT NULL AND NEW.meter_id IS NULL)
+                BEGIN
+                    SELECT RAISE(ABORT, 'reading round meter identity is immutable');
+                END
+            """)
+            cursor.execute("""
+                CREATE TRIGGER IF NOT EXISTS trg_reading_round_scope_mode_immutable
+                BEFORE UPDATE OF scope_mode ON reading_rounds
+                WHEN OLD.scope_mode IS NOT NEW.scope_mode
+                BEGIN
+                    SELECT RAISE(ABORT, 'reading round scope mode is immutable');
+                END
+            """)
+            cursor.execute("""
+                CREATE TRIGGER IF NOT EXISTS trg_reading_round_meter_history_restrict_delete
+                BEFORE DELETE ON reading_round_meters
+                WHEN OLD.meter_id IS NOT NULL AND EXISTS (
+                    SELECT 1 FROM meter_readings
+                    WHERE reading_round_id = OLD.reading_round_id AND meter_id = OLD.meter_id
+                )
+                BEGIN
+                    SELECT RAISE(ABORT, 'reading round meter has operational history');
+                END
+            """)
+
             conn.connection.commit()
         finally:
             cursor.close()
@@ -883,5 +991,3 @@ def init_db(db_engine=None) -> None:
     from . import models  # noqa: F401
     Base.metadata.create_all(bind=target_engine)
     migrate_db(target_engine)
-
-

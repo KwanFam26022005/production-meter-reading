@@ -196,7 +196,9 @@ class Meter(Base):
     created_at = Column(DateTime(timezone=True), nullable=False, default=get_utc_now)
     updated_at = Column(DateTime(timezone=True), nullable=False, default=get_utc_now, onupdate=get_utc_now)
 
-    readings = relationship("MeterReading", back_populates="meter", cascade="all, delete-orphan")
+    # Operational history is protected from ORM cascades; admin lifecycle actions
+    # retire/deactivate meters instead of erasing meter readings.
+    readings = relationship("MeterReading", back_populates="meter", passive_deletes="all")
     zone = relationship("OperationalZone", back_populates="meters")
     retired_by_user = relationship("User", foreign_keys=[retired_by])
     asset_relations = relationship("MeterAssetRelation", back_populates="meter")
@@ -222,16 +224,66 @@ class ReadingRound(Base):
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     batch_id = Column(String(36), ForeignKey("reading_batches.id", ondelete="CASCADE"), nullable=False, index=True)
     scheduled_at = Column(DateTime(timezone=True), nullable=False, index=True)
-    status = Column(String(20), index=True, nullable=False, default="OPEN")  # "OPEN" | "CLOSED"
+    status = Column(String(20), index=True, nullable=False, default="OPEN")  # "OPEN" | "CLOSED" | "CANCELLED"
     is_legacy = Column(Boolean, nullable=False, default=False, index=True)
+    # Thread 9A: SNAPSHOT rounds persist meter scope at creation time; LEGACY_DYNAMIC uses active meters at query time
+    scope_mode = Column(String(20), nullable=False, default="LEGACY_DYNAMIC")  # "SNAPSHOT" | "LEGACY_DYNAMIC"
     created_at = Column(DateTime(timezone=True), nullable=False, default=get_utc_now)
     closed_at = Column(DateTime(timezone=True), nullable=True)
 
     batch = relationship("ReadingBatch", back_populates="rounds")
-    readings = relationship("MeterReading", back_populates="round", cascade="all, delete-orphan")
+    # Keep operational readings and published scope attached to the round. The admin
+    # workflow explicitly removes scope only when deleting a disposable empty round.
+    readings = relationship("MeterReading", back_populates="round", passive_deletes="all")
+    scope_meters = relationship("ReadingRoundMeter", back_populates="round", passive_deletes="all")
 
     __table_args__ = (
         UniqueConstraint("batch_id", "scheduled_at", name="uq_batch_scheduled_round"),
+    )
+
+
+class ReadingRoundMeter(Base):
+    """Thread 9A: Immutable meter scope snapshot for SNAPSHOT-mode reading rounds.
+
+    Populated atomically at round creation. Once created, rows are never updated —
+    only the round can be CANCELLED if readings exist, not hard-deleted.
+    """
+    __tablename__ = "reading_round_meters"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    reading_round_id = Column(
+        String(36),
+        ForeignKey("reading_rounds.id", ondelete="RESTRICT"),
+        nullable=False,
+        index=True,
+    )
+    # nullable: meter may be deleted from inventory after scope was persisted
+    meter_id = Column(
+        String(36),
+        ForeignKey("meters.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+
+    # Immutable snapshot fields captured at scope materialization time
+    meter_code_snapshot = Column(String(100), nullable=False)
+    meter_name_snapshot = Column(String(200), nullable=True)
+    zone_id_snapshot = Column(String(36), nullable=True)
+    presentation_zone_id_snapshot = Column(String(36), nullable=True)
+    utility_type_snapshot = Column(String(50), nullable=True)
+
+    # Scope provenance
+    scope_origin = Column(String(30), nullable=False)  # 'ALL_ELIGIBLE'|'BY_ZONE'|'BY_UTILITY'|'SELECTED_METERS'|'LEGACY_BACKFILL'
+    scope_status = Column(String(20), nullable=False, default="SCHEDULED")  # 'SCHEDULED'|'EXCLUDED'
+
+    created_at = Column(DateTime(timezone=True), nullable=False, default=get_utc_now)
+
+    round = relationship("ReadingRound", back_populates="scope_meters")
+    meter = relationship("Meter")
+
+    __table_args__ = (
+        UniqueConstraint("reading_round_id", "meter_id", name="uq_reading_round_meter"),
+        UniqueConstraint("reading_round_id", "meter_code_snapshot", name="uq_round_meter_code_snapshot"),
     )
 
 
@@ -239,9 +291,9 @@ class MeterReading(Base):
     __tablename__ = "meter_readings"
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    meter_id = Column(String(36), ForeignKey("meters.id", ondelete="CASCADE"), nullable=False, index=True)
+    meter_id = Column(String(36), ForeignKey("meters.id", ondelete="RESTRICT"), nullable=False, index=True)
     batch_id = Column(String(36), ForeignKey("reading_batches.id", ondelete="CASCADE"), nullable=False, index=True)
-    reading_round_id = Column(String(36), ForeignKey("reading_rounds.id", ondelete="CASCADE"), nullable=False, index=True)
+    reading_round_id = Column(String(36), ForeignKey("reading_rounds.id", ondelete="RESTRICT"), nullable=False, index=True)
     user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     reading = Column(String(50), nullable=True)
     ocr_reading = Column(String(50), nullable=True)
@@ -499,4 +551,3 @@ class SimulationScenario(Base):
     status = Column(String(32), nullable=False, default="ACTIVE", index=True)
     metadata_json = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False, default=get_utc_now)
-

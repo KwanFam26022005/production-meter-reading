@@ -1,3 +1,4 @@
+import hashlib
 import json
 from pathlib import Path
 import uuid
@@ -5,10 +6,11 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
 from fastapi import HTTPException, status
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from .config import get_settings, settings
-from .models import AdminAuditLog, MapVersion, MapVersionZone, Meter, MeterReading, MeterReadingEvidence, MeterTrainingSample, OperationalZone, ReadingBatch, ReadingRound, User
+from .models import AdminAuditLog, MapVersion, MapVersionZone, Meter, MeterReading, MeterReadingEvidence, MeterTrainingSample, OperationalZone, ReadingBatch, ReadingRound, ReadingRoundMeter, User
 from .schemas import (
     AdminAuditLogItem,
     AdminAuditLogListResponse,
@@ -37,6 +39,10 @@ from .schemas import (
     AdminScheduleDeleteResponse,
     AdminSchedulePreviewRequest,
     AdminSchedulePreviewResponse,
+    AdminScheduleScopeInvalidSelection,
+    AdminScheduleScopeRequest,
+    AdminScheduleScopeSummary,
+    AdminScheduleZoneSummary,
     AdminSchedulePreviewRound,
     BatchProgress,
     ReadingBatchCurrentResponse,
@@ -906,6 +912,129 @@ def parse_hh_mm(val: str) -> tuple[int, int]:
     return h, m
 
 
+def _effective_meter_utility(meter: Meter) -> str:
+    utility = (getattr(meter, "utility_type", None) or "UNKNOWN").strip().upper()
+    if utility not in ("UNKNOWN", ""):
+        return utility
+    code = (meter.meter_code or "").upper()
+    if code.startswith(("W-", "SIM-W")):
+        return "WATER"
+    if code.startswith(("CT-", "SIM-E")):
+        return "ELECTRICITY"
+    return "UNKNOWN"
+
+
+def _schedule_scope_origin(mode: str) -> str:
+    return {
+        "ALL_ELIGIBLE": "ALL_ELIGIBLE",
+        "BY_ZONE": "ZONE_FILTER",
+        "BY_UTILITY": "UTILITY_FILTER",
+        "SELECTED_METERS": "MANUAL_SELECTION",
+    }[mode]
+
+
+def _scope_fingerprint(mode: str, meters: list[Meter]) -> str:
+    canonical = {
+        "mode": mode,
+        "meter_ids": sorted({meter.id for meter in meters}),
+    }
+    serialized = json.dumps(canonical, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
+
+
+def resolve_schedule_scope(
+    db: Session,
+    scope: AdminScheduleScopeRequest,
+) -> tuple[list[Meter], list[AdminScheduleScopeInvalidSelection], str]:
+    """Resolve a schedule request against current inventory using stable IDs only."""
+    inventory = db.query(Meter).order_by(Meter.meter_code.asc(), Meter.id.asc()).all()
+    inventory_by_id = {meter.id: meter for meter in inventory}
+
+    def eligible(meter: Meter) -> bool:
+        lifecycle = (getattr(meter, "lifecycle_status", None) or ("ACTIVE" if meter.is_active else "INACTIVE")).upper()
+        return bool(meter.is_active) and lifecycle != "RETIRED"
+
+    eligible_meters = [meter for meter in inventory if eligible(meter)]
+    invalid: list[AdminScheduleScopeInvalidSelection] = []
+    resolved: list[Meter] = []
+
+    if scope.mode == "ALL_ELIGIBLE":
+        resolved = eligible_meters
+    elif scope.mode == "BY_ZONE":
+        requested_zone_ids = scope.zone_ids or []
+        known_zone_ids = {
+            zone.id for zone in db.query(OperationalZone.id).filter(OperationalZone.id.in_(requested_zone_ids)).all()
+        }
+        for zone_id in requested_zone_ids:
+            if zone_id not in known_zone_ids:
+                invalid.append(AdminScheduleScopeInvalidSelection(id=zone_id, reason="UNKNOWN_ZONE", label=zone_id))
+        resolved = [meter for meter in eligible_meters if meter.zone_id in known_zone_ids]
+        for zone_id in requested_zone_ids:
+            if zone_id in known_zone_ids and not any(meter.zone_id == zone_id for meter in resolved):
+                invalid.append(AdminScheduleScopeInvalidSelection(id=zone_id, reason="NO_ELIGIBLE_METERS", label=zone_id))
+    elif scope.mode == "BY_UTILITY":
+        requested_utilities = set(scope.utility_types or [])
+        resolved = [meter for meter in eligible_meters if _effective_meter_utility(meter) in requested_utilities]
+        for utility in sorted(requested_utilities):
+            if not any(_effective_meter_utility(meter) == utility for meter in resolved):
+                invalid.append(AdminScheduleScopeInvalidSelection(
+                    id=utility,
+                    reason="NO_ELIGIBLE_METERS",
+                    label={"ELECTRICITY": "Điện", "WATER": "Nước", "OTHER": "Khác", "UNKNOWN": "Chưa xác định"}[utility],
+                ))
+    else:
+        for meter_id in scope.meter_ids or []:
+            meter = inventory_by_id.get(meter_id)
+            if meter is None:
+                invalid.append(AdminScheduleScopeInvalidSelection(id=meter_id, reason="NOT_FOUND", label=meter_id))
+                continue
+            lifecycle = (getattr(meter, "lifecycle_status", None) or ("ACTIVE" if meter.is_active else "INACTIVE")).upper()
+            if lifecycle == "RETIRED":
+                invalid.append(AdminScheduleScopeInvalidSelection(id=meter_id, reason="RETIRED", label=meter.meter_code))
+            elif not meter.is_active:
+                invalid.append(AdminScheduleScopeInvalidSelection(id=meter_id, reason="INACTIVE", label=meter.meter_code))
+            else:
+                resolved.append(meter)
+
+    resolved.sort(key=lambda meter: ((meter.meter_code or "").casefold(), meter.id))
+    fingerprint = _scope_fingerprint(scope.mode, resolved)
+    return resolved, invalid, fingerprint
+
+
+def _schedule_scope_summary(
+    db: Session,
+    scope: AdminScheduleScopeRequest,
+    meters: list[Meter],
+    invalid: list[AdminScheduleScopeInvalidSelection],
+    fingerprint: str,
+) -> AdminScheduleScopeSummary:
+    zone_names = {zone.id: zone.name for zone in db.query(OperationalZone).all()}
+    zone_counts: dict[Optional[str], int] = {}
+    for meter in meters:
+        zone_counts[meter.zone_id] = zone_counts.get(meter.zone_id, 0) + 1
+    zones = [
+        AdminScheduleZoneSummary(
+            zone_id=zone_id,
+            zone_name=zone_names.get(zone_id, "Chưa gán khu vực") if zone_id else "Chưa gán khu vực",
+            meter_count=count,
+        )
+        for zone_id, count in sorted(zone_counts.items(), key=lambda entry: (entry[0] is None, entry[0] or ""))
+    ]
+    utilities = [_effective_meter_utility(meter) for meter in meters]
+    electricity_count = utilities.count("ELECTRICITY")
+    water_count = utilities.count("WATER")
+    return AdminScheduleScopeSummary(
+        mode=scope.mode,
+        meter_count=len(meters),
+        electricity_count=electricity_count,
+        water_count=water_count,
+        other_count=len(meters) - electricity_count - water_count,
+        zones=zones,
+        invalid_selections=invalid,
+        fingerprint=fingerprint,
+    )
+
+
 def get_admin_schedules_list(
     db: Session,
     date_str: Optional[str] = None,
@@ -937,13 +1066,12 @@ def get_admin_schedules_list(
     now_utc = datetime.now(timezone.utc)
     now_local = now_utc.astimezone(LOCAL_TZ)
     today_date_str = now_local.strftime("%Y-%m-%d")
-    total_meters = db.query(Meter).filter(Meter.is_active == True).count()
-
     current_round_obj: Optional[ReadingRound] = None
     if day_rounds and target_date_str == today_date_str:
         past_or_curr = [
             r for r in day_rounds
-            if (r.scheduled_at.replace(tzinfo=timezone.utc) if r.scheduled_at.tzinfo is None else r.scheduled_at) <= now_utc
+            if r.status == "OPEN"
+            and (r.scheduled_at.replace(tzinfo=timezone.utc) if r.scheduled_at.tzinfo is None else r.scheduled_at) <= now_utc
         ]
         if past_or_curr:
             current_round_obj = past_or_curr[-1]
@@ -951,12 +1079,13 @@ def get_admin_schedules_list(
     out_rounds: list[ReadingRoundOut] = []
     for r in day_rounds:
         r_sched = r.scheduled_at.replace(tzinfo=timezone.utc) if r.scheduled_at.tzinfo is None else r.scheduled_at
-        readings = db.query(MeterReading).filter(MeterReading.reading_round_id == r.id).all()
-        confirmed = sum(1 for rd in readings if rd.status == "CONFIRMED")
-        review = sum(1 for rd in readings if rd.status == "REVIEW")
-        pending = max(0, total_meters - (confirmed + review))
+        from .meter_logbook import calculate_round_progress
 
-        if target_date_str < today_date_str:
+        progress = calculate_round_progress(db, r.id)
+
+        if r.status == "CANCELLED":
+            timing_state = "CANCELLED"
+        elif target_date_str < today_date_str:
             timing_state = "PAST"
         elif target_date_str > today_date_str:
             timing_state = "UPCOMING"
@@ -973,13 +1102,10 @@ def get_admin_schedules_list(
                 scheduled_time_only=get_round_time_only_str(r_sched),
                 status=r.status,
                 is_legacy=r.is_legacy,
+                scope_mode=r.scope_mode,
                 timing_state=timing_state,
-                progress=BatchProgress(
-                    total=total_meters,
-                    confirmed=confirmed,
-                    review=review,
-                    pending=pending,
-                ),
+                progress=progress,
+                scope_meter_count=progress.total if r.scope_mode == "SNAPSHOT" else None,
             )
         )
 
@@ -1030,7 +1156,7 @@ def preview_admin_schedules(
     if start_dt_local > end_dt_local:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Giờ bắt đầu không thể sau giờ kết thúc.",
+            detail="Lịch qua đêm (ví dụ 22:00–06:00) chưa được hỗ trợ. Vui lòng tạo lịch trong cùng ngày.",
         )
 
     if payload.interval_minutes < 5 or payload.interval_minutes > 1440:
@@ -1039,6 +1165,8 @@ def preview_admin_schedules(
             detail="Chu kỳ đọc phải nằm trong khoảng từ 5 đến 1440 phút.",
         )
     interval = payload.interval_minutes
+    scope_meters, invalid_selections, fingerprint = resolve_schedule_scope(db, payload.scope)
+    scope_summary = _schedule_scope_summary(db, payload.scope, scope_meters, invalid_selections, fingerprint)
 
     # Query existing rounds for this batch
     existing_rounds = db.query(ReadingRound).filter(ReadingRound.batch_id == batch.id).all()
@@ -1071,6 +1199,7 @@ def preview_admin_schedules(
                 scheduled_time_only=get_round_time_only_str(curr_dt_utc),
                 is_conflict=is_conf,
                 existing_round_id=existing.id if existing else None,
+                meter_count=len(scope_meters),
             )
         )
         curr_dt_local += timedelta(minutes=interval)
@@ -1082,6 +1211,7 @@ def preview_admin_schedules(
         total_proposed=len(proposed_rounds),
         conflict_count=conflict_count,
         rounds=proposed_rounds,
+        scope=scope_summary,
     )
 
 
@@ -1129,7 +1259,7 @@ def create_admin_schedules(
     if start_dt_local > end_dt_local:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Giờ bắt đầu không thể sau giờ kết thúc.",
+            detail="Lịch qua đêm (ví dụ 22:00–06:00) chưa được hỗ trợ. Vui lòng tạo lịch trong cùng ngày.",
         )
 
     if payload.interval_minutes < 5 or payload.interval_minutes > 1440:
@@ -1139,6 +1269,23 @@ def create_admin_schedules(
         )
     interval = payload.interval_minutes
 
+    scope_meters, invalid_selections, fingerprint = resolve_schedule_scope(db, payload.scope)
+    if fingerprint != payload.expected_scope_fingerprint:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Danh sách công tơ đã thay đổi kể từ lúc xem trước. Vui lòng kiểm tra lại lịch trước khi tạo.",
+        )
+    if invalid_selections:
+        invalid_labels = ", ".join(item.label or item.id for item in invalid_selections)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Phạm vi công tơ có lựa chọn không hợp lệ ({invalid_labels}). Vui lòng xem trước lại lịch.",
+        )
+    if not scope_meters:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Phạm vi không có công tơ đủ điều kiện. Không thể tạo lượt ghi rỗng.",
+        )
     # Check conflicts transactionally
     existing_rounds = db.query(ReadingRound).filter(ReadingRound.batch_id == batch.id).all()
     existing_utc_set = {
@@ -1165,46 +1312,89 @@ def create_admin_schedules(
 
     now_utc = datetime.now(timezone.utc)
     new_rounds: list[ReadingRound] = []
+    expected_scope_rows = len(proposed_utc_list) * len(scope_meters)
+    scope_origin = _schedule_scope_origin(payload.scope.mode)
+    try:
+        for dt_utc in proposed_utc_list:
+            new_round = ReadingRound(
+                id=str(uuid.uuid4()),
+                batch_id=batch.id,
+                scheduled_at=dt_utc,
+                status="OPEN",
+                is_legacy=False,
+                scope_mode="SNAPSHOT",
+                created_at=now_utc,
+            )
+            db.add(new_round)
+            new_rounds.append(new_round)
 
-    for dt_utc in proposed_utc_list:
-        new_round = ReadingRound(
-            id=str(uuid.uuid4()),
-            batch_id=batch.id,
-            scheduled_at=dt_utc,
-            status="OPEN",
-            is_legacy=False,
-            created_at=now_utc,
+        db.flush()
+
+        scope_rows = [
+            ReadingRoundMeter(
+                id=str(uuid.uuid4()),
+                reading_round_id=reading_round.id,
+                meter_id=meter.id,
+                meter_code_snapshot=meter.meter_code,
+                meter_name_snapshot=meter.name,
+                zone_id_snapshot=meter.zone_id,
+                presentation_zone_id_snapshot=meter.presentation_zone_id,
+                utility_type_snapshot=_effective_meter_utility(meter),
+                scope_origin=scope_origin,
+                scope_status="SCHEDULED",
+                created_at=now_utc,
+            )
+            for reading_round in new_rounds
+            for meter in scope_meters
+        ]
+        db.add_all(scope_rows)
+        db.flush()
+
+        scope_counts_by_round = dict(
+            db.query(ReadingRoundMeter.reading_round_id, func.count(ReadingRoundMeter.id))
+            .filter(ReadingRoundMeter.reading_round_id.in_([round_obj.id for round_obj in new_rounds]))
+            .group_by(ReadingRoundMeter.reading_round_id)
+            .all()
         )
-        db.add(new_round)
-        new_rounds.append(new_round)
+        actual_scope_rows = sum(scope_counts_by_round.values())
+        if actual_scope_rows != expected_scope_rows or any(
+            scope_counts_by_round.get(round_obj.id, 0) != len(scope_meters)
+            for round_obj in new_rounds
+        ):
+            raise RuntimeError(
+                f"Reading scope materialization mismatch: expected {expected_scope_rows}, found {actual_scope_rows}."
+            )
 
-    db.flush()
+        log_admin_action(
+            db=db,
+            actor_user_id=actor.id,
+            action="READING_ROUNDS_CREATED",
+            resource_type="READING_ROUNDS",
+            resource_id=batch.id,
+            after_json={
+                "batch_id": batch.id,
+                "batch_name": batch.name,
+                "date": payload.date.strip(),
+                "count": len(new_rounds),
+                "scope_mode": payload.scope.mode,
+                "scope_fingerprint": fingerprint,
+                "scope_meter_count": len(scope_meters),
+                "scope_row_count": actual_scope_rows,
+                "rounds": [get_round_time_only_str(r.scheduled_at) for r in new_rounds],
+            },
+        )
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
 
-    # Log audit
-    log_admin_action(
-        db=db,
-        actor_user_id=actor.id,
-        action="READING_ROUNDS_CREATED",
-        resource_type="READING_ROUNDS",
-        resource_id=batch.id,
-        after_json={
-            "batch_id": batch.id,
-            "batch_name": batch.name,
-            "date": payload.date.strip(),
-            "count": len(new_rounds),
-            "rounds": [get_round_time_only_str(r.scheduled_at) for r in new_rounds],
-        },
-    )
+    from .meter_logbook import calculate_round_progress
 
-    db.commit()
-    for r in new_rounds:
-        db.refresh(r)
-
-    total_meters = db.query(Meter).filter(Meter.is_active == True).count()
     out_rounds: list[ReadingRoundOut] = []
     for r in new_rounds:
         sched = r.scheduled_at.replace(tzinfo=timezone.utc) if r.scheduled_at.tzinfo is None else r.scheduled_at
         timing_state = "UPCOMING" if sched > now_utc else "PAST"
+        progress = calculate_round_progress(db, r.id)
         out_rounds.append(
             ReadingRoundOut(
                 id=r.id,
@@ -1214,13 +1404,10 @@ def create_admin_schedules(
                 scheduled_time_only=get_round_time_only_str(sched),
                 status=r.status,
                 is_legacy=r.is_legacy,
+                scope_mode=r.scope_mode,
                 timing_state=timing_state,
-                progress=BatchProgress(
-                    total=total_meters,
-                    confirmed=0,
-                    review=0,
-                    pending=total_meters,
-                ),
+                progress=progress,
+                scope_meter_count=progress.total,
             )
         )
 
@@ -1232,6 +1419,8 @@ def create_admin_schedules(
         created_count=len(new_rounds),
         message=f"Đã tạo thành công {len(new_rounds)} lượt đọc cho ngày {date_formatted}.",
         rounds=out_rounds,
+        scope_materialized_count=expected_scope_rows,
+        scope_fingerprint=fingerprint,
     )
 
 
@@ -1258,20 +1447,38 @@ def delete_admin_schedule_round(
 
     # Check reading count
     readings_count = db.query(MeterReading).filter(MeterReading.reading_round_id == round_obj.id).count()
-    if readings_count > 0 and not force:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"Lượt ghi này đã có {readings_count} bản ghi chỉ số công tơ. Vui lòng xác nhận xóa bắt buộc.",
-        )
 
     time_str = get_round_time_only_str(round_obj.scheduled_at)
     round_sched = round_obj.scheduled_at.replace(tzinfo=timezone.utc) if round_obj.scheduled_at.tzinfo is None else round_obj.scheduled_at
     date_str = round_sched.astimezone(LOCAL_TZ).strftime("%Y-%m-%d")
 
-    # Delete readings explicitly to ensure cascading cleanup
-    db.query(MeterReading).filter(MeterReading.reading_round_id == round_obj.id).delete(synchronize_session=False)
+    if readings_count > 0:
+        round_obj.status = "CANCELLED"
+        log_admin_action(
+            db=db,
+            actor_user_id=actor.id,
+            action="READING_ROUND_CANCELLED",
+            resource_type="READING_ROUNDS",
+            resource_id=round_id,
+            before_json={
+                "round_id": round_id,
+                "batch_id": round_obj.batch_id,
+                "scheduled_time": time_str,
+                "date": date_str,
+                "readings_count": readings_count,
+                "force_requested": force,
+            },
+            after_json={"status": "CANCELLED"},
+        )
+        db.commit()
+        return AdminScheduleDeleteResponse(
+            status="success",
+            deleted_count=0,
+            cancelled_count=1,
+            message=f"Lượt ghi lúc {time_str} đã được hủy. {readings_count} bản ghi lịch sử được giữ nguyên.",
+        )
 
-    # Delete round
+    db.query(ReadingRoundMeter).filter(ReadingRoundMeter.reading_round_id == round_obj.id).delete(synchronize_session=False)
     db.delete(round_obj)
     db.flush()
 
@@ -1288,7 +1495,7 @@ def delete_admin_schedule_round(
             "scheduled_time": time_str,
             "date": date_str,
             "readings_count": readings_count,
-            "force": force,
+            "force_requested": force,
         },
     )
 
@@ -1346,32 +1553,33 @@ def delete_admin_schedules_by_date(
         )
 
     round_ids = [r.id for r in day_rounds]
-    total_readings = (
-        db.query(MeterReading)
+    reading_counts = {
+        round_id: count
+        for round_id, count in db.query(MeterReading.reading_round_id, func.count(MeterReading.id))
         .filter(MeterReading.reading_round_id.in_(round_ids))
-        .count()
-    )
-
-    if total_readings > 0 and not force:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"Các lượt ghi trong ngày này đã có {total_readings} bản ghi chỉ số công tơ. Vui lòng xác nhận xóa bắt buộc.",
-        )
-
-    # Delete readings
-    db.query(MeterReading).filter(MeterReading.reading_round_id.in_(round_ids)).delete(synchronize_session=False)
-
-    # Delete rounds
-    for r in day_rounds:
-        db.delete(r)
+        .group_by(MeterReading.reading_round_id)
+        .all()
+    }
+    rounds_with_history = [r for r in day_rounds if reading_counts.get(r.id, 0) > 0]
+    disposable_rounds = [r for r in day_rounds if reading_counts.get(r.id, 0) == 0]
+    for round_obj in rounds_with_history:
+        round_obj.status = "CANCELLED"
+    disposable_ids = [r.id for r in disposable_rounds]
+    if disposable_ids:
+        db.query(ReadingRoundMeter).filter(ReadingRoundMeter.reading_round_id.in_(disposable_ids)).delete(synchronize_session=False)
+    for round_obj in disposable_rounds:
+        db.delete(round_obj)
 
     db.flush()
+
+    total_readings = sum(reading_counts.values())
+    cancelled_count = len(rounds_with_history)
 
     # Log audit
     log_admin_action(
         db=db,
         actor_user_id=actor.id,
-        action="READING_ROUNDS_BATCH_DELETED",
+        action="READING_ROUNDS_BATCH_CLEANED",
         resource_type="READING_ROUNDS",
         resource_id=batch.id,
         before_json={
@@ -1379,7 +1587,9 @@ def delete_admin_schedules_by_date(
             "date": date_str.strip(),
             "rounds_count": len(day_rounds),
             "readings_count": total_readings,
-            "force": force,
+            "deleted_count": len(disposable_rounds),
+            "cancelled_count": cancelled_count,
+            "force_requested": force,
         },
     )
 
@@ -1387,8 +1597,12 @@ def delete_admin_schedules_by_date(
 
     return AdminScheduleDeleteResponse(
         status="success",
-        deleted_count=len(day_rounds),
-        message=f"Đã xóa thành công {len(day_rounds)} lượt ghi của ngày {format_date_vn(date_str.strip())}.",
+        deleted_count=len(disposable_rounds),
+        cancelled_count=cancelled_count,
+        message=(
+            f"Đã xóa {len(disposable_rounds)} lượt rỗng và hủy {cancelled_count} lượt có lịch sử "
+            f"trong ngày {format_date_vn(date_str.strip())}. Bản ghi chỉ số được giữ nguyên."
+        ),
     )
 
 
@@ -1416,6 +1630,8 @@ def get_admin_dashboard(
 
     batch_resp = None
     if batch:
+        from .meter_logbook import calculate_batch_progress
+
         total_m_all = db.query(Meter).filter(Meter.is_active == True).count()
         b_readings = (
             db.query(MeterReading)
@@ -1425,16 +1641,26 @@ def get_admin_dashboard(
         )
         b_conf = sum(1 for r in b_readings if r.status == "CONFIRMED")
         b_rev = sum(1 for r in b_readings if r.status == "REVIEW")
+        legacy_batch_progress = BatchProgress(
+            total=total_m_all,
+            confirmed=b_conf,
+            review=b_rev,
+            pending=max(0, total_m_all - (b_conf + b_rev)),
+        )
+        scoped_batch_progress = calculate_batch_progress(db, batch.id)
         batch_resp = ReadingBatchCurrentResponse(
             id=batch.id,
             name=batch.name,
             period_key=batch.period_key,
             status=batch.status,
-            progress=BatchProgress(
-                total=total_m_all,
-                confirmed=b_conf,
-                review=b_rev,
-                pending=max(0, total_m_all - (b_conf + b_rev)),
+            progress=legacy_batch_progress.model_copy(
+                update={
+                    "unique_meter_count": scoped_batch_progress.unique_meter_count,
+                    "scheduled_slot_count": scoped_batch_progress.scheduled_slot_count,
+                    "confirmed_slot_count": scoped_batch_progress.confirmed_slot_count,
+                    "review_slot_count": scoped_batch_progress.review_slot_count,
+                    "pending_slot_count": scoped_batch_progress.pending_slot_count,
+                }
             ),
         )
 
@@ -1444,7 +1670,8 @@ def get_admin_dashboard(
 
     # 3. Filtered active meters
     filtered_meters = all_active_meters
-    if location_filter and location_filter.strip() and location_filter.strip() != "ALL":
+    is_location_filtered = bool(location_filter and location_filter.strip() and location_filter.strip() != "ALL")
+    if is_location_filtered:
         loc_clean = location_filter.strip()
         filtered_meters = [m for m in all_active_meters if (m.location or "").strip() == loc_clean]
 
@@ -1454,7 +1681,7 @@ def get_admin_dashboard(
     # 4. Target day non-legacy rounds
     all_rounds = (
         db.query(ReadingRound)
-        .filter(ReadingRound.is_legacy == False)
+        .filter(ReadingRound.is_legacy == False, ReadingRound.status != "CANCELLED")
         .order_by(ReadingRound.scheduled_at.asc())
         .all()
     )
@@ -1559,11 +1786,15 @@ def get_admin_dashboard(
             is_curr = (current_round_obj and r.id == current_round_obj.id)
             timing_state = "CURRENT" if is_curr else ("PAST" if r_sched <= now_utc else "UPCOMING")
 
+        # Keep this shared dashboard projection on its existing inventory-based
+        # semantics during the Map V2 freeze. Admin Lịch ghi round detail and the
+        # round APIs use calculate_round_progress() for persisted scope truth.
+        round_total = total_meters
         r_readings = [rd for rd in filtered_readings if rd.reading_round_id == r.id]
         r_conf = sum(1 for rd in r_readings if rd.status == "CONFIRMED")
         r_rev = sum(1 for rd in r_readings if rd.status == "REVIEW")
-        r_pend = max(0, total_meters - r_conf - r_rev)
-        r_pct = round((r_conf / total_meters * 100), 1) if total_meters > 0 else 0.0
+        r_pend = max(0, round_total - r_conf - r_rev)
+        r_pct = round((r_conf / round_total * 100), 1) if round_total > 0 else 0.0
 
         round_progress_list.append(
             AdminDashboardRoundProgress(
@@ -1571,7 +1802,7 @@ def get_admin_dashboard(
                 scheduled_time=get_round_time_only_str(r_sched),
                 scheduled_local=get_round_local_time_str(r_sched),
                 timing_state=timing_state,
-                total_meters=total_meters,
+                total_meters=round_total,
                 confirmed=r_conf,
                 review=r_rev,
                 pending=r_pend,

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import {
   Search,
   X,
@@ -43,6 +43,22 @@ interface ReadingBatchViewProps {
 
 type StatusFilter = 'ALL' | 'PENDING' | 'CONFIRMED';
 
+const getMeterUnit = (meter: Meter): string => {
+  const utility = meter.utility_type?.toUpperCase();
+  if (utility === 'WATER') return 'm³';
+  if (utility === 'ELECTRICITY') return 'kWh';
+  return 'đơn vị';
+};
+
+const getDialogFocusableElements = (root: HTMLElement | null): HTMLElement[] => {
+  if (!root) return [];
+  return Array.from(
+    root.querySelectorAll<HTMLElement>(
+      'button:not([disabled]), input:not([disabled]):not([type="hidden"]):not([tabindex="-1"]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])'
+    )
+  ).filter((element) => element.offsetParent !== null && !element.closest('[aria-hidden="true"]'));
+};
+
 export const ReadingBatchView: React.FC<ReadingBatchViewProps> = ({
   user: _user,
   onBackToHome,
@@ -61,11 +77,53 @@ export const ReadingBatchView: React.FC<ReadingBatchViewProps> = ({
   const [meterDetailData, setMeterDetailData] = useState<MeterDetailResponse | null>(null);
   const [loadingDetail, setLoadingDetail] = useState<boolean>(false);
   const [expandedTodayHistory, setExpandedTodayHistory] = useState<boolean>(false);
+  const detailDialogRef = useRef<HTMLDivElement>(null);
+  const restoreDetailFocusRef = useRef<HTMLElement | null>(null);
 
   // Secondary Schedule Inspection Modal
   const [showScheduleModal, setShowScheduleModal] = useState<boolean>(false);
   const [scheduleRounds, setScheduleRounds] = useState<ReadingRound[]>([]);
   const [loadingSchedule, setLoadingSchedule] = useState<boolean>(false);
+  const scheduleDialogRef = useRef<HTMLDivElement>(null);
+  const restoreScheduleFocusRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (!selectedDetailMeter || !detailDialogRef.current) return;
+    restoreDetailFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    detailDialogRef.current.querySelector<HTMLElement>('button:not([disabled])')?.focus();
+    return () => restoreDetailFocusRef.current?.focus();
+  }, [Boolean(selectedDetailMeter)]);
+
+  useEffect(() => {
+    if (!showScheduleModal || !scheduleDialogRef.current) return;
+    restoreScheduleFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    scheduleDialogRef.current.querySelector<HTMLElement>('button:not([disabled])')?.focus();
+    return () => restoreScheduleFocusRef.current?.focus();
+  }, [showScheduleModal]);
+
+  const handleDialogKeyDown = (
+    event: React.KeyboardEvent<HTMLDivElement>,
+    dialogRef: React.RefObject<HTMLDivElement>,
+    closeDialog: () => void
+  ) => {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      closeDialog();
+      return;
+    }
+    if (event.key !== 'Tab' || !dialogRef.current) return;
+    const focusable = getDialogFocusableElements(dialogRef.current);
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  };
 
   const loadData = async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
@@ -175,6 +233,7 @@ export const ReadingBatchView: React.FC<ReadingBatchViewProps> = ({
       scheduled_local: slot.scheduled_local,
       scheduled_time_only: slot.scheduled_time_only,
       status: 'OPEN',
+      scope_mode: operations?.current_round?.scope_mode,
       timing_state: slot.timing_state,
       progress: { total: 0, confirmed: 0, pending: 0, review: 0 },
     };
@@ -241,17 +300,22 @@ export const ReadingBatchView: React.FC<ReadingBatchViewProps> = ({
             <div className="worklist-progress-section">
               <div className="worklist-progress-label-row">
                 <span className="worklist-progress-completed-text">
-                  <strong>{operations.summary.confirmed_current}</strong>/{operations.summary.total_meters} đã hoàn thành
+                  <strong>{operations.summary.confirmed_current}</strong>/{operations.summary.total_meters} công tơ trong lượt đã ghi
                 </span>
                 {operations.summary.percent_current > 0 && (
                   <span className="worklist-progress-percent">{operations.summary.percent_current}%</span>
                 )}
               </div>
-              <div className="worklist-progress-track" role="progressbar" aria-valuenow={operations.summary.percent_current} aria-valuemin={0} aria-valuemax={100}>
+              <div className="worklist-progress-track" role="progressbar" aria-label="Tiến độ lượt ghi" aria-valuenow={operations.summary.percent_current} aria-valuemin={0} aria-valuemax={100}>
                 <div
                   className="worklist-progress-fill"
                   style={{ width: `${operations.summary.percent_current}%` }}
                 />
+              </div>
+              <div className="worklist-progress-breakdown" aria-label="Trạng thái công tơ trong lượt">
+                <span><strong>{operations.summary.confirmed_current}</strong> đã ghi</span>
+                <span><strong>{operations.summary.review_current}</strong> cần kiểm tra</span>
+                <span><strong>{operations.summary.pending_current}</strong> chưa ghi</span>
               </div>
             </div>
 
@@ -345,6 +409,8 @@ export const ReadingBatchView: React.FC<ReadingBatchViewProps> = ({
                 const isCurrentConfirmed = item.current_status === 'CONFIRMED';
                 const hasCurrentRound = Boolean(operations.current_round);
                 const currRoundTime = operations.current_round?.scheduled_time_only || '---';
+                const meterUnit = getMeterUnit(item.meter);
+                const meterAvailable = !item.meter_availability || item.meter_availability === 'AVAILABLE';
 
                 return (
                   <article
@@ -424,14 +490,14 @@ export const ReadingBatchView: React.FC<ReadingBatchViewProps> = ({
                       {isCurrentConfirmed ? (
                         <div className="meter-confirmed-value-row">
                           <span className="meter-reading-val tabular-nums">{item.current_reading}</span>
-                          <span className="meter-reading-unit">kWh</span>
+                          <span className="meter-reading-unit">{meterUnit}</span>
                         </div>
                       ) : (
                         item.latest_confirmed && (
                           <div className="meter-latest-reading-row">
                             <span className="meter-latest-label">Gần nhất:</span>
                             <span className="meter-latest-val tabular-nums">
-                              <strong>{item.latest_confirmed.reading} kWh</strong> &bull; Lượt {item.latest_confirmed.round_time}
+                              <strong>{item.latest_confirmed.reading} {meterUnit}</strong> &bull; Lượt {item.latest_confirmed.round_time}
                             </span>
                           </div>
                         )
@@ -449,7 +515,7 @@ export const ReadingBatchView: React.FC<ReadingBatchViewProps> = ({
                     {/* 6. Primary Action (Separate explicit button, outside clickable body) */}
                     {hasCurrentRound && (isCurrentPending || isCurrentReview) && (
                       <div className="meter-card-action-wrap">
-                        <button
+                        {meterAvailable ? <button
                           type="button"
                           className="btn-worklist-capture"
                           onClick={() => handleCaptureCurrentSlot(item.meter)}
@@ -457,7 +523,9 @@ export const ReadingBatchView: React.FC<ReadingBatchViewProps> = ({
                         >
                           <Camera size={18} strokeWidth={2.2} />
                           <span>{isCurrentReview ? 'Ghi lại' : 'Ghi chỉ số'}</span>
-                        </button>
+                        </button> : <span className="worklist-meter-unavailable" role="status">
+                          Công tơ {item.meter_availability === 'RETIRED' ? 'đã ngừng sử dụng' : item.meter_availability === 'MISSING' ? 'không còn trong danh mục' : 'đang tạm ngưng'}; vẫn giữ trong lượt đã lập
+                        </span>}
                       </div>
                     )}
                   </article>
@@ -472,8 +540,8 @@ export const ReadingBatchView: React.FC<ReadingBatchViewProps> = ({
           5. SIMPLIFIED METER DETAIL MODAL
           ============================================================ */}
       {selectedDetailMeter && (
-        <div className="modal-overlay" onClick={handleCloseDetail} role="dialog" aria-modal="true">
-          <div className="meter-detail-modal-card" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-overlay" onClick={handleCloseDetail} onKeyDown={(event) => handleDialogKeyDown(event, detailDialogRef, handleCloseDetail)} role="dialog" aria-modal="true" aria-labelledby="reading-meter-detail-title">
+          <div className="meter-detail-modal-card" ref={detailDialogRef} onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <div className="modal-title-wrap">
                 <div className="modal-code-row">
@@ -484,7 +552,7 @@ export const ReadingBatchView: React.FC<ReadingBatchViewProps> = ({
                     </span>
                   )}
                 </div>
-                <h3 className="modal-name">{selectedDetailMeter.meter.name}</h3>
+                <h3 id="reading-meter-detail-title" className="modal-name">{selectedDetailMeter.meter.name}</h3>
                 {selectedDetailMeter.meter.location && (
                   <div className="modal-loc-row">
                     <MapPin size={13} />
@@ -515,7 +583,7 @@ export const ReadingBatchView: React.FC<ReadingBatchViewProps> = ({
                       <div className="dc-confirmed-box">
                         <CheckCircle2 size={20} className="dc-check-icon" />
                         <div className="dc-text-wrap">
-                          <span className="dc-reading-num">{selectedDetailMeter.current_reading} kWh</span>
+                          <span className="dc-reading-num">{selectedDetailMeter.current_reading} {getMeterUnit(selectedDetailMeter.meter)}</span>
                           <span className="dc-sub">
                             Đã ghi nhận thành công
                             {selectedDetailMeter.current_recorded_local && ` (${selectedDetailMeter.current_recorded_local})`}
@@ -529,7 +597,7 @@ export const ReadingBatchView: React.FC<ReadingBatchViewProps> = ({
                           <span className="dc-reading-num">Cần kiểm tra lại</span>
                           <span className="dc-sub">Hình ảnh mờ hoặc chỉ số bất thường</span>
                         </div>
-                        <button
+                        {(!selectedDetailMeter.meter_availability || selectedDetailMeter.meter_availability === 'AVAILABLE') ? <button
                           type="button"
                           className="btn btn-primary btn-sm"
                           onClick={() => {
@@ -539,7 +607,7 @@ export const ReadingBatchView: React.FC<ReadingBatchViewProps> = ({
                         >
                           <Camera size={14} />
                           <span>Chụp lại</span>
-                        </button>
+                        </button> : <span className="worklist-meter-unavailable">Công tơ không còn khả dụng; kết quả lịch sử vẫn được giữ.</span>}
                       </div>
                     ) : (
                       <div className="dc-pending-box">
@@ -547,7 +615,7 @@ export const ReadingBatchView: React.FC<ReadingBatchViewProps> = ({
                           <span className="dc-pending-title">Chưa ghi chỉ số cho lượt này</span>
                           <span className="dc-sub">Vui lòng chụp ảnh mặt số công tơ</span>
                         </div>
-                        <button
+                        {(!selectedDetailMeter.meter_availability || selectedDetailMeter.meter_availability === 'AVAILABLE') ? <button
                           type="button"
                           className="btn btn-primary"
                           onClick={() => {
@@ -557,7 +625,7 @@ export const ReadingBatchView: React.FC<ReadingBatchViewProps> = ({
                         >
                           <Camera size={16} />
                           <span>Ghi chỉ số ngay</span>
-                        </button>
+                        </button> : <span className="worklist-meter-unavailable">Công tơ không còn khả dụng; kết quả lịch sử vẫn được giữ.</span>}
                       </div>
                     )}
                   </div>
@@ -605,7 +673,7 @@ export const ReadingBatchView: React.FC<ReadingBatchViewProps> = ({
                                 <div className="ts-details-col">
                                   {isConfirmed ? (
                                     <div className="ts-reading-wrap">
-                                      <span className="ts-reading-val">{slot.reading} kWh</span>
+                                      <span className="ts-reading-val">{slot.reading} {getMeterUnit(selectedDetailMeter.meter)}</span>
                                       <div className="ts-meta-line">
                                         <span>{slot.formatted_recorded_at}</span>
                                         {slot.confirmation_source === 'USER_CORRECTED' && (
@@ -636,7 +704,7 @@ export const ReadingBatchView: React.FC<ReadingBatchViewProps> = ({
                                     <span className="ts-badge-done">
                                       <Check size={14} />
                                     </span>
-                                  ) : isPast || isCurrent ? (
+                                  ) : (isPast || isCurrent) && (!selectedDetailMeter.meter_availability || selectedDetailMeter.meter_availability === 'AVAILABLE') ? (
                                     <button
                                       type="button"
                                       className="btn-supplementary-capture"
@@ -729,17 +797,18 @@ export const ReadingBatchView: React.FC<ReadingBatchViewProps> = ({
           6. SCHEDULE INSPECTION MODAL (SECONDARY)
           ============================================================ */}
       {showScheduleModal && (
-        <div className="modal-overlay" onClick={() => setShowScheduleModal(false)} role="dialog" aria-modal="true">
-          <div className="schedule-inspection-modal-card" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-overlay" onClick={() => setShowScheduleModal(false)} onKeyDown={(event) => handleDialogKeyDown(event, scheduleDialogRef, () => setShowScheduleModal(false))} role="dialog" aria-modal="true" aria-labelledby="reading-schedule-title">
+          <div className="schedule-inspection-modal-card" ref={scheduleDialogRef} onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <div>
-                <h3 className="modal-name">Lịch ghi theo giờ ({operations?.date_formatted})</h3>
+                <h3 id="reading-schedule-title" className="modal-name">Lịch ghi theo giờ ({operations?.date_formatted})</h3>
                 <p className="modal-subtitle">Đợt: {operations?.batch?.name || '---'}</p>
               </div>
               <button
                 type="button"
                 className="modal-close-btn"
                 onClick={() => setShowScheduleModal(false)}
+                aria-label="Đóng lịch ghi theo giờ"
               >
                 <X size={20} />
               </button>

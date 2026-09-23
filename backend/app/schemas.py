@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Any, Literal, Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 
@@ -105,6 +105,12 @@ class BatchProgress(BaseModel):
     confirmed: int
     review: int
     pending: int
+    # Explicit batch metrics. The legacy fields above remain for compatibility.
+    unique_meter_count: Optional[int] = None
+    scheduled_slot_count: Optional[int] = None
+    confirmed_slot_count: Optional[int] = None
+    review_slot_count: Optional[int] = None
+    pending_slot_count: Optional[int] = None
 
 
 class ReadingBatchCurrentResponse(BaseModel):
@@ -121,10 +127,28 @@ class ReadingRoundOut(BaseModel):
     scheduled_at: str
     scheduled_local: str
     scheduled_time_only: str
-    status: Literal["OPEN", "CLOSED"]
+    status: Literal["OPEN", "CLOSED", "CANCELLED"]
     is_legacy: bool = False
-    timing_state: Literal["CURRENT", "PAST", "UPCOMING"]
+    # Thread 9A
+    scope_mode: Literal["SNAPSHOT", "LEGACY_DYNAMIC"] = "LEGACY_DYNAMIC"
+    timing_state: Literal["CURRENT", "PAST", "UPCOMING", "CANCELLED"]
     progress: BatchProgress
+    scope_meter_count: Optional[int] = None  # populated for SNAPSHOT rounds
+
+
+# Thread 9A: Scope row returned in admin scope detail view
+class ReadingRoundMeterOut(BaseModel):
+    id: str
+    reading_round_id: str
+    meter_id: Optional[str] = None
+    meter_code_snapshot: str
+    meter_name_snapshot: Optional[str] = None
+    zone_id_snapshot: Optional[str] = None
+    presentation_zone_id_snapshot: Optional[str] = None
+    utility_type_snapshot: Optional[str] = None
+    scope_origin: str
+    scope_status: str
+    created_at: str
 
 
 class ReadingRoundListResponse(BaseModel):
@@ -148,6 +172,17 @@ class RecordedByOut(BaseModel):
 class BatchMeterItem(BaseModel):
     meter: MeterOut
     reading_status: Literal["PENDING", "CONFIRMED", "REVIEW"]
+    scope_item_id: Optional[str] = None
+    scope_origin: Optional[str] = None
+    scope_status: Optional[str] = None
+    scope_zone_id_snapshot: Optional[str] = None
+    scope_presentation_zone_id_snapshot: Optional[str] = None
+    scope_utility_type_snapshot: Optional[str] = None
+    current_zone_id: Optional[str] = None
+    current_zone_name: Optional[str] = None
+    current_presentation_zone_id: Optional[str] = None
+    current_presentation_zone_name: Optional[str] = None
+    meter_availability: Optional[Literal["AVAILABLE", "INACTIVE", "RETIRED", "MISSING"]] = None
     reading: Optional[str] = None
     recorded_at: Optional[str] = None
     formatted_recorded_at: Optional[str] = None
@@ -224,6 +259,7 @@ class MeterOperationItem(BaseModel):
     today_slots: list[TodayHourlySlot] = []
     trend: list[MeterTrendPoint] = []
     missed_count: int = 0
+    meter_availability: Optional[Literal["AVAILABLE", "INACTIVE", "RETIRED", "MISSING"]] = None
 
 
 class TodayOperationsSummary(BaseModel):
@@ -232,6 +268,7 @@ class TodayOperationsSummary(BaseModel):
     pending_current: int
     review_current: int
     percent_current: int
+    scheduled_meter_count: Optional[int] = None
 
 
 class TodayOperationsResponse(BaseModel):
@@ -475,12 +512,68 @@ class AdminMeterListResponse(BaseModel):
     meters: list[AdminMeterItem]
 
 
+ScopeMode = Literal["ALL_ELIGIBLE", "BY_ZONE", "BY_UTILITY", "SELECTED_METERS"]
+
+
+class AdminScheduleScopeRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    mode: ScopeMode
+    zone_ids: Optional[list[str]] = None
+    utility_types: Optional[list[Literal["ELECTRICITY", "WATER", "OTHER", "UNKNOWN"]]] = None
+    meter_ids: Optional[list[str]] = None
+
+    @model_validator(mode="after")
+    def validate_scope_selection(self) -> "AdminScheduleScopeRequest":
+        zones = self.zone_ids or []
+        utilities = self.utility_types or []
+        meters = self.meter_ids or []
+        if self.mode == "ALL_ELIGIBLE":
+            valid = not zones and not utilities and not meters
+        elif self.mode == "BY_ZONE":
+            valid = bool(zones) and not utilities and not meters
+        elif self.mode == "BY_UTILITY":
+            valid = bool(utilities) and not zones and not meters
+        else:
+            valid = bool(meters) and not zones and not utilities
+        if not valid:
+            raise ValueError("Phạm vi công tơ không hợp lệ hoặc thiếu lựa chọn bắt buộc.")
+        selected_values = zones if self.mode == "BY_ZONE" else utilities if self.mode == "BY_UTILITY" else meters if self.mode == "SELECTED_METERS" else []
+        if len(selected_values) != len(set(selected_values)):
+            raise ValueError("Không được chọn trùng công tơ, khu vực hoặc tiện ích.")
+        return self
+
+
+class AdminScheduleScopeInvalidSelection(BaseModel):
+    id: str
+    reason: Literal["NOT_FOUND", "INACTIVE", "RETIRED", "UNKNOWN_ZONE", "NO_ELIGIBLE_METERS"]
+    label: Optional[str] = None
+
+
+class AdminScheduleZoneSummary(BaseModel):
+    zone_id: Optional[str] = None
+    zone_name: str
+    meter_count: int
+
+
+class AdminScheduleScopeSummary(BaseModel):
+    mode: ScopeMode
+    meter_count: int
+    electricity_count: int
+    water_count: int
+    other_count: int
+    zones: list[AdminScheduleZoneSummary] = Field(default_factory=list)
+    invalid_selections: list[AdminScheduleScopeInvalidSelection] = Field(default_factory=list)
+    fingerprint: str
+
+
 class AdminSchedulePreviewRequest(BaseModel):
     date: str
     start_time: str = "08:00"
     end_time: str = "17:00"
     interval_minutes: int = 60
     batch_id: Optional[str] = None
+    scope: AdminScheduleScopeRequest = Field(default_factory=lambda: AdminScheduleScopeRequest(mode="ALL_ELIGIBLE"))
 
 
 class AdminSchedulePreviewRound(BaseModel):
@@ -489,6 +582,7 @@ class AdminSchedulePreviewRound(BaseModel):
     scheduled_time_only: str
     is_conflict: bool = False
     existing_round_id: Optional[str] = None
+    meter_count: int = 0
 
 
 class AdminSchedulePreviewResponse(BaseModel):
@@ -498,6 +592,7 @@ class AdminSchedulePreviewResponse(BaseModel):
     total_proposed: int
     conflict_count: int
     rounds: list[AdminSchedulePreviewRound]
+    scope: AdminScheduleScopeSummary
 
 
 class AdminScheduleCreateRequest(BaseModel):
@@ -506,6 +601,9 @@ class AdminScheduleCreateRequest(BaseModel):
     end_time: str = "17:00"
     interval_minutes: int = 60
     batch_id: Optional[str] = None
+    scope: AdminScheduleScopeRequest = Field(default_factory=lambda: AdminScheduleScopeRequest(mode="ALL_ELIGIBLE"))
+    expected_scope_fingerprint: str = Field(pattern=r"^[a-f0-9]{64}$")
+
 
 
 class AdminScheduleCreateResponse(BaseModel):
@@ -515,11 +613,15 @@ class AdminScheduleCreateResponse(BaseModel):
     created_count: int
     message: str
     rounds: list[ReadingRoundOut]
+    # Thread 9A: present when scope was materialized
+    scope_materialized_count: Optional[int] = None  # total ReadingRoundMeter rows created
+    scope_fingerprint: Optional[str] = None
 
 
 class AdminScheduleDeleteResponse(BaseModel):
     status: Literal["success"] = "success"
     deleted_count: int
+    cancelled_count: int = 0
     message: str
 
 

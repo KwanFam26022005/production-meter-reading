@@ -11,6 +11,7 @@ import {
   AdminScheduleCreateResponse,
   AdminScheduleDeleteResponse,
   AdminSchedulePreviewResponse,
+  AdminScheduleScopeRequest,
   AdminTechnicalDetailsResponse,
   AdminTechnicalMeterListResponse,
   AdminTechnicalOverviewResponse,
@@ -831,6 +832,7 @@ export async function previewAdminSchedule(payload: {
   start_time?: string;
   end_time?: string;
   interval_minutes?: number;
+  scope: AdminScheduleScopeRequest;
 }): Promise<AdminSchedulePreviewResponse> {
   const csrfToken = await getCsrfToken();
   const res = await apiFetch('/api/v1/admin/schedules/preview', {
@@ -860,6 +862,8 @@ export async function createAdminSchedule(payload: {
   start_time?: string;
   end_time?: string;
   interval_minutes?: number;
+  scope: AdminScheduleScopeRequest;
+  expected_scope_fingerprint: string;
 }): Promise<AdminScheduleCreateResponse> {
   const csrfToken = await getCsrfToken();
   const res = await apiFetch('/api/v1/admin/schedules', {
@@ -2377,7 +2381,6 @@ export async function getAdminAssetOperationalContext(assetId: string): Promise<
   }
   return res.json();
 }
-
 
 
 

@@ -30,6 +30,7 @@ from backend.app.models import (
     MeterTrainingSample,
     ReadingBatch,
     ReadingRound,
+    ReadingRoundMeter,
     User,
 )
 
@@ -273,6 +274,7 @@ def generate_seed_plan(
     }
 
     rounds_to_create = []
+    scope_rows_to_create = []
     rounds_reused = []
     all_rounds_by_date: dict[str, list[ReadingRound]] = {d_str: [] for d_str in dates_in_month}
 
@@ -293,9 +295,30 @@ def generate_seed_plan(
                     scheduled_at=dt_utc,
                     status="OPEN",
                     is_legacy=False,
+                    scope_mode="SNAPSHOT",
                     created_at=dt_utc - timedelta(hours=12),
                 )
                 rounds_to_create.append(r_obj)
+                for meter_obj, _demo_meter in final_meter_list:
+                    code = (meter_obj.meter_code or "").upper()
+                    utility = (getattr(meter_obj, "utility_type", None) or "UNKNOWN").upper()
+                    if utility == "UNKNOWN":
+                        utility = "WATER" if code.startswith(("W-", "SIM-W")) else "ELECTRICITY" if code.startswith(("CT-", "SIM-E")) else "UNKNOWN"
+                    scope_rows_to_create.append(
+                        ReadingRoundMeter(
+                            id=str(uuid.uuid4()),
+                            reading_round_id=r_obj.id,
+                            meter_id=meter_obj.id,
+                            meter_code_snapshot=meter_obj.meter_code,
+                            meter_name_snapshot=meter_obj.name,
+                            zone_id_snapshot=meter_obj.zone_id,
+                            presentation_zone_id_snapshot=meter_obj.presentation_zone_id,
+                            utility_type_snapshot=utility,
+                            scope_origin="MANUAL_SELECTION",
+                            scope_status="SCHEDULED",
+                            created_at=dt_utc - timedelta(hours=12),
+                        )
+                    )
                 all_rounds_by_date[d_str].append(r_obj)
 
     # 4. Meter Readings Plan
@@ -611,6 +634,7 @@ def generate_seed_plan(
         "meters_to_create": meters_to_create,
         "rounds_reused": rounds_reused,
         "rounds_to_create": rounds_to_create,
+        "scope_rows_to_create": scope_rows_to_create,
         "readings_to_create": readings_to_create,
         "existing_readings_protected": existing_readings_protected,
         "intentional_missing": intentional_missing,
@@ -636,6 +660,11 @@ def execute_seed_plan(db: Session, plan: dict[str, Any]) -> None:
     for r in plan["rounds_to_create"]:
         db.add(r)
     if plan["rounds_to_create"]:
+        db.flush()
+
+    for scope_row in plan["scope_rows_to_create"]:
+        db.add(scope_row)
+    if plan["scope_rows_to_create"]:
         db.flush()
 
     for rd in plan["readings_to_create"]:

@@ -526,8 +526,10 @@ def get_current_reading_round(
             scheduled_time_only=get_round_time_only_str(sched),
             status=current_r.status,
             is_legacy=current_r.is_legacy,
+            scope_mode=current_r.scope_mode,
             timing_state="CURRENT",
             progress=prog,
+            scope_meter_count=prog.total if current_r.scope_mode == "SNAPSHOT" else None,
         )
 
     up_out = None
@@ -542,8 +544,10 @@ def get_current_reading_round(
             scheduled_time_only=get_round_time_only_str(sched),
             status=upcoming_r.status,
             is_legacy=upcoming_r.is_legacy,
+            scope_mode=upcoming_r.scope_mode,
             timing_state="UPCOMING",
             progress=prog,
+            scope_meter_count=prog.total if upcoming_r.scope_mode == "SNAPSHOT" else None,
         )
 
     return ReadingRoundCurrentResponse(
@@ -601,7 +605,12 @@ def get_round_meters(
     current_r, _ = get_current_or_nearest_round(db, batch.id)
     is_curr = (current_r and current_r.id == round_obj.id)
     r_sched = round_obj.scheduled_at.replace(tzinfo=timezone.utc) if round_obj.scheduled_at.tzinfo is None else round_obj.scheduled_at
-    timing_state = determine_round_timing_state(r_sched, now_utc, is_latest_past=is_curr)
+    timing_state = determine_round_timing_state(
+        r_sched,
+        now_utc,
+        is_latest_past=is_curr,
+        is_cancelled=round_obj.status == "CANCELLED",
+    )
     progress = calculate_round_progress(db, round_obj.id)
 
     round_out = ReadingRoundOut(
@@ -611,8 +620,11 @@ def get_round_meters(
         scheduled_local=get_round_local_time_str(r_sched),
         scheduled_time_only=get_round_time_only_str(r_sched),
         status=round_obj.status,
+        is_legacy=round_obj.is_legacy,
+        scope_mode=round_obj.scope_mode,
         timing_state=timing_state,
         progress=progress,
+        scope_meter_count=progress.total if round_obj.scope_mode == "SNAPSHOT" else None,
     )
 
     meters = get_round_meters_with_status(db, round_obj, search=search, status_filter=status)
@@ -2045,4 +2057,3 @@ def update_meter_metadata_endpoint(
     db: Session = Depends(get_db),
 ):
     return update_meter_metadata(db, actor=admin_user, meter_id=meter_id, payload=payload)
-
