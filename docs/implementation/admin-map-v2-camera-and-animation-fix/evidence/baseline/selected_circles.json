@@ -1,0 +1,677 @@
+[
+  {
+    "tagName": "circle",
+    "className": "",
+    "id": "",
+    "r": "2",
+    "cx": "12",
+    "cy": "8",
+    "parent": "svg#.[object SVGAnimatedString]",
+    "computedStyle": {
+      "stroke": "rgb(255, 255, 255)",
+      "fill": "none",
+      "animation": "none",
+      "opacity": "1"
+    },
+    "rect": {
+      "x": 37.630001068115234,
+      "y": 156.7081298828125,
+      "width": 3.7399978637695312,
+      "height": 3.739990234375,
+      "top": 156.7081298828125,
+      "right": 41.369998931884766,
+      "bottom": 160.4481201171875,
+      "left": 37.630001068115234
+    }
+  },
+  {
+    "tagName": "circle",
+    "className": "",
+    "id": "",
+    "r": "4",
+    "cx": "9",
+    "cy": "7",
+    "parent": "svg#.[object SVGAnimatedString]",
+    "computedStyle": {
+      "stroke": "rgb(148, 163, 184)",
+      "fill": "none",
+      "animation": "none",
+      "opacity": "1"
+    },
+    "rect": {
+      "x": 33.08333206176758,
+      "y": 274.21875,
+      "width": 7.333335876464844,
+      "height": 7.333343505859375,
+      "top": 274.21875,
+      "right": 40.41666793823242,
+      "bottom": 281.5520935058594,
+      "left": 33.08333206176758
+    }
+  },
+  {
+    "tagName": "circle",
+    "className": "",
+    "id": "",
+    "r": "10",
+    "cx": "12",
+    "cy": "12",
+    "parent": "svg#.[object SVGAnimatedString]",
+    "computedStyle": {
+      "stroke": "rgb(255, 255, 255)",
+      "fill": "none",
+      "animation": "none",
+      "opacity": "1"
+    },
+    "rect": {
+      "x": 744.6926879882812,
+      "y": 22.08333396911621,
+      "width": 10.8333740234375,
+      "height": 10.833333969116211,
+      "top": 22.08333396911621,
+      "right": 755.5260620117188,
+      "bottom": 32.91666793823242,
+      "left": 744.6926879882812
+    }
+  },
+  {
+    "tagName": "circle",
+    "className": "",
+    "id": "",
+    "r": "4",
+    "cx": "12",
+    "cy": "12",
+    "parent": "svg#.[object SVGAnimatedString]",
+    "computedStyle": {
+      "stroke": "rgb(255, 255, 255)",
+      "fill": "none",
+      "animation": "none",
+      "opacity": "1"
+    },
+    "rect": {
+      "x": 940.5833129882812,
+      "y": 25.33333396911621,
+      "width": 4.3333740234375,
+      "height": 4.333333969116211,
+      "top": 25.33333396911621,
+      "right": 944.9166870117188,
+      "bottom": 29.666667938232422,
+      "left": 940.5833129882812
+    }
+  },
+  {
+    "tagName": "circle",
+    "className": "",
+    "id": "",
+    "r": "3",
+    "cx": "12",
+    "cy": "12",
+    "parent": "svg#.[object SVGAnimatedString]",
+    "computedStyle": {
+      "stroke": "rgb(37, 37, 37)",
+      "fill": "none",
+      "animation": "none",
+      "opacity": "1"
+    },
+    "rect": {
+      "x": 1168.5,
+      "y": 25.625,
+      "width": 3.75,
+      "height": 3.75,
+      "top": 25.625,
+      "right": 1172.25,
+      "bottom": 29.375,
+      "left": 1168.5
+    }
+  },
+  {
+    "tagName": "circle",
+    "className": "map-v2-reveal-circle",
+    "id": "",
+    "r": "62",
+    "cx": "936",
+    "cy": "688",
+    "parent": "clipPath#v2-reveal-clip-ZONE_ADMIN.[object SVGAnimatedString]",
+    "computedStyle": {
+      "stroke": "none",
+      "fill": "rgb(0, 0, 0)",
+      "animation": "0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards mapV2RevealCircle",
+      "opacity": "1"
+    },
+    "rect": {
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0,
+      "top": 0,
+      "right": 0,
+      "bottom": 0,
+      "left": 0
+    }
+  },
+  {
+    "tagName": "circle",
+    "className": "map-v2-reveal-wave wave-standard",
+    "id": "",
+    "r": "62",
+    "cx": "936",
+    "cy": "688",
+    "parent": "g#layer-operational-reveal.[object SVGAnimatedString]",
+    "computedStyle": {
+      "stroke": "rgb(0, 104, 255)",
+      "fill": "none",
+      "animation": "0.52s cubic-bezier(0.16, 1, 0.3, 1) forwards mapV2RevealWave",
+      "opacity": "0"
+    },
+    "rect": {
+      "x": 809.6710205078125,
+      "y": 485.7152099609375,
+      "width": 107.970458984375,
+      "height": 107.970458984375,
+      "top": 485.7152099609375,
+      "right": 917.6414794921875,
+      "bottom": 593.6856689453125,
+      "left": 809.6710205078125
+    }
+  },
+  {
+    "tagName": "circle",
+    "className": "",
+    "id": "",
+    "r": "18",
+    "cx": null,
+    "cy": null,
+    "parent": "g#.[object SVGAnimatedString]",
+    "computedStyle": {
+      "stroke": "rgb(0, 56, 117)",
+      "fill": "rgba(0, 56, 117, 0.15)",
+      "animation": "none",
+      "opacity": "1"
+    },
+    "rect": {
+      "x": 1278.927001953125,
+      "y": 424.9985656738281,
+      "width": 30.140625,
+      "height": 30.140625,
+      "top": 424.9985656738281,
+      "right": 1309.067626953125,
+      "bottom": 455.1391906738281,
+      "left": 1278.927001953125
+    }
+  },
+  {
+    "tagName": "circle",
+    "className": "",
+    "id": "",
+    "r": "11",
+    "cx": null,
+    "cy": null,
+    "parent": "g#.[object SVGAnimatedString]",
+    "computedStyle": {
+      "stroke": "rgb(255, 255, 255)",
+      "fill": "rgb(0, 56, 117)",
+      "animation": "none",
+      "opacity": "1"
+    },
+    "rect": {
+      "x": 1284.7877197265625,
+      "y": 430.8592529296875,
+      "width": 18.4193115234375,
+      "height": 18.419281005859375,
+      "top": 430.8592529296875,
+      "right": 1303.20703125,
+      "bottom": 449.2785339355469,
+      "left": 1284.7877197265625
+    }
+  },
+  {
+    "tagName": "circle",
+    "className": "",
+    "id": "",
+    "r": "18",
+    "cx": null,
+    "cy": null,
+    "parent": "g#.[object SVGAnimatedString]",
+    "computedStyle": {
+      "stroke": "rgb(0, 56, 117)",
+      "fill": "rgba(0, 56, 117, 0.15)",
+      "animation": "none",
+      "opacity": "1"
+    },
+    "rect": {
+      "x": 796.6770629882812,
+      "y": 555.60791015625,
+      "width": 30.140625,
+      "height": 30.14068603515625,
+      "top": 555.60791015625,
+      "right": 826.8176879882812,
+      "bottom": 585.7485961914062,
+      "left": 796.6770629882812
+    }
+  },
+  {
+    "tagName": "circle",
+    "className": "",
+    "id": "",
+    "r": "11",
+    "cx": null,
+    "cy": null,
+    "parent": "g#.[object SVGAnimatedString]",
+    "computedStyle": {
+      "stroke": "rgb(255, 255, 255)",
+      "fill": "rgb(0, 56, 117)",
+      "animation": "none",
+      "opacity": "1"
+    },
+    "rect": {
+      "x": 802.5377197265625,
+      "y": 561.4686279296875,
+      "width": 18.4193115234375,
+      "height": 18.41925048828125,
+      "top": 561.4686279296875,
+      "right": 820.95703125,
+      "bottom": 579.8878784179688,
+      "left": 802.5377197265625
+    }
+  },
+  {
+    "tagName": "circle",
+    "className": "",
+    "id": "",
+    "r": "28",
+    "cx": null,
+    "cy": null,
+    "parent": "g#v2-anchor-ZONE_QUAY.[object SVGAnimatedString]",
+    "computedStyle": {
+      "stroke": "none",
+      "fill": "rgba(0, 0, 0, 0)",
+      "animation": "none",
+      "opacity": "1"
+    },
+    "rect": {
+      "x": 719.6510009765625,
+      "y": 193.9204559326172,
+      "width": 46.88543701171875,
+      "height": 46.88542175292969,
+      "top": 193.9204559326172,
+      "right": 766.5364379882812,
+      "bottom": 240.80587768554688,
+      "left": 719.6510009765625
+    }
+  },
+  {
+    "tagName": "circle",
+    "className": "map-v2-anchor-badge",
+    "id": "",
+    "r": "14",
+    "cx": null,
+    "cy": null,
+    "parent": "g#.[object SVGAnimatedString]",
+    "computedStyle": {
+      "stroke": "rgb(0, 56, 117)",
+      "fill": "rgb(255, 255, 255)",
+      "animation": "none",
+      "opacity": "1"
+    },
+    "rect": {
+      "x": 731.3723754882812,
+      "y": 205.64181518554688,
+      "width": 23.44268798828125,
+      "height": 23.442703247070312,
+      "top": 205.64181518554688,
+      "right": 754.8150634765625,
+      "bottom": 229.0845184326172,
+      "left": 731.3723754882812
+    }
+  },
+  {
+    "tagName": "circle",
+    "className": "",
+    "id": "",
+    "r": "28",
+    "cx": null,
+    "cy": null,
+    "parent": "g#v2-anchor-ZONE_GENERAL.[object SVGAnimatedString]",
+    "computedStyle": {
+      "stroke": "none",
+      "fill": "rgba(0, 0, 0, 0)",
+      "animation": "none",
+      "opacity": "1"
+    },
+    "rect": {
+      "x": 600.7630004882812,
+      "y": 333.7394714355469,
+      "width": 46.88543701171875,
+      "height": 46.885406494140625,
+      "top": 333.7394714355469,
+      "right": 647.6484375,
+      "bottom": 380.6248779296875,
+      "left": 600.7630004882812
+    }
+  },
+  {
+    "tagName": "circle",
+    "className": "map-v2-anchor-badge",
+    "id": "",
+    "r": "14",
+    "cx": null,
+    "cy": null,
+    "parent": "g#.[object SVGAnimatedString]",
+    "computedStyle": {
+      "stroke": "rgb(0, 56, 117)",
+      "fill": "rgb(255, 255, 255)",
+      "animation": "none",
+      "opacity": "1"
+    },
+    "rect": {
+      "x": 612.484375,
+      "y": 345.4608154296875,
+      "width": 23.44268798828125,
+      "height": 23.442718505859375,
+      "top": 345.4608154296875,
+      "right": 635.9270629882812,
+      "bottom": 368.9035339355469,
+      "left": 612.484375
+    }
+  },
+  {
+    "tagName": "circle",
+    "className": "",
+    "id": "",
+    "r": "28",
+    "cx": null,
+    "cy": null,
+    "parent": "g#v2-anchor-ZONE_CONTAINER.[object SVGAnimatedString]",
+    "computedStyle": {
+      "stroke": "none",
+      "fill": "rgba(0, 0, 0, 0)",
+      "animation": "none",
+      "opacity": "1"
+    },
+    "rect": {
+      "x": 1088.036376953125,
+      "y": 269.27203369140625,
+      "width": 46.885498046875,
+      "height": 46.885406494140625,
+      "top": 269.27203369140625,
+      "right": 1134.921875,
+      "bottom": 316.1574401855469,
+      "left": 1088.036376953125
+    }
+  },
+  {
+    "tagName": "circle",
+    "className": "map-v2-anchor-badge",
+    "id": "",
+    "r": "14",
+    "cx": null,
+    "cy": null,
+    "parent": "g#.[object SVGAnimatedString]",
+    "computedStyle": {
+      "stroke": "rgb(0, 56, 117)",
+      "fill": "rgb(255, 255, 255)",
+      "animation": "none",
+      "opacity": "1"
+    },
+    "rect": {
+      "x": 1099.7578125,
+      "y": 280.9933776855469,
+      "width": 23.442626953125,
+      "height": 23.442718505859375,
+      "top": 280.9933776855469,
+      "right": 1123.200439453125,
+      "bottom": 304.43609619140625,
+      "left": 1099.7578125
+    }
+  },
+  {
+    "tagName": "circle",
+    "className": "",
+    "id": "",
+    "r": "28",
+    "cx": null,
+    "cy": null,
+    "parent": "g#v2-anchor-BLDG_KHO_1.[object SVGAnimatedString]",
+    "computedStyle": {
+      "stroke": "none",
+      "fill": "rgba(0, 0, 0, 0)",
+      "animation": "none",
+      "opacity": "1"
+    },
+    "rect": {
+      "x": 260.84375,
+      "y": 338.7629089355469,
+      "width": 46.885406494140625,
+      "height": 46.885406494140625,
+      "top": 338.7629089355469,
+      "right": 307.7291564941406,
+      "bottom": 385.6483154296875,
+      "left": 260.84375
+    }
+  },
+  {
+    "tagName": "circle",
+    "className": "map-v2-anchor-badge",
+    "id": "",
+    "r": "14",
+    "cx": null,
+    "cy": null,
+    "parent": "g#.[object SVGAnimatedString]",
+    "computedStyle": {
+      "stroke": "rgb(0, 56, 117)",
+      "fill": "rgb(255, 255, 255)",
+      "animation": "none",
+      "opacity": "1"
+    },
+    "rect": {
+      "x": 272.5650939941406,
+      "y": 350.4842529296875,
+      "width": 23.442718505859375,
+      "height": 23.442718505859375,
+      "top": 350.4842529296875,
+      "right": 296.0078125,
+      "bottom": 373.9269714355469,
+      "left": 272.5650939941406
+    }
+  },
+  {
+    "tagName": "circle",
+    "className": "",
+    "id": "",
+    "r": "28",
+    "cx": null,
+    "cy": null,
+    "parent": "g#v2-anchor-BLDG_KHO_2.[object SVGAnimatedString]",
+    "computedStyle": {
+      "stroke": "none",
+      "fill": "rgba(0, 0, 0, 0)",
+      "animation": "none",
+      "opacity": "1"
+    },
+    "rect": {
+      "x": 376.3828125,
+      "y": 341.2746276855469,
+      "width": 46.885406494140625,
+      "height": 46.885406494140625,
+      "top": 341.2746276855469,
+      "right": 423.2682189941406,
+      "bottom": 388.1600341796875,
+      "left": 376.3828125
+    }
+  },
+  {
+    "tagName": "circle",
+    "className": "map-v2-anchor-badge",
+    "id": "",
+    "r": "14",
+    "cx": null,
+    "cy": null,
+    "parent": "g#.[object SVGAnimatedString]",
+    "computedStyle": {
+      "stroke": "rgb(0, 56, 117)",
+      "fill": "rgb(255, 255, 255)",
+      "animation": "none",
+      "opacity": "1"
+    },
+    "rect": {
+      "x": 388.1041564941406,
+      "y": 352.9959716796875,
+      "width": 23.442718505859375,
+      "height": 23.442718505859375,
+      "top": 352.9959716796875,
+      "right": 411.546875,
+      "bottom": 376.4386901855469,
+      "left": 388.1041564941406
+    }
+  },
+  {
+    "tagName": "circle",
+    "className": "",
+    "id": "",
+    "r": "28",
+    "cx": null,
+    "cy": null,
+    "parent": "g#v2-anchor-BLDG_KHO_4.[object SVGAnimatedString]",
+    "computedStyle": {
+      "stroke": "none",
+      "fill": "rgba(0, 0, 0, 0)",
+      "animation": "none",
+      "opacity": "1"
+    },
+    "rect": {
+      "x": 897.1458129882812,
+      "y": 442.5805969238281,
+      "width": 46.88543701171875,
+      "height": 46.88543701171875,
+      "top": 442.5805969238281,
+      "right": 944.03125,
+      "bottom": 489.4660339355469,
+      "left": 897.1458129882812
+    }
+  },
+  {
+    "tagName": "circle",
+    "className": "map-v2-anchor-badge",
+    "id": "",
+    "r": "14",
+    "cx": null,
+    "cy": null,
+    "parent": "g#.[object SVGAnimatedString]",
+    "computedStyle": {
+      "stroke": "rgb(0, 56, 117)",
+      "fill": "rgb(255, 255, 255)",
+      "animation": "none",
+      "opacity": "1"
+    },
+    "rect": {
+      "x": 908.8671875,
+      "y": 454.3019714355469,
+      "width": 23.44268798828125,
+      "height": 23.44268798828125,
+      "top": 454.3019714355469,
+      "right": 932.3098754882812,
+      "bottom": 477.7446594238281,
+      "left": 908.8671875
+    }
+  },
+  {
+    "tagName": "circle",
+    "className": "",
+    "id": "",
+    "r": "28",
+    "cx": null,
+    "cy": null,
+    "parent": "g#v2-anchor-ZONE_ADMIN.[object SVGAnimatedString]",
+    "computedStyle": {
+      "stroke": "none",
+      "fill": "rgba(0, 0, 0, 0)",
+      "animation": "none",
+      "opacity": "1"
+    },
+    "rect": {
+      "x": 840.2135009765625,
+      "y": 516.2576904296875,
+      "width": 46.88543701171875,
+      "height": 46.8853759765625,
+      "top": 516.2576904296875,
+      "right": 887.0989379882812,
+      "bottom": 563.14306640625,
+      "left": 840.2135009765625
+    }
+  },
+  {
+    "tagName": "circle",
+    "className": "map-v2-anchor-badge",
+    "id": "",
+    "r": "14",
+    "cx": null,
+    "cy": null,
+    "parent": "g#.[object SVGAnimatedString]",
+    "computedStyle": {
+      "stroke": "rgb(0, 104, 255)",
+      "fill": "rgb(0, 56, 117)",
+      "animation": "none",
+      "opacity": "1"
+    },
+    "rect": {
+      "x": 850.9971923828125,
+      "y": 527.0413818359375,
+      "width": 25.318115234375,
+      "height": 25.318115234375,
+      "top": 527.0413818359375,
+      "right": 876.3153076171875,
+      "bottom": 552.3594970703125,
+      "left": 850.9971923828125
+    }
+  },
+  {
+    "tagName": "circle",
+    "className": "",
+    "id": "",
+    "r": "8",
+    "cx": "11",
+    "cy": "11",
+    "parent": "svg#.[object SVGAnimatedString]",
+    "computedStyle": {
+      "stroke": "rgb(37, 37, 37)",
+      "fill": "none",
+      "animation": "none",
+      "opacity": "1"
+    },
+    "rect": {
+      "x": 1317.25,
+      "y": 618.25,
+      "width": 12,
+      "height": 12,
+      "top": 618.25,
+      "right": 1329.25,
+      "bottom": 630.25,
+      "left": 1317.25
+    }
+  },
+  {
+    "tagName": "circle",
+    "className": "",
+    "id": "",
+    "r": "8",
+    "cx": "11",
+    "cy": "11",
+    "parent": "svg#.[object SVGAnimatedString]",
+    "computedStyle": {
+      "stroke": "rgb(37, 37, 37)",
+      "fill": "none",
+      "animation": "none",
+      "opacity": "1"
+    },
+    "rect": {
+      "x": 1317.25,
+      "y": 654.25,
+      "width": 12,
+      "height": 12,
+      "top": 654.25,
+      "right": 1329.25,
+      "bottom": 666.25,
+      "left": 1317.25
+    }
+  }
+]

@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "audit_phase": "agent-skills-optimization-phase1-1",
+  "project": "Production Meter Reading — Cảng Sài Gòn",
+  "timestamp": "2026-09-23T08:38:00+07:00",
+  "tests": [
+    {
+      "test_name": "Frontend-Specific Skill Activation (Section 6)",
+      "task_description": "Inspect existing Map V2 UI and identify relevant project-specific design rules governing Light and Neon modes.",
+      "task_domain": "Frontend UI / Map V2 Digital Twin",
+      "skills_discovered": 8,
+      "skills_read": [
+        {
+          "name": "saigon-port-ui",
+          "path": ".agent/skills/saigon-port-ui/SKILL.md",
+          "section_cited": "Scoped Operating Profiles -> 3. Map V2 (GIS Infrastructure Digital Twin)",
+          "lines_viewed": "20-65"
+        }
+      ],
+      "skills_intentionally_skipped": [
+        "banner-design",
+        "brand",
+        "design",
+        "design-system",
+        "slides",
+        "ui-styling",
+        "ui-ux-pro-max"
+      ],
+      "datasets_skipped": [
+        ".agents/skills/ui-ux-pro-max/data/ (164 CSV/JSON files)"
+      ],
+      "compliance_outcome": "PASS"
+    },
+    {
+      "test_name": "Backend-Only Skill Filtering (Section 7)",
+      "task_description": "Inspect existing backend model responsible for WorkSchedule and identify its primary fields.",
+      "task_domain": "Backend API / SQLite / Database Models",
+      "skills_discovered": 8,
+      "skills_read": [],
+      "skills_intentionally_skipped": [
+        "saigon-port-ui",
+        "banner-design",
+        "brand",
+        "design",
+        "design-system",
+        "slides",
+        "ui-styling",
+        "ui-ux-pro-max"
+      ],
+      "files_inspected": [
+        "backend/app/models.py (lines 332-349)"
+      ],
+      "compliance_outcome": "PASS"
+    }
+  ]
+}

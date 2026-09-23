@@ -1,0 +1,66 @@
+flowchart TD
+    subgraph Client["Frontend Client (React + TypeScript + Vite)"]
+        HH["Home Hub (HomeHub.tsx)<br/>User Context, Progress Ring, Insight Feed"]
+        BRN["Bottom Radial Navigation (BottomRadialNav.tsx)<br/>Arc Trigger: Meter / Attendance / Schedule"]
+        RBV["Reading Worklist (ReadingBatchView.tsx)<br/>Port Summary, Sticky Filter, Meter Cards, Detail Modal"]
+        
+        subgraph MeterWorkflow["Meter Reading Workflow (App.tsx Shell)"]
+            MC["MeterCamera.tsx<br/>Rear Video Feed & Alignment Reticle"]
+            PV["Image Preview State<br/>Zoom/Rotate/Retake/Process CTA"]
+            PROC["Processing Card<br/>Maritime Loading Spinner"]
+            RES["Result & Verification State<br/>Hero Number (kWh), ROI/Original Tabs, Inline Edit"]
+            REV["Review Fallback State<br/>Manual Entry Form, Retake, Mark Review"]
+            SUCC["Confirmation Success View<br/>Official Value, Audit Timestamp, Source Badge"]
+            UNSAVED["UnsavedWorkConfirmModal.tsx<br/>Back Navigation Interceptor"]
+            VIEWER["ImageViewerModal.tsx<br/>Fullscreen Pan/Zoom Modal"]
+        end
+    end
+
+    subgraph API["Backend API (FastAPI)"]
+        EP_OPS["GET /api/v1/meter-operations/today"]
+        EP_ROUNDS["GET /api/v1/reading-batches/{id}/rounds"]
+        EP_DETAIL["GET /api/v1/meters/{id}"]
+        EP_READ["POST /api/v1/read-meter (Transient RAM)"]
+        EP_CONFIRM["POST /api/v1/meter-readings/confirm"]
+        EP_REVIEW["POST /api/v1/meter-readings/review"]
+        EP_INSPECT["GET /api/v1/admin/meter-readings/{id}"]
+    end
+
+    subgraph ML["AI Inference Pipeline (Frozen)"]
+        E2["YOLOv8 E2 Localization Detector<br/>Primary @960, Retry @1280"]
+        CROP["Fixed ROI Crop & Pad<br/>dx=+2.5%, pad=5%"]
+        PP["PP-OCRv6-Medium Recognizer<br/>SVTR_LCNet Architecture"]
+    end
+
+    subgraph Storage["Storage & Persistence"]
+        DB[(SQLite / PostgreSQL DB)]
+        EVID["data/meter_reading_evidence/<br/>Sanitized JPEG Q95 Evidence Photos"]
+        TRAIN["data/meter_training_samples/<br/>Hard Samples for Re-training"]
+    end
+
+    %% User Flow Links
+    HH -->|Radial Tap: Đo đếm| RBV
+    RBV -->|Tap Card Body| D_MODAL["Simplified Meter Detail Modal"]
+    RBV -->|Tap Ghi chỉ số / Ghi lại| MC
+    MC -->|Full Uncropped Capture / File| PV
+    PV -->|Tap Đọc chỉ số| PROC
+    PROC -->|POST /api/v1/read-meter| EP_READ
+    EP_READ --> ML
+    E2 --> CROP --> PP
+    PP -->|Status: success| RES
+    PP -->|Status: review| REV
+    RES -->|Tap Xác nhận| EP_CONFIRM
+    RES -->|Tap Sửa chỉ số| RES
+    REV -->|Tap Nhập thủ công & Xác nhận| EP_CONFIRM
+    REV -->|Tap Đánh dấu cần kiểm tra| EP_REVIEW
+    EP_CONFIRM --> DB
+    EP_CONFIRM -.->|Async Save| EVID
+    EP_CONFIRM -.->|USER_CORRECTED / MANUAL_ENTRY| TRAIN
+    EP_CONFIRM --> SUCC
+    SUCC -->|Tap Về danh sách| RBV
+    
+    %% Inspection & Zoom
+    RES -.->|Tap ROI / Ảnh gốc| VIEWER
+    REV -.->|Tap ROI / Ảnh gốc| VIEWER
+    PV -->|Tap Back in Header| UNSAVED
+    RES -->|Tap Back in Header| UNSAVED

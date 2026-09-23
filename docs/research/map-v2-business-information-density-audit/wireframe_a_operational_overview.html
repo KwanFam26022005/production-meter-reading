@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wireframe A — Operational Overview | Map V2 Audit</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Be Vietnam Pro', 'Segoe UI', Arial, sans-serif; background: #f4f4f4; color: #181818; }
+  
+  .wireframe-label {
+    position: fixed; top: 0; left: 0; right: 0; background: #FFB703; color: #181818;
+    text-align: center; font-size: 13px; font-weight: 600; padding: 4px; z-index: 999;
+  }
+  
+  .shell { display: flex; height: 100vh; padding-top: 28px; }
+  
+  /* Sidebar */
+  .sidebar {
+    width: 64px; background: #003875; display: flex; flex-direction: column;
+    align-items: center; padding: 12px 0; gap: 8px; flex-shrink: 0;
+  }
+  .sidebar-item {
+    width: 48px; height: 48px; border-radius: 10px; display: flex;
+    flex-direction: column; align-items: center; justify-content: center;
+    color: rgba(255,255,255,0.6); font-size: 9px; cursor: pointer; gap: 2px;
+  }
+  .sidebar-item.active { background: rgba(255,255,255,0.15); color: #fff; }
+  .sidebar-item .icon { font-size: 18px; }
+  
+  /* Main area */
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  
+  /* Toolbar */
+  .toolbar {
+    height: 52px; background: #fff; border-bottom: 1px solid #e0e0e0;
+    display: flex; align-items: center; padding: 0 16px; gap: 12px;
+    flex-shrink: 0;
+  }
+  .toolbar-title { font-size: 16px; font-weight: 700; color: #003875; }
+  .toolbar-divider { width: 1px; height: 28px; background: #e0e0e0; }
+  .mode-toggle {
+    display: flex; border: 1.5px solid #003875; border-radius: 8px; overflow: hidden;
+  }
+  .mode-btn {
+    padding: 6px 14px; font-size: 13px; font-weight: 500; cursor: pointer;
+    border: none; background: #fff; color: #003875;
+  }
+  .mode-btn.active { background: #003875; color: #fff; }
+  .context-badge {
+    background: #F0F4FF; border: 1px solid #0068FF; border-radius: 6px;
+    padding: 4px 12px; font-size: 12px; color: #003875; font-weight: 500;
+  }
+  .search-box {
+    border: 1px solid #ccc; border-radius: 6px; padding: 6px 10px;
+    font-size: 12px; width: 160px; outline: none;
+  }
+  .toolbar-spacer { flex: 1; }
+  .toolbar-btn {
+    padding: 6px 10px; font-size: 12px; border: 1px solid #ccc;
+    border-radius: 6px; background: #fff; cursor: pointer; color: #252525;
+  }
+  
+  /* Map area */
+  .map-container {
+    flex: 1; position: relative; background: #FCFCFC; overflow: hidden;
+  }
+  .map-bg {
+    width: 100%; height: 100%; background: linear-gradient(135deg, #e8eef5 0%, #dde4ed 50%, #d5dce5 100%);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; color: #5E5B5B;
+  }
+  
+  /* Zone badges on map */
+  .zone-badge {
+    position: absolute; background: #fff; border: 1.5px solid #003875;
+    border-radius: 8px; padding: 6px 12px; font-size: 12px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08); display: flex; align-items: center; gap: 8px;
+  }
+  .zone-badge .zone-icon { font-size: 16px; }
+  .zone-badge .zone-name { font-weight: 600; color: #003875; }
+  .zone-badge .zone-progress {
+    font-size: 11px; font-weight: 500; padding: 2px 6px; border-radius: 4px;
+  }
+  .zone-badge .progress-good { background: #E8F5E9; color: #2E7D32; }
+  .zone-badge .progress-warn { background: #FFF8E1; color: #F57F17; }
+  .zone-badge .progress-none { background: #F5F5F5; color: #757575; }
+  
+  /* Employee marker */
+  .emp-marker {
+    position: absolute; width: 32px; height: 32px; border-radius: 50%;
+    background: #003875; color: #fff; font-size: 9px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+    cursor: pointer;
+  }
+  
+  /* HUD */
+  .hud {
+    position: absolute; bottom: 16px; right: 16px; display: flex;
+    flex-direction: column; gap: 4px;
+  }
+  .hud-btn {
+    width: 36px; height: 36px; border-radius: 8px; background: #fff;
+    border: 1px solid #ccc; display: flex; align-items: center;
+    justify-content: center; font-size: 16px; cursor: pointer;
+  }
+  .hud-zoom { font-size: 11px; text-align: center; color: #5E5B5B; }
+  
+  /* Demo disclosure */
+  .demo-pill {
+    position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
+    background: rgba(0,56,117,0.08); border: 1px solid rgba(0,56,117,0.2);
+    border-radius: 16px; padding: 4px 12px; font-size: 11px; color: #003875;
+  }
+  
+  /* Legend strip */
+  .legend-strip {
+    position: absolute; bottom: 8px; left: 16px;
+    background: rgba(255,255,255,0.9); border-radius: 6px; padding: 4px 12px;
+    font-size: 11px; color: #5E5B5B; display: flex; gap: 12px;
+    border: 1px solid #e0e0e0;
+  }
+  .legend-item { display: flex; align-items: center; gap: 4px; }
+  .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+  
+  .note {
+    position: fixed; bottom: 0; left: 0; right: 0; background: #FFF8E1;
+    border-top: 1px solid #FCC959; padding: 8px 16px; font-size: 11px;
+    color: #5E5B5B; text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<div class="wireframe-label">⚠ WIREFRAME A — OPERATIONAL OVERVIEW — Dữ liệu minh họa, không phải production UI</div>
+
+<div class="shell">
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <div class="sidebar-item"><span class="icon">🗺</span><span>Bản đồ</span></div>
+    <div class="sidebar-item active"><span class="icon">📍</span><span>BĐ V2</span></div>
+    <div class="sidebar-item"><span class="icon">📅</span><span>Lịch ghi</span></div>
+    <div class="sidebar-item"><span class="icon">👥</span><span>Phân ca</span></div>
+    <div class="sidebar-item"><span class="icon">📊</span><span>Báo cáo</span></div>
+  </nav>
+
+  <!-- Main -->
+  <div class="main">
+    <!-- Toolbar (Operational Mode) -->
+    <header class="toolbar">
+      <span class="toolbar-title">Bản đồ V2</span>
+      <div class="toolbar-divider"></div>
+      <div class="mode-toggle">
+        <button class="mode-btn active">🧭 Vận hành</button>
+        <button class="mode-btn">🔧 Kiểm tra</button>
+      </div>
+      <div class="toolbar-divider"></div>
+      <div class="context-badge">📅 Đợt 3 — Lượt 2/3 — 23/09/2026</div>
+      <input class="search-box" placeholder="🔍 Tìm khu vực, công tơ..." />
+      <div class="toolbar-spacer"></div>
+      <button class="toolbar-btn">≡ Lớp hiển thị</button>
+    </header>
+
+    <!-- Map -->
+    <div class="map-container">
+      <div class="map-bg">
+        [Bản đồ kỹ thuật Cảng Tân Thuận 1 — 1536×1024]
+      </div>
+
+      <!-- Zone badges with progress -->
+      <div class="zone-badge" style="top: 22%; left: 48%;">
+        <span class="zone-icon">⚓</span>
+        <span class="zone-name">Khu cảng sà lan</span>
+        <span class="zone-progress progress-good">34/42 ✓</span>
+      </div>
+      <div class="zone-badge" style="top: 42%; left: 38%;">
+        <span class="zone-icon">📦</span>
+        <span class="zone-name">Bãi tổng hợp</span>
+        <span class="zone-progress progress-warn">28/35 ⚠</span>
+      </div>
+      <div class="zone-badge" style="top: 34%; left: 72%;">
+        <span class="zone-icon">🏗</span>
+        <span class="zone-name">Bãi container</span>
+        <span class="zone-progress progress-warn">18/40</span>
+      </div>
+      <div class="zone-badge" style="top: 42%; left: 15%;">
+        <span class="zone-icon">🏭</span>
+        <span class="zone-name">Kho 1</span>
+        <span class="zone-progress progress-good">8/8 ✓</span>
+      </div>
+      <div class="zone-badge" style="top: 42%; left: 25%;">
+        <span class="zone-icon">🏭</span>
+        <span class="zone-name">Kho 2</span>
+        <span class="zone-progress progress-none">—</span>
+      </div>
+      <div class="zone-badge" style="top: 55%; left: 62%;">
+        <span class="zone-icon">🏭</span>
+        <span class="zone-name">Kho 4</span>
+        <span class="zone-progress progress-none">Chưa đến hạn</span>
+      </div>
+      <div class="zone-badge" style="top: 65%; left: 55%;">
+        <span class="zone-icon">🏢</span>
+        <span class="zone-name">VP hành chính</span>
+        <span class="zone-progress progress-good">5/5 ✓</span>
+      </div>
+
+      <!-- Employee markers (demo) -->
+      <div class="emp-marker" style="top: 28%; left: 40%;" title="NV001 — Nguyễn Văn Hải">HẢI</div>
+      <div class="emp-marker" style="top: 45%; left: 42%;" title="NV003 — Lê Hoàng Nam">NAM</div>
+      <div class="emp-marker" style="top: 36%; left: 76%;" title="NV002 — Trần Minh Tuấn">TUẤN</div>
+      <div class="emp-marker" style="top: 44%; left: 17%;" title="NV004 — Võ Quốc Bảo">BẢO</div>
+
+      <!-- Demo disclosure -->
+      <div class="demo-pill">🔄 Chuyển động minh họa (Demo)</div>
+
+      <!-- Legend -->
+      <div class="legend-strip">
+        <div class="legend-item"><span class="legend-dot" style="background:#2E7D32;"></span> Hoàn thành</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#F57F17;"></span> Đang ghi</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#D32F2F;"></span> Ngoại lệ</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#757575;"></span> Chưa đến hạn</div>
+      </div>
+
+      <!-- HUD -->
+      <div class="hud">
+        <button class="hud-btn">+</button>
+        <button class="hud-btn">−</button>
+        <button class="hud-btn">↺</button>
+        <button class="hud-btn">⏸</button>
+        <div class="hud-zoom">124%</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="note">
+  ⚠ DỮ LIỆU MINH HỌA — Wireframe A cho audit Map V2. Số liệu tiến độ là giả định minh họa cấu trúc UI, không phải dữ liệu vận hành.
+  Mẫu số tiến độ cần xác nhận nghiệp vụ trước khi triển khai.
+</div>
+
+</body>
+</html>

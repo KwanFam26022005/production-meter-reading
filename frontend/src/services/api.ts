@@ -21,6 +21,7 @@ import {
   MeterDetailResponse,
   MeterReadingActionResponse,
   MeterReadingHistoryItem,
+  MeterReadingReconciliationResponse,
   MeterReadResponse,
   ReadingBatch,
   ReadingRoundCurrentResponse,
@@ -235,12 +236,16 @@ export async function getTodayAttendance(): Promise<TodayAttendance> {
 export async function submitAttendance(
   eventType: 'CHECK_IN' | 'CHECK_OUT',
   imageFile: File,
-  captureSource = 'live_camera'
+  captureSource = 'live_camera',
+  clientSubmissionId?: string
 ): Promise<AttendanceActionResponse> {
   const csrfToken = await getCsrfToken();
   const formData = new FormData();
   formData.append('file', imageFile);
   formData.append('capture_source', captureSource);
+  if (clientSubmissionId) {
+    formData.append('client_submission_id', clientSubmissionId);
+  }
 
   const endpoint =
     eventType === 'CHECK_IN'
@@ -269,6 +274,82 @@ export async function submitAttendance(
   }
 
   return res.json();
+}
+
+export interface AttendanceReconciliationResult {
+  matched: boolean;
+  event: import('../types').AttendanceDetail | null;
+  outcome: 'CONFIRMED' | 'CONFLICT' | 'NOT_RECORDED';
+  detail: string;
+}
+
+export async function reconcileAttendance(
+  eventType: 'CHECK_IN' | 'CHECK_OUT',
+  clientSubmissionId?: string,
+  payloadSha256?: string
+): Promise<AttendanceReconciliationResult> {
+  const today = await getTodayAttendance();
+  const event = eventType === 'CHECK_IN' ? today.check_in : today.check_out;
+
+  if (!event) {
+    // Check if the other event has the submission ID (action mismatch)
+    const otherEvent = eventType === 'CHECK_IN' ? today.check_out : today.check_in;
+    if (clientSubmissionId && otherEvent?.client_submission_id === clientSubmissionId) {
+      return {
+        matched: false,
+        event: otherEvent,
+        outcome: 'CONFLICT',
+        detail: `Mã gửi '${clientSubmissionId}' đã được ghi nhận cho sự kiện khác.`,
+      };
+    }
+    return {
+      matched: false,
+      event: null,
+      outcome: 'NOT_RECORDED',
+      detail: 'Chưa quan sát thấy bản ghi trên máy chủ tại thời điểm đối soát.',
+    };
+  }
+
+  // Primary correlation identity: client_submission_id
+  if (clientSubmissionId && event.client_submission_id) {
+    if (event.client_submission_id === clientSubmissionId) {
+      // Check payload hash consistency if both present
+      if (
+        payloadSha256 &&
+        event.payload_sha256 &&
+        event.payload_sha256 !== payloadSha256
+      ) {
+        return {
+          matched: false,
+          event,
+          outcome: 'CONFLICT',
+          detail: 'Phát hiện mã gửi trùng lặp nhưng nội dung tải lên không đồng nhất.',
+        };
+      }
+      return {
+        matched: true,
+        event,
+        outcome: 'CONFIRMED',
+        detail: `Đối soát thành công: Ca làm việc đã được máy chủ xác nhận lúc ${event.formatted_time}.`,
+      };
+    } else {
+      // Different submission ID already exists on server for this event
+      return {
+        matched: false,
+        event,
+        outcome: 'CONFLICT',
+        detail: `Máy chủ đã ghi nhận lượt chấm công lúc ${event.formatted_time} từ phiên khác. Yêu cầu hiện tại không thể lưu đè.`,
+      };
+    }
+  }
+
+  // When client_submission_id is missing or legacy row, image hash alone does not prove identical request
+  return {
+    matched: false,
+    event,
+    outcome: 'CONFLICT',
+    detail: `Máy chủ đã ghi nhận lượt chấm công lúc ${event.formatted_time}.`,
+  };
 }
 
 // ==============================================================================
@@ -429,6 +510,27 @@ export async function confirmMeterReading(
 
   if (!res.ok) {
     let detail = 'Không thể xác nhận chỉ số.';
+    try {
+      const errJson = await res.json();
+      if (errJson.detail) detail = errJson.detail;
+    } catch {
+      // ignore
+    }
+    throw new ApiError(res.status, detail);
+  }
+  return res.json();
+}
+
+export async function reconcileMeterReading(
+  roundId: string,
+  meterId: string
+): Promise<MeterReadingReconciliationResponse> {
+  const res = await apiFetch(
+    `/api/v1/meter-readings/rounds/${encodeURIComponent(roundId)}/meters/${encodeURIComponent(meterId)}`
+  );
+
+  if (!res.ok) {
+    let detail = 'Không thể đối soát kết quả chỉ số.';
     try {
       const errJson = await res.json();
       if (errJson.detail) detail = errJson.detail;

@@ -1,0 +1,36 @@
+ENTITY,FIELD,BUSINESS_MEANING,SOURCE_MODEL_OR_API,DATA_PROVENANCE,DISPLAY_LEVEL,DISPLAY_CONDITION,MISSING_DATA_BEHAVIOR,PERMISSION,ACTION,EVIDENCE
+Employee,Avatar marker,Employee presence in zone,DEMO_MAP_V2_EMPLOYEES,DEMO_ONLY,L0,Employee layer ON + Operational mode,Hide layer,None,—,employeeDataAdapter.ts#L36
+Employee,Motion animation,Illustrative zone coverage,employeeMovement.ts,SIMULATED,L0,Not paused + not reduced-motion,Stationary fallback,None,—,useEmployeeAnimation.ts
+Employee,Avatar initials,Minimal identity,DEMO_MAP_V2_EMPLOYEES.avatarInitials,DEMO_ONLY,L1,Always on marker,Show generic icon,None,—,MapV2EmployeeMarker.tsx
+Employee,Code + Name,Identity,DEMO_MAP_V2_EMPLOYEES.code + name,DEMO_ONLY,L2,On hover/focus,N/A,None,—,formatEmployeeTooltip
+Employee,Zone label,Assignment context,DEMO_MAP_V2_EMPLOYEES.zoneLabel,DEMO_ONLY,L2,On hover/focus,N/A,None,—,formatEmployeeTooltip
+Employee,Disclosure text,GPS disclaimer,MAP_V2_EMPLOYEE_DISCLOSURE_TEXT constant,VERIFIED,L2,Always on hover,N/A,None,—,employeeDataAdapter.ts#L30
+Employee,Click guidance,Interaction hint,Static text,STATIC,L2,Always on hover,N/A,None,—,MapV2EmployeeMarker.tsx
+Employee,MÃ NHÂN VIÊN,Identity badge,DEMO data,DEMO_ONLY,L3,On click/selection,N/A,None,—,MapV2InspectionPanel.tsx#L36
+Employee,HỌ VÀ TÊN,Full name,DEMO data,DEMO_ONLY,L3,On click/selection,N/A,None,—,MapV2InspectionPanel.tsx
+Employee,PHÂN KHU PHỤ TRÁCH,Zone assignment,DEMO (zoneLabel + zoneId),DEMO_ONLY,L3,On click/selection,N/A,None,—,MapV2InspectionPanel.tsx
+Employee,VAI TRÒ,Role title,DEMO static text,DEMO_ONLY,L3,On click/selection,N/A,None,—,MapV2InspectionPanel.tsx
+Employee,TRẠNG THÁI,Duty status,DEMO static text,DEMO_ONLY,L3,On click/selection,Show unknown,None,—,MapV2InspectionPanel.tsx
+Employee,TIẾN ĐỘ KHU VỰC,Zone meter progress,DEMO hardcoded string,DEMO_ONLY,L3,On click/selection,Hide field,None,—,employeeDataAdapter.ts#L49
+Employee,Disclosure card,Animation disclaimer,Constant,VERIFIED,L3,Always in inspector,Always show,None,—,MapV2InspectionPanel.tsx
+Employee,Verified shift (MISSING),Confirms duty schedule,WorkSchedule,NEEDS_BACKEND_DATA,L2/L3,When available,Show 'Chưa xác minh',Operations,—,models.py#L332
+Employee,Attendance check-in (MISSING),Confirms presence,AttendanceEvent,NEEDS_BACKEND_DATA,L2/L3,When available,Show 'Chưa chấm công',Operations,—,models.py#L56
+Employee,Link to Phân ca (MISSING),Drill-down navigation,Sidebar tab,NEEDS_FRONTEND_INTEGRATION,L3,Always,Disable link,None,Navigate to Staff Roster,AdminShell.tsx
+Zone,Icon + label,Zone identity,zoneAnchors.ts,STATIC,L0,Always,N/A,None,—,zoneAnchors.ts#L8
+Zone,Polygon outline,Zone boundary,tan_thuan_1_zones_edited.json,STATIC_JSON (frozen B2),L0,Zone layer ON,N/A,None,—,MapV2Canvas.tsx
+Zone,Progress badge (MISSING),Completion rate,Zone + Meter + Reading API,NEEDS_BACKEND_DATA,L0,When data available,Hide badge,Operations,—,NOT_IMPLEMENTED
+Zone,Zone name (SVG title),Identity on hover,Native SVG title tag,STATIC,L2,Browser default,N/A,None,—,MapV2Canvas.tsx
+Zone,Custom hover tooltip (MISSING),Structured preview,Zone + Meter API,NEEDS_BACKEND_DATA,L2,On hover,Show zone name only,Operations,—,NOT_IMPLEMENTED
+Zone,Zone Code/ID,Identity,Static JSON,STATIC,L3 (Operational card),Zone click (Operational),N/A,None,—,MapV2Workspace.tsx#L600
+Zone,Description / Category,Zone info,Static JSON,STATIC,L3 (Operational card),Zone click (Operational),N/A,None,—,MapV2Workspace.tsx
+Zone,Technical inspection button,Mode switch,Action,N/A,L3 (Operational card),Zone click (Operational),N/A,None,Switch to Technical mode,MapV2Workspace.tsx
+Zone,Coordinate table,Pixel + normalized coords,Static JSON,STATIC,L3 (Technical),Zone click (Technical),N/A,Technical,Copy to clipboard,MapV2InspectionPanel.tsx#L113
+Zone,Meter count (MISSING),Meters in zone,Meter table join,NEEDS_BACKEND_DATA,L3,When available,Show 'Không có dữ liệu',Operations,—,NOT_IMPLEMENTED
+Meter,Utility node icon,Network topology point,utilityDemoLayout.ts,SIMULATED,L0,Utility mode != off,N/A,None,—,MapV2UtilityLayer.tsx
+Meter,Color coding,Electricity (amber) vs Water (blue),Style constants,STATIC,L0,Utility mode active,N/A,None,—,MapV2UtilityLayer.tsx
+Meter,Code + Label (tooltip),Node identity,Demo layout,SIMULATED,L2,On hover,N/A,None,—,MapV2UtilityLayer.tsx#L743
+Meter,Type (Source/Meter/Distribution),Node classification,Demo layout,SIMULATED,L2,On hover,N/A,None,—,MapV2UtilityLayer.tsx
+Meter,Simulation disclaimer,Data provenance,Static text,VERIFIED,L2,Always on hover,Always show,None,—,MapV2UtilityLayer.tsx
+Meter,Reading value + unit (MISSING),Operational data,MeterReading,NEEDS_BACKEND_DATA,L2/L3,When available,Show 'Chưa có dữ liệu',Operations,—,NOT_IMPLEMENTED
+Meter,Reader identity (MISSING),Who read this meter,MeterReading.user_id,NEEDS_BACKEND_DATA,L3,When available,Show 'Chưa ghi',Operations,—,NOT_IMPLEMENTED
+Meter,Photo evidence (MISSING),Capture proof,Photo storage,NEEDS_BACKEND_DATA,L3,When available,Show 'Không có ảnh',Operations,View photo,NOT_IMPLEMENTED

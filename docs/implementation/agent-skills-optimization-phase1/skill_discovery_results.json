@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "audit_phase": "agent-skills-optimization-phase1",
+  "project": "Production Meter Reading — Cảng Sài Gòn",
+  "repository": "D:\\Projects\\production-meter-reading\\production-meter-reading",
+  "timestamp": "2026-09-23T08:24:00+07:00",
+  "engine": "Google Antigravity CLI (agy)",
+  "discovery_engine_source": "third_party/jetski/cortex/customizations/skills.go",
+  "coexistence_verified": true,
+  "directories_scanned": [
+    ".agent/skills/",
+    ".agents/skills/"
+  ],
+  "pre_optimization": {
+    "saigon_port_ui": {
+      "path": ".agent/skills/saigon-port-ui/SKILL.md",
+      "frontmatter_present": false,
+      "line_1_content": "# Saigon Port UI Skill",
+      "registered_in_skills_metadata": false,
+      "cli_log_error": "E0923 08:20:14.076941 39867 skills.go:201] Failed to parse skill file D:\\Projects\\production-meter-reading\\production-meter-reading\\.agent\\skills\\saigon-port-ui\\SKILL.md: invalid frontmatter format",
+      "discovery_status": "FAILED_PARSING"
+    },
+    "generic_skills_in_agents": [
+      { "name": "banner-design", "discovered": true },
+      { "name": "brand", "discovered": true },
+      { "name": "design", "discovered": true },
+      { "name": "design-system", "discovered": true },
+      { "name": "slides", "discovered": true },
+      { "name": "ui-styling", "discovered": true },
+      { "name": "ui-ux-pro-max", "discovered": true }
+    ]
+  },
+  "post_optimization": {
+    "saigon_port_ui": {
+      "path": ".agent/skills/saigon-port-ui/SKILL.md",
+      "frontmatter_present": true,
+      "yaml_name": "saigon-port-ui",
+      "yaml_description": "Use this skill whenever designing, reviewing, or implementing frontend UI for the Saigon Port production meter reading application, including the mobile User Portal, desktop Operations Portal, and Map V2 digital twin workspaces. Do not activate for backend API, SQLite, or database tasks.",
+      "registered_in_skills_metadata": true,
+      "verification_method": "live_subagent_inspection",
+      "subagent_conversation_id": "5a6dec75-ae9a-404f-814b-ab5e73e6975f",
+      "subagent_reported_index": 5,
+      "cli_log_error_eliminated": true,
+      "discovery_status": "SUCCESSFULLY_DISCOVERED"
+    },
+    "active_skills_inventory_post_fix": [
+      { "name": "banner-design", "path": ".agents/skills/banner-design/SKILL.md", "status": "DISCOVERED" },
+      { "name": "brand", "path": ".agents/skills/brand/SKILL.md", "status": "DISCOVERED" },
+      { "name": "design", "path": ".agents/skills/design/SKILL.md", "status": "DISCOVERED" },
+      { "name": "design-system", "path": ".agents/skills/design-system/SKILL.md", "status": "DISCOVERED" },
+      { "name": "saigon-port-ui", "path": ".agent/skills/saigon-port-ui/SKILL.md", "status": "DISCOVERED" },
+      { "name": "slides", "path": ".agents/skills/slides/SKILL.md", "status": "DISCOVERED" },
+      { "name": "ui-styling", "path": ".agents/skills/ui-styling/SKILL.md", "status": "DISCOVERED" },
+      { "name": "ui-ux-pro-max", "path": ".agents/skills/ui-ux-pro-max/SKILL.md", "status": "DISCOVERED" }
+    ]
+  },
+  "conclusions": {
+    "both_directories_supported": true,
+    "simultaneous_discovery_verified": true,
+    "manual_prompt_workaround_obsolete": true
+  }
+}

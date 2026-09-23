@@ -1,0 +1,17 @@
+# Stage 1: Build Operations Portal assets
+FROM node:20-alpine AS builder
+WORKDIR /build
+
+COPY frontend/package*.json ./
+RUN npm ci
+
+COPY frontend/ ./
+RUN npm run build:operations
+
+# Stage 2: Serve Operations Portal with Caddy Reverse Proxy
+FROM caddy:2.8-alpine
+COPY deployment/caddy/Caddyfile.two-site /etc/caddy/Caddyfile
+COPY --from=builder /build/dist/operations /srv/operations-web
+
+EXPOSE 80 443
+CMD ["caddy", "run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile"]

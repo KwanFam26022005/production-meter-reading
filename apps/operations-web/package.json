@@ -1,0 +1,11 @@
+{
+  "name": "@sgp/operations-web",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Operations Portal — Desktop-first operational workspace & Digital Twin for Saigon Port administrators",
+  "scripts": {
+    "dev": "npm --prefix ../../frontend run dev:operations",
+    "build": "npm --prefix ../../frontend run build:operations",
+    "test": "npm --prefix ../../frontend run test:operations"
+  }
+}

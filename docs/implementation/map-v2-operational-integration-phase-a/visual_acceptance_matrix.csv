@@ -1,0 +1,16 @@
+Filename,Viewport,State Description,Expected Visual Characteristics,Verification Result
+01_map_v2_operational_default_1920x1080.png,1920x1080,Operational Default (1080p),Technical light canvas with live zone badges and stationary assignees,VERIFIED
+02_map_v2_operational_default_1440x900.png,1440x900,Operational Default (Laptop),Wide aspect ratio with full primary toolbar visibility,VERIFIED
+03_map_v2_operational_compact_1280x800.png,1280x800,Operational Compact (<1380px),Compact layout mode with docked-to-drawer responsive transition,VERIFIED
+04_map_v2_date_round_context_open.png,1920x1080,Context Picker Popover,Shared date calendar input and round selection dropdown open,VERIFIED
+05_map_v2_quick_search_results.png,1920x1080,Operational Quick Search,Dropdown populated with grouped zone/meter/assignee results,VERIFIED
+06_map_v2_zone_operational_inspector.png,1920x1080,Zone Operational Inspector,Docked inspector showing single-round progress and confirmed counts,VERIFIED
+07_map_v2_real_assignee_inspector.png,1920x1080,Real Stationary Assignee Inspector,Docked inspector with Phụ trách badge and no-GPS disclaimer,VERIFIED
+08_map_v2_meter_operational_inspector.png,1920x1080,Meter Operational Inspector,Docked inspector with raw tabular reading hero and utility icon,VERIFIED
+09_map_v2_missing_coord_search_toast.png,1920x1080,Missing Coordinate Toast,Toast notification: Chưa xác định vị trí trên Map V2,VERIFIED
+10_map_v2_exception_discovery_active.png,1920x1080,Exception Discovery Mode Active,ExceptionsOnly active with amber/coral warning halos and dimmed base,VERIFIED
+11_map_v2_layer_manager_open.png,1920x1080,Layer Manager Popover,Three-Axis Axis 2 popover with Live/Simulated/Infrastructure sections,VERIFIED
+12_map_v2_options_popover_open.png,1920x1080,More Options Popover,Three-Axis Axis 3 popover with Work Mode/Presentation/Framing,VERIFIED
+13_map_v2_neon_operational_mode.png,1920x1080,Neon Digital Twin Mode,Controlled dark mode with cyan accents and restrained filter glow,VERIFIED
+14_map_v2_simulated_demo_mode.png,1920x1080,Simulated Demo Layer Active,Power B2 network and demo Lissajous staff with Demo disclosure,VERIFIED
+15_map_v2_degraded_error_mode.png,1920x1080,Degraded Error Mode,Non-blocking warning banner with retry action atop canvas geometry,VERIFIED

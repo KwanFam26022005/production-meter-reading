@@ -1,0 +1,35 @@
+CONTROL_ID,CONTROL_NAME,CURRENT_SURFACE,FINAL_DISPOSITION,TARGET_SURFACE,ACCESS_CLICKS,ROLE_RESTRICTION,JUSTIFICATION
+1,Map Title + Subtitle,Header Left,KEEP_PRIMARY,Header Left,0,NONE,Workspace identity and primary orientation
+2,CANONICAL Badge,Header Left,MOVE_TO_MORE_MENU,More Menu (Settings),2,NONE,Technical metadata; not needed by field dispatchers
+3,Metadata Pill (1536x1024),Header Left,MOVE_TO_MORE_MENU,More Menu (Settings),2,NONE,Clutters header; move to Map Information modal
+4,Fit Mode: Fit to Screen,Header Center,MOVE_TO_MORE_MENU,More Menu (Display),2,NONE,Framing preference; secondary to operational tasks
+5,Fit Mode: Fit Width,Header Center,MOVE_TO_MORE_MENU,More Menu (Display),2,NONE,Framing preference; secondary to operational tasks
+6,Work Mode: Vận hành,Header Center,KEEP_PRIMARY,Header Center (Mode),1,NONE,Primary operational monitoring mode
+7,Work Mode: Kiểm tra hình học,Header Center,ROLE_GATE,More Menu / Tech Switch,2,ADMIN,Technical calibration mode; gate to Admin role
+8,Tone Mode: Chuẩn kỹ thuật,Header Center,MOVE_TO_MORE_MENU,More Menu (Theme),2,NONE,Theme is an ergonomic preference; move to Settings
+9,Tone Mode: Neon số,Header Center,MOVE_TO_MORE_MENU,More Menu (Theme),2,NONE,Theme is an ergonomic preference; move to Settings
+10,Utility: Tắt lưới,Header Center,REMOVE_DUPLICATE,N/A,N/A,NONE,Redundant when independent layer checkboxes exist
+11,Utility: Lưới điện mô phỏng,Header Center,MOVE_TO_LAYERS,Layer Manager Popover,2,NONE,Electrical network is a spatial overlay layer
+12,Utility: Mạng nước mô phỏng,Header Center,MOVE_TO_LAYERS,Layer Manager Popover,2,NONE,Water network is a spatial overlay layer
+13,Utility: Cả hai,Header Center,REMOVE_DUPLICATE,N/A,N/A,NONE,Redundant when independent layer toggles exist
+14,Simulation Disclosure Badge,Header Center,KEEP_CONTEXTUAL,Header Right (Contextual),0,NONE,Appears only when simulated networks are visible
+15,Employee Motion Disclosure,Header Center,KEEP_CONTEXTUAL,Header Right (Contextual),0,NONE,Appears only when demo animation layer is active
+16,Layer Manager Toggle,Header Right,KEEP_PRIMARY,Header Right,1,NONE,Primary control for managing visual density
+17,Compact Options Menu (⋯),Header Right,KEEP_PRIMARY,Header Right,1,NONE,Unified more menu across all screen widths
+18,Deselect Button (Bỏ chọn),Header Right,KEEP_CONTEXTUAL,Header Right (Contextual),1,NONE,Appears only when an entity is selected
+19,Base Map Layer Toggle,Layer Popover,MOVE_TO_LAYERS,Layer Manager Popover,2,NONE,Standard layer visibility control
+20,Zones Layer Toggle,Layer Popover,MOVE_TO_LAYERS,Layer Manager Popover,2,NONE,Standard layer visibility control
+21,Buildings Layer Toggle,Layer Popover,MOVE_TO_LAYERS,Layer Manager Popover,2,NONE,Standard layer visibility control
+22,Roads Layer Toggle,Layer Popover,MOVE_TO_LAYERS,Layer Manager Popover,2,NONE,Standard layer visibility control
+23,Gates Layer Toggle,Layer Popover,MOVE_TO_LAYERS,Layer Manager Popover,2,NONE,Standard layer visibility control
+24,Anchors Layer Toggle,Layer Popover,MOVE_TO_LAYERS,Layer Manager Popover,2,NONE,Standard layer visibility control
+25,Employees Layer Toggle,Layer Popover,MOVE_TO_LAYERS,Layer Manager Popover,2,NONE,Standard layer visibility control
+26,HUD: Zoom In (+),Canvas Bottom-Right,KEEP_HUD,Floating HUD,1,NONE,Core map navigation control
+27,HUD: Zoom Out (-),Canvas Bottom-Right,KEEP_HUD,Floating HUD,1,NONE,Core map navigation control
+28,HUD: Reset View (↺),Canvas Bottom-Right,KEEP_HUD,Floating HUD,1,NONE,Core map navigation control
+29,HUD: Play/Pause Motion,Canvas Bottom-Right,KEEP_HUD,Floating HUD,1,NONE,Essential accessibility control when motion active
+30,HUD: Zoom Percentage,Canvas Bottom-Right,REMOVE_DUPLICATE,N/A,N/A,NONE,Replace bulky button with transient zoom tooltip
+31,Inspector: Close / Copy,Side Panel,KEEP_CONTEXTUAL,Docked Inspector Panel,1,NONE,Standard contextual panel controls
+32,NEW: Date & Round Context,N/A (New),KEEP_PRIMARY,Header Center,1,NONE,Critical operational context (Selected Date & Round)
+33,NEW: Quick Search Input,N/A (New),KEEP_PRIMARY,Header Center,1,NONE,Autocomplete search for zones, meters, and staff
+34,NEW: Exception Filter Chip,N/A (New),KEEP_PRIMARY,Header Center,1,NONE,Quick toggle to highlight REVIEW / OVERDUE meters

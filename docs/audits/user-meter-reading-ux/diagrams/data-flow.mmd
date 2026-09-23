@@ -1,0 +1,63 @@
+sequenceDiagram
+    autonumber
+    actor User as Nhân viên đọc số
+    participant Client as Frontend (App.tsx / ReadingBatchView)
+    participant API as Backend FastAPI (main.py / meter_logbook.py)
+    participant ML as ML Pipeline (inference.py)
+    participant DB as Database (SQLite/PostgreSQL)
+    participant Disk as Storage (data/meter_reading_evidence)
+
+    Note over User,Client: Bước 1: Mở danh sách & Chọn công tơ
+    User->>Client: Mở sổ đọc chỉ số
+    Client->>API: GET /api/v1/meter-operations/today
+    API->>DB: Query open batch, active rounds, meters & status
+    DB-->>API: Trả về danh sách đợt, lượt, công tơ
+    API-->>Client: TodayOperationsResponse (200 OK)
+    Client-->>User: Hiển thị danh sách công tơ & tiến độ
+    User->>Client: Bấm "Ghi chỉ số" trên công tơ C-01
+
+    Note over User,Client: Bước 2: Chụp ảnh & Preview
+    Client->>User: Bật Rear Camera với khung ngắm
+    User->>Client: Nhấn chụp (Full uncropped frame)
+    Client-->>User: Hiển thị ảnh xem trước (Preview)
+    User->>Client: Nhấn "Đọc chỉ số"
+
+    Note over Client,ML: Bước 3: Nhận diện OCR (Transient RAM)
+    Client->>API: POST /api/v1/read-meter (Multipart file, Transient)
+    API->>ML: decode_image(data) -> reader.read(image)
+    ML->>ML: YOLO E2 Detector (960px -> 1280px retry)
+    ML->>ML: Crop ROI (+2.5% dx, 5% pad)
+    ML->>ML: PP-OCRv6-Medium Recognition
+    ML-->>API: ReadingResult (status: success, reading: 04582.12, roi_bbox)
+    API-->>Client: MeterReadResponse (200 OK)
+    Note over API: Ảnh tạm thời trong RAM bị hủy, không lưu ổ cứng
+
+    Note over User,Client: Bước 4: Kiểm tra & Hiệu chỉnh
+    Client->>Client: Client RAM tự crop ROI từ previewUrl bằng roi_bbox
+    Client-->>User: Hiển thị số đọc Hero (04582.12 kWh) & Toggle ROI/Ảnh gốc
+    alt OCR đúng
+        User->>Client: Bấm "Xác nhận chỉ số"
+    else OCR sai / lệch số
+        User->>Client: Bấm "Sửa chỉ số", sửa thành 04582.15
+        User->>Client: Bấm "Lưu chỉnh sửa"
+        User->>Client: Bấm "Xác nhận chỉ số"
+    end
+
+    Note over Client,Disk: Bước 5: Xác nhận & Lưu trữ chính thức
+    Client->>API: POST /api/v1/meter-readings/confirm (ConfirmReadingRequest + base64)
+    API->>API: Kiểm tra round OPEN, scheduled <= now, meter ACTIVE, format ^\d+(\.\d+)?$
+    API->>DB: Kiểm tra bản ghi trùng (409 nếu đã CONFIRMED)
+    API->>DB: INSERT/UPDATE MeterReading (CONFIRMED, reading, ocr_reading, source)
+    opt Có ảnh base64 gửi kèm
+        API->>Disk: Chuẩn hóa JPEG Q95, xóa EXIF, tính SHA256 -> lưu file .jpg
+        API->>DB: INSERT MeterReadingEvidence (filename, sha256, bbox)
+    end
+    opt Nguồn là USER_CORRECTED hoặc MANUAL_ENTRY
+        API->>Disk: Lưu ảnh training sample vào data/meter_training_samples/
+        API->>DB: INSERT MeterTrainingSample (type, corrected_reading, bbox)
+    end
+    API-->>Client: MeterReadingActionResponse (200 OK)
+    Client-->>User: Hiển thị màn hình thành công (State 4B)
+    User->>Client: Bấm "Về danh sách công tơ"
+    Client->>API: GET /api/v1/meter-operations/today (Làm mới)
+    API-->>Client: Cập nhật thẻ công tơ thành ĐÃ GHI (CONFIRMED)

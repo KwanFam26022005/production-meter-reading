@@ -52,6 +52,9 @@ class AttendanceEventDetail(BaseModel):
     timestamp: str
     formatted_time: str
     status: str
+    photo_sha256: Optional[str] = None
+    payload_sha256: Optional[str] = None
+    client_submission_id: Optional[str] = None
 
 
 class AttendanceTodayResponse(BaseModel):
@@ -63,10 +66,14 @@ class AttendanceTodayResponse(BaseModel):
 
 class AttendanceActionResponse(BaseModel):
     status: Literal["success"] = "success"
+    id: Optional[str] = None
     event_type: Literal["CHECK_IN", "CHECK_OUT"]
     server_timestamp: str
     formatted_time: str
     message: str
+    photo_sha256: Optional[str] = None
+    payload_sha256: Optional[str] = None
+    client_submission_id: Optional[str] = None
 
 
 # ==============================================================================
@@ -277,6 +284,22 @@ class MeterReadingActionResponse(BaseModel):
     server_timestamp: str
     formatted_time: str
     message: str
+
+
+class MeterReadingReconciliationResponse(BaseModel):
+    exists: bool
+    reading_id: Optional[str] = None
+    meter_id: str
+    round_id: str
+    batch_id: Optional[str] = None
+    reading_status: Optional[str] = None  # "CONFIRMED" | "REVIEW" | None
+    reading: Optional[str] = None
+    ocr_reading: Optional[str] = None
+    confirmation_source: Optional[str] = None
+    server_timestamp: Optional[str] = None
+    formatted_time: Optional[str] = None
+    recorded_by_employee_code: Optional[str] = None
+
 
 
 class MeterReadingHistoryItem(BaseModel):

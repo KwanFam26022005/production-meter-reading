@@ -1,0 +1,68 @@
+# ==============================================================================
+# SAIGON PORT — TWO-SITE CADDY CONFIGURATION (STAGING & PRODUCTION)
+# Single Shared FastAPI Backend (:8000) + Isolated Frontends
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 1. USER PORTAL (Mobile-First / PWA for Field Operators)
+# ------------------------------------------------------------------------------
+{$USER_DOMAIN:user.staging.local, localhost:5173} {
+    # 1.1 API Reverse Proxy — direct to shared FastAPI backend
+    handle /api/* {
+        reverse_proxy {$BACKEND_UPSTREAM:127.0.0.1:8000} {
+            header_up Host {host}
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+        }
+    }
+
+    # 1.2 Health Check Endpoint
+    handle /health {
+        reverse_proxy {$BACKEND_UPSTREAM:127.0.0.1:8000}
+    }
+
+    # 1.3 Static PWA Assets & SPA Fallback
+    handle {
+        root * {$USER_WEB_ROOT:frontend/dist/user}
+        try_files {path} /index.html
+        file_server
+    }
+
+    # 1.4 Structured Logging (Audit-ready, privacy preserved)
+    log {
+        output stdout
+        format json
+    }
+}
+
+# ------------------------------------------------------------------------------
+# 2. OPERATIONS PORTAL (Desktop-First for Port Administrators & Digital Twin)
+# ------------------------------------------------------------------------------
+{$OPERATIONS_DOMAIN:ops.staging.local, localhost:5174} {
+    # 2.1 API Reverse Proxy — direct to the SAME shared FastAPI backend
+    handle /api/* {
+        reverse_proxy {$BACKEND_UPSTREAM:127.0.0.1:8000} {
+            header_up Host {host}
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+        }
+    }
+
+    # 2.2 Health Check Endpoint
+    handle /health {
+        reverse_proxy {$BACKEND_UPSTREAM:127.0.0.1:8000}
+    }
+
+    # 2.3 Static Admin Assets & SPA Fallback
+    handle {
+        root * {$OPERATIONS_WEB_ROOT:frontend/dist/operations}
+        try_files {path} /index.html
+        file_server
+    }
+
+    # 2.4 Structured Logging
+    log {
+        output stdout
+        format json
+    }
+}

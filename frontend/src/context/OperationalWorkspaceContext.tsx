@@ -12,6 +12,10 @@ export interface FocusedEntity {
 
 export type DeviceSegment = 'ALL' | 'ASSETS' | 'METERS';
 
+export interface LocateOnMapOptions {
+  target?: 'dashboard' | 'map_v2';
+}
+
 export interface OperationalWorkspaceContextType {
   activeTab: AdminTab;
   setActiveTab: (tab: AdminTab) => void;
@@ -29,7 +33,8 @@ export interface OperationalWorkspaceContextType {
   setUtilityFilter: (u: 'ALL' | 'ELECTRICITY' | 'WATER') => void;
   inspectingReadingId: string | null;
   setInspectingReadingId: (readingId: string | null) => void;
-  locateOnMap: (entity: FocusedEntity) => void;
+  locateOnMap: (entity: FocusedEntity, options?: LocateOnMapOptions) => void;
+  locateOnMapV2: (entity: FocusedEntity) => void;
   openAssetDetails: (assetId: string, assetCode?: string) => void;
   openMeterDetails: (meterId: string, meterCode?: string) => void;
   openVerification: (assetId?: string) => void;
@@ -90,11 +95,16 @@ export const OperationalWorkspaceProvider: React.FC<OperationalWorkspaceProvider
     }
   }, [onTabChange]);
 
-  const locateOnMap = useCallback((entity: FocusedEntity) => {
+  const locateOnMap = useCallback((entity: FocusedEntity, options?: LocateOnMapOptions) => {
     setFocusedEntity(entity);
     setInspectingReadingId(null);
-    setActiveTab('dashboard');
+    const target = options?.target ?? 'dashboard';
+    setActiveTab(target);
   }, [setActiveTab]);
+
+  const locateOnMapV2 = useCallback((entity: FocusedEntity) => {
+    locateOnMap(entity, { target: 'map_v2' });
+  }, [locateOnMap]);
 
   const openAssetDetails = useCallback((assetId: string, assetCode?: string) => {
     setFocusedEntity({
@@ -152,6 +162,7 @@ export const OperationalWorkspaceProvider: React.FC<OperationalWorkspaceProvider
     inspectingReadingId,
     setInspectingReadingId,
     locateOnMap,
+    locateOnMapV2,
     openAssetDetails,
     openMeterDetails,
     openVerification,

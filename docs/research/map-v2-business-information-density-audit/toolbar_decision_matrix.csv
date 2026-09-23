@@ -1,0 +1,33 @@
+CONTROL_ID,CURRENT_LABEL,COMPONENT_FILE,VISIBLE_IN_MODES,PRIMARY_ROLE,BUSINESS_PURPOSE,OPTION_A_CLASSIFICATION,OPTION_B_CLASSIFICATION,CLICKS_OPTION_A,CLICKS_OPTION_B,RISK_IF_HIDDEN,EVIDENCE
+VIEW_FIT_ALL,Fit toàn bộ,MapV2Workspace.tsx,Wide screens only,All,Fit entire port in view,GROUP_IN_MENU,KEEP_VISIBLE,2,0,Low — reset view available,SOURCE_VERIFIED
+VIEW_FIT_WIDTH,Tràn chiều rộng,MapV2Workspace.tsx,Wide screens only,All,Fill horizontal viewport,GROUP_IN_MENU,KEEP_VISIBLE,2,0,Low,SOURCE_VERIFIED
+MODE_OPERATIONAL,Vận hành,MapV2Workspace.tsx,Always,All,Switch to operations mode,KEEP_VISIBLE,KEEP_VISIBLE,0,0,Critical — primary mode,SOURCE_VERIFIED
+MODE_TECHNICAL,Kiểm tra,MapV2Workspace.tsx,Always,Technical,Switch to geometry inspection,KEEP_VISIBLE,KEEP_VISIBLE,0,0,Medium — technical users only,SOURCE_VERIFIED
+TONE_STANDARD,Chuẩn kỹ thuật,MapV2Workspace.tsx,Always,Technical,Standard light theme,GROUP_IN_MENU,CONTEXTUAL (Technical only),2,0 in Technical,Low — rarely changed,SOURCE_VERIFIED
+TONE_NEON,Neon số,MapV2Workspace.tsx,Always,Technical,Neon dark presentation theme,GROUP_IN_MENU,CONTEXTUAL (Technical only),2,0 in Technical,Low,SOURCE_VERIFIED
+UTILITY_OFF,Tắt lưới,MapV2Workspace.tsx,Always,All,Hide utility network,GROUP_IN_MENU,CONTEXTUAL (Technical only),2,1 in Technical,Low,SOURCE_VERIFIED
+UTILITY_ELEC,Điện,MapV2Workspace.tsx,Always,Technical,Show electricity network demo,GROUP_IN_MENU,CONTEXTUAL (Technical only),2,0 in Technical,Low,SOURCE_VERIFIED
+UTILITY_WATER,Nước,MapV2Workspace.tsx,Always,Technical,Show water network demo,GROUP_IN_MENU,CONTEXTUAL (Technical only),2,0 in Technical,Low,SOURCE_VERIFIED
+UTILITY_BOTH,Cả hai,MapV2Workspace.tsx,Always,Technical,Show both utility networks,GROUP_IN_MENU,CONTEXTUAL (Technical only),2,0 in Technical,Low,SOURCE_VERIFIED
+DEMO_BADGE,Chuyển động minh họa (Demo),MapV2Canvas.tsx,Employee layer ON + utility OFF,All,Data truthfulness disclosure,KEEP_VISIBLE,KEEP_VISIBLE,0,0,Critical — legal/ethical,SOURCE_VERIFIED
+LAYERS_TOGGLE,Lớp hiển thị,MapV2Workspace.tsx,Wide screens only,All,Layer visibility popover,KEEP_VISIBLE,KEEP_VISIBLE,1,1,Medium — layer control needed,SOURCE_VERIFIED
+COMPACT_OPTIONS,Tùy chọn,MapV2Workspace.tsx,Compact screens only,All,Combined options menu,KEEP_VISIBLE,KEEP_VISIBLE,1,1,N/A — compact only,SOURCE_VERIFIED
+DESELECT,Bỏ chọn / Đóng,MapV2Workspace.tsx,Entity selected,All,Clear selection,CONTEXTUAL,CONTEXTUAL,0,0,N/A — contextual,SOURCE_VERIFIED
+CANONICAL_BADGE,CANONICAL,MapV2Workspace.tsx,Always,Technical,Geometry integrity indicator,GROUP_IN_MENU,CONTEXTUAL (Technical only),2,0 in Technical,Low for operators,SOURCE_VERIFIED
+METADATA_STATS,1536×1024 px / 7 phân khu / etc.,MapV2Workspace.tsx,Wide screens only,Technical,Technical metadata,GROUP_IN_MENU,CONTEXTUAL (Technical only),2,0 in Technical,Low for operators,SOURCE_VERIFIED
+HUD_ZOOM_IN,+,MapV2Canvas.tsx,Always,All,Zoom in,KEEP_VISIBLE,KEEP_VISIBLE,0,0,Medium,SOURCE_VERIFIED
+HUD_ZOOM_OUT,−,MapV2Canvas.tsx,Always,All,Zoom out,KEEP_VISIBLE,KEEP_VISIBLE,0,0,Medium,SOURCE_VERIFIED
+HUD_RESET_VIEW,Đặt lại góc nhìn,MapV2Canvas.tsx,Always,All,Reset zoom and pan,KEEP_VISIBLE,KEEP_VISIBLE,0,0,Medium,SOURCE_VERIFIED
+HUD_MOTION_TOGGLE,Play/Pause,MapV2Canvas.tsx,Employee layer ON + utility OFF,All,Pause employee animation,KEEP_VISIBLE,KEEP_VISIBLE,0,0,Medium — accessibility,SOURCE_VERIFIED
+ZOOM_PERCENTAGE,124% (display),MapV2Canvas.tsx,Always,All,Current zoom level display,KEEP_VISIBLE,KEEP_VISIBLE,N/A,N/A,Low,SOURCE_VERIFIED
+LAYER_1_BASEMAP,Bản đồ nền kỹ thuật,MapV2Layers.tsx,Layer popover,All,Toggle base map image,GROUP_IN_MENU,GROUP_IN_MENU,2,2,Low,SOURCE_VERIFIED
+LAYER_2_ZONES,Phân khu vận hành,MapV2Layers.tsx,Layer popover,All,Toggle zone polygons,GROUP_IN_MENU,GROUP_IN_MENU,2,2,High,SOURCE_VERIFIED
+LAYER_3_BUILDINGS,Kho tàng & Hành chính,MapV2Layers.tsx,Layer popover,All,Toggle building polygons,GROUP_IN_MENU,GROUP_IN_MENU,2,2,Medium,SOURCE_VERIFIED
+LAYER_4_ROADS,Ranh giới & Đường nội bộ,MapV2Layers.tsx,Layer popover,All,Toggle road/boundary lines,GROUP_IN_MENU,GROUP_IN_MENU,2,2,Low,SOURCE_VERIFIED
+LAYER_5_GATES,Điểm kiểm soát (Cổng),MapV2Layers.tsx,Layer popover,All,Toggle gate markers,GROUP_IN_MENU,GROUP_IN_MENU,2,2,Low,SOURCE_VERIFIED
+LAYER_6_ANCHORS,Điểm neo phân khu (Hotspots),MapV2Layers.tsx,Layer popover,All,Toggle zone anchor icons,GROUP_IN_MENU,GROUP_IN_MENU,2,2,Medium,SOURCE_VERIFIED
+LAYER_7_EMPLOYEES,Nhân sự phân khu (Mô phỏng),MapV2Layers.tsx,Layer popover,All,Toggle employee markers (demo),GROUP_IN_MENU,GROUP_IN_MENU,2,2,Medium,SOURCE_VERIFIED
+OP_CARD_CLOSE,Đóng bảng thông tin,MapV2Workspace.tsx,Zone selected (Operational),All,Close zone card,CONTEXTUAL,CONTEXTUAL,0,0,N/A,SOURCE_VERIFIED
+OP_CARD_INSPECT,Xem chi tiết kỹ thuật,MapV2Workspace.tsx,Zone selected (Operational),Technical,Switch to technical inspection,CONTEXTUAL,CONTEXTUAL,0,0,Low for operators,SOURCE_VERIFIED
+INSPECTOR_CLOSE,Đóng thanh kiểm tra,MapV2InspectionPanel.tsx,Inspector open,All,Close inspector panel,CONTEXTUAL,CONTEXTUAL,0,0,N/A,SOURCE_VERIFIED
+INSPECTOR_COPY,Sao chép,MapV2InspectionPanel.tsx,Technical inspector open,Technical,Copy geometry to clipboard,CONTEXTUAL,CONTEXTUAL,0,0,Low — technical tool,SOURCE_VERIFIED

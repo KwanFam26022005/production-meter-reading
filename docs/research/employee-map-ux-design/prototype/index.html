@@ -1,0 +1,1156 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Saigon Port — Operations Overview & Map V2 UX Prototype (Thread 3)</title>
+  <style>
+    /* ==========================================================================
+       DESIGN DNA & TOKENS (Saigon Port Technical Maritime Palette)
+       ========================================================================== */
+    :root {
+      --sgp-navy-900: #002244;
+      --sgp-navy-800: #003875;
+      --sgp-navy-700: #004b9e;
+      --sgp-navy-600: #0265d2;
+      --sgp-blue-electric: #0068FF;
+      --sgp-porcelain: #FCFCFC;
+      --sgp-surface: #FFFFFF;
+      --sgp-slate-50: #F8FAFC;
+      --sgp-slate-100: #F1F5F9;
+      --sgp-slate-200: #E2E8F0;
+      --sgp-slate-300: #CBD5E1;
+      --sgp-slate-600: #475569;
+      --sgp-slate-700: #334155;
+      --sgp-slate-800: #1E293B;
+      --sgp-slate-900: #0F172A;
+      --sgp-status-green: #16A34A;
+      --sgp-status-green-bg: #DCFCE7;
+      --sgp-status-amber: #B45309;
+      --sgp-status-amber-bg: #FEF3C7;
+      --sgp-status-red: #DC2626;
+      --sgp-status-red-bg: #FEE2E2;
+      --sgp-utility-amber: #FFB703;
+      --sgp-utility-cyan: #06B6D4;
+      --font-stack: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-stack);
+      background-color: var(--sgp-slate-100);
+      color: var(--sgp-slate-800);
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ==========================================================================
+       TOP CONTROL & SCENARIO BAR
+       ========================================================================== */
+    .scenario-bar {
+      background-color: var(--sgp-slate-900);
+      color: #94A3B8;
+      padding: 6px 16px;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #334155;
+      z-index: 100;
+    }
+    .scenario-badge {
+      background: #334155;
+      color: #F8FAFC;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 10px;
+      letter-spacing: 0.5px;
+    }
+    .scenario-nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .scenario-nav select {
+      background: #1E293B;
+      color: #F8FAFC;
+      border: 1px solid #475569;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      cursor: pointer;
+    }
+    .variant-toggles {
+      display: flex;
+      gap: 4px;
+      background: #1E293B;
+      padding: 2px;
+      border-radius: 4px;
+      border: 1px solid #475569;
+    }
+    .variant-btn {
+      background: transparent;
+      border: none;
+      color: #94A3B8;
+      padding: 2px 8px;
+      border-radius: 3px;
+      font-size: 11px;
+      cursor: pointer;
+    }
+    .variant-btn.active {
+      background: var(--sgp-blue-electric);
+      color: #FFFFFF;
+      font-weight: 600;
+    }
+
+    /* ==========================================================================
+       GLOBAL OPERATIONAL STRIP (HEADER)
+       ========================================================================== */
+    .op-header {
+      background: var(--sgp-surface);
+      height: 52px;
+      border-bottom: 1px solid var(--sgp-slate-200);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+      z-index: 90;
+    }
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .brand-logo {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--sgp-navy-800);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .brand-logo svg { width: 20px; height: 20px; fill: var(--sgp-navy-800); }
+    .facility-pill {
+      background: var(--sgp-slate-100);
+      color: var(--sgp-slate-700);
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 500;
+      border: 1px solid var(--sgp-slate-200);
+    }
+    .telemetry-group {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .op-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--sgp-slate-700);
+    }
+    .op-pill strong { color: var(--sgp-navy-800); }
+    .progress-pill {
+      background: var(--sgp-slate-50);
+      border: 1px solid var(--sgp-slate-200);
+      padding: 4px 10px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .progress-bar-micro {
+      width: 60px;
+      height: 6px;
+      background: var(--sgp-slate-200);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background: var(--sgp-navy-800);
+      border-radius: 999px;
+      transition: width 0.3s ease;
+    }
+    .alert-pill {
+      background: var(--sgp-status-amber-bg);
+      color: var(--sgp-status-amber);
+      border: 1px solid #FCD34D;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+    }
+    .mode-switch-group {
+      display: flex;
+      background: var(--sgp-slate-100);
+      border: 1px solid var(--sgp-slate-200);
+      border-radius: 6px;
+      padding: 2px;
+    }
+    .mode-btn {
+      background: transparent;
+      border: none;
+      padding: 4px 12px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--sgp-slate-600);
+      border-radius: 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .mode-btn.active {
+      background: var(--sgp-surface);
+      color: var(--sgp-navy-800);
+      font-weight: 600;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+
+    /* ==========================================================================
+       MAIN WORKSPACE (MAP + INSPECTOR)
+       ========================================================================== */
+    .workspace {
+      flex: 1;
+      display: flex;
+      position: relative;
+      overflow: hidden;
+      background: var(--sgp-porcelain);
+    }
+    .map-canvas-container {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(#CBD5E1 1px, transparent 1px);
+      background-size: 24px 24px;
+    }
+    svg.port-map {
+      width: 100%;
+      height: 100%;
+      max-width: 100%;
+      max-height: 100%;
+      user-select: none;
+    }
+
+    /* SVG Zones Styling */
+    .zone-polygon {
+      fill: #003875;
+      fill-opacity: 0.08;
+      stroke: #003875;
+      stroke-width: 2;
+      stroke-linejoin: round;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .zone-polygon:hover {
+      fill-opacity: 0.16;
+      stroke-width: 3;
+    }
+    .zone-polygon.selected {
+      fill-opacity: 0.22;
+      stroke: var(--sgp-blue-electric);
+      stroke-width: 3.5;
+    }
+    .zone-polygon.alert {
+      stroke: var(--sgp-status-amber);
+      stroke-dasharray: 6 4;
+      fill: var(--sgp-status-amber);
+      fill-opacity: 0.12;
+    }
+    .warehouse-polygon {
+      fill: #475569;
+      fill-opacity: 0.12;
+      stroke: #334155;
+      stroke-width: 1.75;
+      cursor: pointer;
+    }
+    .warehouse-polygon:hover {
+      fill-opacity: 0.22;
+    }
+
+    /* SVG Utility Lines (Technical Mode) */
+    .utility-layer { display: none; }
+    .utility-layer.active { display: block; }
+    .utility-cable-trunk {
+      stroke: var(--sgp-utility-amber);
+      stroke-width: 3;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      fill: none;
+      filter: drop-shadow(0 0 2px rgba(255, 183, 3, 0.4));
+    }
+    .utility-water-main {
+      stroke: var(--sgp-utility-cyan);
+      stroke-width: 2.5;
+      stroke-dasharray: 6 3;
+      fill: none;
+    }
+
+    /* Floating Canvas Controls */
+    .floating-tools {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 50;
+    }
+    .tool-btn {
+      width: 36px;
+      height: 36px;
+      background: var(--sgp-surface);
+      border: 1px solid var(--sgp-slate-200);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--sgp-slate-700);
+      cursor: pointer;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+      transition: all 0.15s ease;
+    }
+    .tool-btn:hover {
+      background: var(--sgp-slate-50);
+      color: var(--sgp-navy-800);
+      border-color: var(--sgp-slate-300);
+    }
+    .simulation-watermark {
+      position: absolute;
+      bottom: 16px;
+      left: 16px;
+      background: rgba(15, 23, 42, 0.85);
+      color: #FEF08A;
+      backdrop-filter: blur(4px);
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 500;
+      border: 1px solid rgba(254, 240, 138, 0.3);
+      display: none;
+      align-items: center;
+      gap: 6px;
+      z-index: 40;
+    }
+    .simulation-watermark.active { display: flex; }
+
+    /* ==========================================================================
+       LEVEL 2: HOVER & FOCUS PREVIEW CARD
+       ========================================================================== */
+    .hover-card {
+      position: absolute;
+      background: var(--sgp-surface);
+      border: 1px solid var(--sgp-slate-200);
+      border-radius: 8px;
+      padding: 10px 14px;
+      box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+      font-size: 12px;
+      pointer-events: none;
+      z-index: 200;
+      display: none;
+      width: 250px;
+      transform: translate(-50%, -100%);
+      margin-top: -12px;
+    }
+    .hover-card::after {
+      content: '';
+      position: absolute;
+      bottom: -6px;
+      left: 50%;
+      transform: translateX(-50%);
+      border-width: 6px 6px 0;
+      border-style: solid;
+      border-color: var(--sgp-surface) transparent;
+      display: block;
+      width: 0;
+    }
+    .hover-card-title {
+      font-weight: 700;
+      color: var(--sgp-navy-800);
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .hover-card-row {
+      display: flex;
+      justify-content: space-between;
+      color: var(--sgp-slate-600);
+      margin-top: 3px;
+    }
+    .hover-card-row strong { color: var(--sgp-slate-800); }
+
+    /* ==========================================================================
+       LEVEL 3: PERSISTENT CONTEXTUAL INSPECTOR
+       ========================================================================== */
+    .inspector {
+      width: 400px;
+      background: var(--sgp-surface);
+      border-left: 1px solid var(--sgp-slate-200);
+      display: flex;
+      flex-direction: column;
+      box-shadow: -4px 0 12px rgba(0,0,0,0.03);
+      z-index: 60;
+      transform: translateX(100%);
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      position: absolute;
+      right: 0;
+      top: 0;
+      bottom: 0;
+    }
+    .inspector.open {
+      transform: translateX(0);
+      position: relative;
+    }
+    .inspector-header {
+      padding: 16px;
+      border-bottom: 1px solid var(--sgp-slate-200);
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      background: var(--sgp-slate-50);
+    }
+    .inspector-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--sgp-navy-800);
+    }
+    .inspector-subtitle {
+      font-size: 12px;
+      color: var(--sgp-slate-600);
+      margin-top: 2px;
+    }
+    .close-btn {
+      background: transparent;
+      border: none;
+      color: var(--sgp-slate-600);
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 4px;
+    }
+    .close-btn:hover { background: var(--sgp-slate-200); color: var(--sgp-slate-900); }
+    .inspector-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .spec-card {
+      background: var(--sgp-surface);
+      border: 1px solid var(--sgp-slate-200);
+      border-radius: 8px;
+      padding: 12px;
+    }
+    .spec-card-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--sgp-slate-600);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .staff-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .staff-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: var(--sgp-slate-200);
+      border: 2px solid var(--sgp-surface);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      color: var(--sgp-navy-800);
+      font-size: 14px;
+    }
+    .staff-info { flex: 1; }
+    .staff-name { font-size: 14px; font-weight: 600; color: var(--sgp-slate-900); }
+    .staff-meta { font-size: 12px; color: var(--sgp-slate-600); margin-top: 1px; }
+    .status-badge-inline {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-top: 4px;
+    }
+    .status-badge-inline.verified { background: var(--sgp-status-green-bg); color: var(--sgp-status-green); }
+    .status-badge-inline.pending { background: var(--sgp-status-amber-bg); color: var(--sgp-status-amber); }
+    .status-badge-inline.absent { background: var(--sgp-status-red-bg); color: var(--sgp-status-red); }
+
+    .meter-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 220px;
+      overflow-y: auto;
+    }
+    .meter-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 10px;
+      background: var(--sgp-slate-50);
+      border: 1px solid var(--sgp-slate-200);
+      border-radius: 6px;
+      font-size: 12px;
+    }
+    .meter-code { font-weight: 600; color: var(--sgp-navy-800); }
+    .meter-status { font-weight: 500; font-size: 11px; }
+    .meter-status.read { color: var(--sgp-status-green); }
+    .meter-status.unread { color: var(--sgp-slate-600); }
+    .meter-status.alert { color: var(--sgp-status-red); font-weight: 600; }
+
+    .inspector-actions {
+      padding: 16px;
+      border-top: 1px solid var(--sgp-slate-200);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      background: var(--sgp-slate-50);
+    }
+    .btn-primary {
+      background: var(--sgp-navy-800);
+      color: #FFFFFF;
+      border: none;
+      padding: 10px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      text-align: center;
+      transition: background 0.15s ease;
+    }
+    .btn-primary:hover { background: var(--sgp-navy-900); }
+    .btn-secondary {
+      background: var(--sgp-surface);
+      color: var(--sgp-slate-700);
+      border: 1px solid var(--sgp-slate-300);
+      padding: 8px;
+      border-radius: 6px;
+      font-weight: 500;
+      font-size: 12px;
+      cursor: pointer;
+      text-align: center;
+    }
+    .btn-secondary:hover { background: var(--sgp-slate-100); }
+
+    /* ==========================================================================
+       ACCESSIBILITY FOCUS
+       ========================================================================== */
+    button:focus-visible, select:focus-visible {
+      outline: 2px solid var(--sgp-blue-electric);
+      outline-offset: 2px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ==========================================================================
+       TOP SCENARIO & CONTROLS TOOLBAR
+       ========================================================================== -->
+  <div class="scenario-bar">
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <span class="scenario-badge">Thread 3 Prototype</span>
+      <span>Kịch bản vận hành:</span>
+      <div class="scenario-nav">
+        <select id="scenarioSelect" onchange="loadScenario(this.value)">
+          <option value="1">1. Quang cảnh chuẩn (Normal Overview)</option>
+          <option value="2">2. Kiểm tra nhân sự (Inspect Employee)</option>
+          <option value="3">3. Khu vực chậm tiến độ (Incomplete Zone)</option>
+          <option value="4">4. Chưa phân công ca (Missing Assignment)</option>
+          <option value="5">5. Nghỉ phép & Thay ca (Leave Substitution)</option>
+          <option value="6">6. Trung thực dữ liệu (No Personal Quota)</option>
+          <option value="7">7. Mật độ cao (Dense Clustered Nodes)</option>
+          <option value="8">8. Điều hướng bàn phím (Keyboard Accessible)</option>
+        </select>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <span>Marker Style:</span>
+      <div class="variant-toggles">
+        <button class="variant-btn" id="varA" onclick="setMarkerVariant('A')">A: Tối giản</button>
+        <button class="variant-btn active" id="varB" onclick="setMarkerVariant('B')">B: Trạng thái</button>
+        <button class="variant-btn" id="varC" onclick="setMarkerVariant('C')">C: Tiến độ</button>
+      </div>
+      <span style="color: #64748B;">|</span>
+      <span style="font-size: 11px; color: #E2E8F0;">Dữ liệu: <strong style="color: #38BDF8;">MINH HỌA (DEMO)</strong></span>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       GLOBAL OPERATIONAL STRIP (HEADER)
+       ========================================================================== -->
+  <header class="op-header">
+    <div class="brand-group">
+      <div class="brand-logo">
+        <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+        <span>CẢNG SÀI GÒN</span>
+      </div>
+      <div class="facility-pill">Cảng Tân Thuận 1</div>
+    </div>
+
+    <div class="telemetry-group">
+      <div class="op-pill">
+        <span>Ngày:</span>
+        <strong id="hdrDate">23/09/2026</strong>
+      </div>
+      <div class="op-pill">
+        <span>Ca trực:</span>
+        <strong id="hdrShift">Ca 1 (06:00 - 14:00)</strong>
+      </div>
+      <div class="op-pill">
+        <span>Lượt đo:</span>
+        <strong id="hdrRound">08:00</strong>
+      </div>
+      <div class="progress-pill">
+        <span style="font-size: 12px; color: #475569;">Tiến độ cảng:</span>
+        <strong id="hdrProgressNum" style="color: #003875;">142/180</strong>
+        <span id="hdrProgressPct" style="font-size: 11px; font-weight: 600; color: #16A34A;">(78%)</span>
+        <div class="progress-bar-micro">
+          <div class="progress-bar-fill" id="hdrProgressFill" style="width: 78%;"></div>
+        </div>
+      </div>
+      <div class="alert-pill" id="hdrAlert" onclick="loadScenario('4')">
+        <span>⚠️ 1 Chưa gán ca</span>
+      </div>
+    </div>
+
+    <div class="mode-switch-group">
+      <button class="mode-btn active" id="btnModeOp" onclick="setWorkspaceMode('op')">
+        <span>◉</span> Tác nghiệp
+      </button>
+      <button class="mode-btn" id="btnModeTech" onclick="setWorkspaceMode('tech')">
+        <span>○</span> Mạng lưới KT
+      </button>
+    </div>
+  </header>
+
+  <!-- ==========================================================================
+       MAIN SPATIAL WORKSPACE (MAP V2 + INSPECTOR DOCK)
+       ========================================================================== -->
+  <main class="workspace">
+    
+    <div class="map-canvas-container" id="mapContainer">
+      
+      <!-- CANONICAL 1536x1024 SVG CANVAS -->
+      <svg class="port-map" viewBox="0 0 1536 1024" xmlns="http://www.w3.org/2000/svg">
+        
+        <!-- BASEMAP RECT -->
+        <rect width="1536" height="1024" fill="#F8FAFC" />
+        
+        <!-- RIVER WATERWAY (North of Quay) -->
+        <path d="M 0,0 L 1536,0 L 1536,210 L 1400,215 L 1180,246 L 835,291 L 485,322 L 79,317 L 0,350 Z" fill="#E0F2FE" />
+        <text x="750" y="150" font-size="28" font-weight="700" fill="#BAE6FD" letter-spacing="8" text-anchor="middle">SÔNG SÀI GÒN</text>
+
+        <!-- ZONE_QUAY (Khu Cảng Sà Lan) -->
+        <polygon id="polyQuay" class="zone-polygon"
+          points="49,351 79,317 150,316 341,318 485,322 560,324 665,312 835,291 1018,270 1178,246 1336,220 1384,211 1409,213 1408,229 1397,226 1390,241 1333,258 1180,287 1032,313 989,316 905,329 792,343 660,356 601,379 469,379 307,376 171,375 53,374"
+          onclick="selectEntity('zone', 'ZONE_QUAY')" />
+
+        <!-- ZONE_GENERAL (Bãi Tổng Hợp) -->
+        <polygon id="polyGeneral" class="zone-polygon"
+          points="45,407 163,403 305,404 460,405 591,409 683,383 776,371 856,368 861,447 865,523 870,593 874,668 877,737 879,796 879,836 788,837 687,838 584,840 457,842 321,844 191,845 52,847"
+          onclick="selectEntity('zone', 'ZONE_GENERAL')" />
+
+        <!-- ZONE_CONTAINER (Bãi Container) -->
+        <polygon id="polyContainer" class="zone-polygon"
+          points="900,400 893,379 891,349 1013,330 1179,299 1310,274 1438,246 1453,260 1458,269 1466,321 1475,373 1485,431 1494,484 1502,540 1511,600 1400,620 1280,640 1150,660 930,700 920,620 910,540 905,460"
+          onclick="selectEntity('zone', 'ZONE_CONTAINER')" />
+
+        <!-- WAREHOUSES -->
+        <polygon id="polyKho1" class="warehouse-polygon" points="201,407 285,409 290,543 199,545" onclick="selectEntity('warehouse', 'BLDG_KHO_1')" />
+        <polygon id="polyKho2" class="warehouse-polygon" points="330,407 432,409 433,549 332,550" onclick="selectEntity('warehouse', 'BLDG_KHO_2')" />
+        <polygon id="polyKho4" class="warehouse-polygon" points="893,578 1099,540 1117,624 908,657" onclick="selectEntity('warehouse', 'BLDG_KHO_4')" />
+        
+        <!-- ADMIN BUILDING -->
+        <polygon id="polyAdmin" class="warehouse-polygon" points="883,670 945,660 981,675 979,712 891,721" onclick="selectEntity('zone', 'ZONE_ADMIN')" />
+
+        <!-- TECHNICAL UTILITY LAYER (DEMO B2 TRUNKS) -->
+        <g class="utility-layer" id="techUtilityLayer">
+          <!-- 22kV Electrical Trunk -->
+          <path class="utility-cable-trunk" d="M 883,670 L 650,470 L 382,479 L 244,476 L 100,476" />
+          <path class="utility-cable-trunk" d="M 650,470 L 792,303 L 1232,393 L 1400,400" />
+          <!-- Water Main Distribution -->
+          <path class="utility-water-main" d="M 891,721 L 687,838 L 457,842 L 191,845" />
+          <path class="utility-water-main" d="M 891,721 L 1004,600 L 1232,393" />
+        </g>
+
+        <!-- ZONE LABELS -->
+        <text x="792" y="270" font-size="16" font-weight="700" fill="#003875" text-anchor="middle">KHU CẢNG SÀ LAN</text>
+        <text x="650" y="440" font-size="16" font-weight="700" fill="#003875" text-anchor="middle">BÃI TỔNG HỢP</text>
+        <text x="1232" y="360" font-size="16" font-weight="700" fill="#003875" text-anchor="middle">BÃI CONTAINER</text>
+        <text x="244" y="476" font-size="12" font-weight="600" fill="#334155" text-anchor="middle">Kho 1</text>
+        <text x="382" y="479" font-size="12" font-weight="600" fill="#334155" text-anchor="middle">Kho 2</text>
+        <text x="1004" y="605" font-size="12" font-weight="600" fill="#334155" text-anchor="middle">Kho 4</text>
+        <text x="935" y="695" font-size="11" font-weight="600" fill="#334155" text-anchor="middle">VP Cảng</text>
+
+        <!-- ZONE PROGRESS PILLS (LEVEL 1 AT-A-GLANCE) -->
+        <g id="pillGroupQuay" transform="translate(792, 335)" cursor="pointer" onclick="selectEntity('zone', 'ZONE_QUAY')">
+          <rect x="-42" y="-12" width="84" height="24" rx="12" fill="#FFFFFF" stroke="#003875" stroke-width="1.5" />
+          <text x="0" y="4" font-size="11" font-weight="700" fill="#003875" text-anchor="middle" id="txtProgQuay">34 / 42</text>
+        </g>
+
+        <g id="pillGroupGeneral" transform="translate(650, 500)" cursor="pointer" onclick="selectEntity('zone', 'ZONE_GENERAL')">
+          <rect x="-42" y="-12" width="84" height="24" rx="12" fill="#FFFFFF" stroke="#B45309" stroke-width="1.5" id="rectProgGeneral" />
+          <text x="0" y="4" font-size="11" font-weight="700" fill="#B45309" text-anchor="middle" id="txtProgGeneral">0 / 30 ⚠️</text>
+        </g>
+
+        <g id="pillGroupContainer" transform="translate(1232, 425)" cursor="pointer" onclick="selectEntity('zone', 'ZONE_CONTAINER')">
+          <rect x="-42" y="-12" width="84" height="24" rx="12" fill="#FFFFFF" stroke="#003875" stroke-width="1.5" />
+          <text x="0" y="4" font-size="11" font-weight="700" fill="#003875" text-anchor="middle" id="txtProgContainer">18 / 40</text>
+        </g>
+
+        <!-- EMPLOYEE MAP MARKERS (CANONICAL ANCHORS) -->
+        <!-- Operator 1: Quay (NV001) -->
+        <g id="markerQuay" transform="translate(740, 303)" class="employee-marker" cursor="pointer"
+           tabindex="0" role="button" aria-label="Nhân viên Nguyễn Văn Hải - Khu cảng sà lan"
+           onmouseenter="showHoverCard(event, 'NV001', 'Nguyễn Văn Hải', 'Khu cảng sà lan', 'Ca 1 (05:58)', '34/42 (81%)', '🟢 Đã vào ca')"
+           onmouseleave="hideHoverCard()"
+           onclick="selectEntity('employee', 'NV001')">
+           <!-- Dynamic marker graphic injected by JS -->
+        </g>
+
+        <!-- Operator 2: General Yard (NV003) -->
+        <g id="markerGeneral" transform="translate(590, 470)" class="employee-marker" cursor="pointer"
+           tabindex="0" role="button" aria-label="Nhân viên Lê Hoàng Nam - Bãi tổng hợp"
+           onmouseenter="showHoverCard(event, 'NV003', 'Chưa phân công', 'Bãi tổng hợp', 'Ca 1', '0/30 (0%)', '🔴 Vắng mặt')"
+           onmouseleave="hideHoverCard()"
+           onclick="selectEntity('employee', 'NV003')">
+           <!-- Dynamic marker graphic injected by JS -->
+        </g>
+
+        <!-- Operator 3: Container Yard (NV002 / NV004) -->
+        <g id="markerContainer" transform="translate(1170, 393)" class="employee-marker" cursor="pointer"
+           tabindex="0" role="button" aria-label="Nhân viên Võ Quốc Bảo - Bãi container"
+           onmouseenter="showHoverCard(event, 'NV004', 'Võ Quốc Bảo (Thay ca)', 'Bãi container', 'Ca 1 (06:05)', '18/40 (45%)', '🟢 Đã vào ca')"
+           onmouseleave="hideHoverCard()"
+           onclick="selectEntity('employee', 'NV004')">
+           <!-- Dynamic marker graphic injected by JS -->
+        </g>
+
+        <!-- DENSE MAP NODES (Warehouse 1 Clustered Nodes for Scenario 7) -->
+        <g id="denseClusterGroup" transform="translate(244, 520)" style="display: none;">
+          <circle cx="0" cy="0" r="16" fill="#003875" />
+          <text x="0" y="4" font-size="10" font-weight="700" fill="#FFFFFF" text-anchor="middle">+8</text>
+        </g>
+      </svg>
+
+      <!-- FLOATING CANVAS CONTROLS -->
+      <div class="floating-tools">
+        <button class="tool-btn" title="Phóng to" onclick="alert('Zoom + (110%)')">+</button>
+        <button class="tool-btn" title="Thu nhỏ" onclick="alert('Zoom - (90%)')">-</button>
+        <button class="tool-btn" title="Vừa màn hình (Fit)" onclick="alert('Khôi phục tầm nhìn 100%')">⊡</button>
+      </div>
+
+      <!-- SIMULATION WATERMARK (TECHNICAL NETWORK MODE) -->
+      <div class="simulation-watermark" id="simWatermark">
+        <span>⚠️</span>
+        <span>BẢN QUYỀN MÔ PHỎNG (B2 DEMO): Lưới điện/nước chưa đo đạc định vị GIS thực tế.</span>
+      </div>
+
+      <!-- LEVEL 2: HOVER CARD TOOLTIP -->
+      <div class="hover-card" id="hoverCard">
+        <div class="hover-card-title">
+          <span id="hcName">Nguyễn Văn Hải</span>
+          <span id="hcBadge" style="font-size: 10px;">🟢</span>
+        </div>
+        <div class="hover-card-row">
+          <span>Khu vực:</span>
+          <strong id="hcZone">Khu cảng sà lan</strong>
+        </div>
+        <div class="hover-card-row">
+          <span>Ca trực:</span>
+          <strong id="hcShift">Ca 1 (05:58)</strong>
+        </div>
+        <div class="hover-card-row">
+          <span>Tiến độ khu:</span>
+          <strong id="hcProgress">34/42 (81%)</strong>
+        </div>
+        <div style="margin-top: 6px; font-size: 10px; color: #0265d2; text-align: center; border-top: 1px solid #E2E8F0; padding-top: 4px;">
+          Nhấp chuột hoặc Enter để mở chi tiết
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ==========================================================================
+         LEVEL 3: CONTEXTUAL INSPECTOR PANEL (DOCK)
+         ========================================================================== -->
+    <aside class="inspector" id="inspectorDock" role="dialog" aria-modal="false" aria-labelledby="inspTitle">
+      <div class="inspector-header">
+        <div>
+          <div class="inspector-title" id="inspTitle">Khu Cảng Sà Lan</div>
+          <div class="inspector-subtitle" id="inspSubtitle">Phân khu: ZONE_QUAY | Cầu bến số 1-3</div>
+        </div>
+        <button class="close-btn" onclick="closeInspector()" title="Đóng panel (Esc)">✕</button>
+      </div>
+
+      <div class="inspector-body">
+        
+        <!-- CARD 1: PERSONNEL & DUTY -->
+        <div class="spec-card">
+          <div class="spec-card-title">
+            <span>Nhân sự trực ca (Active Duty)</span>
+            <span id="inspRoleTag" style="color: #003875;">CHÍNH THỨC</span>
+          </div>
+          <div class="staff-row">
+            <div class="staff-avatar" id="inspAvatar">HẢI</div>
+            <div class="staff-info">
+              <div class="staff-name" id="inspStaffName">Nguyễn Văn Hải (NV001)</div>
+              <div class="staff-meta" id="inspStaffMeta">Kỹ thuật viên đo đếm điện nước</div>
+              <div class="status-badge-inline verified" id="inspStatusBadge">
+                <span>🟢</span> <span id="inspStatusText">Đã vào ca lúc 05:58 (Ảnh hợp lệ)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CARD 2: METER READING PROGRESS -->
+        <div class="spec-card">
+          <div class="spec-card-title">
+            <span>Tiến độ đo đếm (Lượt 08:00)</span>
+            <span id="inspMeterRatio" style="color: #003875; font-size: 13px;">34 / 42 (81%)</span>
+          </div>
+          <div class="progress-bar-micro" style="width: 100%; height: 8px; margin-bottom: 12px;">
+            <div class="progress-bar-fill" id="inspMeterFill" style="width: 81%;"></div>
+          </div>
+          
+          <div class="spec-card-title" style="margin-top: 10px;">
+            <span>Danh sách công tơ khu vực</span>
+            <span style="font-size: 10px; color: #64748B;">Lọc: Chưa ghi</span>
+          </div>
+
+          <div class="meter-list" id="inspMeterList">
+            <!-- Populated via JS -->
+          </div>
+        </div>
+
+        <!-- CARD 3: AUDIT & PROVENANCE DISCLOSURE -->
+        <div class="spec-card" style="background: #F8FAFC;">
+          <div class="spec-card-title">
+            <span>Minh bạch dữ liệu (Audit Truth)</span>
+          </div>
+          <p style="font-size: 11px; color: #475569; line-height: 1.4;" id="inspAuditNotes">
+            Dữ liệu tiến độ là tổng hợp thực tế các công tơ thuộc Khu cảng sà lan. Hệ thống không tạo chỉ tiêu cá nhân giả lập khi chưa có lệnh phân rã công việc.
+          </p>
+        </div>
+
+      </div>
+
+      <div class="inspector-actions">
+        <button class="btn-primary" id="btnInspPrimary" onclick="handlePrimaryAction()">Hối thúc tiến độ qua bộ đàm</button>
+        <button class="btn-secondary" onclick="alert('Chuyển hướng đến Sổ nhật ký chi tiết...')">Xem toàn bộ sổ nhật ký</button>
+      </div>
+    </aside>
+
+  </main>
+
+  <!-- ==========================================================================
+       PROTOTYPE LOGIC & INTERACTION SCRIPTS
+       ========================================================================== -->
+  <script>
+    // State variables
+    let currentScenario = '1';
+    let currentMarkerVariant = 'B';
+    let currentWorkspaceMode = 'op';
+    let selectedEntityId = null;
+
+    // Illustrative Mock Data
+    const mockEntities = {
+      ZONE_QUAY: {
+        title: "Khu Cảng Sà Lan",
+        subtitle: "Phân khu: ZONE_QUAY | Cầu bến số 1-3",
+        operator: "Nguyễn Văn Hải (NV001)",
+        avatarText: "HẢI",
+        role: "Kỹ thuật viên đo đếm điện nước",
+        statusType: "verified",
+        statusText: "Đã vào ca lúc 05:58 (Ảnh hợp lệ)",
+        ratio: "34 / 42 (81%)",
+        pct: 81,
+        meters: [
+          { code: "M-035", name: "Cột điện B2 (Cầu tàu 1)", status: "unread", label: "Chưa ghi" },
+          { code: "M-036", name: "Trạm bơm nước P1", status: "unread", label: "Chưa ghi" },
+          { code: "M-037", name: "Tủ phân phối T3", status: "unread", label: "Chưa ghi" },
+          { code: "M-038", name: "Chiếu sáng bờ kè", status: "alert", label: "Kẹt chỉ số" }
+        ],
+        audit: "Dữ liệu tiến độ là tổng hợp thực tế các công tơ thuộc Khu cảng sà lan. Không có chỉ tiêu cá nhân bịa đặt."
+      },
+      ZONE_GENERAL: {
+        title: "Bãi Tổng Hợp",
+        subtitle: "Phân khu: ZONE_GENERAL | Bãi bách hóa nội địa",
+        operator: "Chưa có nhân sự phụ trách",
+        avatarText: "?",
+        role: "Chưa phân công ca trực",
+        statusType: "absent",
+        statusText: "⚠️ Cần điều phối khẩn cấp",
+        ratio: "0 / 30 (0%)",
+        pct: 0,
+        meters: [
+          { code: "M-080", name: "Trạm phân phối Bãi B1", status: "unread", label: "Chưa ghi" },
+          { code: "M-081", name: "Tủ điện cần cẩu C1", status: "unread", label: "Chưa ghi" },
+          { code: "M-082", name: "Van cấp nước sà lan", status: "unread", label: "Chưa ghi" }
+        ],
+        audit: "Khu vực này hiện chưa được gán nhân sự cho Ca 1. Các công tơ chưa ghi có nguy cơ trễ hạn."
+      },
+      ZONE_CONTAINER: {
+        title: "Bãi Container",
+        subtitle: "Phân khu: ZONE_CONTAINER | Bãi Reefer & Trung chuyển",
+        operator: "Võ Quốc Bảo (NV004)",
+        avatarText: "BẢO",
+        role: "Thay ca cho Trần Minh Tuấn (Nghỉ phép)",
+        statusType: "verified",
+        statusText: "Đã vào ca lúc 06:05 (Thay thế NV002)",
+        ratio: "18 / 40 (45%)",
+        pct: 45,
+        meters: [
+          { code: "M-112", name: "Tủ điện Reefer Rack 4", status: "unread", label: "Chưa ghi" },
+          { code: "M-113", name: "Tủ điện Reefer Rack 5", status: "unread", label: "Chưa ghi" },
+          { code: "M-114", name: "Đèn cao áp bãi C", status: "read", label: "Đã đọc (07:45)" }
+        ],
+        audit: "Nhân viên NV004 đang nhận ca thay thế theo quy trình hoán đổi ca hợp lệ. Lịch trực gốc được bảo toàn."
+      }
+    };
+
+    // Render Markers based on Variant
+    function renderMarkers() {
+      const markers = [
+        { id: 'markerQuay', label: 'HẢI', status: 'verified', pct: 81 },
+        { id: 'markerGeneral', label: 'NAM', status: currentScenario === '4' ? 'absent' : 'pending', pct: 0 },
+        { id: 'markerContainer', label: 'BẢO', status: 'verified', pct: 45 }
+      ];
+
+      markers.forEach(m => {
+        const el = document.getElementById(m.id);
+        if (!el) return;
+
+        let dotColor = '#16A34A'; // Green
+        if (m.status === 'pending') dotColor = '#B45309';
+        if (m.status === 'absent') dotColor = '#DC2626';
+
+        if (currentMarkerVariant === 'A') {
+          // Variant A: Minimal Icon Only
+          el.innerHTML = `
+            <circle cx="0" cy="0" r="16" fill="#003875" stroke="#FFFFFF" stroke-width="2" />
+            <path d="M -5,4 A 5,5 0 0,1 5,4 A 5,5 0 0,1 -5,4 Z M 0,-4 A 3.5,3.5 0 1,1 0,-4.1 Z" fill="#FFFFFF" />
+          `;
+        } else if (currentMarkerVariant === 'B') {
+          // Variant B: Status Marker (Recommended)
+          el.innerHTML = `
+            <circle cx="0" cy="0" r="16" fill="#003875" stroke="#FFFFFF" stroke-width="2" />
+            <text x="0" y="4" font-size="9" font-weight="700" fill="#FFFFFF" text-anchor="middle">${m.label}</text>
+            <circle cx="12" cy="-12" r="5" fill="${dotColor}" stroke="#FFFFFF" stroke-width="1.5" />
+          `;
+        } else if (currentMarkerVariant === 'C') {
+          // Variant C: Contextual Progress Ring
+          const strokeDash = `${m.pct}, 100`;
+          el.innerHTML = `
+            <circle cx="0" cy="0" r="15" fill="#003875" />
+            <text x="0" y="4" font-size="8" font-weight="700" fill="#FFFFFF" text-anchor="middle">${m.pct}%</text>
+            <circle cx="0" cy="0" r="18" fill="none" stroke="#E2E8F0" stroke-width="2.5" />
+            <circle cx="0" cy="0" r="18" fill="none" stroke="#0068FF" stroke-width="2.5"
+                    stroke-dasharray="${(m.pct / 100) * 113} 113" stroke-linecap="round" transform="rotate(-90)" />
+          `;
+        }
+      });
+    }
+
+    function setMarkerVariant(varCode) {
+      currentMarkerVariant = varCode;
+      document.querySelectorAll('.variant-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('var' + varCode).classList.add('active');
+      renderMarkers();
+    }
+
+    function setWorkspaceMode(mode) {
+      currentWorkspaceMode = mode;
+      const btnOp = document.getElementById('btnModeOp');
+      const btnTech = document.getElementById('btnModeTech');
+      const techLayer = document.getElementById('techUtilityLayer');
+      const watermark = document.getElementById('simWatermark');
+
+      if (mode === 'op') {
+        btnOp.classList.add('active');
+        btnTech.classList.remove('active');
+        techLayer.classList.remove('active');
+        watermark.classList.remove('active');
+      } else {
+        btnTech.classList.add('active');
+        btnOp.classList.remove('active');
+        techLayer.classList.add('active');
+        watermark.classList.add('active');
+      }
+    }
+
+    // Level 2 Hover Card Logic
+    function showHoverCard(evt, code, name, zone, shift, progress, statusBadge) {
+      const card = document.getElementById('hoverCard');
+      const rect = evt.target.getBoundingClientRect();
+      const containerRect = document.getElementById('mapContainer').getBoundingClientRect();
+
+      document.getElementById('hcName').innerText = `${code} — ${name}`;
+      document.getElementById('hcZone').innerText = zone;
+      document.getElementById('hcShift').innerText = shift;
+      document.getElementById('hcProgress').innerText = progress;
+      document.getElementById('hcBadge').innerText = statusBadge;
+
+      card.style.left = (rect.left - containerRect.left + rect.width / 2) + 'px';
+      card.style.top = (rect.top - containerRect.top) + 'px';
+      card.style.display = 'block';
+    }
+
+    function hideHoverCard() {
+      document.getElementById('hoverCard').style.display = 'none';
+    }
+
+    // Level 3 Contextual Inspector Logic
+    function selectEntity(type, id) {
+      hideHoverCard();
+      const inspector = document.getElementById('inspectorDock');
+      
+      // Determine entity key
+      let key = 'ZONE_QUAY';
+      if (id === 'ZONE_CONTAINER' || id === 'NV004') key = 'ZONE_CONTAINER';
+      if (id === 'ZONE_GENERAL' || id === 'NV003') key = 'ZONE_GENERAL';
+
+      const data = mockEntities[key];
+      if (!data) return;
+
+      document.getElementById('inspTitle').innerText = data.title;
+      document.getElementById('inspSubtitle').innerText = data.subtitle;
+      document.getElementById('inspStaffName').innerText = data.operator;
+      document.getElementById('inspAvatar').innerText = data.avatarText;
+      document.getElementById('inspStaffMeta').innerText = data.role;
+      document.getElementById('inspMeterRatio').innerText = data.ratio;
+      document.getElementById('inspMeterFill').style.width = data.pct + '%';
+      document.getElementById('inspAuditNotes').innerText = data.audit;
+
+      const badge = document.getElementById('inspStatusBadge');
+      badge.className = 'status-badge-inline ' + data.statusType;
+      document.getElementById('inspStatusText').innerText = data.statusText;
+
+      // Populate meter list
+      const listEl = document.getElementById('inspMeterList');
+      listEl.innerHTML = '';
+      data.meters.forEach(m => {
+        const row = document.createElement('div');
+        row.className = 'meter-row';
+        row.innerHTML = `
+          <div>
+            <div class="meter-code">${m.code}</div>
+            <div style="font-size: 11px; color: #64748B;">${m.name}</div>
+          </div>
+          <div class="meter-status ${m.status}">${m.label}</div>
+        `;
+        listEl.appendChild(row);
+      });
+
+      // Highlight selected polygon
+      document.querySelectorAll('.zone-polygon').forEach(p => p.classList.remove('selected'));
+      if (key === 'ZONE_QUAY') document.getElementById('polyQuay').classList.add('selected');
+      if (key === 'ZONE_GENERAL') document.getElementById('polyGeneral').classList.add('selected');
+      if (key === 'ZONE_CONTAINER') document.getElementById('polyContainer').classList.add('selected');
+
+      inspector.classList.add('open');
+    }
+
+    function closeInspector() {
+      document.getElementById('inspectorDock').classList.remove('open');
+      document.querySelectorAll('.zone-polygon').forEach(p => p.classList.remove('selected'));
+    }
+
+    function handlePrimaryAction() {
+      alert("Hành động điều độ: Đã gửi tín hiệu nhắc nhở qua ứng dụng di động của nhân sự.");
+    }
+
+    // Scenario Switching Logic
+    function loadScenario(scNum) {
+      currentScenario = scNum;
+      document.getElementById('scenarioSelect').value = scNum;
+      
+      const polyGeneral = document.getElementById('polyGeneral');
+      const denseNodes = document.getElementById('denseClusterGroup');
+      const hdrAlert = document.getElementById('hdrAlert');
+
+      // Reset base alerts
+      polyGeneral.classList.remove('alert');
+      denseNodes.style.display = 'none';
+      hdrAlert.style.display = 'flex';
+
+      if (scNum === '1') {
+        // Normal overview
+        closeInspector();
+        setWorkspaceMode('op');
+        setMarkerVariant('B');
+      } else if (scNum === '2') {
+        // Inspect an employee
+        selectEntity('employee', 'NV001');
+      } else if (scNum === '3') {
+        // Incomplete zone
+        selectEntity('zone', 'ZONE_CONTAINER');
+      } else if (scNum === '4') {
+        // Missing assignment
+        polyGeneral.classList.add('alert');
+        selectEntity('zone', 'ZONE_GENERAL');
+      } else if (scNum === '5') {
+        // Leave / Substitute
+        selectEntity('zone', 'ZONE_CONTAINER');
+      } else if (scNum === '6') {
+        // Data truthfulness
+        selectEntity('zone', 'ZONE_QUAY');
+      } else if (scNum === '7') {
+        // Dense map
+        denseNodes.style.display = 'block';
+        alert("Kịch bản 7: Kho 1 hiển thị cụm gộp (+8) để tránh chồng lấn nhãn ở tỷ lệ thu nhỏ.");
+      } else if (scNum === '8') {
+        // Keyboard navigation
+        document.getElementById('markerQuay').focus();
+        alert("Kịch bản 8: Đã kích hoạt tiêu điểm phím trên Marker NV001. Sử dụng phím Tab/Enter/Esc để điều hướng.");
+      }
+
+      renderMarkers();
+    }
+
+    // Keyboard global listener (Escape to close inspector)
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeInspector();
+      }
+    });
+
+    // Initial Load
+    window.addEventListener('DOMContentLoaded', () => {
+      renderMarkers();
+    });
+  </script>
+</body>
+</html>

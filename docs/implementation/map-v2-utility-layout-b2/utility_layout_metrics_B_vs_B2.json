@@ -1,0 +1,173 @@
+{
+  "baseline": {
+    "key": "B",
+    "name": "Phương án B (Trục xương sống Trung tâm - Khuyến nghị)",
+    "totalNodes": 17,
+    "electricityNodes": 11,
+    "waterNodes": 6,
+    "totalEdges": 15,
+    "electricityEdges": 10,
+    "waterEdges": 5,
+    "totalLengthPx": 3925,
+    "electricityLengthPx": 2735,
+    "waterLengthPx": 1190,
+    "totalBends": 11,
+    "electricityBends": 6,
+    "waterBends": 5,
+    "sameUtilityCrossings": 0,
+    "sameElecCrossings": [],
+    "sameWaterCrossings": [],
+    "spatialCrossingPointsCount": 2,
+    "spatialCrossingPoints": [
+      {
+        "point": [
+          750,
+          375
+        ],
+        "involvedEdges": [
+          "E-B-07 x W-B-04"
+        ]
+      },
+      {
+        "point": [
+          790,
+          480
+        ],
+        "involvedEdges": [
+          "E-B-08 x W-B-04",
+          "E-B-10 x W-B-04"
+        ]
+      }
+    ],
+    "edgePairCrossingsCount": 3,
+    "crossUtilityCrossings": [
+      {
+        "point": [
+          750,
+          375
+        ],
+        "edge1": "E-B-07",
+        "edge2": "W-B-04",
+        "utility1": "ELECTRICITY",
+        "utility2": "WATER"
+      },
+      {
+        "point": [
+          790,
+          480
+        ],
+        "edge1": "E-B-08",
+        "edge2": "W-B-04",
+        "utility1": "ELECTRICITY",
+        "utility2": "WATER"
+      },
+      {
+        "point": [
+          790,
+          480
+        ],
+        "edge1": "E-B-10",
+        "edge2": "W-B-04",
+        "utility1": "ELECTRICITY",
+        "utility2": "WATER"
+      }
+    ],
+    "sourceSeparationPx": 40,
+    "sourceCoords": {
+      "electricity": [
+        750,
+        760
+      ],
+      "water": [
+        790,
+        760
+      ]
+    }
+  },
+  "refined": {
+    "key": "B2",
+    "name": "Phương án B2 (Trục xương sống Tinh chỉnh — Chuẩn Băng thông)",
+    "totalNodes": 17,
+    "electricityNodes": 11,
+    "waterNodes": 6,
+    "totalEdges": 15,
+    "electricityEdges": 10,
+    "waterEdges": 5,
+    "totalLengthPx": 3960,
+    "electricityLengthPx": 2755,
+    "waterLengthPx": 1205,
+    "totalBends": 14,
+    "electricityBends": 7,
+    "waterBends": 7,
+    "sameUtilityCrossings": 0,
+    "sameElecCrossings": [],
+    "sameWaterCrossings": [],
+    "spatialCrossingPointsCount": 1,
+    "spatialCrossingPoints": [
+      {
+        "point": [
+          740,
+          520
+        ],
+        "involvedEdges": [
+          "E-B2-07 x W-B2-04",
+          "E-B2-08 x W-B2-04",
+          "E-B2-10 x W-B2-04"
+        ]
+      }
+    ],
+    "edgePairCrossingsCount": 3,
+    "crossUtilityCrossings": [
+      {
+        "point": [
+          740,
+          520
+        ],
+        "edge1": "E-B2-07",
+        "edge2": "W-B2-04",
+        "utility1": "ELECTRICITY",
+        "utility2": "WATER"
+      },
+      {
+        "point": [
+          740,
+          520
+        ],
+        "edge1": "E-B2-08",
+        "edge2": "W-B2-04",
+        "utility1": "ELECTRICITY",
+        "utility2": "WATER"
+      },
+      {
+        "point": [
+          740,
+          520
+        ],
+        "edge1": "E-B2-10",
+        "edge2": "W-B2-04",
+        "utility1": "ELECTRICITY",
+        "utility2": "WATER"
+      }
+    ],
+    "sourceSeparationPx": 116,
+    "sourceCoords": {
+      "electricity": [
+        700,
+        755
+      ],
+      "water": [
+        815,
+        770
+      ]
+    }
+  },
+  "diff": {
+    "totalLengthDeltaPx": 35,
+    "totalLengthPercentChange": "0.9%",
+    "totalBendsDelta": 3,
+    "spatialCrossingsDelta": -1,
+    "sourceSeparationDeltaPx": 76,
+    "sourceSeparationMultiplier": "2.90x"
+  },
+  "timestamp": "2026-09-22T16:03:20.636Z"
+}

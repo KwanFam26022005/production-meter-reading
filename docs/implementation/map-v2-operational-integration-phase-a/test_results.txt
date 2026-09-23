@@ -1,0 +1,58 @@
+=== THREAD 7 (PHASE A) TEST RESULTS VERIFICATION ===
+Recorded at: 2026-09-23T14:38:00+07:00
+
+--------------------------------------------------------------------------------
+1. INTEGRATION SUITE (frontend/tests/mapV2OperationalIntegration.test.ts)
+--------------------------------------------------------------------------------
+✔ Requirement 1 & 2: Map V2 subscribes to shared selectedDate and selectedRoundId from OperationalWorkspaceContext (1.0346ms)
+✔ Requirement 3: Non-blocking error handling preserves canvas geometry in degraded mode (0.8538ms)
+✔ Requirement 4: Stable ID mapping between presentation zones and SQLite business zones (2.8953ms)
+✔ Requirement 5, 6, 7, 8: computeZoneOperationalStatus produces truthful statuses (0.555ms)
+✔ Requirement 9: formatZoneProgressText produces single-round progress description (0.4073ms)
+✔ Requirement 10, 11, 12: Real staff markers are stationary at anchors with explicit no-GPS disclosure (2.5217ms)
+✔ Requirement 13 & 14: isValidMeterCoordinate rejects invalid coordinates without placing at (0,0) (19.3246ms)
+✔ Requirement 15: MEASUREMENT_UNIT_DATA_GAP — Raw tabular numbers without hardcoded kWh or m³ (0.6029ms)
+✔ Requirement 16: Utility type (ELECTRICITY/WATER) is distinct from meter tech (MECHANICAL/ELECTRONIC) (0.3624ms)
+✔ Requirement 17 & 18: locateOnMap defaults to dashboard; explicit locateOnMapV2 targets map_v2 (0.3455ms)
+✔ Requirement 19: B2 freeze hash baseline remains unchanged (3.4556ms)
+✔ Requirement 20: Full keyboard accessibility & WCAG support in Map V2 (0.6222ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 12
+ℹ fail 0
+
+--------------------------------------------------------------------------------
+2. FULL OPERATIONS PORTAL TEST SUITE (npm run test:operations)
+--------------------------------------------------------------------------------
+Executed: tests/v*.test.ts, tests/tab*.test.ts, tests/map*.test.ts, tests/canonical*.test.ts
+Total tests: 354
+Passed: 354
+Failed: 0
+Duration: 2094.3ms
+
+--------------------------------------------------------------------------------
+3. USER PORTAL TEST SUITE (npm run test:user)
+--------------------------------------------------------------------------------
+Executed: tests/user*.test.ts, tests/focused*.test.ts
+Total tests: 74
+Passed: 74
+Failed: 0
+Duration: 3176.9ms
+
+--------------------------------------------------------------------------------
+4. B2 NETWORK FROZEN TOPOLOGY HASH (node scripts/verify_b2_freeze_hash.mjs)
+--------------------------------------------------------------------------------
+RECOMMENDED_LAYOUT_KEY: B2
+FROZEN B2 CONFIG SHA256: 7f3a8916b841e12525969128783eb835218bcdd07f645dc1ee4305bce5a5cc6a
+B2 NODES COUNT: 17
+B2 EDGES COUNT: 15
+Status: IDENTICAL BASELINE MATCH
+
+--------------------------------------------------------------------------------
+5. BUNDLE ISOLATION AUDIT (node scripts/verify_bundle_separation.mjs)
+--------------------------------------------------------------------------------
+User bundle: user-B9pd64-1.js (286.51 KB)
+Operations bundle: operations-C8nIBrPA.js (917.68 KB)
+Forbidden Admin modules in User bundle: 0 (ALL CLEAN)
+Forbidden Camera UI modules in Operations bundle: 0 (ALL CLEAN)
+Status: ALL BUNDLE ISOLATION GATES PASSED (Exit code 0)

@@ -1,0 +1,162 @@
+[
+  {
+    "viewport": "1280x720",
+    "width": 1280,
+    "height": 720,
+    "operational": {
+      "sidebarWidth": 80,
+      "containerWidth": 1200,
+      "containerHeight": 720,
+      "headerHeight": 101,
+      "toolbarWidth": 977,
+      "toolbarScrollWidth": 977,
+      "isToolbarClipped": false,
+      "canvasWidth": 1200,
+      "canvasHeight": 619,
+      "zoomText": "60%"
+    },
+    "card": {
+      "cardLeft": 104,
+      "cardTop": 566.90625,
+      "cardWidth": 360,
+      "cardHeight": 129.09375,
+      "offsetFromCanvasLeft": 24,
+      "offsetFromCanvasBottom": 24
+    },
+    "technicalInspector": {
+      "canvasWidth": 840,
+      "canvasHeight": 596,
+      "inspectorWidth": 360,
+      "inspectorPresent": true,
+      "zoomText": "55%"
+    }
+  },
+  {
+    "viewport": "1366x768",
+    "width": 1366,
+    "height": 768,
+    "operational": {
+      "sidebarWidth": 80,
+      "containerWidth": 1286,
+      "containerHeight": 768,
+      "headerHeight": 101,
+      "toolbarWidth": 1050,
+      "toolbarScrollWidth": 1050,
+      "isToolbarClipped": false,
+      "canvasWidth": 1286,
+      "canvasHeight": 667,
+      "zoomText": "65%"
+    },
+    "card": {
+      "cardLeft": 104,
+      "cardTop": 614.90625,
+      "cardWidth": 360,
+      "cardHeight": 129.09375,
+      "offsetFromCanvasLeft": 24,
+      "offsetFromCanvasBottom": 24
+    },
+    "technicalInspector": {
+      "canvasWidth": 926,
+      "canvasHeight": 667,
+      "inspectorWidth": 360,
+      "inspectorPresent": true,
+      "zoomText": "60%"
+    }
+  },
+  {
+    "viewport": "1536x864",
+    "width": 1536,
+    "height": 864,
+    "operational": {
+      "sidebarWidth": 80,
+      "containerWidth": 1456,
+      "containerHeight": 864,
+      "headerHeight": 62,
+      "toolbarWidth": 1142,
+      "toolbarScrollWidth": 1142,
+      "isToolbarClipped": false,
+      "canvasWidth": 1456,
+      "canvasHeight": 802,
+      "zoomText": "78%"
+    },
+    "card": {
+      "cardLeft": 104,
+      "cardTop": 710.90625,
+      "cardWidth": 360,
+      "cardHeight": 129.09375,
+      "offsetFromCanvasLeft": 24,
+      "offsetFromCanvasBottom": 24
+    },
+    "technicalInspector": {
+      "canvasWidth": 1096,
+      "canvasHeight": 763,
+      "inspectorWidth": 360,
+      "inspectorPresent": true,
+      "zoomText": "71%"
+    }
+  },
+  {
+    "viewport": "1920x1080",
+    "width": 1920,
+    "height": 1080,
+    "operational": {
+      "sidebarWidth": 80,
+      "containerWidth": 1840,
+      "containerHeight": 1080,
+      "headerHeight": 62,
+      "toolbarWidth": 1142,
+      "toolbarScrollWidth": 1142,
+      "isToolbarClipped": false,
+      "canvasWidth": 1840,
+      "canvasHeight": 1018,
+      "zoomText": "99%"
+    },
+    "card": {
+      "cardLeft": 104,
+      "cardTop": 926.90625,
+      "cardWidth": 360,
+      "cardHeight": 129.09375,
+      "offsetFromCanvasLeft": 24,
+      "offsetFromCanvasBottom": 24
+    },
+    "technicalInspector": {
+      "canvasWidth": 1480,
+      "canvasHeight": 1018,
+      "inspectorWidth": 360,
+      "inspectorPresent": true,
+      "zoomText": "96%"
+    }
+  },
+  {
+    "viewport": "2560x1440",
+    "width": 2560,
+    "height": 1440,
+    "operational": {
+      "sidebarWidth": 80,
+      "containerWidth": 2480,
+      "containerHeight": 1440,
+      "headerHeight": 62,
+      "toolbarWidth": 1142,
+      "toolbarScrollWidth": 1142,
+      "isToolbarClipped": false,
+      "canvasWidth": 2480,
+      "canvasHeight": 1378,
+      "zoomText": "135%"
+    },
+    "card": {
+      "cardLeft": 104,
+      "cardTop": 1286.90625,
+      "cardWidth": 360,
+      "cardHeight": 129.09375,
+      "offsetFromCanvasLeft": 24,
+      "offsetFromCanvasBottom": 24
+    },
+    "technicalInspector": {
+      "canvasWidth": 2120,
+      "canvasHeight": 1378,
+      "inspectorWidth": 360,
+      "inspectorPresent": true,
+      "zoomText": "135%"
+    }
+  }
+]

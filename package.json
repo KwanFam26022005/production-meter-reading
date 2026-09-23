@@ -1,0 +1,15 @@
+{
+  "name": "production-meter-reading-root",
+  "private": true,
+  "scripts": {
+    "dev:user": "npm --prefix frontend run dev:user",
+    "dev:operations": "npm --prefix frontend run dev:operations",
+    "build": "npm --prefix frontend run build",
+    "build:user": "npm --prefix frontend run build:user",
+    "build:operations": "npm --prefix frontend run build:operations",
+    "build:legacy": "npm --prefix frontend run build:legacy",
+    "test": "npm --prefix frontend run test",
+    "test:user": "npm --prefix frontend run test:user",
+    "test:operations": "npm --prefix frontend run test:operations"
+  }
+}

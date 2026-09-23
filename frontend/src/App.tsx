@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import {
   ArrowLeft,
   RotateCcw,
@@ -6,7 +6,6 @@ import {
   AlertTriangle,
   RefreshCw,
   Check,
-  MapPin,
   Edit3,
   Maximize2,
   X,
@@ -17,9 +16,10 @@ import {
   MeterReadingActionResponse,
   ReadingBatch,
   ReadingRound,
+  TodayAttendance,
   User,
 } from './types';
-import { confirmMeterReading, getMe, logout, markMeterReview, readMeter, setOnAuthExpired } from './services/api';
+import { confirmMeterReading, getMe, getTodayAttendance, logout, markMeterReview, readMeter, reconcileMeterReading, setOnAuthExpired } from './services/api';
 import { LoginView } from './components/LoginView';
 import { HomeHub } from './components/HomeHub';
 import { AttendanceView } from './components/AttendanceView';
@@ -40,6 +40,7 @@ import { AdminReports } from './components/admin/AdminReports';
 import { AdminReadingInspection } from './components/admin/AdminReadingInspection';
 import { AdminVerification } from './components/admin/AdminVerification';
 import { AdminDevicesWorkspace } from './components/admin/AdminDevicesWorkspace';
+import { MapV2Workspace } from './components/map-v2/MapV2Workspace';
 import { OperationalWorkspaceProvider, useOperationalWorkspace } from './context/OperationalWorkspaceContext';
 
 const MAX_IMAGE_SIZE_BYTES = 12 * 1024 * 1024; // 12MB
@@ -202,6 +203,7 @@ const AdminWorkspaceApp: React.FC<AdminWorkspaceAppProps> = ({
             />
           )}
           {adminActiveTab === 'audit' && <AdminAudit />}
+          {adminActiveTab === 'map_v2' && <MapV2Workspace />}
         </>
       )}
 
@@ -230,16 +232,43 @@ export default function App() {
     try {
       const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
       const tabParam = params?.get('tab');
-      if (tabParam && ['dashboard', 'assets', 'verification', 'schedules', 'staff_roster', 'meters', 'reports', 'audit'].includes(tabParam)) {
+      if (tabParam && ['dashboard', 'assets', 'verification', 'schedules', 'staff_roster', 'meters', 'reports', 'audit', 'map_v2'].includes(tabParam)) {
         return tabParam as AdminTab;
       }
       const saved = sessionStorage.getItem('admin_active_tab');
-      if (saved && ['dashboard', 'assets', 'verification', 'schedules', 'staff_roster', 'meters', 'reports', 'audit'].includes(saved)) {
+      if (saved && ['dashboard', 'assets', 'verification', 'schedules', 'staff_roster', 'meters', 'reports', 'audit', 'map_v2'].includes(saved)) {
         return saved as AdminTab;
       }
     } catch {}
     return 'dashboard';
   });
+
+  // Single Source of Truth for Today Attendance (Shared by Header Avatar and Home Hub)
+  const [todayAttendance, setTodayAttendance] = useState<TodayAttendance | null>(null);
+  const [loadingAttendance, setLoadingAttendance] = useState<boolean>(true);
+  const [attendanceError, setAttendanceError] = useState<string | null>(null);
+
+  const fetchTodayAttendance = useCallback(async () => {
+    setLoadingAttendance(true);
+    setAttendanceError(null);
+    try {
+      const data = await getTodayAttendance();
+      setTodayAttendance(data);
+      setAttendanceError(null);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Lỗi tải trạng thái chấm công.';
+      setAttendanceError(msg);
+      setTodayAttendance(null);
+    } finally {
+      setLoadingAttendance(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (currentUser && currentUser.role !== 'ADMIN' && activeScreen === 'home') {
+      fetchTodayAttendance();
+    }
+  }, [currentUser, activeScreen, fetchTodayAttendance]);
 
   const handleSelectAdminTab = (tab: AdminTab) => {
     setAdminActiveTab(tab);
@@ -293,9 +322,17 @@ export default function App() {
   const [manualReadingValue, setManualReadingValue] = useState<string>('');
   const [manualReadingError, setManualReadingError] = useState<string | null>(null);
 
-  // Confirmation & Review Action State
-  const [confirming, setConfirming] = useState<boolean>(false);
+  // Confirmation & Review Action State Machine (Phase D)
+  // NOT_SUBMITTED → SUBMITTING → CONFIRMED_BY_SERVER | REJECTED | OUTCOME_UNKNOWN
+  type SubmissionPhase = 'NOT_SUBMITTED' | 'SUBMITTING' | 'CONFIRMED_BY_SERVER' | 'REJECTED' | 'OUTCOME_UNKNOWN';
+  const [submissionPhase, setSubmissionPhase] = useState<SubmissionPhase>('NOT_SUBMITTED');
+  const confirming = submissionPhase === 'SUBMITTING';
   const [confirmSuccessData, setConfirmSuccessData] = useState<MeterReadingActionResponse | null>(null);
+  const [conflictError, setConflictError] = useState<string | null>(null);
+  const [reconciling, setReconciling] = useState<boolean>(false);
+
+  // Stale OCR response protection & concurrency guard
+  const ocrRequestIdRef = useRef<number>(0);
 
   // Central Auth Expiration Listener
   useEffect(() => {
@@ -309,6 +346,18 @@ export default function App() {
       setOnAuthExpired(null);
     };
   }, []);
+
+  // Set dark body canvas class during focused meter reading to eliminate any background flash
+  useEffect(() => {
+    if (activeScreen === 'meter') {
+      document.body.classList.add('focused-mode-active');
+    } else {
+      document.body.classList.remove('focused-mode-active');
+    }
+    return () => {
+      document.body.classList.remove('focused-mode-active');
+    };
+  }, [activeScreen]);
 
   // Bootstrap session authentication on application startup
   useEffect(() => {
@@ -366,6 +415,7 @@ export default function App() {
   };
 
   const handleReset = () => {
+    ocrRequestIdRef.current++;
     if (previewUrl) {
       URL.revokeObjectURL(previewUrl);
     }
@@ -374,6 +424,8 @@ export default function App() {
     setResult(null);
     setError(null);
     setConfirmSuccessData(null);
+    setSubmissionPhase('NOT_SUBMITTED');
+    setConflictError(null);
     setRoiDataUrl(null);
     setIsEditingReading(false);
     setEditReadingValue('');
@@ -389,6 +441,7 @@ export default function App() {
   const handleReadMeter = async () => {
     if (!imageFile || !previewUrl) return;
 
+    const requestId = ++ocrRequestIdRef.current;
     setLoading(true);
     setError(null);
     setConfirmSuccessData(null);
@@ -398,6 +451,8 @@ export default function App() {
 
     try {
       const data = await readMeter(imageFile);
+      if (requestId !== ocrRequestIdRef.current) return;
+
       setResult(data);
 
       if (data.reading) {
@@ -408,6 +463,7 @@ export default function App() {
       // Generate cropped ROI data URL if coordinates are provided
       if (data.roi_bbox) {
         const cropped = await generateRoiCrop(previewUrl, data.roi_bbox);
+        if (requestId !== ocrRequestIdRef.current) return;
         setRoiDataUrl(cropped);
         setActiveImageTab('roi');
       } else {
@@ -422,6 +478,7 @@ export default function App() {
         }
       }
     } catch (err: unknown) {
+      if (requestId !== ocrRequestIdRef.current) return;
       const errMsg =
         err instanceof Error
           ? err.message
@@ -431,7 +488,9 @@ export default function App() {
       }
       setError(errMsg);
     } finally {
-      setLoading(false);
+      if (requestId === ocrRequestIdRef.current) {
+        setLoading(false);
+      }
     }
   };
 
@@ -464,15 +523,69 @@ export default function App() {
     setEditError(null);
   };
 
+  const handleReconcileSubmission = async (targetReadingValue?: string | null) => {
+    if (!selectedMeter || !selectedRound || reconciling) return;
+    const valueToMatch = targetReadingValue || confirmedReadingValue || manualReadingValue;
+    setReconciling(true);
+    try {
+      const rec = await reconcileMeterReading(selectedRound.id, selectedMeter.id);
+      if (rec.exists && rec.reading) {
+        const normExisting = normalizeReading(rec.reading);
+        const normTarget = valueToMatch ? normalizeReading(valueToMatch) : null;
+        if (normTarget && normExisting === normTarget) {
+          setSubmissionPhase('CONFIRMED_BY_SERVER');
+          setConfirmSuccessData({
+            status: 'success',
+            reading_id: rec.reading_id || 'reconciled',
+            meter_id: rec.meter_id,
+            batch_id: rec.batch_id || selectedBatch?.id || '',
+            reading_round_id: rec.round_id,
+            round_scheduled_local: selectedRound.scheduled_local || '',
+            reading_status: (rec.reading_status as 'CONFIRMED' | 'REVIEW') || 'CONFIRMED',
+            reading: rec.reading,
+            ocr_reading: rec.ocr_reading,
+            confirmation_source: rec.confirmation_source || 'RECONCILED',
+            server_timestamp: rec.server_timestamp || new Date().toISOString(),
+            formatted_time: rec.formatted_time || new Date().toLocaleTimeString('vi-VN'),
+            message: 'Chỉ số đã được máy chủ ghi nhận thành công (kết quả đối soát khớp).',
+          });
+          setError(null);
+          setConflictError(null);
+          return;
+        } else {
+          setSubmissionPhase('REJECTED');
+          setConflictError(
+            `Chỉ số của công tơ này đã được ghi nhận với giá trị ${rec.reading}` +
+            (rec.recorded_by_employee_code ? ` (Mã NV: ${rec.recorded_by_employee_code})` : '') +
+            `. Vui lòng kiểm tra lại danh sách.`
+          );
+          setError(null);
+          return;
+        }
+      } else {
+        setSubmissionPhase('NOT_SUBMITTED');
+        setError('Máy chủ chưa ghi nhận chỉ số. Bạn có thể bấm xác nhận để gửi lại an toàn.');
+        setConflictError(null);
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Không thể kết nối máy chủ để đối soát.';
+      setError(`Đối soát thất bại: ${msg}`);
+    } finally {
+      setReconciling(false);
+    }
+  };
+
   const handleConfirmReading = async () => {
-    if (!selectedMeter || !selectedRound || !result || !confirmedReadingValue) return;
+    if (!selectedMeter || !selectedRound || !result || !confirmedReadingValue || confirming) return;
 
     const normConfirmed = normalizeReading(confirmedReadingValue);
     const normOcr = result.reading ? normalizeReading(result.reading) : null;
     const isCorrected = normOcr !== null && normConfirmed !== normOcr;
 
-    setConfirming(true);
+    // Phase D: transition NOT_SUBMITTED → SUBMITTING
+    setSubmissionPhase('SUBMITTING');
     setError(null);
+    setConflictError(null);
 
     try {
       let imageB64: string | null = null;
@@ -480,7 +593,7 @@ export default function App() {
         try {
           imageB64 = await fileToBase64(imageFile);
         } catch {
-          // ignore
+          // ignore — image send failure is non-fatal
         }
       }
 
@@ -499,17 +612,68 @@ export default function App() {
         roi_bbox: result.roi_bbox,
         image_base64: imageB64,
       });
+      // Server returned a success body — definitive outcome
+      setSubmissionPhase('CONFIRMED_BY_SERVER');
       setConfirmSuccessData(actionRes);
     } catch (err: unknown) {
+      const isApiError = err && typeof err === 'object' && 'status' in err;
+      const httpStatus = isApiError ? (err as { status: number }).status : null;
       const msg = err instanceof Error ? err.message : 'Không thể lưu xác nhận chỉ số.';
-      setError(msg);
-    } finally {
-      setConfirming(false);
+      const isNetworkLoss =
+        httpStatus === 0 ||
+        msg.toLowerCase().includes('network') ||
+        msg.toLowerCase().includes('fetch') ||
+        msg.toLowerCase().includes('kết nối') ||
+        msg.toLowerCase().includes('failed to fetch');
+
+      if (httpStatus === 409 || msg.includes('409') || msg.includes('đã được xác nhận') || msg.includes('already recorded')) {
+        // Check with reconciliation first: did our commit succeed before response dropped?
+        try {
+          const rec = await reconcileMeterReading(selectedRound.id, selectedMeter.id);
+          if (rec.exists && rec.reading && normalizeReading(rec.reading) === normConfirmed) {
+            setSubmissionPhase('CONFIRMED_BY_SERVER');
+            setConfirmSuccessData({
+              status: 'success',
+              reading_id: rec.reading_id || 'reconciled',
+              meter_id: rec.meter_id,
+              batch_id: rec.batch_id || selectedBatch?.id || '',
+              reading_round_id: rec.round_id,
+              round_scheduled_local: selectedRound.scheduled_local || '',
+              reading_status: (rec.reading_status as 'CONFIRMED' | 'REVIEW') || 'CONFIRMED',
+              reading: rec.reading,
+              ocr_reading: rec.ocr_reading,
+              confirmation_source: rec.confirmation_source || 'RECONCILED',
+              server_timestamp: rec.server_timestamp || new Date().toISOString(),
+              formatted_time: rec.formatted_time || new Date().toLocaleTimeString('vi-VN'),
+              message: 'Chỉ số đã được máy chủ ghi nhận (đối soát xác nhận thành công).',
+            });
+            return;
+          }
+        } catch {
+          // fallback to REJECTED if reconciliation fails
+        }
+        setSubmissionPhase('REJECTED');
+        setConflictError(
+          'Công tơ này đã được ghi nhận trong lượt hiện tại. ' +
+          'Vui lòng quay lại danh sách để kiểm tra kết quả thực tế.'
+        );
+      } else if (isNetworkLoss) {
+        // Network-level failure — we don't know if server processed the request
+        setSubmissionPhase('OUTCOME_UNKNOWN');
+        setError(
+          'Mất kết nối sau khi gửi yêu cầu. Không thể xác định chỉ số đã được lưu chưa. ' +
+          'Vui lòng bấm "Đối soát với máy chủ" bên dưới hoặc kiểm tra danh sách công tơ.'
+        );
+      } else {
+        // Known server error (4xx/5xx other than 409) — REJECTED with reason
+        setSubmissionPhase('REJECTED');
+        setError(msg);
+      }
     }
   };
 
   const handleConfirmManualReading = async () => {
-    if (!selectedMeter || !selectedRound) return;
+    if (!selectedMeter || !selectedRound || confirming) return;
 
     const sanitized = sanitizeReadingInput(manualReadingValue);
     const normalized = normalizeReading(sanitized);
@@ -522,8 +686,10 @@ export default function App() {
       return;
     }
 
-    setConfirming(true);
+    // Phase D: transition NOT_SUBMITTED → SUBMITTING
+    setSubmissionPhase('SUBMITTING');
     setError(null);
+    setConflictError(null);
     setManualReadingError(null);
 
     try {
@@ -551,20 +717,69 @@ export default function App() {
         roi_bbox: result?.roi_bbox || null,
         image_base64: imageB64,
       });
+      setSubmissionPhase('CONFIRMED_BY_SERVER');
       setConfirmSuccessData(actionRes);
       setIsManualEntryOpen(false);
     } catch (err: unknown) {
+      const isApiError = err && typeof err === 'object' && 'status' in err;
+      const httpStatus = isApiError ? (err as { status: number }).status : null;
       const msg = err instanceof Error ? err.message : 'Không thể lưu xác nhận chỉ số.';
-      setManualReadingError(msg);
-    } finally {
-      setConfirming(false);
+      const isNetworkLoss =
+        httpStatus === 0 ||
+        msg.toLowerCase().includes('network') ||
+        msg.toLowerCase().includes('fetch') ||
+        msg.toLowerCase().includes('kết nối') ||
+        msg.toLowerCase().includes('failed to fetch');
+
+      if (httpStatus === 409 || msg.includes('409') || msg.includes('đã được xác nhận') || msg.includes('already recorded')) {
+        try {
+          const rec = await reconcileMeterReading(selectedRound.id, selectedMeter.id);
+          if (rec.exists && rec.reading && normalizeReading(rec.reading) === normalized) {
+            setSubmissionPhase('CONFIRMED_BY_SERVER');
+            setConfirmSuccessData({
+              status: 'success',
+              reading_id: rec.reading_id || 'reconciled',
+              meter_id: rec.meter_id,
+              batch_id: rec.batch_id || selectedBatch?.id || '',
+              reading_round_id: rec.round_id,
+              round_scheduled_local: selectedRound.scheduled_local || '',
+              reading_status: (rec.reading_status as 'CONFIRMED' | 'REVIEW') || 'CONFIRMED',
+              reading: rec.reading,
+              ocr_reading: rec.ocr_reading,
+              confirmation_source: rec.confirmation_source || 'RECONCILED',
+              server_timestamp: rec.server_timestamp || new Date().toISOString(),
+              formatted_time: rec.formatted_time || new Date().toLocaleTimeString('vi-VN'),
+              message: 'Chỉ số đã được máy chủ ghi nhận (đối soát xác nhận thành công).',
+            });
+            setIsManualEntryOpen(false);
+            return;
+          }
+        } catch {
+          // ignore
+        }
+        setSubmissionPhase('REJECTED');
+        setConflictError(
+          'Công tơ này đã được ghi nhận trong lượt hiện tại. ' +
+          'Vui lòng quay lại danh sách để kiểm tra kết quả thực tế.'
+        );
+        setIsManualEntryOpen(false);
+      } else if (isNetworkLoss) {
+        setSubmissionPhase('OUTCOME_UNKNOWN');
+        setManualReadingError(
+          'Mất kết nối sau khi gửi yêu cầu. Không thể xác định chỉ số đã được lưu chưa. ' +
+          'Vui lòng bấm "Đối soát với máy chủ" để kiểm tra trạng thái.'
+        );
+      } else {
+        setSubmissionPhase('REJECTED');
+        setManualReadingError(msg);
+      }
     }
   };
 
   const handleMarkReview = async () => {
-    if (!selectedMeter || !selectedRound || !result) return;
+    if (!selectedMeter || !selectedRound || !result || confirming) return;
 
-    setConfirming(true);
+    setSubmissionPhase('SUBMITTING');
     setError(null);
 
     try {
@@ -582,14 +797,15 @@ export default function App() {
       setActiveScreen('reading_batch');
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Không thể đánh dấu cần kiểm tra.';
+      setSubmissionPhase('REJECTED');
       setError(msg);
-    } finally {
-      setConfirming(false);
     }
   };
 
   const hasUnsavedWork = Boolean(
-    previewUrl || result || isEditingReading || isManualEntryOpen || manualReadingValue || (confirmedReadingValue && !confirmSuccessData)
+    previewUrl || result || isEditingReading || isManualEntryOpen || manualReadingValue ||
+    (confirmedReadingValue && !confirmSuccessData) ||
+    submissionPhase === 'REJECTED' || submissionPhase === 'OUTCOME_UNKNOWN'
   );
 
   const handleBackFromMeter = () => {
@@ -686,9 +902,19 @@ export default function App() {
   // 3. Authenticated Home Hub (EMPLOYEE role)
   if (activeScreen === 'home') {
     return (
-      <AuthenticatedShell user={currentUser} onLogout={handleOpenLogoutModal}>
+      <AuthenticatedShell
+        user={currentUser}
+        attendance={todayAttendance}
+        loadingAttendance={loadingAttendance}
+        attendanceError={attendanceError}
+        onLogout={handleOpenLogoutModal}
+      >
         <HomeHub
           user={currentUser}
+          attendance={todayAttendance}
+          loadingAttendance={loadingAttendance}
+          attendanceError={attendanceError}
+          onRefreshAttendance={fetchTodayAttendance}
           onOpenMeter={() => {
             handleReset();
             setActiveScreen('reading_batch');
@@ -750,133 +976,306 @@ export default function App() {
   const currentDisplayUrl =
     activeImageTab === 'roi' && roiDataUrl ? roiDataUrl : previewUrl || '';
 
-  // 7. Authenticated Meter Reading Workflow with Verification & Inspection
-  return (
-    <AuthenticatedShell
-      screenTitle="ĐỌC CHỈ SỐ"
-      screenSubtitle={selectedMeter ? selectedMeter.meter_code : 'Đo đếm điện năng'}
-      backLabel="Danh sách"
-      onBack={handleBackFromMeter}
-    >
-        {/* Selected Meter Context Banner */}
-        {selectedMeter && (
-          <div className="meter-context-banner">
-            <div className="context-main">
-              <span className="context-tag">ĐANG GHI:</span>
-              <span className="context-code">{selectedMeter.meter_code}</span>
-              <span className="context-name">{selectedMeter.name}</span>
-              {selectedRound && (
-                <span className="context-round-badge">
-                  Lượt {selectedRound.scheduled_time_only}
-                </span>
-              )}
-            </div>
-            {selectedMeter.location && (
-              <div className="context-loc">
-                <MapPin size={12} />
-                <span>{selectedMeter.location}</span>
-              </div>
+  // 7. FOCUSED METER READING WORKFLOW
+  // 7.1 STATE 1: LIVE REAR-CAMERA CAPTURE WITH FOCUSED MINIMAL HEADER & CONTROLS
+  if (!previewUrl && !loading && !result && !error && !confirmSuccessData) {
+    return (
+      <>
+        <MeterCamera
+          meterCode={selectedMeter?.meter_code}
+          meterName={selectedMeter?.name}
+          roundTime={selectedRound?.scheduled_time_only}
+          onCapture={handleFileSelect}
+          onSelectGallery={handleFileSelect}
+          onBack={handleBackFromMeter}
+        />
+        <UnsavedWorkConfirmModal
+          isOpen={isUnsavedWorkModalOpen}
+          onConfirm={handleConfirmExitMeter}
+          onCancel={() => setIsUnsavedWorkModalOpen(false)}
+        />
+      </>
+    );
+  }
+
+  // 7.2 STATE 2 & 3: CONTINUOUS CAPTURED PREVIEW & SMOOTH OCR PROCESSING OVERLAY
+  if (previewUrl && !result && !error && !confirmSuccessData) {
+    return (
+      <div className="focused-capture-shell" data-testid="focused-preview-shell">
+        {/* Minimal Focused Header */}
+        <header className="focused-capture-header" role="banner">
+          <button
+            type="button"
+            className="btn-focused-back"
+            onClick={handleBackFromMeter}
+            aria-label="Quay lại danh sách công tơ"
+            title="Quay lại danh sách"
+          >
+            <ArrowLeft size={20} strokeWidth={2.4} />
+            <span className="focused-back-text">Danh sách</span>
+          </button>
+
+          <div className="focused-header-identity">
+            <span className="focused-meter-code">{selectedMeter?.meter_code || 'ĐO ĐẾM CÔNG TƠ'}</span>
+            {selectedMeter?.name && <span className="focused-meter-name">{selectedMeter.name}</span>}
+          </div>
+
+          <div className="focused-header-right">
+            {selectedRound?.scheduled_time_only ? (
+              <span className="focused-round-pill">Lượt {selectedRound.scheduled_time_only}</span>
+            ) : (
+              <div style={{ width: '44px' }} />
             )}
           </div>
-        )}
+        </header>
 
-        {/* STATE 1: LIVE REAR-CAMERA CAPTURE WITH FIXED ALIGNMENT OVERLAY */}
-        {!previewUrl && !loading && !result && !error && !confirmSuccessData && (
-          <MeterCamera
-            onCapture={handleFileSelect}
-            onSelectGallery={handleFileSelect}
+        {/* Viewport: Still image stays visible continuously */}
+        <div className="focused-preview-viewport">
+          <img
+            src={previewUrl}
+            alt="Ảnh công tơ xem trước"
+            className="focused-preview-image"
           />
-        )}
 
-        {/* STATE 2: PREVIEW */}
-        {previewUrl && !loading && !result && !error && !confirmSuccessData && (
-          <>
-            <div className="screen-heading">
-              <h2 className="screen-title">Kiểm tra ảnh chụp</h2>
-              <p className="screen-instruction">
-                Đảm bảo hàng số rõ nét và không bị phản sáng trước khi đọc.
-              </p>
+          {/* OCR Processing Overlay if loading */}
+          {loading && (
+            <div
+              className="focused-processing-overlay"
+              role="status"
+              aria-live="polite"
+              aria-label="Đang đọc chỉ số"
+            >
+              <div className="maritime-spinner" aria-hidden="true" />
+              <div>
+                <p className="focused-processing-title">Đang đọc chỉ số...</p>
+                <p className="focused-processing-sub">Giữ ứng dụng mở trong giây lát.</p>
+              </div>
             </div>
+          )}
+        </div>
 
-            <div className="preview-container">
-              <img
-                src={previewUrl}
-                alt="Ảnh công tơ xem trước"
-                className="preview-image"
-              />
+        {/* Bottom Preview Controls (maintain stable container height during loading to prevent layout shift) */}
+        <div
+          className="focused-preview-controls"
+          style={{
+            opacity: loading ? 0.35 : 1,
+            pointerEvents: loading ? 'none' : 'auto',
+            transition: 'opacity 180ms ease-out',
+          }}
+        >
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={handleReset}
+            disabled={loading}
+            aria-label="Chụp lại ảnh khác"
+          >
+            <RotateCcw size={18} strokeWidth={1.8} />
+            Chụp lại
+          </button>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={handleReadMeter}
+            disabled={loading}
+            aria-label="Tiến hành đọc chỉ số"
+          >
+            <Check size={20} strokeWidth={2.2} />
+            {loading ? 'Đang đọc...' : 'Đọc chỉ số'}
+          </button>
+        </div>
+
+        <UnsavedWorkConfirmModal
+          isOpen={isUnsavedWorkModalOpen}
+          onConfirm={handleConfirmExitMeter}
+          onCancel={() => setIsUnsavedWorkModalOpen(false)}
+        />
+      </div>
+    );
+  }
+
+  // 7.3 STATES 4A, 4B, 5, 6: VERIFICATION, CONFIRMATION, REVIEW & ERROR VIEWS
+  return (
+    <div className="focused-capture-shell" data-testid="focused-verification-shell">
+      {/* Minimal Focused Header */}
+      <header className="focused-capture-header" role="banner">
+        <button
+          type="button"
+          className="btn-focused-back"
+          onClick={handleBackFromMeter}
+          aria-label="Quay lại danh sách công tơ"
+          title="Quay lại danh sách"
+        >
+          <ArrowLeft size={20} strokeWidth={2.4} />
+          <span className="focused-back-text">Danh sách</span>
+        </button>
+
+        <div className="focused-header-identity">
+          <span className="focused-meter-code">{selectedMeter?.meter_code || 'ĐO ĐẾM CÔNG TƠ'}</span>
+          {selectedMeter?.name && <span className="focused-meter-name">{selectedMeter.name}</span>}
+        </div>
+
+        <div className="focused-header-right">
+          {selectedRound?.scheduled_time_only ? (
+            <span className="focused-round-pill">Lượt {selectedRound.scheduled_time_only}</span>
+          ) : (
+            <div style={{ width: '44px' }} />
+          )}
+        </div>
+      </header>
+
+      <div className="focused-verification-scroll">
+        {/* ── PHASE D: CONFLICT BANNER (HTTP 409) ── */}
+        {submissionPhase === 'REJECTED' && conflictError && (
+          <section className="verify-conflict-banner" role="alert" aria-label="Xung đột dữ liệu">
+            <div className="conflict-banner-icon"><AlertTriangle size={18} strokeWidth={2.2} /></div>
+            <div className="conflict-banner-body">
+              <strong className="conflict-banner-title">Chỉ số đã tồn tại trong lượt này</strong>
+              <p className="conflict-banner-desc">{conflictError}</p>
             </div>
-
-            <div className="button-stack">
+            <div className="conflict-banner-actions">
               <button
                 type="button"
                 className="btn btn-primary"
-                onClick={handleReadMeter}
+                onClick={() => { handleReset(); setActiveScreen('reading_batch'); }}
               >
-                <Check size={20} strokeWidth={2.2} />
-                Đọc chỉ số
+                <ArrowLeft size={16} /> Về danh sách
               </button>
               <button
                 type="button"
                 className="btn btn-secondary"
-                onClick={handleReset}
+                onClick={() => handleReconcileSubmission()}
+                disabled={reconciling}
+                style={{ fontSize: '13px', minHeight: '42px' }}
               >
-                <RotateCcw size={18} strokeWidth={1.8} />
-                Chụp lại
+                <RefreshCw size={15} className={reconciling ? 'animate-spin' : ''} /> {reconciling ? 'Đang đối soát...' : 'Đối soát kết quả'}
               </button>
-            </div>
-          </>
-        )}
-
-        {/* STATE 3: PROCESSING */}
-        {loading && (
-          <section
-            className="processing-card"
-            role="status"
-            aria-live="polite"
-            aria-label="Đang đọc chỉ số"
-          >
-            <div className="maritime-spinner" aria-hidden="true" />
-            <div>
-              <p className="processing-title">Đang đọc chỉ số...</p>
-              <p className="processing-subtext">Giữ ứng dụng mở trong giây lát.</p>
             </div>
           </section>
         )}
 
-        {/* STATE 4A: SUCCESS RESULT, VISUAL INSPECTION & OPTIONAL CORRECTION */}
-        {result && result.status === 'success' && !loading && !confirmSuccessData && (
-          <section className="result-card" aria-label="Kết quả nhận diện và kiểm tra">
-            <div className="status-badge-success">
-              <CheckCircle2 size={15} strokeWidth={2.2} />
-              KẾT QUẢ NHẬN DIỆN
+        {/* ── PHASE D: OUTCOME UNKNOWN BANNER (network drop after send) ── */}
+        {submissionPhase === 'OUTCOME_UNKNOWN' && error && (
+          <section className="verify-outcome-unknown-banner" role="alert" aria-label="Kết quả chưa xác định">
+            <div className="outcome-unknown-icon"><AlertTriangle size={18} strokeWidth={2.2} /></div>
+            <div className="outcome-unknown-body">
+              <strong className="outcome-unknown-title">Kết quả gửi chưa xác định</strong>
+              <p className="outcome-unknown-desc">{error}</p>
+            </div>
+            <div className="outcome-unknown-actions">
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => handleReconcileSubmission()}
+                disabled={reconciling}
+                style={{ fontSize: '13px', minHeight: '42px' }}
+              >
+                <RefreshCw size={15} className={reconciling ? 'animate-spin' : ''} /> {reconciling ? 'Đang đối soát...' : 'Đối soát máy chủ'}
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => { handleReset(); setActiveScreen('reading_batch'); }}
+              >
+                <ArrowLeft size={16} /> Kiểm tra danh sách
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => { setSubmissionPhase('NOT_SUBMITTED'); setError(null); }}
+                style={{ fontSize: '13px', minHeight: '42px' }}
+              >
+                <RotateCcw size={15} /> Thử gửi lại
+              </button>
+            </div>
+          </section>
+        )}
+
+        {/* ── STATE 4A: OCR SUCCESS — VERIFY, INSPECT, EDIT & CONFIRM ── */}
+        {result && result.status === 'success' && !loading && !confirmSuccessData &&
+          submissionPhase !== 'REJECTED' && submissionPhase !== 'OUTCOME_UNKNOWN' && (
+          <section className="result-card" aria-label="Kiểm tra chỉ số nhận diện">
+
+            {/* ── A1: IMAGE INSPECTION ── */}
+            <div className="verify-section-label">
+              <span className="verify-section-eyebrow">ẢNH ĐỐI CHIẾU</span>
+              {roiDataUrl ? (
+                <div className="image-toggle-pills" role="tablist" aria-label="Chế độ xem ảnh">
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={activeImageTab === 'roi'}
+                    className={`image-toggle-pill ${activeImageTab === 'roi' ? 'active' : ''}`}
+                    onClick={() => setActiveImageTab('roi')}
+                  >
+                    Vùng số
+                  </button>
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={activeImageTab === 'original'}
+                    className={`image-toggle-pill ${activeImageTab === 'original' ? 'active' : ''}`}
+                    onClick={() => setActiveImageTab('original')}
+                  >
+                    Ảnh gốc
+                  </button>
+                </div>
+              ) : (
+                <span className="image-single-tag">Ảnh gốc</span>
+              )}
+            </div>
+            <div
+              className="inspect-preview-container"
+              onClick={() => setIsViewerOpen(true)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setIsViewerOpen(true); }}
+              aria-label="Chạm để phóng to ảnh đối chiếu"
+            >
+              <img
+                src={currentDisplayUrl}
+                alt={activeImageTab === 'roi' ? 'Vùng chỉ số công tơ' : 'Ảnh công tơ gốc'}
+                className="inspect-preview-image"
+              />
+              <div className="zoom-tap-hint">
+                <Maximize2 size={13} />
+                <span>Phóng to & kiểm tra</span>
+              </div>
             </div>
 
-            {/* READING VALUE DISPLAY OR INLINE EDIT FORM */}
+            {/* ── A2: OCR READING (READ-ONLY, EXPLICIT LABEL) ── */}
+            <div className="verify-ocr-row" aria-label="Chỉ số OCR nhận diện">
+              <span className="verify-ocr-label">OCR NHẬN DIỆN</span>
+              <span className="verify-ocr-value" aria-live="polite">
+                {result.reading ?? '—'}
+                <span className="verify-ocr-unit">kWh</span>
+              </span>
+            </div>
+
+            {/* ── A3: NUMBER TO SAVE (EDITABLE) ── */}
             {!isEditingReading ? (
-              <div className="reading-hero" aria-label={`Chỉ số công tơ là ${confirmedReadingValue} kilowatt giờ`}>
+              <div className="reading-hero" aria-label={`Số sẽ lưu: ${confirmedReadingValue} kWh`}>
                 <div className="reading-hero-header">
-                  <span className="reading-hero-eyebrow">Chỉ số xác nhận</span>
+                  <span className="reading-hero-eyebrow">SỐ SẼ LƯU</span>
                   <button
                     type="button"
                     className="btn-edit-inline"
                     onClick={handleStartEditing}
-                    aria-label="Sửa chỉ số thủ công"
+                    aria-label="Sửa chỉ số trước khi lưu"
                     title="Sửa chỉ số"
                   >
                     <Edit3 size={14} />
-                    <span>Sửa chỉ số</span>
+                    <span>Sửa</span>
                   </button>
                 </div>
-
                 <div className="reading-hero-value-wrap">
                   <span className="reading-hero-number">{confirmedReadingValue}</span>
                   <span className="reading-hero-unit">kWh</span>
                 </div>
-
                 {confirmedReadingValue !== result.reading && (
                   <div className="corrected-notice" role="status">
                     <CheckCircle2 size={13} />
-                    <span>Đã chỉnh từ kết quả nhận diện <strong>{result.reading}</strong></span>
+                    <span>Đã sửa từ: <strong>{result.reading}</strong></span>
                   </div>
                 )}
               </div>
@@ -893,7 +1292,6 @@ export default function App() {
                     <X size={16} />
                   </button>
                 </div>
-
                 <div className="edit-input-wrap">
                   <input
                     type="text"
@@ -920,18 +1318,13 @@ export default function App() {
                     }}
                     aria-label="Thêm dấu chấm thập phân"
                     title="Dấu chấm"
-                  >
-                    .
-                  </button>
+                  >.</button>
                   <span className="edit-input-unit">kWh</span>
                 </div>
-
                 {editError && <p className="edit-error-msg">{editError}</p>}
-
                 <p className="edit-reading-original">
-                  Kết quả nhận diện ban đầu: <strong>{result.reading}</strong>
+                  OCR nhận diện: <strong>{result.reading}</strong>
                 </p>
-
                 <div className="edit-actions-row">
                   <button
                     type="button"
@@ -951,83 +1344,24 @@ export default function App() {
               </div>
             )}
 
-            {/* IMAGE INSPECTION WITH SEGMENTED TOGGLE (ROI / ORIGINAL) */}
-            <div className="inspect-section">
-              <div className="inspect-header">
-                <span className="inspect-label">Hình ảnh đối chiếu:</span>
-                {roiDataUrl ? (
-                  <div className="image-toggle-pills" role="tablist" aria-label="Chế độ xem ảnh">
-                    <button
-                      type="button"
-                      role="tab"
-                      aria-selected={activeImageTab === 'roi'}
-                      className={`image-toggle-pill ${activeImageTab === 'roi' ? 'active' : ''}`}
-                      onClick={() => setActiveImageTab('roi')}
-                    >
-                      Vùng chỉ số (ROI)
-                    </button>
-                    <button
-                      type="button"
-                      role="tab"
-                      aria-selected={activeImageTab === 'original'}
-                      className={`image-toggle-pill ${activeImageTab === 'original' ? 'active' : ''}`}
-                      onClick={() => setActiveImageTab('original')}
-                    >
-                      Ảnh gốc
-                    </button>
-                  </div>
-                ) : (
-                  <span className="image-single-tag">Ảnh gốc</span>
-                )}
-              </div>
-
-              <div
-                className="inspect-preview-container"
-                onClick={() => setIsViewerOpen(true)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') setIsViewerOpen(true);
-                }}
-                aria-label="Chạm để phóng to ảnh đối chiếu"
-              >
-                <img
-                  src={currentDisplayUrl}
-                  alt={activeImageTab === 'roi' ? 'Vùng chỉ số công tơ' : 'Ảnh công tơ gốc'}
-                  className="inspect-preview-image"
-                />
-                <div className="zoom-tap-hint">
-                  <Maximize2 size={13} />
-                  <span>Chạm để phóng to & kiểm tra</span>
-                </div>
-              </div>
-            </div>
-
-            {result.meter_type && (
-              <div className="meta-row">
-                <span className="meta-label">Loại công tơ:</span>
-                <span className="meta-value">
-                  {result.meter_type === 'lcd' ? 'Điện tử (LCD)' : 'Cơ (Mechanical)'}
-                </span>
-              </div>
-            )}
-
-            {/* ACTION BUTTONS */}
+            {/* ── A4: ACTION BUTTONS ── */}
             <div className="button-stack">
               <button
                 type="button"
                 className="btn btn-primary"
                 onClick={handleConfirmReading}
                 disabled={confirming || isEditingReading}
+                aria-label="Xác nhận & lưu chỉ số"
               >
                 <Check size={20} strokeWidth={2.2} />
-                {confirming ? 'Đang lưu vào sổ...' : 'Xác nhận chỉ số'}
+                {confirming ? 'Đang lưu vào sổ...' : 'Xác nhận & lưu'}
               </button>
               <button
                 type="button"
                 className="btn btn-secondary"
                 onClick={handleReset}
                 disabled={confirming}
+                aria-label="Chụp lại ảnh khác"
               >
                 <RotateCcw size={18} strokeWidth={1.8} />
                 Chụp lại
@@ -1036,17 +1370,16 @@ export default function App() {
           </section>
         )}
 
-        {/* STATE 4B: CONFIRMATION SUCCESS VIEW */}
+        {/* ── STATE 4B: CONFIRMED BY SERVER ── */}
         {confirmSuccessData && !loading && (
           <section className="result-card" aria-label="Đã ghi nhận chỉ số thành công">
             <div className="status-badge-success" style={{ background: '#dcfce7', color: '#166534', border: '1px solid #86efac' }}>
               <CheckCircle2 size={16} strokeWidth={2.2} />
-              ĐÃ GHI NHẬN CHỈ SỐ VÀO SỔ
+              ĐÃ GHI NHẬN VÀO SỔ
             </div>
-
             <div className="reading-hero">
               <span className="reading-hero-eyebrow">
-                Chỉ số chính thức ({selectedMeter?.meter_code} &bull; Lượt {selectedRound?.scheduled_time_only || '---'})
+                {selectedMeter?.meter_code} &bull; Lượt {selectedRound?.scheduled_time_only || '---'}
               </span>
               <div className="reading-hero-value-wrap">
                 <span className="reading-hero-number">{confirmSuccessData.reading}</span>
@@ -1061,47 +1394,40 @@ export default function App() {
               {confirmSuccessData.confirmation_source === 'USER_CORRECTED' && (
                 <div className="corrected-notice" role="status">
                   <CheckCircle2 size={13} />
-                  <span>Đã hiệu chỉnh bởi người đọc (AI: {confirmSuccessData.ocr_reading})</span>
+                  <span>Đã hiệu chỉnh (OCR: {confirmSuccessData.ocr_reading})</span>
                 </div>
               )}
             </div>
-
             <div className="meta-row">
-              <span className="meta-label">Lượt ghi chỉ số:</span>
+              <span className="meta-label">Lượt ghi:</span>
               <span className="meta-value">
                 {confirmSuccessData.round_scheduled_local || (selectedRound ? selectedRound.scheduled_local : '---')}
               </span>
             </div>
-
             <div className="meta-row">
-              <span className="meta-label">Nguồn xác nhận:</span>
+              <span className="meta-label">Nguồn:</span>
               <span className="meta-value">
                 {confirmSuccessData.confirmation_source === 'MANUAL_ENTRY'
                   ? 'Nhập thủ công'
                   : confirmSuccessData.confirmation_source === 'USER_CORRECTED'
-                  ? 'Đã hiệu chỉnh từ OCR'
-                  : 'Xác nhận từ OCR'}
+                  ? 'Hiệu chỉnh từ OCR'
+                  : 'Xác nhận OCR'}
               </span>
             </div>
-
             <div className="meta-row">
               <span className="meta-label">Thời gian máy chủ:</span>
               <span className="meta-value">{confirmSuccessData.formatted_time}</span>
             </div>
-
             <div className="meta-row">
               <span className="meta-label">Đợt ghi:</span>
               <span className="meta-value">{selectedBatch?.name || '---'}</span>
             </div>
-
             <div className="button-stack">
               <button
                 type="button"
                 className="btn btn-primary"
-                onClick={() => {
-                  handleReset();
-                  setActiveScreen('reading_batch');
-                }}
+                onClick={() => { handleReset(); setActiveScreen('reading_batch'); }}
+                aria-label="Về danh sách công tơ"
               >
                 <ArrowLeft size={18} strokeWidth={2.2} />
                 Về danh sách công tơ
@@ -1110,88 +1436,85 @@ export default function App() {
           </section>
         )}
 
-        {/* STATE 5: REVIEW RESULT WITH MANUAL ENTRY FALLBACK */}
-        {result && result.status === 'review' && !loading && !confirmSuccessData && (
-          <section className="result-card" role="alert" aria-label="Cần kiểm tra lại hoặc nhập thủ công">
-            <div className="status-badge-review" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 12px', background: '#fef3c7', color: '#92400e', borderRadius: '9999px', fontSize: '0.8rem', fontWeight: '700', marginBottom: '14px', border: '1px solid #fde68a' }}>
-              <AlertTriangle size={15} strokeWidth={2.2} />
-              KHÔNG THỂ NHẬN DIỆN TỰ ĐỘNG
+        {/* ── STATE 5: REVIEW — CANNOT AUTO-READ ── */}
+        {result && result.status === 'review' && !loading && !confirmSuccessData &&
+          submissionPhase !== 'REJECTED' && submissionPhase !== 'OUTCOME_UNKNOWN' && (
+          <section className="result-card" role="alert" aria-label="Không đọc được tự động">
+            {/* Phase C: single concise status badge — no speculative cause text */}
+            <div className="status-badge-review-pill">
+              <AlertTriangle size={14} strokeWidth={2.2} />
+              CHƯA ĐỌC ĐƯỢC TỰ ĐỘNG
             </div>
 
-            {/* IMAGE INSPECTION WITH SEGMENTED TOGGLE (ROI / ORIGINAL) */}
-            <div className="inspect-section">
-              <div className="inspect-header">
-                <span className="inspect-label">Hình ảnh đối chiếu:</span>
-                {roiDataUrl ? (
-                  <div className="image-toggle-pills" role="tablist" aria-label="Chế độ xem ảnh">
-                    <button
-                      type="button"
-                      role="tab"
-                      aria-selected={activeImageTab === 'roi'}
-                      className={`image-toggle-pill ${activeImageTab === 'roi' ? 'active' : ''}`}
-                      onClick={() => setActiveImageTab('roi')}
-                    >
-                      Vùng chỉ số (ROI)
-                    </button>
-                    <button
-                      type="button"
-                      role="tab"
-                      aria-selected={activeImageTab === 'original'}
-                      className={`image-toggle-pill ${activeImageTab === 'original' ? 'active' : ''}`}
-                      onClick={() => setActiveImageTab('original')}
-                    >
-                      Ảnh gốc
-                    </button>
-                  </div>
-                ) : (
-                  <span className="image-single-tag">Ảnh gốc</span>
-                )}
-              </div>
-
-              <div
-                className="inspect-preview-container"
-                onClick={() => setIsViewerOpen(true)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') setIsViewerOpen(true);
-                }}
-                aria-label="Chạm để phóng to ảnh đối chiếu"
-              >
-                <img
-                  src={currentDisplayUrl}
-                  alt={activeImageTab === 'roi' ? 'Vùng chỉ số công tơ' : 'Ảnh công tơ gốc'}
-                  className="inspect-preview-image"
-                />
-                <div className="zoom-tap-hint">
-                  <Maximize2 size={13} />
-                  <span>Chạm để phóng to & kiểm tra</span>
+            {/* Image inspection — same as 4A */}
+            <div className="verify-section-label">
+              <span className="verify-section-eyebrow">ẢNH ĐỐI CHIẾU</span>
+              {roiDataUrl ? (
+                <div className="image-toggle-pills" role="tablist" aria-label="Chế độ xem ảnh">
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={activeImageTab === 'roi'}
+                    className={`image-toggle-pill ${activeImageTab === 'roi' ? 'active' : ''}`}
+                    onClick={() => setActiveImageTab('roi')}
+                  >
+                    Vùng số
+                  </button>
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={activeImageTab === 'original'}
+                    className={`image-toggle-pill ${activeImageTab === 'original' ? 'active' : ''}`}
+                    onClick={() => setActiveImageTab('original')}
+                  >
+                    Ảnh gốc
+                  </button>
                 </div>
+              ) : (
+                <span className="image-single-tag">Ảnh gốc</span>
+              )}
+            </div>
+            <div
+              className="inspect-preview-container"
+              onClick={() => setIsViewerOpen(true)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setIsViewerOpen(true); }}
+              aria-label="Chạm để phóng to ảnh đối chiếu"
+            >
+              <img
+                src={currentDisplayUrl}
+                alt={activeImageTab === 'roi' ? 'Vùng chỉ số công tơ' : 'Ảnh công tơ gốc'}
+                className="inspect-preview-image"
+              />
+              <div className="zoom-tap-hint">
+                <Maximize2 size={13} />
+                <span>Phóng to & kiểm tra</span>
               </div>
             </div>
 
-            {/* MANUAL ENTRY FORM IF ACTIVE */}
+            {/* Phase C: single clear instruction — no speculative causes */}
+            <p className="review-guide-text">
+              Chưa đọc được chỉ số — Kiểm tra ảnh và chọn cách tiếp tục.
+            </p>
+
+            {/* Manual entry form */}
             {isManualEntryOpen ? (
-              <div className="edit-reading-box" style={{ marginTop: '16px', background: '#f8fafc', border: '1.5px solid #cbd5e1' }}>
+              <div className="edit-reading-box" style={{ background: '#f8fafc', border: '1.5px solid #cbd5e1' }}>
                 <div className="edit-reading-header">
                   <span className="edit-reading-title">Chỉ số thực tế</span>
                   <button
                     type="button"
                     className="btn-cancel-icon"
-                    onClick={() => {
-                      setIsManualEntryOpen(false);
-                      setManualReadingError(null);
-                    }}
+                    onClick={() => { setIsManualEntryOpen(false); setManualReadingError(null); }}
                     aria-label="Hủy nhập thủ công"
                   >
                     <X size={16} />
                   </button>
                 </div>
-
                 <p style={{ margin: '0 0 10px 0', fontSize: '0.85rem', color: '#475569', lineHeight: 1.4 }}>
                   Nhập chỉ số bạn đọc trực tiếp từ ảnh công tơ.
                 </p>
-
                 <div className="edit-input-wrap">
                   <input
                     type="text"
@@ -1218,14 +1541,10 @@ export default function App() {
                     }}
                     aria-label="Thêm dấu chấm thập phân"
                     title="Dấu chấm"
-                  >
-                    .
-                  </button>
+                  >.</button>
                   <span className="edit-input-unit">kWh</span>
                 </div>
-
                 {manualReadingError && <p className="edit-error-msg">{manualReadingError}</p>}
-
                 <div className="edit-actions-row" style={{ marginTop: '14px' }}>
                   <button
                     type="button"
@@ -1239,10 +1558,7 @@ export default function App() {
                   <button
                     type="button"
                     className="btn btn-secondary"
-                    onClick={() => {
-                      setIsManualEntryOpen(false);
-                      setManualReadingError(null);
-                    }}
+                    onClick={() => { setIsManualEntryOpen(false); setManualReadingError(null); }}
                     disabled={confirming}
                   >
                     Hủy
@@ -1250,74 +1566,49 @@ export default function App() {
                 </div>
               </div>
             ) : (
-              <>
-                <div className="review-box">
-                  <div className="review-header">
-                    <AlertTriangle size={22} strokeWidth={2} className="review-icon" />
-                    <div className="review-text-wrap">
-                      <h2 className="review-title">Không thể nhận diện tự động chỉ số.</h2>
-                      <p className="review-support">
-                        Bạn có thể nhập chỉ số trực tiếp nếu nhìn rõ số trên ảnh, hoặc chụp lại góc khác, hoặc đánh dấu để kiểm tra thực địa.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="button-stack">
-                  <button
-                    type="button"
-                    className="btn btn-primary"
-                    onClick={() => {
-                      setManualReadingValue('');
-                      setManualReadingError(null);
-                      setIsManualEntryOpen(true);
-                    }}
-                    disabled={confirming}
-                    aria-label="Nhập chỉ số thủ công"
-                  >
-                    <Edit3 size={18} strokeWidth={2.2} />
-                    <span>Nhập chỉ số thủ công</span>
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    onClick={handleReset}
-                    disabled={confirming}
-                    aria-label="Chụp lại ảnh khác"
-                  >
-                    <RotateCcw size={18} strokeWidth={2} />
-                    <span>Chụp lại</span>
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    onClick={handleMarkReview}
-                    disabled={confirming}
-                    style={{ color: '#9a3412', borderColor: '#fed7aa', background: '#fff7ed' }}
-                    aria-label="Đánh dấu cần kiểm tra thực địa"
-                  >
-                    <AlertTriangle size={18} strokeWidth={2} />
-                    <span>{confirming ? 'Đang lưu...' : 'Đánh dấu cần kiểm tra'}</span>
-                  </button>
-                </div>
-              </>
+              /* Phase C: 3 business actions, no extra explanatory boxes */
+              <div className="button-stack">
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => { setManualReadingValue(''); setManualReadingError(null); setIsManualEntryOpen(true); }}
+                  disabled={confirming}
+                  aria-label="Nhập chỉ số thủ công từ ảnh"
+                >
+                  <Edit3 size={18} strokeWidth={2.2} />
+                  <span>Nhập chỉ số thủ công</span>
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={handleReset}
+                  disabled={confirming}
+                  aria-label="Chụp lại ảnh khác"
+                >
+                  <RotateCcw size={18} strokeWidth={2} />
+                  <span>Chụp lại</span>
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-review-flag"
+                  onClick={handleMarkReview}
+                  disabled={confirming}
+                  aria-label="Đánh dấu cần kiểm tra thực địa"
+                >
+                  <AlertTriangle size={18} strokeWidth={2} />
+                  <span>{confirming ? 'Đang lưu...' : 'Đánh dấu cần kiểm tra'}</span>
+                </button>
+              </div>
             )}
           </section>
         )}
 
-        {/* STATE 6: ERROR */}
-        {error && !loading && (
+        {/* ── STATE 6: OCR ERROR (non-submission error) ── */}
+        {error && !loading && submissionPhase !== 'OUTCOME_UNKNOWN' && submissionPhase !== 'REJECTED' && (
           <section className="result-card" role="alert" aria-label="Lỗi xử lý">
             {previewUrl && (
-              <div
-                className="preview-container"
-                style={{ maxHeight: '140px', aspectRatio: 'auto', marginBottom: '12px' }}
-              >
-                <img
-                  src={previewUrl}
-                  alt="Ảnh công tơ xem trước"
-                  className="preview-image"
-                />
+              <div className="preview-container" style={{ maxHeight: '140px', aspectRatio: 'auto', marginBottom: '12px' }}>
+                <img src={previewUrl} alt="Ảnh công tơ xem trước" className="preview-image" />
               </div>
             )}
             <div className="error-box">
@@ -1327,7 +1618,6 @@ export default function App() {
               </h2>
               <p className="error-desc">{error}</p>
             </div>
-
             <div className="button-stack">
               {imageFile && (
                 <button
@@ -1352,8 +1642,11 @@ export default function App() {
             </div>
           </section>
         )}
+      </div>
 
-      {/* FULLSCREEN PAN/ZOOM IMAGE VIEWER MODAL */}
+
+
+            {/* FULLSCREEN PAN/ZOOM IMAGE VIEWER MODAL */}
       <ImageViewerModal
         isOpen={isViewerOpen}
         onClose={() => setIsViewerOpen(false)}
@@ -1368,6 +1661,6 @@ export default function App() {
         onConfirm={handleConfirmExitMeter}
         onCancel={() => setIsUnsavedWorkModalOpen(false)}
       />
-    </AuthenticatedShell>
+    </div>
   );
 }

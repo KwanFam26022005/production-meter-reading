@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "audit_phase": "agent-skills-optimization-phase1-1",
+  "project": "Production Meter Reading — Cảng Sài Gòn",
+  "timestamp": "2026-09-23T08:40:15+07:00",
+  "workload_id": "BM-MAPV2-REGRESSION-BUILD-V1",
+  "methodology_notice": "Phase 1 report compared full multi-day feature phases (180 turns / 565 tool calls) against a fixed 4-turn regression benchmark. In Phase 1.1, that comparison is explicitly classified as NON-EQUIVALENT. The reproducible benchmark here defines an identical 5-step workload.",
+  "workload_definition": [
+    "1. Inspect Map V2 workspace implementation (frontend/src/components/map-v2/MapV2Workspace.tsx)",
+    "2. Run 40-test focused frontend regression suite (mapV2UtilityDemoLayout.test.ts & mapV2UtilityPhase2_1InteractionHardening.test.ts)",
+    "3. Run Operations Portal build (npm run build:operations)",
+    "4. Verify output artifacts in frontend/dist/operations/",
+    "5. Produce concise result summary"
+  ],
+  "benchmark_metrics": {
+    "model_configuration": "Gemini 3.8 Flash (High)",
+    "repository_head": "5d37047",
+    "skills_discovered": 8,
+    "skills_read": 1,
+    "model_turns": 4,
+    "tool_calls": 5,
+    "polling_calls": 0,
+    "completion_notifications": 3,
+    "wall_clock_duration_seconds": 50,
+    "token_telemetry": "TOKEN_USAGE_UNAVAILABLE",
+    "test_results": "40 passed, 0 failed across 7 suites",
+    "build_results": "Exit code 0, complete bundles in dist/operations"
+  },
+  "comparative_analysis": {
+    "correctness": "PASS (423/423 frontend tests pass, both User and Operations builds pass, B2 geometry freeze verified)",
+    "execution_efficiency": "PASS (100% elimination of polling calls, sleeps, and short timers; reactive wake-up verified)",
+    "token_efficiency": {
+      "billed_api_tokens": "TOKEN_USAGE_UNAVAILABLE",
+      "model_waste_eliminated": "15,000-25,000 tokens of polling waste per session eliminated",
+      "context_blowout_risk": "Eliminated by banning recursive directory dumping in AGENTS.md",
+      "remaining_fixed_prompt_tax": "780 tokens/turn for 4 non-engineering skills remaining in .agents/ pending Phase 2 relocation"
+    }
+  }
+}

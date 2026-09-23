@@ -1,0 +1,57 @@
+=== THREAD 7 (PHASE A) CHANGED FILES MANIFEST ===
+
+MODIFIED FILES (Pre-existing files touched by Thread 7):
+1. frontend/src/context/OperationalWorkspaceContext.tsx
+   - Added LocateOnMapOptions interface ({ target?: 'dashboard' | 'map_v2' }).
+   - Preserved default target: 'dashboard' in locateOnMap() for 100% legacy Map V1 safety.
+   - Added locateOnMapV2() additive export.
+
+2. frontend/src/components/map-v2/employeeMovement.ts
+   - Added 'stationary_assignee' to SafeMovementPath reason union.
+
+NEW FILES CREATED BY THREAD 7:
+3. frontend/src/components/map-v2/types.ts
+   - Added meter and zone_operational to MapV2SelectedEntity.
+   - Added ZoneOperationalStatus, ZoneStatusMetrics, extended MapV2LayerVisibility.
+
+4. frontend/src/components/map-v2/zoneMapping.ts
+   - Canonical stable mapping dictionary CANONICAL_MAP_V2_ZONE_MAPPING.
+   - computeZoneOperationalStatus() 5-state model.
+   - formatZoneProgressText() single-round progress label.
+
+5. frontend/src/components/map-v2/MapV2MeterLayer.tsx
+   - isValidMeterCoordinate() validation logic.
+   - Tabular numeric rendering honoring MEASUREMENT_UNIT_DATA_GAP.
+   - Semantic halos and utility iconography.
+
+6. frontend/src/components/map-v2/MapV2EmployeeLayer.tsx
+   - Stationary placement at operator anchors for real assignees.
+
+7. frontend/src/components/map-v2/MapV2EmployeeMarker.tsx
+   - Phụ trách stationary badge and no-GPS disclosure tooltip.
+
+8. frontend/src/components/map-v2/employeeDataAdapter.ts
+   - buildLiveZoneEmployees() and MAP_V2_LIVE_STAFF_DISCLOSURE_TEXT.
+
+9. frontend/src/components/map-v2/MapV2InspectionPanel.tsx
+   - Level 3 Docked & Drawer inspector for meter, zone, and assignee.
+
+10. frontend/src/components/map-v2/MapV2Layers.tsx
+    - Three-Axis Axis 2 layer manager (Live, Simulated, Infrastructure).
+
+11. frontend/src/components/map-v2/MapV2Canvas.tsx
+    - Operational layers mount, exception badges, smooth coordinate centering.
+
+12. frontend/src/components/map-v2/MapV2Workspace.tsx
+    - Three-Axis primary toolbar, shared context sync, quick search, toast.
+
+13. frontend/src/components/map-v2/MapV2Workspace.css
+    - Styles for primary toolbar, popovers, quick search, degraded banner, toast.
+
+14. frontend/tests/mapV2OperationalIntegration.test.ts
+    - 12 comprehensive automated integration test suites verifying all 20 required points.
+
+15. scripts/capture_map_v2_phase_a_operational_screenshots.mjs
+    - Automated Playwright/Edge script capturing the 15 visual acceptance screenshots.
+
+16. docs/implementation/map-v2-operational-integration-phase-a/ (13 documentation modules + report + handoff)

@@ -1,0 +1,19 @@
+FEATURE_ID,FEATURE_NAME,CURRENT_STATE,BACKEND_READY,FRONTEND_READY,MAP_V2_CONSUMED,BUSINESS_RULE_READY,CORRECT_ACTION,FILES_AFFECTED,RISK_LEVEL
+1,Shared Date Context,Context holds selectedDate; API accepts date,YES,YES,NO,YES,Connect useOperationalWorkspace().selectedDate to Map V2 fetch,MapV2Workspace.tsx,Low
+2,Shared Reading Round,Context holds selectedRoundId; API accepts round_id,YES,YES,NO,YES,Connect selectedRoundId to Map V2 header and API call,MapV2Workspace.tsx,Low
+3,Zone Progress Badges,Pre-computed in map_operations.py,YES,YES,NO,PARTIAL,Fetch overview.zones and render progress pills on zone cards,MapV2Workspace.tsx; MapV2Canvas.tsx,Low
+4,Zone Assignee Display,assigned_user on OperationalZoneOut from SQLite,YES,YES,NO,YES,Display real assigned personnel on zone hover and inspector dock,MapV2InspectionPanel.tsx,Low
+5,Employee Real Data Adapter,DEMO_MAP_V2_EMPLOYEES in employeeDataAdapter.ts,YES,YES,NO,PARTIAL,Replace demo list with real assigned_user mapped to zone anchors,employeeDataAdapter.ts; MapV2EmployeeLayer.tsx,Low
+6,Meter Live Data Rendering,overview.meters returns MapMeterOut with semantic states,YES,YES,NO,PARTIAL,Render live meter markers using normalized coordinates,MapV2Canvas.tsx; MapV2InspectionPanel.tsx,Medium
+7,Zone & Meter Search,Client-side search index across loaded zones and meters,YES,PARTIAL,NO,YES,Build search autocomplete input component in primary toolbar,MapV2Workspace.tsx; MapV2Search.tsx,Low
+8,Exception Filtering,exceptions_count and meter exception_state in overview,YES,YES,NO,YES,Add exception chip to header and filter canvas markers,MapV2Workspace.tsx; MapV2Canvas.tsx,Low
+9,Presentation Zone Mapping,MapVersionZone schema exists with business_zone_id,YES,YES,NO,NO,Confirm V2 zone mapping table and seed/adapter into client,zoneAnchors.ts; MapConfigurationProvider.tsx,Medium
+10,Utility Type Filters,utilityFilter in context; utility_type on MapMeterOut,YES,YES,NO,YES,Connect context utilityFilter to meter layer rendering,MapV2Workspace.tsx; MapV2Layers.tsx,Low
+11,Measurement Unit Contract,MEASUREMENT_UNIT_DATA_GAP in SQLite schema,NO,NO,NO,NO,Avoid hardcoded units; render raw numbers with utility icons,MapV2InspectionPanel.tsx,Low
+12,Map to Reports Link,AdminReports exists; context setActiveTab('reports'),YES,YES,NO,YES,Add deep-link CTA in zone inspector dock,MapV2InspectionPanel.tsx; AdminReports.tsx,Low
+13,Reports to Map Navigation,locateOnMap currently navigates to 'dashboard',YES,PARTIAL,NO,YES,Update locateOnMap destination to 'map_v2',OperationalWorkspaceContext.tsx; MapV2Workspace.tsx,Low
+14,Map to Schedules Link,AdminSchedules exists; context setActiveTab('schedules'),YES,YES,NO,YES,Add deep-link CTA in zone inspector dock,MapV2InspectionPanel.tsx,Low
+15,Employee to Staff Roster Link,AdminStaffRoster exists; context setActiveTab('staff_roster'),YES,YES,NO,YES,Add deep-link CTA in employee inspector dock,MapV2InspectionPanel.tsx,Low
+16,Geometry Inspection Role Gate,Auth state currentUser.role === 'ADMIN',YES,YES,NO,YES,Gate Technical Inspection mode button to admins only,MapV2Workspace.tsx,Low
+17,Technical Network Overlay,Simulated B2 topology in utilityDemoLayout.ts,YES,YES,YES,YES,Move utility network toggles into Layer Manager with disclosure,MapV2Workspace.tsx; MapV2Layers.tsx,Low
+18,Visual Theme Toggle,Tone modes technical and neon exist in Map V2,N/A,YES,YES,YES,Move theme toggle from primary header into More menu,MapV2Workspace.tsx,Low

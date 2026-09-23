@@ -5,9 +5,16 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "dev:user": "vite --config vite.config.user.ts --port 5173",
+    "dev:operations": "vite --config vite.config.operations.ts --port 5174",
+    "build": "npm run build:user && npm run build:operations",
+    "build:user": "tsc && vite build --config vite.config.user.ts",
+    "build:operations": "tsc && vite build --config vite.config.operations.ts",
+    "build:legacy": "tsc && vite build",
     "preview": "vite preview",
-    "test": "npx tsx --test tests/*.test.ts"
+    "test": "npx tsx --test tests/*.test.ts",
+    "test:user": "npx tsx --test tests/user*.test.ts tests/focused*.test.ts",
+    "test:operations": "npx tsx --test tests/v*.test.ts tests/tab*.test.ts tests/map*.test.ts tests/canonical*.test.ts"
   },
   "dependencies": {
     "lucide-react": "^0.475.0",

@@ -81,6 +81,24 @@ def migrate_db(db_engine=None) -> None:
                     cursor.execute("ALTER TABLE reading_rounds ADD COLUMN is_legacy BOOLEAN NOT NULL DEFAULT 0")
                     cursor.execute("CREATE INDEX IF NOT EXISTS ix_reading_rounds_is_legacy ON reading_rounds (is_legacy)")
 
+            # Ensure attendance_events table has client_submission_id, payload_sha256, and unique partial index
+            cursor.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='attendance_events'"
+            )
+            if cursor.fetchone():
+                cursor.execute("PRAGMA table_info(attendance_events)")
+                att_cols = [row[1] for row in cursor.fetchall()]
+                if "client_submission_id" not in att_cols:
+                    cursor.execute("ALTER TABLE attendance_events ADD COLUMN client_submission_id VARCHAR(64)")
+                    cursor.execute("CREATE INDEX IF NOT EXISTS ix_attendance_events_client_submission_id ON attendance_events (client_submission_id)")
+                if "payload_sha256" not in att_cols:
+                    cursor.execute("ALTER TABLE attendance_events ADD COLUMN payload_sha256 VARCHAR(64)")
+                    cursor.execute("CREATE INDEX IF NOT EXISTS ix_attendance_events_payload_sha256 ON attendance_events (payload_sha256)")
+                # Partial unique index over (user_id, client_submission_id) where client_submission_id IS NOT NULL
+                cursor.execute(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS uq_attendance_user_client_sub_id ON attendance_events (user_id, client_submission_id) WHERE client_submission_id IS NOT NULL"
+                )
+
             # 2. Check meter_readings table
             cursor.execute(
                 "SELECT sql FROM sqlite_master WHERE type='table' AND name='meter_readings'"

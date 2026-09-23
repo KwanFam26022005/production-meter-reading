@@ -1,0 +1,130 @@
+{
+  "nodes": [
+    {
+      "id": "saigon-port-ui",
+      "type": "skill",
+      "category": "project_domain",
+      "location": ".agent/skills/"
+    },
+    {
+      "id": "banner-design",
+      "type": "skill",
+      "category": "generic_creative",
+      "location": ".agents/skills/"
+    },
+    {
+      "id": "brand",
+      "type": "skill",
+      "category": "generic_marketing",
+      "location": ".agents/skills/"
+    },
+    {
+      "id": "design",
+      "type": "skill",
+      "category": "generic_design",
+      "location": ".agents/skills/"
+    },
+    {
+      "id": "design-system",
+      "type": "skill",
+      "category": "generic_design_system",
+      "location": ".agents/skills/"
+    },
+    {
+      "id": "slides",
+      "type": "skill",
+      "category": "generic_presentation",
+      "location": ".agents/skills/"
+    },
+    {
+      "id": "ui-styling",
+      "type": "skill",
+      "category": "generic_frontend",
+      "location": ".agents/skills/"
+    },
+    {
+      "id": "ui-ux-pro-max",
+      "type": "skill",
+      "category": "generic_ux_database",
+      "location": ".agents/skills/"
+    },
+    {
+      "id": "frontend/DESIGN_DNA.md",
+      "type": "specification",
+      "category": "project_domain",
+      "location": "frontend/"
+    },
+    {
+      "id": "agy-customizations",
+      "type": "builtin_skill",
+      "category": "runtime_customization",
+      "location": "builtin"
+    }
+  ],
+  "edges": [
+    {
+      "source": "saigon-port-ui",
+      "target": "frontend/DESIGN_DNA.md",
+      "relation": "references_specification",
+      "authority_rank": 3
+    },
+    {
+      "source": "banner-design",
+      "target": "ui-ux-pro-max",
+      "relation": "depends_on_skill"
+    },
+    {
+      "source": "design",
+      "target": "brand",
+      "relation": "references_skill"
+    },
+    {
+      "source": "design",
+      "target": "design-system",
+      "relation": "references_skill"
+    },
+    {
+      "source": "design",
+      "target": "slides",
+      "relation": "references_skill"
+    },
+    {
+      "source": "design",
+      "target": "ui-styling",
+      "relation": "references_skill"
+    },
+    {
+      "source": "design",
+      "target": "ui-ux-pro-max",
+      "relation": "references_skill"
+    },
+    {
+      "source": "design-system",
+      "target": "brand",
+      "relation": "references_skill"
+    },
+    {
+      "source": "design-system",
+      "target": "design",
+      "relation": "references_skill"
+    },
+    {
+      "source": "design-system",
+      "target": "ui-styling",
+      "relation": "references_skill"
+    },
+    {
+      "source": "ui-styling",
+      "target": "design-system",
+      "relation": "references_skill"
+    }
+  ],
+  "hierarchy_of_authority": [
+    "1. Existing product / API behavior in repository",
+    "2. .agent/skills/saigon-port-ui/SKILL.md",
+    "3. frontend/DESIGN_DNA.md",
+    "4. Accessibility / Mobile usability standards (WCAG 2.1 AA/AAA)",
+    "5. Generic skills (.agents/skills/*: ui-ux-pro-max, ui-styling, design-system)",
+    "6. Framework defaults"
+  ]
+}

@@ -1,0 +1,89 @@
+stateDiagram-v2
+    [*] --> WorklistView: Mở màn hình Đo đếm
+    
+    state WorklistView {
+        [*] --> TabAll
+        TabAll --> TabPending: Lọc Cần xử lý
+        TabPending --> TabConfirmed: Lọc Đã ghi
+        TabConfirmed --> TabAll: Lọc Tất cả
+        
+        state "Chi tiết công tơ (Modal)" as MeterDetailModal
+        TabAll --> MeterDetailModal: Chạm thân thẻ công tơ
+        MeterDetailModal --> TabAll: Đóng modal
+        
+        state "Lịch theo giờ (Modal)" as ScheduleModal
+        TabAll --> ScheduleModal: Chạm 'Lịch theo giờ'
+        ScheduleModal --> TabAll: Đóng modal
+    }
+
+    WorklistView --> CameraActive: Bấm 'Ghi chỉ số' / 'Ghi lại'
+    
+    state "Camera State" as CameraState {
+        CameraActive --> CameraError: Lỗi quyền / thiết bị
+        CameraError --> CameraActive: Thử lại camera
+        CameraError --> ImagePreview: Chọn ảnh từ thư viện
+        CameraActive --> ImagePreview: Chụp ảnh (toàn khung uncropped)
+        CameraActive --> WorklistView: Bấm Back (không có dữ liệu dở dang)
+    }
+
+    state "Preview State" as ImagePreview {
+        ImagePreview --> CameraActive: Bấm 'Chụp lại'
+        ImagePreview --> ProcessingOCR: Bấm 'Đọc chỉ số'
+        ImagePreview --> UnsavedWorkModal: Bấm Back
+    }
+
+    state "Processing OCR" as ProcessingOCR {
+        ProcessingOCR --> ResultSuccess: OCR thành công (status = success)
+        ProcessingOCR --> ResultReview: OCR thất bại / mờ (status = review)
+        ProcessingOCR --> ErrorState: Lỗi mạng / timeout 500
+    }
+
+    state "Result & Verification (State 4A)" as ResultSuccess {
+        [*] --> InspectROI: Hiển thị ROI mặc định
+        InspectROI --> InspectOriginal: Chuyển tab Ảnh gốc
+        InspectOriginal --> InspectROI: Chuyển tab ROI
+        InspectROI --> FullscreenZoom: Chạm phóng to ảnh
+        FullscreenZoom --> InspectROI: Đóng zoom
+        
+        InspectROI --> InlineEditing: Bấm 'Sửa chỉ số'
+        InlineEditing --> InspectROI: Hủy sửa / Lưu sửa
+        
+        InspectROI --> CameraActive: Bấm 'Chụp lại'
+        InspectROI --> ConfirmingState: Bấm 'Xác nhận chỉ số'
+        InspectROI --> UnsavedWorkModal: Bấm Back
+    }
+
+    state "Review & Manual Entry (State 5)" as ResultReview {
+        [*] --> ReviewPrompt
+        ReviewPrompt --> ManualEntryForm: Bấm 'Nhập chỉ số thủ công'
+        ManualEntryForm --> ReviewPrompt: Bấm Hủy
+        ManualEntryForm --> ConfirmingState: Bấm 'Xác nhận chỉ số' (MANUAL_ENTRY)
+        
+        ReviewPrompt --> CameraActive: Bấm 'Chụp lại'
+        ReviewPrompt --> MarkingReview: Bấm 'Đánh dấu cần kiểm tra'
+        ReviewPrompt --> UnsavedWorkModal: Bấm Back
+    }
+
+    state "Confirming In Flight" as ConfirmingState {
+        ConfirmingState --> ConfirmationSuccess: 200 OK (CONFIRMED)
+        ConfirmingState --> ResultSuccess: Lỗi lưu / 409 Conflict
+    }
+
+    state "Confirmation Success (State 4B)" as ConfirmationSuccess {
+        ConfirmationSuccess --> WorklistView: Bấm 'Về danh sách công tơ'
+    }
+
+    state "Marking Review" as MarkingReview {
+        MarkingReview --> WorklistView: 200 OK (Trạng thái REVIEW)
+    }
+
+    state "Error State (State 6)" as ErrorState {
+        ErrorState --> ProcessingOCR: Bấm 'Thử lại'
+        ErrorState --> CameraActive: Bấm 'Chụp lại'
+    }
+
+    state "Unsaved Work Confirmation Modal" as UnsavedWorkModal {
+        UnsavedWorkModal --> WorklistView: Bấm 'Thoát' (Xóa RAM/URL)
+        UnsavedWorkModal --> ImagePreview: Bấm 'Tiếp tục ghi' (từ Preview)
+        UnsavedWorkModal --> ResultSuccess: Bấm 'Tiếp tục ghi' (từ Result)
+    }

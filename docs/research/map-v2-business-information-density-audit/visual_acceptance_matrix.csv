@@ -1,0 +1,10 @@
+SCREENSHOT_ID,FILE,VIEWPORT,FEATURES_VERIFIED,INDEPENDENT_STATUS
+01_overview,screenshots/01_map_v2_overview_default.png,1920x1080,"Toolbar layout, employee markers, zone anchors, demo badge",VISUALLY_OBSERVED
+02_closeup,screenshots/02_map_v2_employee_marker_closeup.png,1920x1080_zoom,"Marker boundary clearance, zone edge",VISUALLY_OBSERVED
+03_hover,screenshots/03_map_v2_employee_marker_hover_preview.png,1920x1080,"Hover tooltip, pause, preview card content",VISUALLY_OBSERVED
+04_inspector,screenshots/04_map_v2_employee_marker_selected_inspector.png,1920x1080,"Inspector panel, zone highlight, selection ring",VISUALLY_OBSERVED
+05_pause,screenshots/05_map_v2_hud_motion_pause.png,1920x1080,"HUD play button, stationary markers",VISUALLY_OBSERVED
+06_layers,screenshots/06_map_v2_layer_manager.png,1920x1080,"7 layer toggles, layer descriptions",VISUALLY_OBSERVED
+07_technical,screenshots/07_map_v2_technical_network_mode.png,1920x1080,"Employee markers hidden, utility network, SIM node",VISUALLY_OBSERVED
+08_1440,screenshots/08_map_v2_viewport_1440x900.png,1440x900,"Balanced layout, floating controls",VISUALLY_OBSERVED
+09_1280,screenshots/09_map_v2_viewport_1280x800.png,1280x800,"Compact toolbar, Tùy chọn button, sidebar labels",VISUALLY_OBSERVED

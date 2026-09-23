@@ -9,9 +9,10 @@ import {
   ArrowLeft,
   Calendar,
   AlertCircle,
+  SearchCheck,
 } from 'lucide-react';
-import { AttendanceActionResponse, TodayAttendance, User } from '../types';
-import { ApiError, getTodayAttendance, submitAttendance } from '../services/api';
+import { AttendanceActionResponse, AttendanceSubmissionPhase, TodayAttendance, User } from '../types';
+import { ApiError, getTodayAttendance, reconcileAttendance, submitAttendance } from '../services/api';
 import { AuthenticatedShell } from './AuthenticatedShell';
 import { LoadingState } from './ui/LoadingState';
 import { ErrorState } from './ui/ErrorState';
@@ -38,6 +39,17 @@ function formatVnDate(isoDateStr?: string): string {
   return isoDateStr;
 }
 
+async function computeSha256(blob: Blob): Promise<string> {
+  try {
+    const buffer = await blob.arrayBuffer();
+    const hashBuf = await crypto.subtle.digest('SHA-256', buffer);
+    const hashArray = Array.from(new Uint8Array(hashBuf));
+    return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+  } catch {
+    return '';
+  }
+}
+
 export const AttendanceView: React.FC<AttendanceViewProps> = ({
   user,
   onBackToHome,
@@ -50,18 +62,22 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({
 
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [capturedFile, setCapturedFile] = useState<File | null>(null);
+  const [photoSha256, setPhotoSha256] = useState<string | null>(null);
+  const [clientSubmissionId, setClientSubmissionId] = useState<string | null>(null);
+
+  const [submissionPhase, setSubmissionPhase] = useState<AttendanceSubmissionPhase>('NOT_SUBMITTED');
   const [actionResult, setActionResult] = useState<AttendanceActionResponse | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [isConflictError, setIsConflictError] = useState<boolean>(false);
-  const [isNetworkError, setIsNetworkError] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
-  // Live Camera refs
+  // Live Camera refs and readiness
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const [cameraPermissionError, setCameraPermissionError] = useState<boolean>(false);
+  const [isCameraOpening, setIsCameraOpening] = useState<boolean>(false);
+  const [isCameraReady, setIsCameraReady] = useState<boolean>(false);
 
   // Load today's attendance status
   const fetchStatus = async () => {
@@ -89,6 +105,8 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({
       mediaStreamRef.current.getTracks().forEach((track) => track.stop());
       mediaStreamRef.current = null;
     }
+    setIsCameraOpening(false);
+    setIsCameraReady(false);
   };
 
   useEffect(() => {
@@ -103,6 +121,8 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({
   // Start live front-facing camera
   const startCamera = async () => {
     setCameraPermissionError(false);
+    setIsCameraOpening(true);
+    setIsCameraReady(false);
     stopMediaStream();
 
     try {
@@ -125,6 +145,7 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({
         videoRef.current.play().catch(() => {});
       }
     } catch {
+      setIsCameraOpening(false);
       setCameraPermissionError(true);
     }
   };
@@ -132,9 +153,9 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({
   const handleStartAttendance = (action: 'CHECK_IN' | 'CHECK_OUT') => {
     setTargetAction(action);
     setErrorMessage(null);
-    setIsConflictError(false);
-    setIsNetworkError(false);
     setActionResult(null);
+    setSubmissionPhase('NOT_SUBMITTED');
+    setClientSubmissionId(`att_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`);
     setSubScreen('camera');
     setTimeout(() => {
       startCamera();
@@ -164,8 +185,7 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({
         stopMediaStream();
         if (!blob) {
           setErrorMessage('Không thể tạo ảnh chụp. Vui lòng thử lại.');
-          setIsConflictError(false);
-          setIsNetworkError(false);
+          setSubmissionPhase('REJECTED');
           setSubScreen('error');
           return;
         }
@@ -174,12 +194,14 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({
           type: 'image/jpeg',
         });
         setCapturedFile(file);
+        computeSha256(blob).then((hash) => setPhotoSha256(hash));
 
         if (previewUrl) {
           URL.revokeObjectURL(previewUrl);
         }
         const url = URL.createObjectURL(blob);
         setPreviewUrl(url);
+        setSubmissionPhase('NOT_SUBMITTED');
         setSubScreen('preview');
       },
       'image/jpeg',
@@ -194,17 +216,18 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({
       const file = files[0];
       if (!file.type.startsWith('image/')) {
         setErrorMessage('Vui lòng chọn tệp hình ảnh hợp lệ (JPG, PNG).');
-        setIsConflictError(false);
-        setIsNetworkError(false);
+        setSubmissionPhase('REJECTED');
         setSubScreen('error');
         return;
       }
       setCapturedFile(file);
+      computeSha256(file).then((hash) => setPhotoSha256(hash));
       if (previewUrl) {
         URL.revokeObjectURL(previewUrl);
       }
       const url = URL.createObjectURL(file);
       setPreviewUrl(url);
+      setSubmissionPhase('NOT_SUBMITTED');
       setSubScreen('preview');
     }
   };
@@ -215,9 +238,10 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({
       setPreviewUrl(null);
     }
     setCapturedFile(null);
+    setPhotoSha256(null);
+    setClientSubmissionId(`att_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`);
     setErrorMessage(null);
-    setIsConflictError(false);
-    setIsNetworkError(false);
+    setSubmissionPhase('NOT_SUBMITTED');
     setSubScreen('camera');
     setTimeout(() => {
       startCamera();
@@ -229,35 +253,82 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({
 
     setIsSubmitting(true);
     setErrorMessage(null);
-    setIsConflictError(false);
-    setIsNetworkError(false);
+
+    const subId = clientSubmissionId || `att_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    setClientSubmissionId(subId);
+    setSubmissionPhase('SUBMITTING');
 
     try {
       const result = await submitAttendance(
         targetAction,
         capturedFile,
-        cameraPermissionError ? 'fallback_file_input' : 'live_camera'
+        cameraPermissionError ? 'fallback_file_input' : 'live_camera',
+        subId
       );
       setActionResult(result);
+      setSubmissionPhase('CONFIRMED_BY_SERVER');
       setSubScreen('success');
       // Refresh status in background
       fetchStatus();
     } catch (err: unknown) {
       if (err instanceof ApiError && err.status === 409) {
-        // Duplicate action on server
-        setIsConflictError(true);
+        // Conflict on server: duplicate or sequence violation
         setErrorMessage(err.message);
+        setSubmissionPhase('CONFLICT');
         fetchStatus();
-      } else if (err instanceof ApiError && err.status === 0) {
-        // Network error before response
-        setIsNetworkError(true);
-        setErrorMessage('Không thể kết nối đến hệ thống. Vui lòng thử lại.');
+      } else if (err instanceof ApiError && (err.status === 0 || err.status >= 500)) {
+        // Network timeout / dropped connection or 5xx: commit state unknown
+        setErrorMessage('Chưa xác định được kết quả chấm công. Hãy kiểm tra trạng thái trên máy chủ.');
+        setSubmissionPhase('OUTCOME_UNKNOWN');
       } else {
         const msg =
           err instanceof Error ? err.message : 'Không thể ghi nhận chấm công.';
         setErrorMessage(msg);
+        setSubmissionPhase('REJECTED');
       }
       setSubScreen('error');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleReconcileSubmission = async () => {
+    setIsSubmitting(true);
+    setSubmissionPhase('RECONCILING');
+    try {
+      const recon = await reconcileAttendance(
+        targetAction,
+        clientSubmissionId || undefined,
+        photoSha256 || undefined
+      );
+
+      if (recon.matched && recon.event) {
+        setActionResult({
+          status: 'success',
+          id: recon.event.id,
+          event_type: targetAction,
+          server_timestamp: recon.event.timestamp,
+          formatted_time: recon.event.formatted_time,
+          message: recon.detail,
+          client_submission_id: recon.event.client_submission_id,
+          photo_sha256: recon.event.photo_sha256,
+          payload_sha256: recon.event.payload_sha256,
+        });
+        setSubmissionPhase('CONFIRMED_BY_SERVER');
+        setSubScreen('success');
+        fetchStatus();
+      } else if (recon.outcome === 'CONFLICT') {
+        setErrorMessage(recon.detail);
+        setSubmissionPhase('CONFLICT');
+        fetchStatus();
+      } else {
+        // Not observed on server at this time: keep original submission ID and payload for safe retry
+        setSubmissionPhase('NOT_SUBMITTED');
+        setErrorMessage('Đối soát xác nhận máy chủ chưa ghi nhận bản ghi này. Bạn có thể an toàn gửi lại.');
+      }
+    } catch {
+      setErrorMessage('Không thể đối soát với máy chủ. Vui lòng kiểm tra kết nối mạng và thử lại.');
+      setSubmissionPhase('OUTCOME_UNKNOWN');
     } finally {
       setIsSubmitting(false);
     }
@@ -499,12 +570,22 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({
             </div>
           ) : (
             <div className="live-camera-viewport">
+              {isCameraOpening && !isCameraReady && (
+                <div className="camera-loading-overlay" role="status" aria-live="polite">
+                  <div className="maritime-spinner-sm" aria-hidden="true" />
+                  <span className="camera-loading-text">Đang khởi động camera an toàn...</span>
+                </div>
+              )}
               <video
                 ref={videoRef}
                 autoPlay
                 playsInline
                 muted
-                className="live-video-element"
+                className={`live-video-element ${isCameraReady ? 'live-video-element--ready' : 'live-video-element--initializing'}`}
+                onLoadedMetadata={() => {
+                  setIsCameraReady(true);
+                  setIsCameraOpening(false);
+                }}
               />
               <div className="portrait-oval-guide" aria-hidden="true">
                 <div className="oval-outline" />
@@ -519,6 +600,7 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({
                 type="button"
                 className="btn btn-primary btn-lg"
                 onClick={handleCapturePhoto}
+                disabled={isCameraOpening && !isCameraReady}
                 aria-label="Chụp ảnh xác minh chấm công"
               >
                 <Camera size={20} strokeWidth={2.2} />
@@ -657,57 +739,198 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({
         </div>
       )}
 
-      {/* 5. ERROR SCREEN */}
+      {/* 5. ERROR & RECONCILIATION SCREEN */}
       {subScreen === 'error' && (
         <div className="attendance-content-flow">
-          <section className="result-card" role="alert" aria-label="Lỗi chấm công">
-            <div className="error-box">
-              <h2 className="error-title">
-                <AlertCircle size={20} strokeWidth={2.2} />
-                <span>Không thể ghi nhận chấm công</span>
-              </h2>
-              <p className="error-desc">{errorMessage || 'Đã xảy ra sự cố xử lý.'}</p>
-            </div>
+          <section className="result-card" role="alert" aria-label="Kết quả xử lý chấm công">
+            {/* A. Outcome Unknown / Network or 5xx drop */}
+            {submissionPhase === 'OUTCOME_UNKNOWN' && (
+              <>
+                <div className="status-badge-warning" style={{ alignSelf: 'center', marginBottom: '12px' }}>
+                  <AlertCircle size={16} strokeWidth={2.2} />
+                  <span>CHƯA XÁC ĐỊNH KẾT QUẢ</span>
+                </div>
+                <div className="error-box" style={{ borderColor: 'var(--amber-500, #f59e0b)' }}>
+                  <h2 className="error-title" style={{ color: 'var(--amber-700, #b45309)' }}>
+                    <AlertCircle size={20} strokeWidth={2.2} />
+                    <span>Chưa xác định được kết quả chấm công</span>
+                  </h2>
+                  <p className="error-desc" style={{ color: 'var(--slate-700, #334155)', fontWeight: 500 }}>
+                    Chưa xác định được kết quả chấm công. Hãy kiểm tra trạng thái trên máy chủ.
+                  </p>
+                  <p className="error-subnote" style={{ fontSize: '13px', color: 'var(--slate-500, #64748b)', marginTop: '6px' }}>
+                    Kết nối bị gián đoạn sau khi gửi. Không gửi lại ngay để tránh tạo dữ liệu trùng. Hãy đối soát trạng thái trước.
+                  </p>
+                </div>
 
-            <div className="button-stack">
-              {isNetworkError && capturedFile && (
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={handleConfirmSubmit}
-                  disabled={isSubmitting}
-                  aria-label="Thử lại gửi chấm công"
-                >
-                  <RefreshCw size={18} strokeWidth={2} />
-                  <span>Thử lại</span>
-                </button>
-              )}
+                <div className="button-stack" style={{ marginTop: '20px' }}>
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-lg"
+                    onClick={handleReconcileSubmission}
+                    disabled={isSubmitting}
+                    aria-label="Đối soát trạng thái trên máy chủ"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <div className="maritime-spinner-sm" aria-hidden="true" />
+                        <span>Đang đối soát...</span>
+                      </>
+                    ) : (
+                      <>
+                        <SearchCheck size={18} strokeWidth={2.2} />
+                        <span>Đối soát trạng thái</span>
+                      </>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => {
+                      stopMediaStream();
+                      setSubScreen('overview');
+                      fetchStatus();
+                    }}
+                    aria-label="Xem trạng thái ca làm việc"
+                  >
+                    <span>Xem trạng thái ca làm</span>
+                  </button>
+                </div>
+              </>
+            )}
 
-              {isConflictError ? (
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={() => {
-                    stopMediaStream();
-                    setSubScreen('overview');
-                    fetchStatus();
-                  }}
-                  aria-label="Xem trạng thái chấm công hiện tại"
-                >
-                  <span>Xem trạng thái</span>
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={handleRetake}
-                  aria-label="Chụp lại ảnh minh chứng"
-                >
-                  <RotateCcw size={18} strokeWidth={1.8} />
-                  <span>Chụp lại</span>
-                </button>
-              )}
-            </div>
+            {/* B. Reconciled as Not Recorded (Server confirms no event, safe to resubmit) */}
+            {submissionPhase === 'NOT_SUBMITTED' && (
+              <>
+                <div className="status-badge-neutral" style={{ alignSelf: 'center', marginBottom: '12px' }}>
+                  <RefreshCw size={16} strokeWidth={2.2} />
+                  <span>CHƯA ĐƯỢC GHI NHẬN</span>
+                </div>
+                <div className="error-box">
+                  <h2 className="error-title">
+                    <AlertCircle size={20} strokeWidth={2.2} />
+                    <span>Máy chủ chưa ghi nhận yêu cầu</span>
+                  </h2>
+                  <p className="error-desc">
+                    {errorMessage || 'Đối soát xác nhận máy chủ chưa nhận được bản ghi này. Bạn có thể an toàn gửi lại.'}
+                  </p>
+                </div>
+
+                <div className="button-stack" style={{ marginTop: '20px' }}>
+                  {capturedFile && (
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-lg"
+                      onClick={handleConfirmSubmit}
+                      disabled={isSubmitting}
+                      aria-label="Xác nhận gửi lại yêu cầu chấm công"
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <div className="maritime-spinner-sm" aria-hidden="true" />
+                          <span>Đang gửi lại...</span>
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw size={18} strokeWidth={2.2} />
+                          <span>Xác nhận gửi lại</span>
+                        </>
+                      )}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={handleRetake}
+                    aria-label="Chụp lại ảnh"
+                  >
+                    <RotateCcw size={18} strokeWidth={1.8} />
+                    <span>Chụp lại ảnh</span>
+                  </button>
+                </div>
+              </>
+            )}
+
+            {/* C. Conflict (Duplicate or Business Sequence Error) */}
+            {submissionPhase === 'CONFLICT' && (
+              <>
+                <div className="status-badge-warning" style={{ alignSelf: 'center', marginBottom: '12px' }}>
+                  <AlertCircle size={16} strokeWidth={2.2} />
+                  <span>XUNG ĐỘT DỮ LIỆU</span>
+                </div>
+                <div className="error-box">
+                  <h2 className="error-title">
+                    <AlertCircle size={20} strokeWidth={2.2} />
+                    <span>Thông tin ca làm đã thay đổi</span>
+                  </h2>
+                  <p className="error-desc">{errorMessage || 'Đã có sự kiện chấm công được ghi nhận trước đó.'}</p>
+                </div>
+
+                <div className="button-stack" style={{ marginTop: '20px' }}>
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={() => {
+                      stopMediaStream();
+                      setSubScreen('overview');
+                      fetchStatus();
+                    }}
+                    aria-label="Xem trạng thái chấm công hiện tại"
+                  >
+                    <span>Xem trạng thái ca làm</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => {
+                      stopMediaStream();
+                      onBackToHome();
+                    }}
+                    aria-label="Về trang chủ"
+                  >
+                    <ArrowLeft size={18} strokeWidth={2.2} />
+                    <span>Về trang chủ</span>
+                  </button>
+                </div>
+              </>
+            )}
+
+            {/* D. Explicit Rejection (Corrupt file, size limit, etc.) */}
+            {submissionPhase !== 'OUTCOME_UNKNOWN' && submissionPhase !== 'NOT_SUBMITTED' && submissionPhase !== 'CONFLICT' && (
+              <>
+                <div className="error-box">
+                  <h2 className="error-title">
+                    <AlertCircle size={20} strokeWidth={2.2} />
+                    <span>Không thể ghi nhận chấm công</span>
+                  </h2>
+                  <p className="error-desc">{errorMessage || 'Đã xảy ra sự cố xử lý.'}</p>
+                </div>
+
+                <div className="button-stack" style={{ marginTop: '20px' }}>
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={handleRetake}
+                    aria-label="Chụp lại ảnh minh chứng"
+                  >
+                    <RotateCcw size={18} strokeWidth={1.8} />
+                    <span>Chụp lại ảnh</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => {
+                      stopMediaStream();
+                      setSubScreen('overview');
+                      fetchStatus();
+                    }}
+                    aria-label="Xem trạng thái ca làm"
+                  >
+                    <span>Xem trạng thái</span>
+                  </button>
+                </div>
+              </>
+            )}
           </section>
         </div>
       )}

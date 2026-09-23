@@ -1,0 +1,11 @@
+FEATURE,CLASSIFICATION,DATA_SOURCE,API_EXISTS,FRONTEND_COMPONENT,BACKEND_TABLE,RISK,DEPENDENCIES
+Zone progress badges,NEEDS_BACKEND_DATA,Zone + Meter + Reading aggregate,No,MapV2Canvas.tsx (new),OperationalZone + Meter + MeterReading,High,BD-01 BD-05
+Real employee markers,NEEDS_BACKEND_DATA,ZoneAssignment + Attendance,No,employeeDataAdapter.ts,ZoneAssignment + AttendanceEvent,High,BD-10
+Meter markers on map,NEEDS_BACKEND_DATA,Meter coordinates in V2 space,No,New component needed,Meter (map_x map_y),Critical,BD-17
+Date/round context,NEEDS_FRONTEND_INTEGRATION,App.tsx selectedRound/selectedBatch,Exists in App.tsx,MapV2Workspace.tsx,ReadingRound,Medium,BD-06
+Zone search,NEEDS_FRONTEND_INTEGRATION,zoneAnchors.ts + JSON,N/A (client-side),MapV2Workspace.tsx (new),N/A,Low,BD-07
+Zone → Report navigation,NEEDS_FRONTEND_INTEGRATION,Zone ID mapping,Partial (tab navigation exists),MapV2Workspace.tsx + AdminShell.tsx,N/A,Medium,BD-03 BD-08
+Employee → Staff Roster link,NEEDS_FRONTEND_INTEGRATION,Employee ID mapping,Partial,MapV2InspectionPanel.tsx,User,Low,BD-10
+Custom zone hover tooltip,UI_ONLY_READY,zoneAnchors.ts + JSON,N/A,MapV2Canvas.tsx,N/A,Low,None
+Toolbar reorganization,UI_ONLY_READY,N/A,N/A,MapV2Workspace.tsx,N/A,Low,BD-14
+Permission gating,NEEDS_FRONTEND_INTEGRATION,Auth context user role,/api/v1/auth/me,MapV2Workspace.tsx,User.role,Low,BD-11

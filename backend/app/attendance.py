@@ -8,6 +8,7 @@ from typing import Optional
 import cv2
 import numpy as np
 from fastapi import HTTPException, status
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from .config import get_settings
@@ -109,6 +110,9 @@ def get_today_attendance_summary(db: Session, user_id: str) -> dict:
             "timestamp": check_in_event.server_timestamp.isoformat(),
             "formatted_time": get_local_time_str(check_in_event.server_timestamp),
             "status": check_in_event.status,
+            "photo_sha256": check_in_event.photo_sha256,
+            "payload_sha256": check_in_event.payload_sha256,
+            "client_submission_id": check_in_event.client_submission_id,
         }
         if check_in_event
         else None,
@@ -117,6 +121,9 @@ def get_today_attendance_summary(db: Session, user_id: str) -> dict:
             "timestamp": check_out_event.server_timestamp.isoformat(),
             "formatted_time": get_local_time_str(check_out_event.server_timestamp),
             "status": check_out_event.status,
+            "photo_sha256": check_out_event.photo_sha256,
+            "payload_sha256": check_out_event.payload_sha256,
+            "client_submission_id": check_out_event.client_submission_id,
         }
         if check_out_event
         else None,
@@ -130,11 +137,13 @@ def record_attendance(
     event_type: str,
     image_bytes: bytes,
     capture_source: str = "live_camera",
+    client_submission_id: Optional[str] = None,
 ) -> AttendanceEvent:
-    if len(image_bytes) > settings.max_attendance_upload_mb * 1024 * 1024:
+    current_settings = get_settings()
+    if len(image_bytes) > current_settings.max_attendance_upload_mb * 1024 * 1024:
         raise HTTPException(
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            detail=f"Dung lượng ảnh chấm công vượt quá giới hạn {settings.max_attendance_upload_mb}MB.",
+            detail=f"Dung lượng ảnh chấm công vượt quá giới hạn {current_settings.max_attendance_upload_mb}MB.",
         )
 
     if event_type not in ("CHECK_IN", "CHECK_OUT"):
@@ -143,7 +152,37 @@ def record_attendance(
             detail="Loại sự kiện chấm công không hợp lệ.",
         )
 
+    # Server-computed fingerprint of the ORIGINAL uploaded payload bytes
+    original_payload_sha256 = hashlib.sha256(image_bytes).hexdigest()
     today_str = get_current_business_date()
+
+    # Pre-check: Idempotency by client_submission_id scoped to the authenticated user
+    if client_submission_id:
+        existing_sub = (
+            db.query(AttendanceEvent)
+            .filter(
+                AttendanceEvent.user_id == user.id,
+                AttendanceEvent.client_submission_id == client_submission_id,
+            )
+            .first()
+        )
+        if existing_sub:
+            # Check for conflicting event type
+            if existing_sub.event_type != event_type:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=f"Mã gửi '{client_submission_id}' đã được sử dụng cho sự kiện khác ({existing_sub.event_type}).",
+                )
+            # Check for conflicting payload content
+            if existing_sub.payload_sha256 and existing_sub.payload_sha256 != original_payload_sha256:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=f"Mã gửi '{client_submission_id}' đã được sử dụng nhưng nội dung ảnh tải lên không trùng khớp.",
+                )
+            # Same user, same submission ID, same event type and same payload: authoritative replay
+            return existing_sub
+
+    # Sequence checks for the business date
     existing_events = (
         db.query(AttendanceEvent)
         .filter(
@@ -176,8 +215,10 @@ def record_attendance(
                 detail=f"Bạn đã hoàn tất chấm công tan ca hôm nay lúc {time_str}.",
             )
 
-    # Process and save photo
+    # Process and save normalized photo to storage
     photo_key, photo_sha256, photo_size = process_and_save_attendance_photo(image_bytes)
+    photo_dir = ensure_photo_dir()
+    persisted_file_path = photo_dir / photo_key
 
     now_utc = datetime.now(timezone.utc)
     event_obj = AttendanceEvent(
@@ -187,13 +228,88 @@ def record_attendance(
         server_timestamp=now_utc,
         photo_key=photo_key,
         photo_sha256=photo_sha256,
+        payload_sha256=original_payload_sha256,
         mime_type="image/jpeg",
         photo_size=photo_size,
         capture_source=capture_source,
         status="VALID",
+        client_submission_id=client_submission_id,
         created_at=now_utc,
     )
-    db.add(event_obj)
-    db.commit()
-    db.refresh(event_obj)
-    return event_obj
+
+    # Transaction boundary: Track whether DB commit succeeded before any cleanup decisions
+    is_committed = False
+    try:
+        db.add(event_obj)
+        db.commit()
+        is_committed = True
+        db.refresh(event_obj)
+        return event_obj
+    except IntegrityError:
+        db.rollback()
+        # Clean up temporary photo ONLY if transaction did NOT commit
+        if not is_committed and persisted_file_path.exists():
+            try:
+                persisted_file_path.unlink()
+            except OSError:
+                pass
+
+        # Authoritative state re-query to resolve race conditions
+        if client_submission_id:
+            existing_sub = (
+                db.query(AttendanceEvent)
+                .filter(
+                    AttendanceEvent.user_id == user.id,
+                    AttendanceEvent.client_submission_id == client_submission_id,
+                )
+                .first()
+            )
+            if existing_sub:
+                if existing_sub.event_type != event_type:
+                    raise HTTPException(
+                        status_code=status.HTTP_409_CONFLICT,
+                        detail=f"Mã gửi '{client_submission_id}' đã được sử dụng cho sự kiện khác ({existing_sub.event_type}).",
+                    )
+                if existing_sub.payload_sha256 and existing_sub.payload_sha256 != original_payload_sha256:
+                    raise HTTPException(
+                        status_code=status.HTTP_409_CONFLICT,
+                        detail=f"Mã gửi '{client_submission_id}' đã được sử dụng nhưng nội dung ảnh tải lên không trùng khớp.",
+                    )
+                return existing_sub
+
+        existing_event = (
+            db.query(AttendanceEvent)
+            .filter(
+                AttendanceEvent.user_id == user.id,
+                AttendanceEvent.business_date == today_str,
+                AttendanceEvent.event_type == event_type,
+            )
+            .first()
+        )
+        if existing_event:
+            time_str = get_local_time_str(existing_event.server_timestamp)
+            action_text = "vào ca" if event_type == "CHECK_IN" else "tan ca"
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Bạn đã chấm công {action_text} hôm nay lúc {time_str}.",
+            )
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Xung đột dữ liệu chấm công. Vui lòng kiểm tra lại trạng thái.",
+        )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        db.rollback()
+        # CRITICAL: Never delete an image after its DB record has committed
+        if not is_committed and persisted_file_path.exists():
+            try:
+                persisted_file_path.unlink()
+            except OSError:
+                pass
+        if is_committed:
+            return event_obj
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Không thể ghi nhận chấm công do lỗi máy chủ nội bộ.",
+        ) from exc

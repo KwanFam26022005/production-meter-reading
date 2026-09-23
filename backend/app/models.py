@@ -67,6 +67,8 @@ class AttendanceEvent(Base):
     photo_size = Column(Integer, nullable=False)
     capture_source = Column(String(50), nullable=False, default="live_camera")
     status = Column(String(50), nullable=False, default="VALID")
+    client_submission_id = Column(String(64), nullable=True, index=True)
+    payload_sha256 = Column(String(64), nullable=True, index=True)
     created_at = Column(DateTime(timezone=True), nullable=False, default=get_utc_now)
 
     user = relationship("User", back_populates="attendance_events")
@@ -74,6 +76,13 @@ class AttendanceEvent(Base):
     __table_args__ = (
         UniqueConstraint("user_id", "business_date", "event_type", name="uq_user_date_event"),
         Index("ix_user_business_date", "user_id", "business_date"),
+        Index(
+            "uq_attendance_user_client_sub_id",
+            "user_id",
+            "client_submission_id",
+            unique=True,
+            sqlite_where=Column("client_submission_id").isnot(None),
+        ),
     )
 
 

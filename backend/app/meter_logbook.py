@@ -43,6 +43,7 @@ from .schemas import (
     TodayHourlySlot,
     TodayOperationsResponse,
     TodayOperationsSummary,
+    MeterReadingReconciliationResponse,
 )
 
 settings = get_settings()
@@ -73,6 +74,14 @@ def get_round_time_only_str(dt: datetime) -> str:
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=timezone.utc)
     return dt.astimezone(LOCAL_TZ).strftime("%H:%M")
+
+
+def to_utc_datetime(dt: Optional[datetime]) -> datetime:
+    if dt is None:
+        return datetime.min.replace(tzinfo=timezone.utc)
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
 
 
 def get_open_reading_batch(db: Session) -> Optional[ReadingBatch]:
@@ -170,16 +179,16 @@ def get_current_or_nearest_round(
 
     # 1. Past/current open rounds for this date: scheduled_at <= now, latest first
     past_open = sorted(
-        [r for r in day_rounds if (r.scheduled_at.replace(tzinfo=timezone.utc) if r.scheduled_at.tzinfo is None else r.scheduled_at) <= now_utc],
-        key=lambda x: x.scheduled_at,
+        [r for r in day_rounds if to_utc_datetime(r.scheduled_at) <= now_utc],
+        key=lambda x: to_utc_datetime(x.scheduled_at),
         reverse=True,
     )
     current_round = past_open[0] if past_open else None
 
     # 2. Upcoming open rounds for this date: scheduled_at > now, earliest first
     upcoming_open = sorted(
-        [r for r in day_rounds if (r.scheduled_at.replace(tzinfo=timezone.utc) if r.scheduled_at.tzinfo is None else r.scheduled_at) > now_utc],
-        key=lambda x: x.scheduled_at,
+        [r for r in day_rounds if to_utc_datetime(r.scheduled_at) > now_utc],
+        key=lambda x: to_utc_datetime(x.scheduled_at),
     )
     nearest_upcoming = upcoming_open[0] if upcoming_open else None
 
@@ -857,6 +866,66 @@ def confirm_meter_reading(
     return confirmed_record
 
 
+def reconcile_meter_reading(
+    db: Session,
+    user: User,
+    round_id: str,
+    meter_id: str,
+) -> MeterReadingReconciliationResponse:
+    # 1. Validate round exists
+    round_obj = db.query(ReadingRound).filter(ReadingRound.id == round_id).first()
+    if not round_obj:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Không tìm thấy lượt ghi chỉ số.",
+        )
+
+    # 2. Validate meter exists
+    meter = db.query(Meter).filter(Meter.id == meter_id).first()
+    if not meter:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Không tìm thấy thông tin công tơ.",
+        )
+
+    # 3. Query existing reading in this round
+    reading_record = (
+        db.query(MeterReading)
+        .filter(
+            MeterReading.reading_round_id == round_id,
+            MeterReading.meter_id == meter_id,
+        )
+        .first()
+    )
+
+    if not reading_record:
+        return MeterReadingReconciliationResponse(
+            exists=False,
+            meter_id=meter_id,
+            round_id=round_id,
+            batch_id=round_obj.batch_id,
+        )
+
+    emp_code = reading_record.user.employee_code if reading_record.user else None
+    formatted = get_local_time_str(reading_record.server_timestamp) if reading_record.server_timestamp else None
+    server_ts_str = reading_record.server_timestamp.isoformat() if reading_record.server_timestamp else None
+
+    return MeterReadingReconciliationResponse(
+        exists=True,
+        reading_id=reading_record.id,
+        meter_id=meter_id,
+        round_id=round_id,
+        batch_id=reading_record.batch_id,
+        reading_status=reading_record.status,
+        reading=reading_record.reading,
+        ocr_reading=reading_record.ocr_reading,
+        confirmation_source=reading_record.confirmation_source,
+        server_timestamp=server_ts_str,
+        formatted_time=formatted,
+        recorded_by_employee_code=emp_code,
+    )
+
+
 def mark_meter_review(
     db: Session,
     user: User,
@@ -1113,7 +1182,7 @@ def get_today_meter_operations(
 
     # Map latest confirmed reading for each meter
     confirmed_readings = [r for r in all_batch_readings if r.status == "CONFIRMED"]
-    confirmed_readings.sort(key=lambda x: x.server_timestamp, reverse=True)
+    confirmed_readings.sort(key=lambda x: to_utc_datetime(x.server_timestamp), reverse=True)
     latest_confirmed_map: dict[str, MeterReading] = {}
     for r in confirmed_readings:
         if r.meter_id not in latest_confirmed_map:
@@ -1241,7 +1310,7 @@ def get_today_meter_operations(
 
         # 5. Trend points (recent 4-6 CONFIRMED numeric values ordered chronologically)
         meter_confirmed = [r for r in all_batch_readings if r.meter_id == m.id and r.status == "CONFIRMED" and r.reading]
-        meter_confirmed.sort(key=lambda x: x.server_timestamp)
+        meter_confirmed.sort(key=lambda x: to_utc_datetime(x.server_timestamp))
         trend_points: list[MeterTrendPoint] = []
         for cr in meter_confirmed:
             clean_str = cr.reading.replace(",", "").strip()

@@ -1,0 +1,312 @@
+{
+  "nodeBox": {
+    "x": 628.726806640625,
+    "y": 573.1900024414062,
+    "width": 74.6817626953125,
+    "height": 69.8258056640625
+  },
+  "centerHit": {
+    "dx": 0,
+    "dy": 0,
+    "tagName": "polygon",
+    "id": null,
+    "pointerEvents": "auto",
+    "nearestButtonId": "node-SIM-EXT-GRID",
+    "pathToRoot": "polygon#[] > g#[] > g#node-SIM-EXT-GRID[utility-node source   ] > g#utility-nodes[utility-nodes-group] > g#layer-utility-demo[map-v2-utility-layer ] > g#[]"
+  },
+  "hitInfo": {
+    "sampleX": 666,
+    "sampleY": 608,
+    "tagName": "polygon",
+    "id": null,
+    "className": "",
+    "pointerEvents": "auto",
+    "parentId": null,
+    "parentTag": "g",
+    "nearestButtonId": "node-SIM-EXT-GRID"
+  },
+  "gridHits": [
+    {
+      "dx": -15,
+      "dy": -15,
+      "tagName": "circle",
+      "id": null,
+      "pointerEvents": "auto",
+      "nearestButtonId": "node-SIM-EXT-GRID",
+      "pathToRoot": "circle#[] > g#node-SIM-EXT-GRID[utility-node source   ] > g#utility-nodes[utility-nodes-group] > g#layer-utility-demo[map-v2-utility-layer ] > g#[] > svg#[]"
+    },
+    {
+      "dx": -15,
+      "dy": -8,
+      "tagName": "polygon",
+      "id": null,
+      "pointerEvents": "auto",
+      "nearestButtonId": "node-SIM-EXT-GRID",
+      "pathToRoot": "polygon#[] > g#[] > g#node-SIM-EXT-GRID[utility-node source   ] > g#utility-nodes[utility-nodes-group] > g#layer-utility-demo[map-v2-utility-layer ] > g#[]"
+    },
+    {
+      "dx": -15,
+      "dy": 0,
+      "tagName": "circle",
+      "id": null,
+      "pointerEvents": "auto",
+      "nearestButtonId": "node-SIM-EXT-GRID",
+      "pathToRoot": "circle#[] > g#node-SIM-EXT-GRID[utility-node source   ] > g#utility-nodes[utility-nodes-group] > g#layer-utility-demo[map-v2-utility-layer ] > g#[] > svg#[]"
+    },
+    {
+      "dx": -15,
+      "dy": 8,
+      "tagName": "text",
+      "id": null,
+      "pointerEvents": "auto",
+      "nearestButtonId": "node-SIM-EXT-GRID",
+      "pathToRoot": "text#[] > g#[] > g#[] > g#node-SIM-EXT-GRID[utility-node source   ] > g#utility-nodes[utility-nodes-group] > g#layer-utility-demo[map-v2-utility-layer ]"
+    },
+    {
+      "dx": -15,
+      "dy": 15,
+      "tagName": "text",
+      "id": null,
+      "pointerEvents": "auto",
+      "nearestButtonId": "node-SIM-EXT-GRID",
+      "pathToRoot": "text#[] > g#[] > g#[] > g#node-SIM-EXT-GRID[utility-node source   ] > g#utility-nodes[utility-nodes-group] > g#layer-utility-demo[map-v2-utility-layer ]"
+    },
+    {
+      "dx": -8,
+      "dy": -15,
+      "tagName": "polygon",
+      "id": null,
+      "pointerEvents": "auto",
+      "nearestButtonId": "node-SIM-EXT-GRID",
+      "pathToRoot": "polygon#[] > g#[] > g#node-SIM-EXT-GRID[utility-node source   ] > g#utility-nodes[utility-nodes-group] > g#layer-utility-demo[map-v2-utility-layer ] > g#[]"
+    },
+    {
+      "dx": -8,
+      "dy": -8,
+      "tagName": "polygon",
+      "id": null,
+      "pointerEvents": "auto",
+      "nearestButtonId": "node-SIM-EXT-GRID",
+      "pathToRoot": "polygon#[] > g#[] > g#node-SIM-EXT-GRID[utility-node source   ] > g#utility-nodes[utility-nodes-group] > g#layer-utility-demo[map-v2-utility-layer ] > g#[]"
+    },
+    {
+      "dx": -8,
+      "dy": 0,
+      "tagName": "circle",
+      "id": null,
+      "pointerEvents": "auto",
+      "nearestButtonId": "node-SIM-EXT-GRID",
+      "pathToRoot": "circle#[] > g#node-SIM-EXT-GRID[utility-node source   ] > g#utility-nodes[utility-nodes-group] > g#layer-utility-demo[map-v2-utility-layer ] > g#[] > svg#[]"
+    },
+    {
+      "dx": -8,
+      "dy": 8,
+      "tagName": "text",
+      "id": null,
+      "pointerEvents": "auto",
+      "nearestButtonId": "node-SIM-EXT-GRID",
+      "pathToRoot": "text#[] > g#[] > g#[] > g#node-SIM-EXT-GRID[utility-node source   ] > g#utility-nodes[utility-nodes-group] > g#layer-utility-demo[map-v2-utility-layer ]"
+    },
+    {
+      "dx": -8,
+      "dy": 15,
+      "tagName": "text",
+      "id": null,
+      "pointerEvents": "auto",
+      "nearestButtonId": "node-SIM-EXT-GRID",
+      "pathToRoot": "text#[] > g#[] > g#[] > g#node-SIM-EXT-GRID[utility-node source   ] > g#utility-nodes[utility-nodes-group] > g#layer-utility-demo[map-v2-utility-layer ]"
+    },
+    {
+      "dx": 0,
+      "dy": -15,
+      "tagName": "polygon",
+      "id": null,
+      "pointerEvents": "auto",
+      "nearestButtonId": "node-SIM-EXT-GRID",
+      "pathToRoot": "polygon#[] > g#[] > g#node-SIM-EXT-GRID[utility-node source   ] > g#utility-nodes[utility-nodes-group] > g#layer-utility-demo[map-v2-utility-layer ] > g#[]"
+    },
+    {
+      "dx": 0,
+      "dy": -8,
+      "tagName": "polygon",
+      "id": null,
+      "pointerEvents": "auto",
+      "nearestButtonId": "node-SIM-EXT-GRID",
+      "pathToRoot": "polygon#[] > g#[] > g#node-SIM-EXT-GRID[utility-node source   ] > g#utility-nodes[utility-nodes-group] > g#layer-utility-demo[map-v2-utility-layer ] > g#[]"
+    },
+    {
+      "dx": 0,
+      "dy": 0,
+      "tagName": "polygon",
+      "id": null,
+      "pointerEvents": "auto",
+      "nearestButtonId": "node-SIM-EXT-GRID",
+      "pathToRoot": "polygon#[] > g#[] > g#node-SIM-EXT-GRID[utility-node source   ] > g#utility-nodes[utility-nodes-group] > g#layer-utility-demo[map-v2-utility-layer ] > g#[]"
+    },
+    {
+      "dx": 0,
+      "dy": 8,
+      "tagName": "text",
+      "id": null,
+      "pointerEvents": "auto",
+      "nearestButtonId": "node-SIM-EXT-GRID",
+      "pathToRoot": "text#[] > g#[] > g#[] > g#node-SIM-EXT-GRID[utility-node source   ] > g#utility-nodes[utility-nodes-group] > g#layer-utility-demo[map-v2-utility-layer ]"
+    },
+    {
+      "dx": 0,
+      "dy": 15,
+      "tagName": "text",
+      "id": null,
+      "pointerEvents": "auto",
+      "nearestButtonId": "node-SIM-EXT-GRID",
+      "pathToRoot": "text#[] > g#[] > g#[] > g#node-SIM-EXT-GRID[utility-node source   ] > g#utility-nodes[utility-nodes-group] > g#layer-utility-demo[map-v2-utility-layer ]"
+    },
+    {
+      "dx": 8,
+      "dy": -15,
+      "tagName": "polygon",
+      "id": null,
+      "pointerEvents": "auto",
+      "nearestButtonId": "node-SIM-EXT-GRID",
+      "pathToRoot": "polygon#[] > g#[] > g#node-SIM-EXT-GRID[utility-node source   ] > g#utility-nodes[utility-nodes-group] > g#layer-utility-demo[map-v2-utility-layer ] > g#[]"
+    },
+    {
+      "dx": 8,
+      "dy": -8,
+      "tagName": "polygon",
+      "id": null,
+      "pointerEvents": "auto",
+      "nearestButtonId": "node-SIM-EXT-GRID",
+      "pathToRoot": "polygon#[] > g#[] > g#node-SIM-EXT-GRID[utility-node source   ] > g#utility-nodes[utility-nodes-group] > g#layer-utility-demo[map-v2-utility-layer ] > g#[]"
+    },
+    {
+      "dx": 8,
+      "dy": 0,
+      "tagName": "circle",
+      "id": null,
+      "pointerEvents": "auto",
+      "nearestButtonId": "node-SIM-EXT-GRID",
+      "pathToRoot": "circle#[] > g#node-SIM-EXT-GRID[utility-node source   ] > g#utility-nodes[utility-nodes-group] > g#layer-utility-demo[map-v2-utility-layer ] > g#[] > svg#[]"
+    },
+    {
+      "dx": 8,
+      "dy": 8,
+      "tagName": "text",
+      "id": null,
+      "pointerEvents": "auto",
+      "nearestButtonId": "node-SIM-EXT-GRID",
+      "pathToRoot": "text#[] > g#[] > g#[] > g#node-SIM-EXT-GRID[utility-node source   ] > g#utility-nodes[utility-nodes-group] > g#layer-utility-demo[map-v2-utility-layer ]"
+    },
+    {
+      "dx": 8,
+      "dy": 15,
+      "tagName": "text",
+      "id": null,
+      "pointerEvents": "auto",
+      "nearestButtonId": "node-SIM-EXT-GRID",
+      "pathToRoot": "text#[] > g#[] > g#[] > g#node-SIM-EXT-GRID[utility-node source   ] > g#utility-nodes[utility-nodes-group] > g#layer-utility-demo[map-v2-utility-layer ]"
+    },
+    {
+      "dx": 15,
+      "dy": -15,
+      "tagName": "circle",
+      "id": null,
+      "pointerEvents": "auto",
+      "nearestButtonId": "node-SIM-EXT-GRID",
+      "pathToRoot": "circle#[] > g#node-SIM-EXT-GRID[utility-node source   ] > g#utility-nodes[utility-nodes-group] > g#layer-utility-demo[map-v2-utility-layer ] > g#[] > svg#[]"
+    },
+    {
+      "dx": 15,
+      "dy": -8,
+      "tagName": "circle",
+      "id": null,
+      "pointerEvents": "auto",
+      "nearestButtonId": "node-SIM-EXT-GRID",
+      "pathToRoot": "circle#[] > g#node-SIM-EXT-GRID[utility-node source   ] > g#utility-nodes[utility-nodes-group] > g#layer-utility-demo[map-v2-utility-layer ] > g#[] > svg#[]"
+    },
+    {
+      "dx": 15,
+      "dy": 0,
+      "tagName": "circle",
+      "id": null,
+      "pointerEvents": "auto",
+      "nearestButtonId": "node-SIM-EXT-GRID",
+      "pathToRoot": "circle#[] > g#node-SIM-EXT-GRID[utility-node source   ] > g#utility-nodes[utility-nodes-group] > g#layer-utility-demo[map-v2-utility-layer ] > g#[] > svg#[]"
+    },
+    {
+      "dx": 15,
+      "dy": 8,
+      "tagName": "text",
+      "id": null,
+      "pointerEvents": "auto",
+      "nearestButtonId": "node-SIM-EXT-GRID",
+      "pathToRoot": "text#[] > g#[] > g#[] > g#node-SIM-EXT-GRID[utility-node source   ] > g#utility-nodes[utility-nodes-group] > g#layer-utility-demo[map-v2-utility-layer ]"
+    },
+    {
+      "dx": 15,
+      "dy": 15,
+      "tagName": "text",
+      "id": null,
+      "pointerEvents": "auto",
+      "nearestButtonId": "node-SIM-EXT-GRID",
+      "pathToRoot": "text#[] > g#[] > g#[] > g#node-SIM-EXT-GRID[utility-node source   ] > g#utility-nodes[utility-nodes-group] > g#layer-utility-demo[map-v2-utility-layer ]"
+    }
+  ],
+  "pointerEventsAudit": [
+    {
+      "tag": "g",
+      "id": "node-SIM-EXT-GRID",
+      "pointerEvents": "auto"
+    },
+    {
+      "tag": "circle",
+      "id": null,
+      "class": "",
+      "pointerEvents": "auto",
+      "childCount": 0
+    },
+    {
+      "tag": "g",
+      "id": null,
+      "class": "",
+      "pointerEvents": "auto",
+      "childCount": 5
+    },
+    {
+      "tag": "  └polygon",
+      "id": null,
+      "class": "",
+      "pointerEvents": "auto"
+    },
+    {
+      "tag": "  └polygon",
+      "id": null,
+      "class": "",
+      "pointerEvents": "auto"
+    },
+    {
+      "tag": "  └polygon",
+      "id": null,
+      "class": "",
+      "pointerEvents": "auto"
+    },
+    {
+      "tag": "  └g",
+      "id": null,
+      "class": "",
+      "pointerEvents": "auto"
+    },
+    {
+      "tag": "  └g",
+      "id": null,
+      "class": "",
+      "pointerEvents": "auto"
+    }
+  ],
+  "svgGroupAudit": {
+    "svgPointerEvents": "auto",
+    "mainGroupPointerEvents": "auto",
+    "layerPointerEvents": "auto",
+    "svgStyle": "display: block; pointer-events: auto;"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "name": "@sgp/user-web",
+  "version": "1.0.0",
+  "private": true,
+  "description": "User Portal — Mobile-first PWA for field meter reading operators at Saigon Port",
+  "scripts": {
+    "dev": "npm --prefix ../../frontend run dev:user",
+    "build": "npm --prefix ../../frontend run build:user",
+    "test": "npm --prefix ../../frontend run test:user"
+  }
+}

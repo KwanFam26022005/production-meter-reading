@@ -69,6 +69,7 @@ from .meter_logbook import (
     get_round_time_only_str,
     get_today_meter_operations,
     mark_meter_review,
+    reconcile_meter_reading,
 )
 from .auth import (
     clear_session_cookie,
@@ -119,6 +120,7 @@ from .schemas import (
     MeterReadResponse,
     MeterReadingActionResponse,
     MeterReadingHistoryItem,
+    MeterReadingReconciliationResponse,
     ReadingBatchCurrentResponse,
     ReadingRoundCurrentResponse,
     ReadingRoundListResponse,
@@ -360,6 +362,7 @@ def get_attendance_today(
 async def check_in(
     file: UploadFile = File(...),
     capture_source: str = Form("live_camera"),
+    client_submission_id: Optional[str] = Form(None),
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> AttendanceActionResponse:
@@ -386,15 +389,20 @@ async def check_in(
         event_type="CHECK_IN",
         image_bytes=data,
         capture_source=capture_source,
+        client_submission_id=client_submission_id,
     )
 
     formatted = get_local_time_str(event.server_timestamp)
     return AttendanceActionResponse(
         status="success",
+        id=event.id,
         event_type="CHECK_IN",
         server_timestamp=event.server_timestamp.isoformat(),
         formatted_time=formatted,
         message=f"Đã ghi nhận vào ca thành công lúc {formatted}.",
+        photo_sha256=event.photo_sha256,
+        payload_sha256=event.payload_sha256,
+        client_submission_id=event.client_submission_id,
     )
 
 
@@ -406,6 +414,7 @@ async def check_in(
 async def check_out(
     file: UploadFile = File(...),
     capture_source: str = Form("live_camera"),
+    client_submission_id: Optional[str] = Form(None),
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> AttendanceActionResponse:
@@ -432,15 +441,20 @@ async def check_out(
         event_type="CHECK_OUT",
         image_bytes=data,
         capture_source=capture_source,
+        client_submission_id=client_submission_id,
     )
 
     formatted = get_local_time_str(event.server_timestamp)
     return AttendanceActionResponse(
         status="success",
+        id=event.id,
         event_type="CHECK_OUT",
         server_timestamp=event.server_timestamp.isoformat(),
         formatted_time=formatted,
         message=f"Đã ghi nhận tan ca thành công lúc {formatted}.",
+        photo_sha256=event.photo_sha256,
+        payload_sha256=event.payload_sha256,
+        client_submission_id=event.client_submission_id,
     )
 
 
@@ -702,6 +716,19 @@ def mark_review_endpoint(
         formatted_time=formatted,
         message=f"Đã ghi nhận trạng thái Cần kiểm tra lúc {formatted}.",
     )
+
+
+@app.get(
+    "/api/v1/meter-readings/rounds/{round_id}/meters/{meter_id}",
+    response_model=MeterReadingReconciliationResponse,
+)
+def reconcile_reading_endpoint(
+    round_id: str,
+    meter_id: str,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> MeterReadingReconciliationResponse:
+    return reconcile_meter_reading(db, user, round_id=round_id, meter_id=meter_id)
 
 
 @app.get("/api/v1/meters/{meter_id}", response_model=MeterDetailResponse)

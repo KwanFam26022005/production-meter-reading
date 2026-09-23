@@ -69,6 +69,9 @@ export interface AttendanceDetail {
   timestamp: string;
   formatted_time: string;
   status: string;
+  photo_sha256?: string;
+  payload_sha256?: string;
+  client_submission_id?: string;
 }
 
 export interface TodayAttendance {
@@ -80,11 +83,24 @@ export interface TodayAttendance {
 
 export interface AttendanceActionResponse {
   status: "success";
+  id?: string;
   event_type: "CHECK_IN" | "CHECK_OUT";
   server_timestamp: string;
   formatted_time: string;
   message: string;
+  photo_sha256?: string;
+  payload_sha256?: string;
+  client_submission_id?: string;
 }
+
+export type AttendanceSubmissionPhase =
+  | "NOT_SUBMITTED"
+  | "SUBMITTING"
+  | "CONFIRMED_BY_SERVER"
+  | "OUTCOME_UNKNOWN"
+  | "RECONCILING"
+  | "CONFLICT"
+  | "REJECTED";
 
 export interface Meter {
   id: string;
@@ -297,6 +313,21 @@ export interface MeterReadingActionResponse {
   server_timestamp: string;
   formatted_time: string;
   message: string;
+}
+
+export interface MeterReadingReconciliationResponse {
+  exists: boolean;
+  reading_id?: string | null;
+  meter_id: string;
+  round_id: string;
+  batch_id?: string | null;
+  reading_status?: "CONFIRMED" | "REVIEW" | null;
+  reading?: string | null;
+  ocr_reading?: string | null;
+  confirmation_source?: string | null;
+  server_timestamp?: string | null;
+  formatted_time?: string | null;
+  recorded_by_employee_code?: string | null;
 }
 
 export interface MeterReadingHistoryItem {

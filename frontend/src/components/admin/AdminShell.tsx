@@ -10,10 +10,11 @@ import {
   ShieldCheck,
   ChevronLeft,
   Map,
+  MapPinned,
 } from 'lucide-react';
 import { User, formatUserRole } from '../../types';
 
-export type AdminTab = 'dashboard' | 'assets' | 'verification' | 'schedules' | 'staff_roster' | 'meters' | 'reports' | 'audit';
+export type AdminTab = 'dashboard' | 'assets' | 'verification' | 'schedules' | 'staff_roster' | 'meters' | 'reports' | 'audit' | 'map_v2';
 
 interface AdminShellProps {
   user: User;
@@ -62,6 +63,7 @@ export const AdminShell: React.FC<AdminShellProps> = ({
 
   const primaryNavItems: { id: AdminTab; label: string; icon: React.ReactNode; tooltip: string }[] = [
     { id: 'dashboard', label: 'Bản đồ', icon: <Map size={22} />, tooltip: 'Bản đồ không gian GIS & Mạng lưới vận hành' },
+    { id: 'map_v2', label: 'Bản đồ V2', icon: <MapPinned size={22} />, tooltip: 'Bản đồ kỹ thuật Cảng Tân Thuận 1 (Map V2)' },
     { id: 'schedules', label: 'Lịch ghi', icon: <Calendar size={22} />, tooltip: 'Lịch trình ca đọc & Sổ ca ghi' },
     { id: 'staff_roster', label: 'Phân ca', icon: <Users size={22} />, tooltip: 'Phân công nhân sự & Điều độ ca trực' },
     { id: 'reports', label: 'Báo cáo', icon: <BarChart3 size={22} />, tooltip: 'Báo cáo sản lượng, KPI & Nhật ký kiểm toán' },
@@ -70,6 +72,9 @@ export const AdminShell: React.FC<AdminShellProps> = ({
   const isItemActive = (itemId: AdminTab) => {
     if (itemId === 'dashboard') {
       return activeTab === 'dashboard' || activeTab === 'assets' || activeTab === 'meters';
+    }
+    if (itemId === 'map_v2') {
+      return activeTab === 'map_v2';
     }
     if (itemId === 'schedules') {
       return activeTab === 'schedules';
@@ -86,6 +91,9 @@ export const AdminShell: React.FC<AdminShellProps> = ({
   const getCurrentWorkspaceTitle = () => {
     if (activeTab === 'dashboard' || activeTab === 'assets' || activeTab === 'meters') {
       return 'Bản đồ';
+    }
+    if (activeTab === 'map_v2') {
+      return 'Bản đồ V2';
     }
     if (activeTab === 'schedules') {
       return 'Lịch ghi';
@@ -269,7 +277,7 @@ export const AdminShell: React.FC<AdminShellProps> = ({
             <nav className="admin-drawer-nav-list">
               <div className="admin-drawer-nav-header">
                 <span>ĐIỀU HÀNH TÁC NGHIỆP</span>
-                <span className="admin-drawer-nav-badge">4 Workspaces</span>
+                <span className="admin-drawer-nav-badge">5 Workspaces</span>
               </div>
               {primaryNavItems.map((item) => {
                 const isActive = isItemActive(item.id);
@@ -333,7 +341,7 @@ export const AdminShell: React.FC<AdminShellProps> = ({
         )}
 
         {/* MAIN DESKTOP CONTENT AREA */}
-        <main className="admin-main-viewport" role="main">
+        <main className={`admin-main-viewport ${activeTab === 'map_v2' ? 'admin-main-viewport-map-v2' : ''}`} role="main">
           {children}
         </main>
       </div>

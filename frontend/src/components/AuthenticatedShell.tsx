@@ -1,6 +1,31 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, LogOut, X } from 'lucide-react';
-import { User, formatUserRole } from '../types';
+import { TodayAttendance, User, formatUserRole } from '../types';
+
+export interface AvatarShiftStatus {
+  variant: 'warning' | 'success' | 'completed' | 'neutral' | 'unknown';
+  label: string;
+}
+
+export function resolveAvatarShiftStatus(
+  attendance?: TodayAttendance | null,
+  loading?: boolean,
+  error?: string | null
+): AvatarShiftStatus {
+  if (loading) {
+    return { variant: 'neutral', label: 'Đang kiểm tra...' };
+  }
+  if (error || !attendance) {
+    return { variant: 'unknown', label: 'Chưa xác định' };
+  }
+  if (!attendance.check_in && !attendance.check_out) {
+    return { variant: 'warning', label: 'Chưa vào ca' };
+  }
+  if (attendance.check_in && !attendance.check_out) {
+    return { variant: 'success', label: 'Đang trong ca' };
+  }
+  return { variant: 'completed', label: 'Đã hoàn tất ca' };
+}
 
 export interface AuthenticatedShellProps {
   screenTitle?: string;
@@ -9,6 +34,9 @@ export interface AuthenticatedShellProps {
   onBack?: () => void;
   onLogout?: () => void;
   user?: User | null;
+  attendance?: TodayAttendance | null;
+  loadingAttendance?: boolean;
+  attendanceError?: string | null;
   rightAction?: React.ReactNode;
   children: React.ReactNode;
 }
@@ -20,11 +48,20 @@ export const AuthenticatedShell: React.FC<AuthenticatedShellProps> = ({
   onBack,
   onLogout,
   user,
+  attendance,
+  loadingAttendance,
+  attendanceError,
   rightAction,
   children,
 }) => {
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  const { variant: statusVariant, label: statusLabel } = resolveAvatarShiftStatus(
+    attendance,
+    loadingAttendance,
+    attendanceError
+  );
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -80,13 +117,14 @@ export const AuthenticatedShell: React.FC<AuthenticatedShellProps> = ({
             <div className="header-account-wrapper" ref={menuRef}>
               <button
                 type="button"
-                className="btn-account-avatar"
+                className={`btn-account-avatar btn-account-avatar--${statusVariant}`}
                 onClick={() => setAccountMenuOpen((prev) => !prev)}
-                aria-label="Mở menu tài khoản"
+                aria-label={`Mở tài khoản, trạng thái: ${statusLabel}`}
                 aria-expanded={accountMenuOpen}
                 aria-haspopup="dialog"
               >
                 <span className="avatar-initial">{userInitial}</span>
+                <span className={`avatar-status-badge avatar-status-badge--${statusVariant}`} aria-hidden="true" />
               </button>
 
               {accountMenuOpen && (
@@ -123,6 +161,15 @@ export const AuthenticatedShell: React.FC<AuthenticatedShellProps> = ({
                       >
                         <X size={16} />
                       </button>
+                    </div>
+
+                    {/* Dedicated Shift Status Section */}
+                    <div className="account-popover-status-section">
+                      <span className="account-popover-status-label">Trạng thái ca</span>
+                      <div className="account-popover-status-val">
+                        <span className={`status-dot dot-${statusVariant === 'unknown' ? 'neutral' : statusVariant}`} />
+                        <span className="account-popover-status-text">{statusLabel}</span>
+                      </div>
                     </div>
 
                     <div className="account-popover-divider" />

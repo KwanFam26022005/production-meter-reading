@@ -1,0 +1,11 @@
+FLOW_ID,FLOW_DESCRIPTION,ENTRY_POINT,CURRENT_BEHAVIOR,STATUS,SHARED_IDENTIFIERS,DATA_GAPS,READINESS,EVIDENCE
+A,Phân khu trên Map → Báo cáo khu vực,Click zone anchor on Map V2,Opens floating card with zone info — no report link,MISSING,Zone ID (presentation vs backend mismatch),Map V2 zone IDs ≠ backend zone IDs,NEEDS_FRONTEND_INTEGRATION + NEEDS_BACKEND_DATA,MapV2Workspace.tsx
+B,Công tơ trên Map → Lịch sử/Báo cáo công tơ,Hover utility node,SVG tooltip with simulated code — no navigation,MISSING,Meter code (SIM-* simulated codes),Utility demo uses fake meter codes,NEEDS_BACKEND_DATA,MapV2UtilityLayer.tsx
+C,Ngoại lệ trên Map → Bản ghi cần kiểm tra,N/A,No exception indicators on Map V2,MISSING,N/A,No exception data source on Map V2,NEEDS_BACKEND_DATA,NOT_IMPLEMENTED
+D,Nhân viên trên Map → Phân ca/hồ sơ,Click employee marker,Opens inspector with demo data — no navigation link,MISSING,Employee code (DEMO_NV* vs real user IDs),Demo employee codes ≠ backend user IDs,NEEDS_FRONTEND_INTEGRATION,MapV2InspectionPanel.tsx
+E,Báo cáo → Định vị khu/công tơ trên Map,N/A,No deep link from Reports back to Map V2,MISSING,Zone ID + Meter ID,No URL-based entity selection on Map V2,NEEDS_FRONTEND_INTEGRATION,AdminShell.tsx
+F,Lịch ghi → Map đúng ngày và lượt ghi,N/A,Map V2 does not consume date/round context,MISSING,selectedRound + selectedBatch,Map V2 ignores App.tsx reading round state,NEEDS_FRONTEND_INTEGRATION,MapV2Workspace.tsx + App.tsx
+G,Map V2 sidebar → Lịch ghi tab,Click Lịch ghi in sidebar,Tab switches to Schedules view,IMPLEMENTED,activeTab state,None,N/A,AdminShell.tsx
+H,Map V2 sidebar → Phân ca tab,Click Phân ca in sidebar,Tab switches to Staff Roster view,IMPLEMENTED,activeTab state,None,N/A,AdminShell.tsx
+I,Map V2 sidebar → Báo cáo tab,Click Báo cáo in sidebar,Tab switches to Reports view,IMPLEMENTED,activeTab state,None,N/A,AdminShell.tsx
+J,Map V2 sidebar → Bản đồ (V1),Click Bản đồ in sidebar,Tab switches to Map V1,IMPLEMENTED,activeTab state,V1 and V2 are completely separate worlds,N/A,AdminShell.tsx

@@ -1,0 +1,10 @@
+WORKFLOW_NAME,SOURCE_SCREEN,TARGET_SCREEN,TRIGGER_USER_ACTION,CONTEXT_METHOD,STATUS,DATA_PAYLOAD,TECHNICAL_BLOCKER
+Meter to Reading Inspection,Map V2 Inspector,Reading Inspection Modal,Click [Kiểm tra ảnh chỉ số],openReadingInspection(readingId),CURRENTLY_WORKING,reading_id: UUID,None; modal already mounted at App.tsx
+Meter to Device Details,Map V2 Inspector,Devices Workspace (Meters),Click [Xem hồ sơ thiết bị],openMeterDetails(meterId, meterCode),MISSING_FRONTEND_WIRING,"meterId, meterCode",Wire inspector button to call openMeterDetails()
+Zone to Zone Reports,Map V2 Inspector,Reports Workspace (Overview),Click [Xem Báo cáo khu vực],setActiveTab('reports'),MISSING_FRONTEND_WIRING,"selectedLocation: zone_name, date",AdminReports needs to read initial location filter from context
+Zone to Reading Schedules,Map V2 Inspector,Schedules Workspace,Click [Xem trong Lịch ghi],setActiveTab('schedules'),MISSING_FRONTEND_WIRING,"selectedDate, selectedRoundId",Wire inspector button to call setActiveTab('schedules')
+Employee to Staff Roster,Map V2 Inspector,Staff Roster Workspace,Click [Xem trong Phân ca],setActiveTab('staff_roster'),MISSING_FRONTEND_WIRING,focusedEntity.id: user_id,AdminStaffRoster needs to highlight focused employee
+Schedules to Map V2,Schedules Workspace,Map V2,Click Locate on Map on meter/zone row,locateOnMap(entity),PARTIAL,"type: meter/asset, id, coords",locateOnMap currently navigates to 'dashboard'; update to 'map_v2'
+Reports to Map V2,Reports Workspace,Map V2,Click Locate on Map in meters table,locateOnMap(entity),PARTIAL,"type: meter, id, coords",locateOnMap currently navigates to 'dashboard'; update to 'map_v2'
+Meter to Reading Verification,Map V2 Inspector,Verification Workspace,Click [Mở Hậu kiểm chỉ số],openVerification(assetId),MISSING_FRONTEND_WIRING,assetId: string,Wire inspector button to call openVerification()
+Reassign Operator on Map,Map V2 Inspector,Map V2 Dialog,Click [Điều chuyển nhân sự],reassignZoneOperator(),CURRENTLY_WORKING,"zone_id, user_id, role, note",FastAPI endpoint and client already implemented

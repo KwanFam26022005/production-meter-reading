@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "audit_phase": "agent-skills-optimization-phase1-1",
+  "project": "Production Meter Reading — Cảng Sài Gòn",
+  "timestamp": "2026-09-23T08:40:07+07:00",
+  "builds": {
+    "user_portal": {
+      "command": "npm run build:user",
+      "config_file": "frontend/vite.config.user.ts",
+      "exit_code": 0,
+      "build_duration_seconds": 2.26,
+      "modules_transformed": 1610,
+      "output_directory": "dist/user",
+      "artifacts": [
+        { "name": "index.html", "raw_bytes": 1500, "gzip_bytes": 700 },
+        { "name": "assets/user-pGQkR0F-.css", "raw_bytes": 307900, "gzip_bytes": 48950 },
+        { "name": "assets/user-B9pd64-1.js", "raw_bytes": 298810, "gzip_bytes": 82640 }
+      ],
+      "status": "PASS"
+    },
+    "operations_portal": {
+      "command": "npm run build:operations",
+      "config_file": "frontend/vite.config.operations.ts",
+      "exit_code": 0,
+      "build_duration_seconds": 6.06,
+      "modules_transformed": 1712,
+      "output_directory": "dist/operations",
+      "artifacts": [
+        { "name": "index.html", "raw_bytes": 1093, "gzip_bytes": 560 },
+        { "name": "assets/operations-DX70Z7fw.css", "raw_bytes": 385480, "gzip_bytes": 60710 },
+        { "name": "assets/operations-g61aVbgT.js", "raw_bytes": 920790, "gzip_bytes": 229150 }
+      ],
+      "status": "PASS"
+    }
+  }
+}

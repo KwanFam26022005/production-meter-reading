@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wireframe B — Selected Entity | Map V2 Audit</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Be Vietnam Pro', 'Segoe UI', Arial, sans-serif; background: #f4f4f4; color: #181818; }
+  
+  .wireframe-label {
+    position: fixed; top: 0; left: 0; right: 0; background: #0068FF; color: #fff;
+    text-align: center; font-size: 13px; font-weight: 600; padding: 4px; z-index: 999;
+  }
+  
+  .shell { display: flex; height: 100vh; padding-top: 28px; }
+  
+  /* Sidebar */
+  .sidebar {
+    width: 64px; background: #003875; display: flex; flex-direction: column;
+    align-items: center; padding: 12px 0; gap: 8px; flex-shrink: 0;
+  }
+  .sidebar-item {
+    width: 48px; height: 48px; border-radius: 10px; display: flex;
+    flex-direction: column; align-items: center; justify-content: center;
+    color: rgba(255,255,255,0.6); font-size: 9px; cursor: pointer; gap: 2px;
+  }
+  .sidebar-item.active { background: rgba(255,255,255,0.15); color: #fff; }
+  .sidebar-item .icon { font-size: 18px; }
+  
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  
+  /* Toolbar with deselect */
+  .toolbar {
+    height: 52px; background: #fff; border-bottom: 1px solid #e0e0e0;
+    display: flex; align-items: center; padding: 0 16px; gap: 12px; flex-shrink: 0;
+  }
+  .toolbar-title { font-size: 16px; font-weight: 700; color: #003875; }
+  .toolbar-divider { width: 1px; height: 28px; background: #e0e0e0; }
+  .mode-toggle { display: flex; border: 1.5px solid #003875; border-radius: 8px; overflow: hidden; }
+  .mode-btn {
+    padding: 6px 14px; font-size: 13px; font-weight: 500; cursor: pointer;
+    border: none; background: #fff; color: #003875;
+  }
+  .mode-btn.active { background: #003875; color: #fff; }
+  .context-badge {
+    background: #F0F4FF; border: 1px solid #0068FF; border-radius: 6px;
+    padding: 4px 12px; font-size: 12px; color: #003875; font-weight: 500;
+  }
+  .toolbar-spacer { flex: 1; }
+  .deselect-btn {
+    padding: 6px 14px; font-size: 12px; border: 1px solid #D32F2F;
+    border-radius: 6px; background: #fff; color: #D32F2F; cursor: pointer; font-weight: 500;
+  }
+  .toolbar-btn {
+    padding: 6px 10px; font-size: 12px; border: 1px solid #ccc;
+    border-radius: 6px; background: #fff; cursor: pointer; color: #252525;
+  }
+  
+  /* Content area with map + inspector */
+  .content-area { flex: 1; display: flex; overflow: hidden; }
+  
+  /* Map */
+  .map-container { flex: 1; position: relative; background: #FCFCFC; overflow: hidden; }
+  .map-bg {
+    width: 100%; height: 100%;
+    background: linear-gradient(135deg, #e8eef5 0%, #dde4ed 50%, #d5dce5 100%);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; color: #5E5B5B;
+  }
+  
+  /* Zone highlight overlay */
+  .zone-highlight {
+    position: absolute; top: 15%; left: 35%; width: 200px; height: 120px;
+    border: 3px solid #0068FF; background: rgba(0,104,255,0.08);
+    border-radius: 4px;
+  }
+  
+  /* Selected employee marker */
+  .emp-marker-selected {
+    position: absolute; width: 36px; height: 36px; border-radius: 50%;
+    background: #003875; color: #fff; font-size: 10px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    border: 3px solid #0068FF; box-shadow: 0 0 0 4px rgba(0,104,255,0.25), 0 2px 8px rgba(0,0,0,0.2);
+    cursor: pointer; top: 26%; left: 42%;
+  }
+  
+  /* Other employee markers (dimmed) */
+  .emp-marker-dim {
+    position: absolute; width: 28px; height: 28px; border-radius: 50%;
+    background: #6B7B8D; color: rgba(255,255,255,0.7); font-size: 8px; font-weight: 600;
+    display: flex; align-items: center; justify-content: center;
+    border: 2px solid #fff; opacity: 0.5;
+  }
+  
+  /* Zone badges (behind) */
+  .zone-badge-bg {
+    position: absolute; background: rgba(255,255,255,0.6); border: 1px solid #ccc;
+    border-radius: 6px; padding: 4px 8px; font-size: 10px; color: #5E5B5B;
+  }
+  
+  /* HUD */
+  .hud {
+    position: absolute; bottom: 16px; right: 16px; display: flex;
+    flex-direction: column; gap: 4px;
+  }
+  .hud-btn {
+    width: 36px; height: 36px; border-radius: 8px; background: #fff;
+    border: 1px solid #ccc; display: flex; align-items: center;
+    justify-content: center; font-size: 16px; cursor: pointer;
+  }
+  .hud-zoom { font-size: 11px; text-align: center; color: #5E5B5B; }
+  
+  /* Inspector panel */
+  .inspector {
+    width: 300px; background: #fff; border-left: 1px solid #e0e0e0;
+    overflow-y: auto; flex-shrink: 0; padding: 20px;
+  }
+  .inspector-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 16px;
+  }
+  .inspector-title { font-size: 15px; font-weight: 700; color: #003875; }
+  .inspector-close {
+    width: 28px; height: 28px; border-radius: 6px; border: 1px solid #ccc;
+    background: #fff; cursor: pointer; font-size: 14px;
+  }
+  
+  .field-group { margin-bottom: 16px; }
+  .field-label { font-size: 11px; color: #5E5B5B; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+  .field-value { font-size: 14px; font-weight: 500; color: #181818; }
+  .field-value.code {
+    display: inline-block; background: #F0F4FF; border: 1px solid #0068FF;
+    border-radius: 4px; padding: 2px 8px; font-size: 12px; font-weight: 600; font-family: monospace;
+  }
+  .field-value.status { color: #0068FF; }
+  .field-value.progress { color: #003875; font-weight: 600; }
+  
+  .inspector-divider { border: none; border-top: 1px solid #e8e8e8; margin: 16px 0; }
+  
+  .disclosure-card {
+    background: #F0F4FF; border: 1px solid #BDD0F7; border-radius: 8px;
+    padding: 10px 12px; font-size: 12px; color: #003875; margin-bottom: 16px;
+  }
+  .disclosure-card .disclosure-icon { margin-right: 4px; }
+  
+  .action-links { display: flex; flex-direction: column; gap: 8px; }
+  .action-link {
+    display: flex; align-items: center; gap: 8px; padding: 8px 12px;
+    border: 1px solid #e0e0e0; border-radius: 8px; font-size: 13px;
+    color: #003875; cursor: pointer; text-decoration: none; background: #fff;
+  }
+  .action-link:hover { background: #F0F4FF; }
+  .action-link .link-icon { font-size: 16px; }
+  .action-link .link-label { font-weight: 500; }
+  .action-link .link-arrow { margin-left: auto; color: #5E5B5B; }
+  
+  /* Hover tooltip demo */
+  .hover-tooltip {
+    position: absolute; top: 50%; left: 55%; background: #fff;
+    border: 1px solid #e0e0e0; border-radius: 8px; padding: 10px 14px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1); font-size: 12px;
+    max-width: 220px;
+  }
+  .hover-tooltip .tt-title { font-weight: 600; color: #003875; margin-bottom: 4px; }
+  .hover-tooltip .tt-field { color: #252525; margin-bottom: 2px; }
+  .hover-tooltip .tt-dim { color: #5E5B5B; font-style: italic; font-size: 11px; }
+  
+  .note {
+    position: fixed; bottom: 0; left: 0; right: 0; background: #E3F2FD;
+    border-top: 1px solid #90CAF9; padding: 8px 16px; font-size: 11px;
+    color: #1565C0; text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<div class="wireframe-label">⚠ WIREFRAME B — SELECTED ENTITY — Dữ liệu minh họa, không phải production UI</div>
+
+<div class="shell">
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <div class="sidebar-item"><span class="icon">🗺</span><span>Bản đồ</span></div>
+    <div class="sidebar-item active"><span class="icon">📍</span><span>BĐ V2</span></div>
+    <div class="sidebar-item"><span class="icon">📅</span><span>Lịch ghi</span></div>
+    <div class="sidebar-item"><span class="icon">👥</span><span>Phân ca</span></div>
+    <div class="sidebar-item"><span class="icon">📊</span><span>Báo cáo</span></div>
+  </nav>
+
+  <div class="main">
+    <!-- Toolbar with deselect -->
+    <header class="toolbar">
+      <span class="toolbar-title">Bản đồ V2</span>
+      <div class="toolbar-divider"></div>
+      <div class="mode-toggle">
+        <button class="mode-btn active">🧭 Vận hành</button>
+        <button class="mode-btn">🔧 Kiểm tra</button>
+      </div>
+      <div class="toolbar-divider"></div>
+      <div class="context-badge">📅 Đợt 3 — Lượt 2/3 — 23/09</div>
+      <div class="toolbar-spacer"></div>
+      <button class="deselect-btn">✕ Bỏ chọn</button>
+      <button class="toolbar-btn">≡ Lớp</button>
+    </header>
+
+    <div class="content-area">
+      <!-- Map with selected entity -->
+      <div class="map-container">
+        <div class="map-bg">[Bản đồ — Bản đồ vẫn đọc được khi inspector mở]</div>
+
+        <!-- Zone highlight for selected employee's zone -->
+        <div class="zone-highlight"></div>
+
+        <!-- Selected employee marker -->
+        <div class="emp-marker-selected" title="NV001 — Nguyễn Văn Hải (SELECTED)">HẢI</div>
+
+        <!-- Other markers dimmed -->
+        <div class="emp-marker-dim" style="top: 45%; left: 42%;">NAM</div>
+        <div class="emp-marker-dim" style="top: 36%; left: 72%;">TUẤN</div>
+        <div class="emp-marker-dim" style="top: 44%; left: 17%;">BẢO</div>
+
+        <!-- Zone badges behind -->
+        <div class="zone-badge-bg" style="top: 22%; left: 48%;">⚓ Khu cảng sà lan</div>
+        <div class="zone-badge-bg" style="top: 42%; left: 33%;">📦 Bãi tổng hợp</div>
+        <div class="zone-badge-bg" style="top: 55%; left: 60%;">🏭 Kho 4</div>
+
+        <!-- Hover tooltip demo on a meter -->
+        <div class="hover-tooltip">
+          <div class="tt-title">⚡ CT-DG-001 — Công tơ điện cẩu 1</div>
+          <div class="tt-field">Khu: Khu cảng sà lan</div>
+          <div class="tt-field">Chỉ số: 15,420 kWh ✓</div>
+          <div class="tt-field">Ghi: 23/09 08:15 — NV001</div>
+          <div class="tt-dim">Nhấp để xem chi tiết</div>
+        </div>
+
+        <!-- HUD -->
+        <div class="hud">
+          <button class="hud-btn">+</button>
+          <button class="hud-btn">−</button>
+          <button class="hud-btn">↺</button>
+          <div class="hud-zoom">96%</div>
+        </div>
+      </div>
+
+      <!-- Inspector Panel -->
+      <aside class="inspector">
+        <div class="inspector-header">
+          <span class="inspector-title">Nhân sự phân khu</span>
+          <button class="inspector-close">✕</button>
+        </div>
+
+        <div class="field-group">
+          <div class="field-label">Mã nhân viên</div>
+          <div class="field-value code">NV001</div>
+        </div>
+
+        <div class="field-group">
+          <div class="field-label">Họ và tên</div>
+          <div class="field-value">Nguyễn Văn Hải</div>
+        </div>
+
+        <div class="field-group">
+          <div class="field-label">Phân khu phụ trách</div>
+          <div class="field-value">Khu cảng sà lan</div>
+        </div>
+
+        <div class="field-group">
+          <div class="field-label">Vai trò</div>
+          <div class="field-value">Người phụ trách phân khu</div>
+        </div>
+
+        <div class="field-group">
+          <div class="field-label">Trạng thái</div>
+          <div class="field-value status">Phân công theo dõi khu vực (Minh họa)</div>
+        </div>
+
+        <hr class="inspector-divider" />
+
+        <div class="field-group">
+          <div class="field-label">Tiến độ khu vực</div>
+          <div class="field-value progress">Khu vực: 34/42 công tơ (81%)</div>
+        </div>
+
+        <hr class="inspector-divider" />
+
+        <div class="disclosure-card">
+          <span class="disclosure-icon">ℹ️</span>
+          <strong>Chuyển động minh họa:</strong> Biểu tượng nhân sự di chuyển mô phỏng phạm vi phân công theo dõi — không phải tọa độ GPS thời gian thực.
+        </div>
+
+        <div class="action-links">
+          <a class="action-link" href="#">
+            <span class="link-icon">👥</span>
+            <span class="link-label">Xem trong Phân ca</span>
+            <span class="link-arrow">→</span>
+          </a>
+          <a class="action-link" href="#">
+            <span class="link-icon">📊</span>
+            <span class="link-label">Báo cáo khu vực</span>
+            <span class="link-arrow">→</span>
+          </a>
+          <a class="action-link" href="#">
+            <span class="link-icon">📅</span>
+            <span class="link-label">Lịch ghi khu vực</span>
+            <span class="link-arrow">→</span>
+          </a>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>
+
+<div class="note">
+  ⚠ DỮ LIỆU MINH HỌA — Wireframe B cho audit Map V2. Inspector gọn, bản đồ vẫn đọc được.
+  Liên kết đến Phân ca / Báo cáo / Lịch ghi hiện tại chưa triển khai (NEEDS_FRONTEND_INTEGRATION).
+</div>
+
+</body>
+</html>

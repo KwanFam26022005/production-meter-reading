@@ -1,0 +1,59 @@
+version: '3.8'
+
+# ==============================================================================
+# SAIGON PORT — TWO-SITE STAGING ENVIRONMENT
+# Single Shared FastAPI Backend + Two Independent Frontend Deployments
+# ==============================================================================
+
+services:
+  # ----------------------------------------------------------------------------
+  # 1. SHARED FASTAPI BACKEND (Single Instance, Single OCR Runtime, Single DB)
+  # ----------------------------------------------------------------------------
+  backend:
+    build:
+      context: ../..
+      dockerfile: backend/Dockerfile
+    restart: unless-stopped
+    environment:
+      - ENVIRONMENT=staging
+      - APP_HOST=0.0.0.0
+      - APP_PORT=8000
+      - DATABASE_URL=sqlite:///./data/app.db
+      - CORS_ORIGINS=http://localhost:5173,http://localhost:5174,http://user.staging.local,http://ops.staging.local
+    volumes:
+      - ../../models:/app/models:ro
+      - backend_staging_data:/app/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  # ----------------------------------------------------------------------------
+  # 2. TWO-SITE REVERSE PROXY & STATIC SERVERS (Caddy 2.8)
+  # ----------------------------------------------------------------------------
+  caddy-proxy:
+    image: caddy:2.8-alpine
+    restart: unless-stopped
+    ports:
+      - "8080:80"   # User Portal Staging Gateway
+      - "8081:8081" # Operations Portal Staging Gateway
+    environment:
+      - USER_DOMAIN=:80
+      - OPERATIONS_DOMAIN=:8081
+      - BACKEND_UPSTREAM=backend:8000
+    volumes:
+      - ../caddy/Caddyfile.two-site:/etc/caddy/Caddyfile:ro
+      - ../../frontend/dist/user:/srv/user-web:ro
+      - ../../frontend/dist/operations:/srv/operations-web:ro
+      - caddy_staging_data:/data
+      - caddy_staging_config:/config
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  backend_staging_data:
+  caddy_staging_data:
+  caddy_staging_config:

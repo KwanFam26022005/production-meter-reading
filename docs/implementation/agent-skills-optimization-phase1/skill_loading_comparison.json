@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "audit_phase": "agent-skills-optimization-phase1",
+  "project": "Production Meter Reading — Cảng Sài Gòn",
+  "timestamp": "2026-09-23T08:24:00+07:00",
+  "policies": {
+    "baseline_policy": {
+      "name": "Blanket Recursive Loading",
+      "prompt_instruction": "Inspect both skill directories recursively. Read all SKILL.md files and references. Certify compliance across all skills.",
+      "discovery_awareness": "Low (saigon-port-ui missing from system metadata, loaded via explicit path)",
+      "files_loaded_average": 4,
+      "max_potential_files": 172,
+      "estimated_tokens_loaded_min": 15610,
+      "estimated_tokens_loaded_max": 1040000,
+      "phantom_compliance_observed": true,
+      "compliance_artifact_size_bytes": 4500
+    },
+    "optimized_policy": {
+      "name": "Task-Based Progressive Disclosure",
+      "prompt_instruction": "Inspect system metadata (<skills>). Filter by assigned task domain. Read single entry point SKILL.md. Read specific references only on demand.",
+      "discovery_awareness": "High (all 8 skills auto-discovered and registered in <skills>)",
+      "files_loaded_average": 1,
+      "max_potential_files": 2,
+      "estimated_tokens_loaded_min": 0,
+      "estimated_tokens_loaded_max": 4100,
+      "phantom_compliance_observed": false,
+      "compliance_artifact_size_bytes": 0
+    }
+  },
+  "domain_matrix": [
+    {
+      "domain": "Mobile User Portal (Meter Reading, Camera, Attendance, Home Hub)",
+      "baseline_loaded": ["saigon-port-ui", "DESIGN_DNA.md", "ui-ux-pro-max", "ui-styling", "design-system"],
+      "optimized_loaded": ["saigon-port-ui", "DESIGN_DNA.md (canonical reference)"],
+      "tokens_saved_estimate": 11230
+    },
+    {
+      "domain": "Desktop Operations Portal & Map V2 Digital Twin",
+      "baseline_loaded": ["saigon-port-ui", "DESIGN_DNA.md", "ui-ux-pro-max", "design-system", "design"],
+      "optimized_loaded": ["saigon-port-ui (Operations & Map V2 scope)", "DESIGN_DNA.md"],
+      "tokens_saved_estimate": 11800
+    },
+    {
+      "domain": "Backend API, SQLite, Data Reconciliation",
+      "baseline_loaded": ["saigon-port-ui", "DESIGN_DNA.md", "ui-ux-pro-max (ceremonial)"],
+      "optimized_loaded": [],
+      "tokens_saved_estimate": 15800
+    },
+    {
+      "domain": "Social Banners & Marketing Decks (Out of Scope)",
+      "baseline_loaded": ["banner-design", "brand", "slides", "saigon-port-ui"],
+      "optimized_loaded": ["banner-design", "brand"],
+      "tokens_saved_estimate": 4100
+    }
+  ],
+  "token_deduplication": {
+    "source": "frontend/DESIGN_DNA.md",
+    "target": ".agent/skills/saigon-port-ui/SKILL.md",
+    "lines_deduplicated": 70,
+    "duplicated_tokens_saved_per_read": 850
+  }
+}
