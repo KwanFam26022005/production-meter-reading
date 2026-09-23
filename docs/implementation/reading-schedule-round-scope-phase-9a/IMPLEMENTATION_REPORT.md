@@ -23,4 +23,4 @@
 
 The temporary User fixture was advanced through a successful confirm, then captured at 3/3 complete. Preview screenshots use the isolated temporary database; production data was not used.
 
-Commit, push, PR, and final worktree accounting are appended after delivery gates.
+The implementation branch was pushed to `origin/feature/reading-schedule-round-scope-phase-9a`. Its pull request is [#1](https://github.com/KwanFam26022005/production-meter-reading/pull/1), targeting the verified Thread 8B baseline branch `feature/map-v2-unified-simulation-infrastructure`. No merge was performed.
