@@ -15,11 +15,13 @@ import {
   UserMonthlyScheduleResponse,
   WorkScheduleDay,
   LeaveRequestItem,
+  OperationalAssignment,
 } from '../types';
 import {
   getUserMonthlySchedule,
   getMyLeaveRequests,
   cancelLeaveRequest,
+  getMyOperationalAssignments,
 } from '../services/api';
 import { LeaveRequestModal } from './LeaveRequestModal';
 import { AuthenticatedShell } from './AuthenticatedShell';
@@ -51,6 +53,8 @@ export const UserScheduleView: React.FC<UserScheduleViewProps> = ({
 
   const [selectedDay, setSelectedDay] = useState<WorkScheduleDay | null>(null);
   const [leaveRequests, setLeaveRequests] = useState<LeaveRequestItem[]>([]);
+  const [zoneAssignments, setZoneAssignments] = useState<OperationalAssignment[]>([]);
+  const [zoneError, setZoneError] = useState<string | null>(null);
   const [loadingLeaves, setLoadingLeaves] = useState<boolean>(false);
 
   const [leaveModalOpen, setLeaveModalOpen] = useState<boolean>(false);
@@ -89,6 +93,7 @@ export const UserScheduleView: React.FC<UserScheduleViewProps> = ({
   useEffect(() => {
     fetchData(currentMonth);
     fetchLeaves();
+    getMyOperationalAssignments(currentMonth).then(setZoneAssignments).then(() => setZoneError(null)).catch(() => setZoneError('Không thể tải khu vực phụ trách.'));
   }, [currentMonth]);
 
   const handlePrevMonth = () => {
@@ -136,6 +141,8 @@ export const UserScheduleView: React.FC<UserScheduleViewProps> = ({
         return <span className="shift-tag-hc admin-roster-cell-pill">HC (07:30-16:30)</span>;
       case 'LEAVE':
         return <span className="shift-tag-leave admin-roster-cell-pill">PHÉP</span>;
+      case 'UNASSIGNED':
+        return <span className="shift-tag-off admin-roster-cell-pill">Chưa phân ca</span>;
       default:
         return <span className="shift-tag-off admin-roster-cell-pill">OFF</span>;
     }
@@ -273,6 +280,7 @@ export const UserScheduleView: React.FC<UserScheduleViewProps> = ({
                     <button
                       key={d.date}
                       type="button"
+                      aria-label={`${d.date}: ${d.shift_name}`}
                       onClick={() => setSelectedDay(d)}
                       className={`user-sched-day-cell ${isSelected ? 'is-selected' : ''} ${d.is_today ? 'is-today' : ''}`}
                     >
@@ -293,7 +301,7 @@ export const UserScheduleView: React.FC<UserScheduleViewProps> = ({
                           color: d.color,
                         }}
                       >
-                        {d.shift_code === 'OFF' ? 'OFF' : d.shift_code}
+                        {d.shift_code === 'UNASSIGNED' ? '—' : d.shift_code}
                       </span>
                     </button>
                   );
@@ -326,10 +334,12 @@ export const UserScheduleView: React.FC<UserScheduleViewProps> = ({
                     </span>
                   </div>
                   <div className="user-sched-detail-field">
-                    <span className="user-sched-field-label">Địa bàn tác nghiệp</span>
-                    <span style={{ fontSize: '12px', color: 'var(--sgp-ink-secondary)', fontWeight: 500 }}>
-                      Khu cảng Tân Thuận · Trạm biến áp & Bến bốc dỡ
-                    </span>
+                    <span className="user-sched-field-label">Khu vực phụ trách</span>
+                    {zoneError ? <span role="alert">{zoneError}</span> : <span className="user-sched-field-value">
+                      {zoneAssignments.filter(item => item.work_date === selectedDay.date && item.shift_code === selectedDay.shift_code).length
+                        ? zoneAssignments.filter(item => item.work_date === selectedDay.date && item.shift_code === selectedDay.shift_code).map(item => `${item.zone_name} — ${item.assignment_role === 'PRIMARY' ? 'Chính' : 'Hỗ trợ'}`).join('; ')
+                        : 'Chưa được phân khu tác nghiệp.'}
+                    </span>}
                   </div>
                   <div className="user-sched-detail-field">
                     <span className="user-sched-field-label">Trạng thái chấm công</span>

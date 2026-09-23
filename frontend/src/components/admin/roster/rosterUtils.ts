@@ -19,6 +19,7 @@ export interface ShiftInfo {
 }
 
 export const SHIFT_METADATA: Record<string, ShiftInfo> = {
+  UNASSIGNED: { code: 'UNASSIGNED', shortLabel: '—', name: 'Chưa phân ca', timeRange: '', tagClass: 'shift-tag-off', isWork: false, standardHours: 0 },
   CA1: {
     code: 'CA1',
     shortLabel: 'C1',
@@ -88,7 +89,7 @@ export function getEffectiveShift(
   if (pendingChanges[key] !== undefined) {
     return pendingChanges[key];
   }
-  return persistedShifts?.[dateStr] || 'OFF';
+  return persistedShifts?.[dateStr] || 'UNASSIGNED';
 }
 
 /**

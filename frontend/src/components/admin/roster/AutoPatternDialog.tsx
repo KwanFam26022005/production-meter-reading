@@ -189,6 +189,10 @@ export const AutoPatternDialog: React.FC<AutoPatternDialogProps> = ({
                 </div>
               </div>
 
+              {(previewData.assignment_impact_count || 0) > 0 && <p role="status">
+                {previewData.assignment_impact_count} phân khu tác nghiệp sẽ được hủy vì đổi ca. Cần phân khu lại sau khi áp dụng.
+              </p>}
+
               {/* Alert if conflicts exist */}
               {previewData.leave_conflicts_count > 0 && (
                 <div

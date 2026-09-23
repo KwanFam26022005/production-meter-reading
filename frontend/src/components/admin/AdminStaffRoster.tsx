@@ -44,6 +44,7 @@ import { RosterConflictPanel } from './roster/RosterConflictPanel';
 import { RosterDraftBar } from './roster/RosterDraftBar';
 import { AutoPatternDialog } from './roster/AutoPatternDialog';
 import { LeaveRequestsPanel } from './roster/LeaveRequestsPanel';
+import { OperationalAssignmentBoard } from './OperationalAssignmentBoard';
 
 interface AdminStaffRosterProps {
   user: User;
@@ -65,7 +66,7 @@ export const AdminStaffRoster: React.FC<AdminStaffRosterProps> = ({ user: _curre
   const [loadingRoster, setLoadingRoster] = useState<boolean>(true);
   const [rosterError, setRosterError] = useState<string | null>(null);
 
-  const [activeSubTab, setActiveSubTab] = useState<'ROSTER' | 'LEAVES'>('ROSTER');
+  const [activeSubTab, setActiveSubTab] = useState<'ROSTER' | 'ZONES' | 'LEAVES'>('ROSTER');
 
   // Pending cell modifications in client RAM before saving
   const [pendingChanges, setPendingChanges] = useState<Record<string, string>>({});
@@ -413,12 +414,16 @@ export const AdminStaffRoster: React.FC<AdminStaffRosterProps> = ({ user: _curre
           className={`admin-subtab-btn ${activeSubTab === 'ROSTER' ? 'active' : ''}`}
         >
           <FileSpreadsheet size={16} />
-          <span>Bảng phân ca ({viewMode === 'WEEK' ? 'Tuần' : viewMode === 'TWO_WEEK' ? '2 Tuần' : 'Tháng'})</span>
+          <span>Lịch ca ({viewMode === 'WEEK' ? 'Tuần' : viewMode === 'TWO_WEEK' ? '2 Tuần' : 'Tháng'})</span>
           {pendingChangesCount > 0 && (
             <span className="admin-subtab-count">
               {pendingChangesCount}
             </span>
           )}
+        </button>
+
+        <button type="button" onClick={() => setActiveSubTab('ZONES')} className={`admin-subtab-btn ${activeSubTab === 'ZONES' ? 'active' : ''}`} aria-current={activeSubTab === 'ZONES' ? 'page' : undefined}>
+          <span>Phân khu tác nghiệp</span>
         </button>
 
         <button
@@ -435,6 +440,8 @@ export const AdminStaffRoster: React.FC<AdminStaffRosterProps> = ({ user: _curre
           )}
         </button>
       </div>
+
+      {activeSubTab === 'ZONES' && <OperationalAssignmentBoard />}
 
       {/* ========================================================================= */}
       {/* SUBTAB 1: ROSTER MATRIX & COVERAGE WORKSPACE                               */}

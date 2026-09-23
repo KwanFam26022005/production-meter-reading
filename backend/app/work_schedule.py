@@ -14,6 +14,10 @@ from .attendance import LOCAL_TZ, get_current_business_date
 
 # Defined Shift Configurations for Saigon Port Operations
 SHIFTS_CONFIG: Dict[str, Dict[str, Any]] = {
+    "UNASSIGNED": {
+        "code": "UNASSIGNED", "name": "Chưa phân ca", "start_time": None, "end_time": None,
+        "color": "#5E5B5B", "bg_color": "#F0F2F4", "is_work": False,
+    },
     "CA1": {
         "code": "CA1",
         "name": "Ca 1 (Sáng)",
@@ -138,16 +142,18 @@ def get_user_monthly_schedule(db: Session, user_id: str, month_str: Optional[str
         weekday_label = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"][day_of_week]
 
         sched = schedule_by_date.get(d_str)
-        shift_code = sched.shift_code if sched else ("OFF" if day_of_week == 6 else "CA1")
-        shift_status = sched.status if sched else "SCHEDULED"
+        shift_code = sched.shift_code if sched else "UNASSIGNED"
+        shift_status = sched.status if sched else "UNASSIGNED"
         notes = sched.notes if sched else None
 
         # Check if there is an approved leave on this day
         has_approved_leave = any(
-            l.status == "APPROVED" and l.start_date <= d_str <= l.end_date for l in leaves
+            l.status == "APPROVED" and l.start_date <= d_str <= l.end_date
+            and l.shift_code in (None, "ALL", shift_code) for l in leaves
         )
         has_pending_leave = any(
-            l.status == "PENDING" and l.start_date <= d_str <= l.end_date for l in leaves
+            l.status == "PENDING" and l.start_date <= d_str <= l.end_date
+            and l.shift_code in (None, "ALL", shift_code) for l in leaves
         )
 
         if has_approved_leave:
@@ -343,10 +349,7 @@ def get_admin_roster_matrix(db: Session, month_str: Optional[str] = None) -> Dic
         total_shifts = 0
         for d_obj in days_header:
             d_str = d_obj["date"]
-            # Default to CA1 if weekday, OFF if Sunday if not assigned yet
-            dt = date(year, month, d_obj["day"])
-            default_shift = "OFF" if dt.weekday() == 6 else "CA1"
-            shift = u_map.get(d_str, default_shift)
+            shift = u_map.get(d_str, "UNASSIGNED")
             user_shifts[d_str] = shift
             if shift in ["CA1", "CA2", "CA3", "HC"]:
                 total_shifts += 1
@@ -364,9 +367,9 @@ def get_admin_roster_matrix(db: Session, month_str: Optional[str] = None) -> Dic
     daily_staff_count = {}
     for d_obj in days_header:
         d_str = d_obj["date"]
-        counts = {"CA1": 0, "CA2": 0, "CA3": 0, "HC": 0, "OFF": 0, "LEAVE": 0}
+        counts = {"CA1": 0, "CA2": 0, "CA3": 0, "HC": 0, "OFF": 0, "LEAVE": 0, "UNASSIGNED": 0}
         for u_row in users_matrix:
-            s_code = u_row["shifts"].get(d_str, "OFF")
+            s_code = u_row["shifts"].get(d_str, "UNASSIGNED")
             if s_code in counts:
                 counts[s_code] += 1
             else:
@@ -389,6 +392,8 @@ def get_admin_roster_matrix(db: Session, month_str: Optional[str] = None) -> Dic
 
 
 def assign_admin_shifts(db: Session, assignments: List[Dict[str, Any]], admin_user_id: str) -> int:
+    from .operational_assignments import cancel_incompatible_shift
+    from .operational_assignments import leave_conflicts
     count = 0
     for item in assignments:
         u_id = item["user_id"]
@@ -396,8 +401,11 @@ def assign_admin_shifts(db: Session, assignments: List[Dict[str, Any]], admin_us
         s_code = item["shift_code"]
         notes = item.get("notes")
 
-        if s_code not in SHIFTS_CONFIG:
+        if s_code not in SHIFTS_CONFIG or s_code == "UNASSIGNED":
             raise HTTPException(status_code=400, detail=f"Mã ca {s_code} không hợp lệ.")
+        if s_code in ("CA1", "CA2", "CA3", "HC") and leave_conflicts(db, u_id, w_date, s_code, "APPROVED"):
+            raise HTTPException(status_code=409, detail="Nhân viên đang có nghỉ phép đã duyệt trong ca này.")
+        cancel_incompatible_shift(db, u_id, w_date, s_code, admin_user_id)
 
         existing = (
             db.query(WorkSchedule)
@@ -437,6 +445,10 @@ def auto_pattern_admin_roster(
     - THREE_SHIFT_FOUR_TEAM: CA1 -> CA2 -> CA3 -> OFF -> OFF (or rotation)
     - STANDARD_WEEKDAY: Mon-Fri: CA1/HC, Sat-Sun: OFF
     """
+    from .operational_assignments import cancel_incompatible_shift
+    preview = preview_auto_pattern_roster(db, month_str, user_ids, pattern_type)
+    if preview["leave_conflicts_count"]:
+        raise HTTPException(status_code=409, detail="Chu kỳ ca xung đột với nghỉ phép đã duyệt. Vui lòng điều chỉnh trước khi áp dụng.")
     year, month = parse_year_month(month_str)
     _, _, num_days = get_month_date_range(year, month)
 
@@ -446,7 +458,7 @@ def auto_pattern_admin_roster(
     target_users = db.query(User).filter(User.is_active == True)
     if user_ids:
         target_users = target_users.filter(User.id.in_(user_ids))
-    users_list = target_users.all()
+    users_list = target_users.order_by(User.employee_code.asc()).all()
 
     for idx, u in enumerate(users_list):
         # Stagger start offset per team/user
@@ -461,6 +473,8 @@ def auto_pattern_admin_roster(
                 # 3 ca 4 kíp rotation
                 pat_idx = (d - 1 + offset) % len(pattern_3_4)
                 s_code = pattern_3_4[pat_idx]
+
+            cancel_incompatible_shift(db, u.id, w_date, s_code, admin_user_id)
 
             existing = (
                 db.query(WorkSchedule)
@@ -538,9 +552,20 @@ def preview_auto_pattern_roster(
         e_dt = datetime.strptime(min(l.end_date, end_date), "%Y-%m-%d").date()
         cur = s_dt
         while cur <= e_dt:
-            leave_set.add((l.user_id, cur.strftime("%Y-%m-%d")))
+            leave_set.add((l.user_id, cur.strftime("%Y-%m-%d"), l.shift_code or "ALL"))
             cur += timedelta(days=1)
 
+    from .models import OperationalAssignment
+    active_assignments = db.query(OperationalAssignment).filter(
+        OperationalAssignment.user_id.in_(user_id_set),
+        OperationalAssignment.work_date >= start_date,
+        OperationalAssignment.work_date <= end_date,
+        OperationalAssignment.status == "ASSIGNED",
+    ).all()
+    assignments_by_day = {}
+    for assignment in active_assignments:
+        assignments_by_day.setdefault((assignment.user_id, assignment.work_date), []).append(assignment)
+    assignment_impact_count = 0
     total_assignments = 0
     changed_count = 0
     unchanged_count = 0
@@ -571,12 +596,11 @@ def preview_auto_pattern_roster(
                 s_code = pattern_3_4[pat_idx]
 
             simulated_user_day[u.id][d] = s_code
+            assignment_impact_count += sum(a.shift_code != s_code for a in assignments_by_day.get((u.id, w_date), []))
             if s_code in daily_shift_counts[w_date]:
                 daily_shift_counts[w_date][s_code] += 1
 
-            # Default shift if not previously assigned
-            default_shift = "OFF" if dt.weekday() == 6 else "CA1"
-            curr_shift = u_map.get(w_date, default_shift)
+            curr_shift = u_map.get(w_date, "UNASSIGNED")
 
             total_assignments += 1
             if s_code != curr_shift:
@@ -594,7 +618,7 @@ def preview_auto_pattern_roster(
                 unchanged_count += 1
 
             # Check approved leave conflict
-            if (u.id, w_date) in leave_set and s_code in ["CA1", "CA2", "CA3", "HC"]:
+            if s_code in ["CA1", "CA2", "CA3", "HC"] and ((u.id, w_date, "ALL") in leave_set or (u.id, w_date, s_code) in leave_set):
                 leave_conflicts_count += 1
 
         # Check rest warnings (CA3 followed immediately by CA1 next day)
@@ -620,6 +644,7 @@ def preview_auto_pattern_roster(
         "changed_count": changed_count,
         "unchanged_count": unchanged_count,
         "leave_conflicts_count": leave_conflicts_count,
+        "assignment_impact_count": assignment_impact_count,
         "insufficient_rest_count": insufficient_rest_count,
         "understaffed_shifts_count": understaffed_shifts_count,
         "sample_changes": sample_changes,
@@ -670,6 +695,7 @@ def review_admin_leave_request(
     review_note: Optional[str],
     admin_user_id: str
 ) -> Dict[str, Any]:
+    from .operational_assignments import cancel_for_leave
     req = db.query(LeaveRequest).filter(LeaveRequest.id == request_id).first()
     if not req:
         raise HTTPException(status_code=404, detail="Không tìm thấy đơn xin nghỉ phép.")
@@ -688,6 +714,7 @@ def review_admin_leave_request(
 
     # If APPROVED, automatically update WorkSchedule for requester
     if action_norm == "APPROVED":
+        cancel_for_leave(db, req, admin_user_id)
         # Loop through dates from start_date to end_date
         s_dt = datetime.strptime(req.start_date, "%Y-%m-%d").date()
         e_dt = datetime.strptime(req.end_date, "%Y-%m-%d").date()
@@ -700,12 +727,15 @@ def review_admin_leave_request(
                 .filter(WorkSchedule.user_id == req.user_id, WorkSchedule.work_date == curr_date_str)
                 .first()
             )
-            orig_shift = sched.shift_code if sched else "CA1"
             if sched:
+                if req.shift_code not in (None, "ALL", sched.shift_code):
+                    continue
                 sched.shift_code = "LEAVE"
                 sched.status = "ON_LEAVE"
                 sched.notes = f"Nghỉ phép: {LEAVE_TYPES_MAP.get(req.leave_type, req.leave_type)}"
             else:
+                if req.shift_code not in (None, "ALL"):
+                    continue
                 db.add(WorkSchedule(
                     id=str(uuid.uuid4()),
                     user_id=req.user_id,
@@ -715,25 +745,7 @@ def review_admin_leave_request(
                     notes=f"Nghỉ phép: {LEAVE_TYPES_MAP.get(req.leave_type, req.leave_type)}",
                 ))
 
-            # If substitute was specified, assign them the original shift
-            if req.substitute_user_id:
-                sub_sched = (
-                    db.query(WorkSchedule)
-                    .filter(WorkSchedule.user_id == req.substitute_user_id, WorkSchedule.work_date == curr_date_str)
-                    .first()
-                )
-                if sub_sched:
-                    sub_sched.shift_code = orig_shift
-                    sub_sched.notes = f"Trực thay cho {req.user.full_name if req.user else ''}"
-                else:
-                    db.add(WorkSchedule(
-                        id=str(uuid.uuid4()),
-                        user_id=req.substitute_user_id,
-                        work_date=curr_date_str,
-                        shift_code=orig_shift,
-                        status="SCHEDULED",
-                        notes=f"Trực thay cho {req.user.full_name if req.user else ''}",
-                    ))
+            # A nominated substitute is a suggestion; Admin schedules and assigns explicitly.
 
     db.commit()
     return {
@@ -760,7 +772,7 @@ def export_roster_csv(db: Session, month_str: Optional[str] = None) -> str:
     for u in matrix["users"]:
         row = [u["employee_code"], u["full_name"], u["role"]]
         for d in matrix["days_header"]:
-            row.append(u["shifts"].get(d["date"], "OFF"))
+            row.append(u["shifts"].get(d["date"], "UNASSIGNED"))
         row.append(u["total_shifts"])
         writer.writerow(row)
 

@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any, Literal, Optional
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -1112,6 +1112,87 @@ class AdminRosterResponse(BaseModel):
     shift_definitions: dict[str, ShiftDefinitionItem]
 
 
+class OperationalAssignmentItemRequest(BaseModel):
+    user_id: str
+    zone_id: str
+    assignment_role: Literal["PRIMARY", "SUPPORT"]
+    notes: Optional[str] = None
+
+
+class OperationalAssignmentBatchRequest(BaseModel):
+    work_date: date
+    shift_code: Literal["CA1", "CA2", "CA3", "HC"]
+    items: list[OperationalAssignmentItemRequest] = Field(min_length=1)
+
+
+class OperationalAssignmentOut(BaseModel):
+    id: str
+    user_id: str
+    employee_code: str
+    employee_name: str
+    zone_id: str
+    zone_code: str
+    zone_name: str
+    work_date: str
+    shift_code: str
+    assignment_role: Literal["PRIMARY", "SUPPORT"]
+    status: Literal["ASSIGNED", "CANCELLED"]
+    timing_state: Literal["UPCOMING", "CURRENT", "PAST", "CANCELLED"]
+    source: str
+    notes: Optional[str] = None
+    created_at: Optional[str] = None
+    cancelled_at: Optional[str] = None
+    cancel_reason: Optional[str] = None
+    actionable: bool = False
+
+
+class OperationalAssignmentPreviewItem(OperationalAssignmentItemRequest):
+    errors: list[str]
+    warnings: list[str]
+    outcome: Literal["CREATE", "CONFLICT"]
+
+
+class OperationalAssignmentPreviewResponse(BaseModel):
+    work_date: str
+    shift_code: str
+    items: list[OperationalAssignmentPreviewItem]
+    conflict_count: int
+    warning_count: int
+
+
+class OperationalStaffAvailability(BaseModel):
+    id: str
+    employee_code: str
+    full_name: str
+    state: str
+    assignable: bool
+    warning: Optional[str] = None
+    shift_code: Optional[str] = None
+
+
+class OperationalZoneAssignmentBoardItem(BaseModel):
+    id: str
+    code: str
+    name: str
+    is_active: bool
+    default_user_id: Optional[str] = None
+    assignments: list[OperationalAssignmentOut]
+
+
+class OperationalAssignmentBoardResponse(BaseModel):
+    work_date: str
+    shift_code: str
+    shift_start: str
+    shift_end: str
+    zones: list[OperationalZoneAssignmentBoardItem]
+    staff: list[OperationalStaffAvailability]
+    cancelled: list[OperationalAssignmentOut]
+
+
+class OperationalAssignmentCancelRequest(BaseModel):
+    reason: str = Field(min_length=1, max_length=100)
+
+
 class AdminShiftAssignItem(BaseModel):
     user_id: str
     work_date: str
@@ -1136,6 +1217,7 @@ class AdminAutoPatternPreviewResponse(BaseModel):
     changed_count: int
     unchanged_count: int
     leave_conflicts_count: int
+    assignment_impact_count: int = 0
     insufficient_rest_count: int
     understaffed_shifts_count: int
     sample_changes: list[dict[str, Any]] = []

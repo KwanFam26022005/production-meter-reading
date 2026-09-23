@@ -1,0 +1,3 @@
+# 20 — Known limitations
+
+Map V2 and Map operations still display legacy ZoneAssignment default operators; they do not read 9B assignments. User ReadingBatchView still shows global round scope; no user task projection exists until 9C. Reporting remains on its existing semantics until 9D. Existing pre-9B days have no reconstructible operational assignment history and are not backfilled. Existing 9A source branch has ten full-backend baseline failures in this local environment; 9B does not repair them. The Admin UI currently creates one zone assignment at a time, while the API supports transactional batches. Default ZoneAssignment suggestions are exposed in API data but have no one-click materialization action.
