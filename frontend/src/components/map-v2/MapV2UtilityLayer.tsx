@@ -23,6 +23,9 @@ interface MapV2UtilityLayerProps {
   utilityMode: UtilityOverlayMode;
   toneMode?: MapV2ToneMode;
   zoom?: number;
+  selectedMeterCode?: string | null;
+  externalTracedMeterCode?: string | null;
+  onSelectMeterHost?: (nodeId: string, meterCode: string) => void;
   onStatusChange?: (status: UtilityStatusInfo) => void;
 }
 
@@ -31,6 +34,9 @@ export const MapV2UtilityLayer: React.FC<MapV2UtilityLayerProps> = ({
   utilityMode,
   toneMode = 'technical',
   zoom: _zoom = 1,
+  selectedMeterCode = null,
+  externalTracedMeterCode = null,
+  onSelectMeterHost,
   onStatusChange,
 }) => {
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
@@ -111,6 +117,27 @@ export const MapV2UtilityLayer: React.FC<MapV2UtilityLayerProps> = ({
     });
   }, [elecState, waterState, onStatusChange]);
 
+  // Synchronize external meter trace (from Inspector or Meter Layer)
+  useEffect(() => {
+    if (!externalTracedMeterCode) return;
+    const isElec = externalTracedMeterCode.startsWith('SIM-EM-');
+    if (isElec) {
+      const c = elecControllerRef.current;
+      if (!c) return;
+      if (elecState.phase === 'collapsed') {
+        c.expand();
+      }
+      c.traceMeter(externalTracedMeterCode);
+    } else {
+      const c = waterControllerRef.current;
+      if (!c) return;
+      if (waterState.phase === 'collapsed') {
+        c.expand();
+      }
+      c.traceMeter(externalTracedMeterCode);
+    }
+  }, [externalTracedMeterCode]);
+
   if (utilityMode === 'off') {
     return null;
   }
@@ -180,7 +207,10 @@ export const MapV2UtilityLayer: React.FC<MapV2UtilityLayerProps> = ({
     }
   };
 
-  const handleMeterClick = (nodeId: string, utilityType: UtilityType) => {
+  const handleMeterClick = (nodeId: string, utilityType: UtilityType, meterCode?: string) => {
+    if (meterCode && onSelectMeterHost) {
+      onSelectMeterHost(nodeId, meterCode);
+    }
     if (utilityType === 'ELECTRICITY') {
       const c = elecControllerRef.current;
       if (!c) return;
@@ -426,14 +456,17 @@ export const MapV2UtilityLayer: React.FC<MapV2UtilityLayerProps> = ({
 
           const isNodeActive = hoveredNodeId === node.id || focusedNodeId === node.id;
           const isTracedNode = state.phase === 'tracing' && state.tracedNodeIds.has(node.id);
-          const isTargetMeter = state.phase === 'tracing' && state.tracedNodeId === node.id;
-          const isDimmed = state.phase === 'tracing' && !isTracedNode;
+          const isTargetMeter = state.phase === 'tracing' && (state.tracedNodeId === node.id || state.tracedMeterCode === node.meterCode);
+          const isSelectedMeterHost = Boolean(
+            selectedMeterCode && node.meterCode && node.meterCode === selectedMeterCode
+          );
+          const isDimmed = state.phase === 'tracing' && !isTracedNode && !isSelectedMeterHost;
 
           const nodeOpacity = isDimmed ? 0.35 : 1.0;
 
           // Label density policy (Section 12):
-          // In BOTH mode, hide meter-code labels by default; reveal on hover or focus, or if target meter!
-          const showMeterLabel = !isBoth || isNodeActive || isTargetMeter;
+          // In BOTH mode, hide meter-code labels by default; reveal on hover, focus, target meter, or selected host!
+          const showMeterLabel = !isBoth || isNodeActive || isTargetMeter || isSelectedMeterHost;
 
           const x = node.displayX;
           const y = node.displayY;
@@ -447,7 +480,7 @@ export const MapV2UtilityLayer: React.FC<MapV2UtilityLayerProps> = ({
               key={node.id}
               id={`node-${node.id}`}
               transform={`translate(${x}, ${y})`}
-              className={`utility-node ${node.nodeRole.toLowerCase()} ${isNodeActive ? 'active hovered' : ''} ${isTargetMeter ? 'target-meter' : ''} ${isDimmed ? 'is-dimmed' : ''}`}
+              className={`utility-node ${node.nodeRole.toLowerCase()} ${isNodeActive ? 'active hovered' : ''} ${isTargetMeter ? 'target-meter' : ''} ${isSelectedMeterHost ? 'selected-meter-host' : ''} ${isDimmed ? 'is-dimmed' : ''}`}
               style={{
                 cursor: 'pointer',
                 outline: 'none',
@@ -476,7 +509,7 @@ export const MapV2UtilityLayer: React.FC<MapV2UtilityLayerProps> = ({
                 if (node.isSource) {
                   handleSourceClick(node.utilityType);
                 } else if (node.isMeter) {
-                  handleMeterClick(node.id, node.utilityType);
+                  handleMeterClick(node.id, node.utilityType, node.meterCode);
                 }
               }}
               onKeyDown={(e) => {
@@ -485,7 +518,7 @@ export const MapV2UtilityLayer: React.FC<MapV2UtilityLayerProps> = ({
                   if (node.isSource) {
                     handleSourceClick(node.utilityType);
                   } else if (node.isMeter) {
-                    handleMeterClick(node.id, node.utilityType);
+                    handleMeterClick(node.id, node.utilityType, node.meterCode);
                   }
                 }
               }}
@@ -607,14 +640,14 @@ export const MapV2UtilityLayer: React.FC<MapV2UtilityLayerProps> = ({
               {/* C. UNIFIED HOST ASSET + NESTED METER EMBLEM (MDB-01, WIN-01, FDR-*) — decorative */}
               {node.isDistributionNode && node.isMeter && (
                 <g pointerEvents="none">
-                  {/* Target meter halo when traced */}
-                  {isTargetMeter && (
+                  {/* Target meter halo when traced or selected */}
+                  {(isTargetMeter || isSelectedMeterHost) && (
                     <circle
-                      r={19}
+                      r={isSelectedMeterHost ? 21 : 19}
                       fill="none"
-                      stroke={cfg.badgeBorder}
-                      strokeWidth={2.4}
-                      strokeDasharray="4, 3"
+                      stroke={isSelectedMeterHost ? (isNeon ? '#00f0ff' : '#0068FF') : cfg.badgeBorder}
+                      strokeWidth={isSelectedMeterHost ? 3.0 : 2.4}
+                      strokeDasharray={isTargetMeter ? '4, 3' : undefined}
                     />
                   )}
 
@@ -683,14 +716,14 @@ export const MapV2UtilityLayer: React.FC<MapV2UtilityLayerProps> = ({
               {/* D. STANDALONE METER POINT (Terminal Meter, e.g. YDB-*, WP-*) — decorative */}
               {!node.isSource && !node.isDistributionNode && node.isMeter && (
                 <g pointerEvents="none">
-                  {/* Target meter halo when traced */}
-                  {isTargetMeter && (
+                  {/* Target meter halo when traced or selected */}
+                  {(isTargetMeter || isSelectedMeterHost) && (
                     <circle
-                      r={18}
+                      r={isSelectedMeterHost ? 20 : 18}
                       fill="none"
-                      stroke={cfg.badgeBorder}
-                      strokeWidth={2.4}
-                      strokeDasharray="4, 3"
+                      stroke={isSelectedMeterHost ? (isNeon ? '#00f0ff' : '#0068FF') : cfg.badgeBorder}
+                      strokeWidth={isSelectedMeterHost ? 3.0 : 2.4}
+                      strokeDasharray={isTargetMeter ? '4, 3' : undefined}
                     />
                   )}
 

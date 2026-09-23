@@ -42,9 +42,9 @@ export const MapV2Layers: React.FC<MapV2LayersProps> = ({
     },
     {
       key: 'employees',
-      label: 'Nhân sự phụ trách (Thực tế)',
+      label: 'Nhân sự phụ trách',
       color: '#003875',
-      desc: 'Người phụ trách thường trực tại điểm neo khu vực',
+      desc: 'Người phụ trách thường trực tại điểm neo khu vực (Không phải GPS)',
     },
     {
       key: 'meters',
@@ -60,31 +60,34 @@ export const MapV2Layers: React.FC<MapV2LayersProps> = ({
     },
   ];
 
-  const simulatedLayers: { key: keyof MapV2LayerVisibility; label: string; color: string; desc: string; isSimulated?: boolean }[] = [
+  const technicalNetworkLayers: { key: keyof MapV2LayerVisibility; label: string; color: string; desc: string; badgeLabel: string }[] = [
     {
       key: 'powerNetwork',
-      label: 'Mạng điện mô phỏng',
+      label: '⚡ Mạng điện',
       color: '#FFB703',
       desc: 'Tuyến cáp hạ thế & trạm phân phối (Mô phỏng B2)',
-      isSimulated: true,
+      badgeLabel: 'MÔ PHỎNG',
     },
     {
       key: 'waterNetwork',
-      label: 'Mạng nước mô phỏng',
+      label: '💧 Mạng nước',
       color: '#0068FF',
       desc: 'Đường ống cấp nước cảng (Mô phỏng B2)',
-      isSimulated: true,
-    },
-    {
-      key: 'demoEmployees',
-      label: 'Hoạt họa nhân sự (Demo)',
-      color: '#8B5CF6',
-      desc: 'Chuyển động minh họa — không phải vị trí GPS',
-      isSimulated: true,
+      badgeLabel: 'MÔ PHỎNG',
     },
   ];
 
-  const infrastructureLayers: { key: keyof MapV2LayerVisibility; label: string; color: string; desc: string }[] = [
+  const animationLayers: { key: keyof MapV2LayerVisibility; label: string; color: string; desc: string; badgeLabel: string }[] = [
+    {
+      key: 'demoEmployees',
+      label: 'Nhân sự di chuyển',
+      color: '#8B5CF6',
+      desc: 'Chuyển động minh họa — không phải vị trí GPS',
+      badgeLabel: 'DEMO',
+    },
+  ];
+
+  const baseMapLayers: { key: keyof MapV2LayerVisibility; label: string; color: string; desc: string }[] = [
     {
       key: 'baseMap',
       label: 'Bản đồ nền kỹ thuật',
@@ -105,7 +108,7 @@ export const MapV2Layers: React.FC<MapV2LayersProps> = ({
     },
     {
       key: 'gates',
-      label: 'Điểm kiểm soát (Cổng)',
+      label: 'Điểm kiểm soát',
       color: '#059669',
       desc: 'Cổng A & Cổng B',
     },
@@ -119,7 +122,7 @@ export const MapV2Layers: React.FC<MapV2LayersProps> = ({
 
   const isNeon = toneMode === 'neon';
 
-  const renderLayerItem = (l: { key: keyof MapV2LayerVisibility; label: string; color: string; desc: string; isSimulated?: boolean }) => {
+  const renderLayerItem = (l: { key: keyof MapV2LayerVisibility; label: string; color: string; desc: string; badgeLabel?: string }) => {
     const active = !!visibility[l.key];
     return (
       <div
@@ -144,7 +147,7 @@ export const MapV2Layers: React.FC<MapV2LayersProps> = ({
           <div>
             <div className={`map-v2-layer-name ${active ? 'active' : ''}`} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <span>{l.label}</span>
-              {l.isSimulated && (
+              {l.badgeLabel && (
                 <span
                   style={{
                     fontSize: '9px',
@@ -154,9 +157,10 @@ export const MapV2Layers: React.FC<MapV2LayersProps> = ({
                     backgroundColor: isNeon ? 'rgba(255, 183, 3, 0.2)' : '#FEF3C7',
                     color: isNeon ? '#FCC959' : '#D97706',
                     border: '1px solid rgba(217, 119, 6, 0.3)',
+                    letterSpacing: '0.04em',
                   }}
                 >
-                  Mô phỏng
+                  {l.badgeLabel}
                 </span>
               )}
             </div>
@@ -192,33 +196,43 @@ export const MapV2Layers: React.FC<MapV2LayersProps> = ({
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12, maxHeight: '420px', overflowY: 'auto' }}>
-        {/* Group 1: Vận hành */}
+        {/* Nhóm 1: LỚP TÁC NGHIỆP */}
         <div>
           <div style={{ fontSize: '11px', fontWeight: 700, color: isNeon ? '#00f0ff' : '#003875', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 }}>
-            Lớp tác nghiệp vận hành
+            LỚP TÁC NGHIỆP
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
             {operationalLayers.map(renderLayerItem)}
           </div>
         </div>
 
-        {/* Group 2: Mạng lưới kỹ thuật & Demo */}
+        {/* Nhóm 2: MẠNG KỸ THUẬT */}
         <div>
-          <div style={{ fontSize: '11px', fontWeight: 700, color: isNeon ? '#ff2a85' : '#D97706', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 }}>
-            Hạ tầng mô phỏng (Demo)
+          <div style={{ fontSize: '11px', fontWeight: 700, color: isNeon ? '#FCC959' : '#D97706', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 }}>
+            MẠNG KỸ THUẬT
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-            {simulatedLayers.map(renderLayerItem)}
+            {technicalNetworkLayers.map(renderLayerItem)}
           </div>
         </div>
 
-        {/* Group 3: Cơ sở hạ tầng tĩnh */}
+        {/* Nhóm 3: HOẠT HỌA */}
         <div>
-          <div style={{ fontSize: '11px', fontWeight: 700, color: isNeon ? '#94A3B8' : '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 }}>
-            Cơ sở hạ tầng cảng
+          <div style={{ fontSize: '11px', fontWeight: 700, color: isNeon ? '#A78BFA' : '#7C3AED', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 }}>
+            HOẠT HỌA
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-            {infrastructureLayers.map(renderLayerItem)}
+            {animationLayers.map(renderLayerItem)}
+          </div>
+        </div>
+
+        {/* Nhóm 4: BẢN ĐỒ NỀN */}
+        <div>
+          <div style={{ fontSize: '11px', fontWeight: 700, color: isNeon ? '#94A3B8' : '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 }}>
+            BẢN ĐỒ NỀN
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            {baseMapLayers.map(renderLayerItem)}
           </div>
         </div>
       </div>

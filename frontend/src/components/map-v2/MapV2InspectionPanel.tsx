@@ -18,6 +18,13 @@ import type { MapMeterOut } from '../../types';
 import type { MapV2SelectedEntity, MapV2ToneMode } from './types';
 import { MAP_V2_EMPLOYEE_DISCLOSURE_TEXT, MAP_V2_LIVE_STAFF_DISCLOSURE_TEXT } from './employeeDataAdapter';
 import { computeZoneOperationalStatus, formatZoneProgressText } from './zoneMapping';
+import {
+  getSimulationMeter,
+  getMeterHostNodeId,
+  getMeterNetworkId,
+  getMeterZone,
+  ELECTRICITY_NETWORK_ID,
+} from './simulation';
 
 interface MapV2InspectionPanelProps {
   selected: MapV2SelectedEntity;
@@ -27,6 +34,8 @@ interface MapV2InspectionPanelProps {
   onInspectReading?: (readingId: string) => void;
   onOpenMeterDetails?: (meterId: string, meterCode?: string) => void;
   onNavigateToTab?: (tab: string) => void;
+  onTraceMeter?: (meterCode: string) => void;
+  isMeterTraced?: boolean;
   selectedDate?: string;
   selectedRoundId?: string | null;
 }
@@ -39,6 +48,8 @@ export const MapV2InspectionPanel: React.FC<MapV2InspectionPanelProps> = ({
   onInspectReading,
   onOpenMeterDetails,
   onNavigateToTab,
+  onTraceMeter,
+  isMeterTraced = false,
   selectedDate,
   selectedRoundId,
 }) => {
@@ -326,6 +337,124 @@ export const MapV2InspectionPanel: React.FC<MapV2InspectionPanelProps> = ({
               </div>
             </div>
           )}
+
+          {/* SIMULATION INFRASTRUCTURE CONTEXT (Section 25, 26) */}
+          {(() => {
+            const hostNodeId = getMeterHostNodeId(meter.meter_code);
+            const networkId = getMeterNetworkId(meter.meter_code);
+            const zoneRel = getMeterZone(meter.meter_code);
+            const simMeter = getSimulationMeter(meter.meter_code);
+
+            if (hostNodeId) {
+              const zoneLabel = zoneRel?.presentationZoneId === 'ZONE_QUAY'
+                ? 'Khu cảng sà lan'
+                : zoneRel?.presentationZoneId === 'ZONE_CONTAINER'
+                ? 'Bãi container'
+                : zoneRel?.presentationZoneId === 'ZONE_GENERAL'
+                ? 'Bãi tổng hợp'
+                : 'Khu vực cảng';
+
+              return (
+                <div
+                  style={{
+                    marginTop: 12,
+                    padding: 10,
+                    borderRadius: 6,
+                    backgroundColor: isNeon ? 'rgba(255, 183, 3, 0.08)' : '#FEF3C7',
+                    border: `1px solid ${isNeon ? 'rgba(255, 183, 3, 0.25)' : '#FDE68A'}`,
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 700, color: isNeon ? '#FCC959' : '#92400E', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      Hạ tầng mạng lưới (Mô phỏng B2)
+                    </span>
+                    <span
+                      style={{
+                        fontSize: '9px',
+                        fontWeight: 700,
+                        padding: '1px 5px',
+                        borderRadius: 3,
+                        backgroundColor: isNeon ? 'rgba(255, 183, 3, 0.2)' : '#F59E0B',
+                        color: isNeon ? '#FCC959' : '#FFFFFF',
+                      }}
+                    >
+                      MÔ PHỎNG
+                    </span>
+                  </div>
+
+                  <div className="map-v2-prop-row" style={{ padding: '2px 0' }}>
+                    <span className="map-v2-prop-label">Mạng</span>
+                    <span className="map-v2-prop-value font-semibold">
+                      {networkId === ELECTRICITY_NETWORK_ID ? '⚡ Mạng điện B2' : '💧 Mạng nước B2'}
+                    </span>
+                  </div>
+
+                  <div className="map-v2-prop-row" style={{ padding: '2px 0' }}>
+                    <span className="map-v2-prop-label">Node chủ quản</span>
+                    <span className="map-v2-id-badge font-mono">{hostNodeId}</span>
+                  </div>
+
+                  <div className="map-v2-prop-row" style={{ padding: '2px 0' }}>
+                    <span className="map-v2-prop-label">Phân khu</span>
+                    <span className="map-v2-prop-value">{zoneLabel}</span>
+                  </div>
+
+                  <div className="map-v2-prop-row" style={{ padding: '2px 0' }}>
+                    <span className="map-v2-prop-label">Nguồn dữ liệu</span>
+                    <span className="map-v2-prop-value">Mô phỏng (B2 Frozen)</span>
+                  </div>
+
+                  {onTraceMeter && (
+                    <div style={{ marginTop: 8 }}>
+                      <button
+                        type="button"
+                        className="map-v2-btn"
+                        style={{
+                          width: '100%',
+                          justifyContent: 'center',
+                          gap: 6,
+                          backgroundColor: isMeterTraced ? (isNeon ? '#ff2a85' : '#003875') : undefined,
+                          color: isMeterTraced ? '#FFFFFF' : undefined,
+                          fontSize: '0.75rem',
+                          padding: '4px 8px',
+                        }}
+                        onClick={() => onTraceMeter(meter.meter_code)}
+                        title={isMeterTraced ? 'Hủy truy vết tuyến nguồn' : 'Truy vết tuyến nguồn từ trạm cấp đến công tơ'}
+                      >
+                        {isElectricity ? <Zap size={13} /> : <Droplets size={13} />}
+                        <span>{isMeterTraced ? 'Hủy truy vết tuyến nguồn' : 'Truy vết tuyến nguồn'}</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            }
+
+            if (simMeter?.lifecycle === 'LEGACY_SIMULATION') {
+              return (
+                <div
+                  style={{
+                    marginTop: 12,
+                    padding: 10,
+                    borderRadius: 6,
+                    backgroundColor: isNeon ? 'rgba(100, 116, 139, 0.15)' : '#F1F5F9',
+                    border: '1px solid #CBD5E1',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>
+                      Công tơ kế thừa (Legacy Simulation)
+                    </span>
+                  </div>
+                  <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748B' }}>
+                    Dữ liệu công tơ lịch sử Map V1. Không tham gia mạng lưới B2 Map V2.
+                  </p>
+                </div>
+              );
+            }
+
+            return null;
+          })()}
 
           {/* Cross-Screen Action CTAs */}
           <div style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 8 }}>

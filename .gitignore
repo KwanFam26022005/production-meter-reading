@@ -51,6 +51,7 @@ artifacts/
 !docs/design/map-operations/v16e-s1/screenshots/**
 !docs/design/map-operations/v16e-s2/screenshots/**
 !docs/design/map-operations/v16e-s2-r1/screenshots/**
+!docs/implementation/map-v2-unified-simulation-infrastructure/screenshots/**
 
 # Local backups
 backup/

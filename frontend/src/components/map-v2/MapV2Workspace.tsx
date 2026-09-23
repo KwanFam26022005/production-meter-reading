@@ -48,6 +48,7 @@ import { getMapOverview, getAdminSchedules } from '../../services/api';
 import type { MapMeterOut, ReadingRound, MapOverviewResponse } from '../../types';
 import { isValidMeterCoordinate, getMeterCanvasPoint } from './MapV2MeterLayer';
 import { CANONICAL_MAP_V2_ZONE_MAPPING } from './zoneMapping';
+import { getSimulationMeter } from './simulation';
 import './MapV2Workspace.css';
 
 const COMPACT_WORKSPACE_THRESHOLD = 1380;
@@ -119,6 +120,7 @@ export const MapV2Workspace: React.FC = () => {
 
   // Entities & Navigation
   const [selectedEntity, setSelectedEntity] = useState<MapV2SelectedEntity>(null);
+  const [tracedMeterCode, setTracedMeterCode] = useState<string | null>(null);
   const [centerOnCoord, setCenterOnCoord] = useState<[number, number] | null>(null);
   const [anchorScreenPos, setAnchorScreenPos] = useState<{ x: number; y: number } | null>(null);
   const [containerWidth, setContainerWidth] = useState<number>(1920);
@@ -263,6 +265,47 @@ export const MapV2Workspace: React.FC = () => {
 
   const isCompact = containerWidth < COMPACT_WORKSPACE_THRESHOLD;
   const inspectorPresentation = isCompact ? 'drawer' : 'docked';
+
+  const selectedMeterCode = useMemo(() => {
+    if (selectedEntity?.type === 'meter') {
+      return selectedEntity.data.meter_code;
+    }
+    return null;
+  }, [selectedEntity]);
+
+  const handleSelectMeterHost = useCallback((nodeId: string, meterCode: string) => {
+    const matchedMeter = liveMeters.find((m) => m.meter_code === meterCode);
+    if (matchedMeter) {
+      setSelectedEntity({ type: 'meter', data: matchedMeter });
+    } else {
+      const simMeter = getSimulationMeter(meterCode);
+      const placeholder: MapMeterOut = {
+        id: simMeter?.meterId || nodeId,
+        meter_code: meterCode,
+        name: simMeter?.name || meterCode,
+        meter_type: 'SIMULATED',
+        utility_type: simMeter?.utility || 'ELECTRICITY',
+        is_active: true,
+        semantic_state: 'PENDING',
+        location: `Node B2 ${nodeId}`,
+      };
+      setSelectedEntity({ type: 'meter', data: placeholder });
+    }
+  }, [liveMeters]);
+
+  const handleTraceMeter = useCallback((meterCode: string) => {
+    if (tracedMeterCode === meterCode) {
+      setTracedMeterCode(null);
+    } else {
+      setTracedMeterCode(meterCode);
+      const isElec = meterCode.startsWith('SIM-EM-');
+      if (isElec && !layerVisibility.powerNetwork) {
+        setLayerVisibility((prev) => ({ ...prev, powerNetwork: true }));
+      } else if (!isElec && !layerVisibility.waterNetwork) {
+        setLayerVisibility((prev) => ({ ...prev, waterNetwork: true }));
+      }
+    }
+  }, [tracedMeterCode, layerVisibility.powerNetwork, layerVisibility.waterNetwork]);
 
   const handleAnchorScreenPosChange = useCallback((pos: { x: number; y: number } | null) => {
     setAnchorScreenPos(pos);
@@ -843,7 +886,10 @@ export const MapV2Workspace: React.FC = () => {
             <button
               type="button"
               className="map-v2-btn"
-              onClick={() => setSelectedEntity(null)}
+              onClick={() => {
+                setSelectedEntity(null);
+                setTracedMeterCode(null);
+              }}
               title="Bỏ chọn đối tượng"
               aria-label="Bỏ chọn"
             >
@@ -876,6 +922,9 @@ export const MapV2Workspace: React.FC = () => {
           utilityFilter={utilityFilter}
           exceptionsOnly={layerVisibility.exceptionsOnly}
           centerOnCoord={centerOnCoord}
+          selectedMeterCode={selectedMeterCode}
+          tracedMeterCode={tracedMeterCode}
+          onSelectMeterHost={handleSelectMeterHost}
           isMotionPaused={isMotionPaused}
           onToggleMotionPause={() => setIsMotionPaused((prev) => !prev)}
         />
@@ -946,6 +995,7 @@ export const MapV2Workspace: React.FC = () => {
                 onClick={() => {
                   setSelectedEntity(null);
                   setFocusedEntity(null);
+                  setTracedMeterCode(null);
                 }}
                 aria-hidden="true"
               />
@@ -955,12 +1005,15 @@ export const MapV2Workspace: React.FC = () => {
               onClose={() => {
                 setSelectedEntity(null);
                 setFocusedEntity(null);
+                setTracedMeterCode(null);
               }}
               toneMode={toneMode}
               presentation={inspectorPresentation}
               onInspectReading={openReadingInspection}
               onOpenMeterDetails={openMeterDetails}
               onNavigateToTab={(tab) => setActiveTab(tab as any)}
+              onTraceMeter={handleTraceMeter}
+              isMeterTraced={Boolean(selectedEntity?.type === 'meter' && tracedMeterCode === selectedEntity.data.meter_code)}
               selectedDate={selectedDate}
               selectedRoundId={selectedRoundId}
             />

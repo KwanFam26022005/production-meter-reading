@@ -53,6 +53,9 @@ interface MapV2CanvasProps {
   exceptionsOnly?: boolean;
   demoEmployees?: MapV2Employee[];
   centerOnCoord?: [number, number] | null;
+  selectedMeterCode?: string | null;
+  tracedMeterCode?: string | null;
+  onSelectMeterHost?: (nodeId: string, meterCode: string) => void;
   isMotionPaused?: boolean;
   onToggleMotionPause?: () => void;
   forcedReducedMotion?: boolean;
@@ -90,6 +93,9 @@ export const MapV2Canvas: React.FC<MapV2CanvasProps> = ({
   exceptionsOnly = false,
   demoEmployees,
   centerOnCoord,
+  selectedMeterCode = null,
+  tracedMeterCode = null,
+  onSelectMeterHost,
   isMotionPaused = false,
   onToggleMotionPause,
   forcedReducedMotion = false,
@@ -770,6 +776,9 @@ export const MapV2Canvas: React.FC<MapV2CanvasProps> = ({
             utilityMode={utilityMode}
             toneMode={toneMode}
             zoom={zoom}
+            selectedMeterCode={selectedMeterCode}
+            externalTracedMeterCode={tracedMeterCode}
+            onSelectMeterHost={onSelectMeterHost}
             onStatusChange={onUtilityStatusChange}
           />
 
