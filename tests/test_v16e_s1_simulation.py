@@ -8,6 +8,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 
 from backend.app.config import get_settings
+from backend.app.db import migrate_db
 from backend.app.models import (
     Asset,
     AssetConnection,
@@ -37,6 +38,10 @@ def db_session():
     os.environ["DATABASE_URL"] = "sqlite:///./data/app.db"
     get_settings.cache_clear()
     engine = create_engine("sqlite:///./data/app.db", connect_args={"check_same_thread": False})
+    # This suite opens the shared simulation database directly instead of going
+    # through the application lifespan. Apply the same idempotent SQLite schema
+    # patch before ORM queries so existing rounds receive LEGACY_DYNAMIC mode.
+    migrate_db(engine)
     TestingSession = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     db = TestingSession()
     try:

@@ -34,6 +34,15 @@ settings = get_settings()
 LOCAL_TZ = ZoneInfo(settings.timezone)
 
 
+def with_preview_fingerprint(client, csrf, payload):
+    preview = client.post("/api/v1/admin/schedules/preview", json=payload, headers={"X-CSRF-Token": csrf})
+    assert preview.status_code == 200
+    request = dict(payload)
+    request.setdefault("scope", {"mode": "ALL_ELIGIBLE"})
+    request["expected_scope_fingerprint"] = preview.json()["scope"]["fingerprint"]
+    return request
+
+
 @pytest.fixture
 def test_db_session():
     engine = create_engine(
@@ -333,6 +342,7 @@ def test_admin_schedule_preview_and_conflict_rejection(test_db_session, admin_us
 
     batch = ReadingBatch(id=str(uuid.uuid4()), name="Đợt 1", period_key="2026-08", status="OPEN")
     test_db_session.add(batch)
+    test_db_session.add(Meter(id=str(uuid.uuid4()), meter_code="SCHEDULE-01", name="Schedule meter", is_active=True))
     test_db_session.commit()
 
     today_str = datetime.now(LOCAL_TZ).strftime("%Y-%m-%d")
@@ -349,11 +359,13 @@ def test_admin_schedule_preview_and_conflict_rejection(test_db_session, admin_us
     pdata = res_prev.json()
     assert pdata["total_proposed"] == 4  # 08:00, 09:00, 10:00, 11:00
     assert pdata["conflict_count"] == 0
+    assert pdata["scope"]["meter_count"] == 1
 
     # 2. Confirm create
-    res_create = client.post("/api/v1/admin/schedules", json=payload, headers={"X-CSRF-Token": csrf})
+    res_create = client.post("/api/v1/admin/schedules", json=with_preview_fingerprint(client, csrf, payload), headers={"X-CSRF-Token": csrf})
     assert res_create.status_code == 200
     assert res_create.json()["created_count"] == 4
+    assert res_create.json()["scope_materialized_count"] == 4
 
     # Verify audit log for READING_ROUNDS_CREATED
     audit = (
@@ -371,7 +383,7 @@ def test_admin_schedule_preview_and_conflict_rejection(test_db_session, admin_us
     assert pdata2["conflict_count"] == 4
 
     # 4. Attempting to create overlapping rounds -> 409 Conflict
-    res_dup = client.post("/api/v1/admin/schedules", json=payload, headers={"X-CSRF-Token": csrf})
+    res_dup = client.post("/api/v1/admin/schedules", json=with_preview_fingerprint(client, csrf, payload), headers={"X-CSRF-Token": csrf})
     assert res_dup.status_code == 409
     assert "Một hoặc nhiều lượt đã tồn tại trong khung giờ này." in res_dup.json()["detail"]
 
@@ -391,6 +403,7 @@ def test_admin_schedule_intervals_and_validation(test_db_session, admin_user, cl
 
     batch = ReadingBatch(id=str(uuid.uuid4()), name="Đợt Interval Test", period_key="2026-09", status="OPEN")
     test_db_session.add(batch)
+    test_db_session.add(Meter(id=str(uuid.uuid4()), meter_code="INTERVAL-01", name="Interval meter", is_active=True))
     test_db_session.commit()
 
     test_date_str = (datetime.now(LOCAL_TZ) + timedelta(days=2)).strftime("%Y-%m-%d")
@@ -424,6 +437,8 @@ def test_admin_schedule_intervals_and_validation(test_db_session, admin_user, cl
         "end_time": "10:00",
         "interval_minutes": 1500,
     }
+    p_invalid_high["scope"] = {"mode": "ALL_ELIGIBLE"}
+    p_invalid_high["expected_scope_fingerprint"] = res30.json()["scope"]["fingerprint"]
     res_high = client.post("/api/v1/admin/schedules", json=p_invalid_high, headers={"X-CSRF-Token": csrf})
     assert res_high.status_code == 400
     assert "Chu kỳ đọc phải nằm trong khoảng từ 5 đến 1440 phút." in res_high.json()["detail"]
@@ -435,7 +450,7 @@ def test_admin_schedule_intervals_and_validation(test_db_session, admin_user, cl
         "end_time": "12:00",
         "interval_minutes": 120,
     }
-    res120 = client.post("/api/v1/admin/schedules", json=p120, headers={"X-CSRF-Token": csrf})
+    res120 = client.post("/api/v1/admin/schedules", json=with_preview_fingerprint(client, csrf, p120), headers={"X-CSRF-Token": csrf})
     assert res120.status_code == 200
     assert res120.json()["created_count"] == 3
 
@@ -453,9 +468,10 @@ def test_admin_schedule_delete_round_and_conflict_handling(test_db_session, admi
     test_date_str = (datetime.now(LOCAL_TZ) + timedelta(days=3)).strftime("%Y-%m-%d")
 
     # 1. Create a schedule round
+    schedule_payload = {"date": test_date_str, "start_time": "09:00", "end_time": "09:00", "interval_minutes": 60}
     res_create = client.post(
         "/api/v1/admin/schedules",
-        json={"date": test_date_str, "start_time": "09:00", "end_time": "09:00", "interval_minutes": 60},
+        json=with_preview_fingerprint(client, csrf, schedule_payload),
         headers={"X-CSRF-Token": csrf},
     )
     assert res_create.status_code == 200
@@ -479,9 +495,10 @@ def test_admin_schedule_delete_round_and_conflict_handling(test_db_session, admi
     assert test_db_session.query(ReadingRound).filter(ReadingRound.id == round_id).first() is None
 
     # 3. Create another round, and simulate an existing meter reading
+    schedule_payload2 = {"date": test_date_str, "start_time": "10:00", "end_time": "10:00", "interval_minutes": 60}
     res_create2 = client.post(
         "/api/v1/admin/schedules",
-        json={"date": test_date_str, "start_time": "10:00", "end_time": "10:00", "interval_minutes": 60},
+        json=with_preview_fingerprint(client, csrf, schedule_payload2),
         headers={"X-CSRF-Token": csrf},
     )
     assert res_create2.status_code == 200
@@ -500,16 +517,13 @@ def test_admin_schedule_delete_round_and_conflict_handling(test_db_session, admi
     test_db_session.add(rd)
     test_db_session.commit()
 
-    # 4. Attempt deleting without force -> 409 Conflict
+    # 4. Deleting a round with operational data cancels it and preserves the reading.
     res_del_conflict = client.delete(f"/api/v1/admin/schedules/rounds/{round_id2}", headers={"X-CSRF-Token": csrf})
-    assert res_del_conflict.status_code == 409
-    assert "bản ghi chỉ số" in res_del_conflict.json()["detail"]
-
-    # 5. Delete with force=true -> 200 OK
-    res_del_force = client.delete(f"/api/v1/admin/schedules/rounds/{round_id2}?force=true", headers={"X-CSRF-Token": csrf})
-    assert res_del_force.status_code == 200
-    assert test_db_session.query(ReadingRound).filter(ReadingRound.id == round_id2).first() is None
-    assert test_db_session.query(MeterReading).filter(MeterReading.reading_round_id == round_id2).first() is None
+    assert res_del_conflict.status_code == 200
+    assert res_del_conflict.json()["cancelled_count"] == 1
+    cancelled = test_db_session.query(ReadingRound).filter(ReadingRound.id == round_id2).first()
+    assert cancelled.status == "CANCELLED"
+    assert test_db_session.query(MeterReading).filter(MeterReading.reading_round_id == round_id2).count() == 1
 
 
 def test_admin_schedule_delete_by_date(test_db_session, admin_user, client):
@@ -517,14 +531,16 @@ def test_admin_schedule_delete_by_date(test_db_session, admin_user, client):
 
     batch = ReadingBatch(id=str(uuid.uuid4()), name="Đợt Delete Day Test", period_key="2026-09", status="OPEN")
     test_db_session.add(batch)
+    test_db_session.add(Meter(id=str(uuid.uuid4()), meter_code="DELETE-DAY-01", name="Delete day meter", is_active=True))
     test_db_session.commit()
 
     test_date_str = (datetime.now(LOCAL_TZ) + timedelta(days=4)).strftime("%Y-%m-%d")
 
     # 1. Create 4 rounds on test_date
+    schedule_payload = {"date": test_date_str, "start_time": "08:00", "end_time": "11:00", "interval_minutes": 60}
     res_create = client.post(
         "/api/v1/admin/schedules",
-        json={"date": test_date_str, "start_time": "08:00", "end_time": "11:00", "interval_minutes": 60},
+        json=with_preview_fingerprint(client, csrf, schedule_payload),
         headers={"X-CSRF-Token": csrf},
     )
     assert res_create.status_code == 200
@@ -538,7 +554,7 @@ def test_admin_schedule_delete_by_date(test_db_session, admin_user, client):
     # Verify audit log
     audit = (
         test_db_session.query(AdminAuditLog)
-        .filter(AdminAuditLog.action == "READING_ROUNDS_BATCH_DELETED")
+        .filter(AdminAuditLog.action == "READING_ROUNDS_BATCH_CLEANED")
         .order_by(AdminAuditLog.created_at.desc())
         .first()
     )

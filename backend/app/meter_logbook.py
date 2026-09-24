@@ -5,6 +5,7 @@ import logging
 from pathlib import Path
 import re
 import uuid
+from types import SimpleNamespace
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
@@ -24,6 +25,7 @@ from .models import (
     OperationalZone,
     ReadingBatch,
     ReadingRound,
+    ReadingRoundMeter,
     User,
 )
 from .schemas import (
@@ -94,6 +96,44 @@ def get_open_reading_batch(db: Session) -> Optional[ReadingBatch]:
 
 
 def calculate_round_progress(db: Session, round_id: str) -> BatchProgress:
+    round_obj = db.query(ReadingRound).filter(ReadingRound.id == round_id).first()
+    if round_obj and round_obj.scope_mode == "SNAPSHOT":
+        scope_rows = (
+            db.query(ReadingRoundMeter)
+            .filter(
+                ReadingRoundMeter.reading_round_id == round_id,
+                ReadingRoundMeter.scope_status == "SCHEDULED",
+            )
+            .all()
+        )
+        scoped_meter_ids = [row.meter_id for row in scope_rows if row.meter_id]
+        readings = []
+        if scoped_meter_ids:
+            readings = (
+                db.query(MeterReading)
+                .filter(
+                    MeterReading.reading_round_id == round_id,
+                    MeterReading.meter_id.in_(scoped_meter_ids),
+                )
+                .all()
+            )
+        confirmed = sum(1 for reading in readings if reading.status == "CONFIRMED")
+        review = sum(1 for reading in readings if reading.status == "REVIEW")
+        total = len(scope_rows)
+        pending = max(0, total - confirmed - review)
+        return BatchProgress(
+            total=total,
+            confirmed=confirmed,
+            review=review,
+            pending=pending,
+            unique_meter_count=total,
+            scheduled_slot_count=total,
+            confirmed_slot_count=confirmed,
+            review_slot_count=review,
+            pending_slot_count=pending,
+        )
+
+    # Compatibility behavior for rounds created before immutable scope existed.
     total_meters = db.query(Meter).filter(Meter.is_active == True).count()
     readings = (
         db.query(MeterReading)
@@ -111,10 +151,63 @@ def calculate_round_progress(db: Session, round_id: str) -> BatchProgress:
         confirmed=confirmed,
         review=review,
         pending=pending,
+        unique_meter_count=total_meters,
     )
 
 
 def calculate_batch_progress(db: Session, batch_id: str) -> BatchProgress:
+    rounds = (
+        db.query(ReadingRound)
+        .filter(ReadingRound.batch_id == batch_id, ReadingRound.status != "CANCELLED")
+        .all()
+    )
+    active_meter_ids = {
+        meter.id for meter in db.query(Meter).filter(Meter.is_active == True).all()
+    }
+    scheduled_ids_by_round: dict[str, set[str]] = {}
+    unique_meter_keys: set[tuple[str, str]] = set()
+    scheduled_slot_count = 0
+    for round_obj in rounds:
+        if round_obj.scope_mode == "SNAPSHOT":
+            scope_rows = (
+                db.query(ReadingRoundMeter)
+                .filter(
+                    ReadingRoundMeter.reading_round_id == round_obj.id,
+                    ReadingRoundMeter.scope_status == "SCHEDULED",
+                )
+                .all()
+            )
+            meter_ids = {row.meter_id for row in scope_rows if row.meter_id}
+            scheduled_ids_by_round[round_obj.id] = meter_ids
+            scheduled_slot_count += len(scope_rows)
+            for row in scope_rows:
+                identity = row.meter_id or row.meter_code_snapshot
+                unique_meter_keys.add(("meter" if row.meter_id else "snapshot", identity))
+        else:
+            scheduled_ids_by_round[round_obj.id] = set(active_meter_ids)
+            scheduled_slot_count += len(active_meter_ids)
+            unique_meter_keys.update(("meter", meter_id) for meter_id in active_meter_ids)
+
+    round_by_id = {round_obj.id: round_obj for round_obj in rounds}
+    batch_readings = db.query(MeterReading).filter(MeterReading.batch_id == batch_id).all()
+    scoped_confirmed = 0
+    scoped_review = 0
+    for reading in batch_readings:
+        round_obj = round_by_id.get(reading.reading_round_id)
+        if not round_obj:
+            continue
+        if round_obj.scope_mode == "SNAPSHOT" and reading.meter_id not in scheduled_ids_by_round.get(round_obj.id, set()):
+            continue
+        if round_obj.scope_mode == "LEGACY_DYNAMIC" and reading.meter_id not in active_meter_ids:
+            continue
+        if reading.status == "CONFIRMED":
+            scoped_confirmed += 1
+        elif reading.status == "REVIEW":
+            scoped_review += 1
+    pending_slots = max(0, scheduled_slot_count - scoped_confirmed - scoped_review)
+
+    # Preserve old batch fields for deployed consumers. Historically total was a
+    # current unique meter count while confirmed/review counted reading rows.
     total_meters = db.query(Meter).filter(Meter.is_active == True).count()
     readings = (
         db.query(MeterReading)
@@ -132,10 +225,22 @@ def calculate_batch_progress(db: Session, batch_id: str) -> BatchProgress:
         confirmed=confirmed,
         review=review,
         pending=pending,
+        unique_meter_count=len(unique_meter_keys),
+        scheduled_slot_count=scheduled_slot_count,
+        confirmed_slot_count=scoped_confirmed,
+        review_slot_count=scoped_review,
+        pending_slot_count=pending_slots,
     )
 
 
-def determine_round_timing_state(scheduled_at: datetime, now_utc: datetime, is_latest_past: bool = False) -> str:
+def determine_round_timing_state(
+    scheduled_at: datetime,
+    now_utc: datetime,
+    is_latest_past: bool = False,
+    is_cancelled: bool = False,
+) -> str:
+    if is_cancelled:
+        return "CANCELLED"
     if scheduled_at.tzinfo is None:
         scheduled_at = scheduled_at.replace(tzinfo=timezone.utc)
     if scheduled_at > now_utc:
@@ -227,7 +332,12 @@ def get_batch_rounds_with_progress(
         progress = calculate_round_progress(db, r.id)
         r_sched = r.scheduled_at.replace(tzinfo=timezone.utc) if r.scheduled_at.tzinfo is None else r.scheduled_at
         is_curr = (r.id == current_id)
-        timing_state = determine_round_timing_state(r_sched, now_utc, is_latest_past=is_curr)
+        timing_state = determine_round_timing_state(
+            r_sched,
+            now_utc,
+            is_latest_past=is_curr,
+            is_cancelled=r.status == "CANCELLED",
+        )
 
         results.append(
             ReadingRoundOut(
@@ -238,8 +348,10 @@ def get_batch_rounds_with_progress(
                 scheduled_time_only=get_round_time_only_str(r_sched),
                 status=r.status,
                 is_legacy=r.is_legacy,
+                scope_mode=r.scope_mode,
                 timing_state=timing_state,
                 progress=progress,
+                scope_meter_count=progress.total if r.scope_mode == "SNAPSHOT" else None,
             )
         )
     return results
@@ -265,12 +377,115 @@ def _get_zone_resolution_maps(db: Session) -> tuple[dict[str, str], dict[str, st
     return op_zone_map, map_zone_labels
 
 
+def _infer_utility_type(meter_code: str, utility_type: Optional[str]) -> str:
+    utility = (utility_type or "UNKNOWN").upper()
+    if utility != "UNKNOWN":
+        return utility
+    code = (meter_code or "").upper()
+    if code.startswith(("W-", "SIM-W")):
+        return "WATER"
+    if code.startswith(("CT-", "SIM-E")):
+        return "ELECTRICITY"
+    return utility
+
+
 def get_round_meters_with_status(
     db: Session,
     round_obj: ReadingRound,
     search: Optional[str] = None,
     status_filter: Optional[str] = None,
 ) -> list[BatchMeterItem]:
+    if round_obj.scope_mode == "SNAPSHOT":
+        scope_rows = (
+            db.query(ReadingRoundMeter)
+            .filter(
+                ReadingRoundMeter.reading_round_id == round_obj.id,
+                ReadingRoundMeter.scope_status == "SCHEDULED",
+            )
+            .order_by(ReadingRoundMeter.meter_code_snapshot.asc())
+            .all()
+        )
+        meter_ids = [row.meter_id for row in scope_rows if row.meter_id]
+        current_meters = db.query(Meter).filter(Meter.id.in_(meter_ids)).all() if meter_ids else []
+        meter_map = {meter.id: meter for meter in current_meters}
+        op_zone_map, map_zone_labels = _get_zone_resolution_maps(db)
+        readings = db.query(MeterReading).filter(MeterReading.reading_round_id == round_obj.id).all()
+        readings_map = {reading.meter_id: reading for reading in readings}
+        snapshot_results: list[BatchMeterItem] = []
+
+        for scope_row in scope_rows:
+            meter = meter_map.get(scope_row.meter_id) if scope_row.meter_id else None
+            code = scope_row.meter_code_snapshot
+            name = scope_row.meter_name_snapshot or code
+            location = meter.location if meter else None
+            if search and search.strip():
+                term = search.strip().casefold()
+                if not any(term in value.casefold() for value in (code, name, location or "")):
+                    continue
+
+            reading = readings_map.get(scope_row.meter_id) if scope_row.meter_id else None
+            reading_status = reading.status if reading else "PENDING"
+            if status_filter and status_filter.strip().upper() in ("PENDING", "CONFIRMED", "REVIEW"):
+                if reading_status != status_filter.strip().upper():
+                    continue
+
+            if meter is None:
+                availability = "MISSING"
+                lifecycle = "MISSING"
+            else:
+                lifecycle = (getattr(meter, "lifecycle_status", None) or ("ACTIVE" if meter.is_active else "INACTIVE")).upper()
+                availability = "RETIRED" if lifecycle == "RETIRED" else "AVAILABLE" if meter.is_active and lifecycle == "ACTIVE" else "INACTIVE"
+
+            utility = scope_row.utility_type_snapshot or _infer_utility_type(code, meter.utility_type if meter else None)
+            presentation_zone_id = scope_row.presentation_zone_id_snapshot
+            snapshot_meter = MeterOut(
+                id=scope_row.meter_id or scope_row.id,
+                meter_code=code,
+                name=name,
+                location=location,
+                meter_type=meter.meter_type if meter else "UNKNOWN",
+                utility_type=utility,
+                is_active=bool(meter and meter.is_active),
+                lifecycle_status=lifecycle,
+                zone_id=scope_row.zone_id_snapshot,
+                zone_name=op_zone_map.get(scope_row.zone_id_snapshot) if scope_row.zone_id_snapshot else None,
+                presentation_zone_id=presentation_zone_id,
+                presentation_zone_name=map_zone_labels.get(presentation_zone_id) if presentation_zone_id else None,
+                map_x=meter.map_x if meter else None,
+                map_y=meter.map_y if meter else None,
+                route_status=(meter.route_status or "VALID") if meter else "VALID",
+            )
+
+            recorded_by = None
+            if reading and reading.user:
+                recorded_by = RecordedByOut(
+                    employee_code=reading.user.employee_code,
+                    full_name=reading.user.full_name,
+                )
+            snapshot_results.append(
+                BatchMeterItem(
+                    meter=snapshot_meter,
+                    reading_status=reading_status,
+                    reading=reading.reading if reading else None,
+                    recorded_at=reading.server_timestamp.isoformat() if reading and reading.server_timestamp else None,
+                    formatted_recorded_at=get_local_time_str(reading.server_timestamp) if reading and reading.server_timestamp else None,
+                    recorded_by=recorded_by,
+                    reading_id=reading.id if reading else None,
+                    scope_item_id=scope_row.id,
+                    scope_origin=scope_row.scope_origin,
+                    scope_status=scope_row.scope_status,
+                    scope_zone_id_snapshot=scope_row.zone_id_snapshot,
+                    scope_presentation_zone_id_snapshot=scope_row.presentation_zone_id_snapshot,
+                    scope_utility_type_snapshot=scope_row.utility_type_snapshot,
+                    current_zone_id=meter.zone_id if meter else None,
+                    current_zone_name=op_zone_map.get(meter.zone_id) if meter and meter.zone_id else None,
+                    current_presentation_zone_id=meter.presentation_zone_id if meter else None,
+                    current_presentation_zone_name=(map_zone_labels.get(meter.presentation_zone_id) if meter and meter.presentation_zone_id else None),
+                    meter_availability=availability,
+                )
+            )
+        return snapshot_results
+
     query = db.query(Meter).filter(Meter.is_active == True)
 
     if search and search.strip():
@@ -635,6 +850,25 @@ def save_meter_training_sample(
         return None
 
 
+def validate_meter_round_scope(db: Session, round_obj: ReadingRound, meter_id: str) -> None:
+    if round_obj.scope_mode != "SNAPSHOT":
+        return
+    in_scope = (
+        db.query(ReadingRoundMeter.id)
+        .filter(
+            ReadingRoundMeter.reading_round_id == round_obj.id,
+            ReadingRoundMeter.meter_id == meter_id,
+            ReadingRoundMeter.scope_status == "SCHEDULED",
+        )
+        .first()
+    )
+    if not in_scope:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="Công tơ không thuộc phạm vi đã lên lịch của lượt ghi này.",
+        )
+
+
 def confirm_meter_reading(
     db: Session,
     user: User,
@@ -675,6 +909,8 @@ def confirm_meter_reading(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Chưa đến giờ ghi chỉ số cho lượt này (dự kiến {sched_str}).",
         )
+
+    validate_meter_round_scope(db, round_obj, payload.meter_id)
 
     # 4. Validate meter
     meter = db.query(Meter).filter(Meter.id == payload.meter_id).first()
@@ -880,6 +1116,8 @@ def reconcile_meter_reading(
             detail="Không tìm thấy lượt ghi chỉ số.",
         )
 
+    validate_meter_round_scope(db, round_obj, meter_id)
+
     # 2. Validate meter exists
     meter = db.query(Meter).filter(Meter.id == meter_id).first()
     if not meter:
@@ -963,6 +1201,8 @@ def mark_meter_review(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Chưa đến giờ ghi chỉ số cho lượt này (dự kiến {sched_str}).",
         )
+
+    validate_meter_round_scope(db, round_obj, payload.meter_id)
 
     meter = db.query(Meter).filter(Meter.id == payload.meter_id).first()
     if not meter:
@@ -1132,6 +1372,7 @@ def get_today_meter_operations(
     current_r, _ = get_current_or_nearest_round(db, batch.id, date_filter=target_date_str)
     current_round_out = None
     current_id = None
+    current_scope_by_task_id: dict[str, ReadingRoundMeter] = {}
     if current_r:
         current_id = current_r.id
         prog = calculate_round_progress(db, current_r.id)
@@ -1144,9 +1385,23 @@ def get_today_meter_operations(
             scheduled_time_only=get_round_time_only_str(sched),
             status=current_r.status,
             is_legacy=current_r.is_legacy,
+            scope_mode=current_r.scope_mode,
             timing_state="CURRENT",
             progress=prog,
+            scope_meter_count=prog.total if current_r.scope_mode == "SNAPSHOT" else None,
         )
+        if current_r.scope_mode == "SNAPSHOT":
+            current_scope_rows = (
+                db.query(ReadingRoundMeter)
+                .filter(
+                    ReadingRoundMeter.reading_round_id == current_r.id,
+                    ReadingRoundMeter.scope_status == "SCHEDULED",
+                )
+                .all()
+            )
+            current_scope_by_task_id = {
+                row.meter_id or row.id: row for row in current_scope_rows
+            }
 
     # Get all non-legacy scheduled rounds for this batch on target date
     all_rounds = (
@@ -1154,6 +1409,7 @@ def get_today_meter_operations(
         .filter(
             ReadingRound.batch_id == batch.id,
             ReadingRound.is_legacy == False,
+            ReadingRound.status != "CANCELLED",
         )
         .order_by(ReadingRound.scheduled_at.asc())
         .all()
@@ -1165,8 +1421,55 @@ def get_today_meter_operations(
         if r_sched.astimezone(LOCAL_TZ).strftime("%Y-%m-%d") == target_date_str:
             today_rounds.append(r)
 
-    # Active meters
-    meters = db.query(Meter).filter(Meter.is_active == True).order_by(Meter.meter_code.asc()).all()
+    # A snapshot current round owns the current queue. Legacy rounds retain the
+    # active-inventory compatibility path.
+    if current_r and current_r.scope_mode == "SNAPSHOT":
+        current_scope_rows = list(current_scope_by_task_id.values())
+        scoped_ids = [row.meter_id for row in current_scope_rows if row.meter_id]
+        current_meters = db.query(Meter).filter(Meter.id.in_(scoped_ids)).all() if scoped_ids else []
+        current_meter_map = {meter.id: meter for meter in current_meters}
+        meters = []
+        for row in current_scope_rows:
+            if row.meter_id and row.meter_id in current_meter_map:
+                meters.append(current_meter_map[row.meter_id])
+            else:
+                meters.append(
+                    SimpleNamespace(
+                        id=row.meter_id or row.id,
+                        meter_code=row.meter_code_snapshot,
+                        name=row.meter_name_snapshot or row.meter_code_snapshot,
+                        location=None,
+                        meter_type="UNKNOWN",
+                        utility_type=row.utility_type_snapshot or "UNKNOWN",
+                        is_active=False,
+                        lifecycle_status="MISSING",
+                        zone_id=row.zone_id_snapshot,
+                        presentation_zone_id=row.presentation_zone_id_snapshot,
+                        map_x=None,
+                        map_y=None,
+                        route_status="VALID",
+                        created_at=None,
+                    )
+                )
+    else:
+        meters = db.query(Meter).filter(Meter.is_active == True).order_by(Meter.meter_code.asc()).all()
+
+    scope_members_by_round: dict[str, set[str]] = {}
+    scope_rows_by_round: dict[str, dict[str, ReadingRoundMeter]] = {}
+    snapshot_round_ids = [round_obj.id for round_obj in today_rounds if round_obj.scope_mode == "SNAPSHOT"]
+    if snapshot_round_ids:
+        all_scope_rows = (
+            db.query(ReadingRoundMeter)
+            .filter(
+                ReadingRoundMeter.reading_round_id.in_(snapshot_round_ids),
+                ReadingRoundMeter.scope_status == "SCHEDULED",
+            )
+            .all()
+        )
+        for row in all_scope_rows:
+            task_id = row.meter_id or row.id
+            scope_members_by_round.setdefault(row.reading_round_id, set()).add(task_id)
+            scope_rows_by_round.setdefault(row.reading_round_id, {})[task_id] = row
 
     # Pre-fetch all readings for this batch to avoid N+1 queries
     all_batch_readings = (
@@ -1235,6 +1538,8 @@ def get_today_meter_operations(
         # 3. Today's hourly slots
         today_slots: list[TodayHourlySlot] = []
         for r in today_rounds:
+            if r.scope_mode == "SNAPSHOT" and m.id not in scope_members_by_round.get(r.id, set()):
+                continue
             r_sched = r.scheduled_at.replace(tzinfo=timezone.utc) if r.scheduled_at.tzinfo is None else r.scheduled_at
             timing_state = determine_round_timing_state(r_sched, now_utc, is_latest_past=(r.id == current_id))
             
@@ -1338,15 +1643,38 @@ def get_today_meter_operations(
         # 6. Missed count (PAST slots today that are still PENDING)
         missed_c = sum(1 for s in today_slots if s.timing_state == "PAST" and s.status == "PENDING")
 
+        scope_row = current_scope_by_task_id.get(m.id)
+        if scope_row and getattr(m, "lifecycle_status", None) == "MISSING":
+            meter_availability = "MISSING"
+            lifecycle_status = "MISSING"
+        elif scope_row:
+            lifecycle_status = (getattr(m, "lifecycle_status", None) or ("ACTIVE" if m.is_active else "INACTIVE")).upper()
+            meter_availability = "RETIRED" if lifecycle_status == "RETIRED" else "AVAILABLE" if m.is_active and lifecycle_status == "ACTIVE" else "INACTIVE"
+        else:
+            lifecycle_status = (getattr(m, "lifecycle_status", None) or ("ACTIVE" if m.is_active else "INACTIVE")).upper()
+            meter_availability = "AVAILABLE" if m.is_active and lifecycle_status == "ACTIVE" else "RETIRED" if lifecycle_status == "RETIRED" else "INACTIVE"
+        utility_type = (
+            scope_row.utility_type_snapshot
+            if scope_row and scope_row.utility_type_snapshot
+            else _infer_utility_type(m.meter_code, getattr(m, "utility_type", None))
+        )
+
         meter_items.append(
             MeterOperationItem(
                 meter=MeterOut(
                     id=m.id,
-                    meter_code=m.meter_code,
-                    name=m.name,
+                    meter_code=scope_row.meter_code_snapshot if scope_row else m.meter_code,
+                    name=(scope_row.meter_name_snapshot or scope_row.meter_code_snapshot) if scope_row else m.name,
                     location=m.location,
-                    meter_type=m.meter_type,
+                    meter_type=getattr(m, "meter_type", "UNKNOWN"),
+                    utility_type=utility_type,
                     is_active=m.is_active,
+                    lifecycle_status=lifecycle_status,
+                    zone_id=scope_row.zone_id_snapshot if scope_row else m.zone_id,
+                    presentation_zone_id=scope_row.presentation_zone_id_snapshot if scope_row else getattr(m, "presentation_zone_id", None),
+                    map_x=getattr(m, "map_x", None),
+                    map_y=getattr(m, "map_y", None),
+                    route_status=getattr(m, "route_status", "VALID") or "VALID",
                     created_at=m.created_at.isoformat() if m.created_at else None,
                 ),
                 current_status=curr_status,
@@ -1359,6 +1687,7 @@ def get_today_meter_operations(
                 today_slots=today_slots,
                 trend=trend_points,
                 missed_count=missed_c,
+                meter_availability=meter_availability,
             )
         )
 
@@ -1380,8 +1709,7 @@ def get_today_meter_operations(
             pending_current=pend_c,
             review_current=rev_c,
             percent_current=pct_c,
+            scheduled_meter_count=total_m,
         ),
         meters=meter_items,
     )
-
-

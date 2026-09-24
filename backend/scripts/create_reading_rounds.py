@@ -18,7 +18,9 @@ if hasattr(sys.stdout, "reconfigure"):
 from sqlalchemy.orm import Session
 from backend.app.config import get_settings
 from backend.app.db import SessionLocal, init_db
-from backend.app.models import ReadingBatch, ReadingRound, MeterReading, Meter
+from backend.app.models import ReadingBatch, ReadingRound, ReadingRoundMeter, MeterReading, Meter
+from backend.app.admin import _effective_meter_utility, resolve_schedule_scope
+from backend.app.schemas import AdminScheduleScopeRequest
 
 settings = get_settings()
 
@@ -87,7 +89,14 @@ def generate_reading_rounds(
     end_dt_local = datetime(target_date.year, target_date.month, target_date.day, end_h, end_m, 0, tzinfo=LOCAL_TZ)
 
     if start_dt_local > end_dt_local:
-        raise ValueError(f"Thời gian bắt đầu ({start_time_str}) không thể sau thời gian kết thúc ({end_time_str}).")
+        raise ValueError("Lịch qua đêm (ví dụ 22:00–06:00) chưa được hỗ trợ. Vui lòng tạo lịch trong cùng ngày.")
+
+    scope_meters, invalid_selections, _ = resolve_schedule_scope(
+        db,
+        AdminScheduleScopeRequest(mode="ALL_ELIGIBLE"),
+    )
+    if invalid_selections or not scope_meters:
+        raise ValueError("Không có công tơ đủ điều kiện để tạo phạm vi lượt ghi.")
 
     existing_rounds = db.query(ReadingRound).filter(ReadingRound.batch_id == batch.id).all()
     existing_utc_set = {
@@ -108,6 +117,7 @@ def generate_reading_rounds(
                 batch_id=batch.id,
                 scheduled_at=curr_dt_utc,
                 status="OPEN",
+                scope_mode="SNAPSHOT",
                 created_at=now_utc,
             )
             db.add(new_round)
@@ -117,9 +127,41 @@ def generate_reading_rounds(
         curr_dt_local += timedelta(minutes=interval_minutes)
 
     if created_rounds:
-        db.commit()
-        for r in created_rounds:
-            db.refresh(r)
+        try:
+            db.flush()
+            scope_rows = [
+                ReadingRoundMeter(
+                    id=str(uuid.uuid4()),
+                    reading_round_id=round_obj.id,
+                    meter_id=meter.id,
+                    meter_code_snapshot=meter.meter_code,
+                    meter_name_snapshot=meter.name,
+                    zone_id_snapshot=meter.zone_id,
+                    presentation_zone_id_snapshot=meter.presentation_zone_id,
+                    utility_type_snapshot=_effective_meter_utility(meter),
+                    scope_origin="ALL_ELIGIBLE",
+                    scope_status="SCHEDULED",
+                    created_at=now_utc,
+                )
+                for round_obj in created_rounds
+                for meter in scope_meters
+            ]
+            db.add_all(scope_rows)
+            db.flush()
+            expected_scope_count = len(created_rounds) * len(scope_meters)
+            actual_scope_count = (
+                db.query(ReadingRoundMeter)
+                .filter(ReadingRoundMeter.reading_round_id.in_([round_obj.id for round_obj in created_rounds]))
+                .count()
+            )
+            if actual_scope_count != expected_scope_count:
+                raise RuntimeError("Không thể lưu đầy đủ phạm vi công tơ cho các lượt ghi.")
+            db.commit()
+            for r in created_rounds:
+                db.refresh(r)
+        except Exception:
+            db.rollback()
+            raise
 
     return created_rounds
 

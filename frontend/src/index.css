@@ -4615,6 +4615,29 @@ body {
   overflow: hidden;
 }
 
+.worklist-progress-breakdown {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin-top: 8px;
+  color: var(--sgp-ink-secondary);
+  font-size: 12px;
+}
+
+.worklist-progress-breakdown strong {
+  color: var(--sgp-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.worklist-meter-unavailable {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--sgp-ink-secondary);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
 .worklist-progress-fill {
   height: 100%;
   background-color: var(--sgp-brand-600);
@@ -19909,3 +19932,92 @@ body:has(.focused-capture-shell) {
 .outcome-unknown-title { font-size: 15px; font-weight: 700; color: #92400e; display: block; margin-bottom: 4px; }
 .outcome-unknown-desc { font-size: 13px; color: #78350f; line-height: 1.45; margin: 0; }
 .outcome-unknown-actions { display: flex; flex-direction: column; gap: 8px; }
+.admin-schedule-scope-fieldset {
+  min-width: 0;
+  margin: 18px 0 4px;
+  padding: 14px 16px;
+  border: 1px solid var(--sgp-border);
+  border-radius: 10px;
+  background: var(--sgp-surface);
+  color: var(--sgp-ink-secondary);
+}
+
+.admin-schedule-scope-fieldset > legend {
+  padding: 0 6px;
+  color: var(--sgp-ink);
+  font-weight: 650;
+}
+
+.admin-schedule-scope-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 14px;
+  margin: 10px 0 14px;
+}
+
+.admin-schedule-scope-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 44px;
+  color: var(--sgp-ink-secondary);
+  cursor: pointer;
+}
+
+.admin-schedule-scope-option input {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  accent-color: var(--sgp-color-primary-action);
+}
+
+.admin-schedule-scope-choice-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  min-width: 0;
+  margin: 8px 0 12px;
+  padding: 8px 12px;
+  border: 1px solid var(--sgp-border);
+  border-radius: 8px;
+}
+
+.admin-schedule-scope-choice-group > legend {
+  padding: 0 5px;
+  color: var(--sgp-ink-secondary);
+  font-size: 13px;
+}
+
+.admin-schedule-scope-fieldset input:focus-visible,
+.admin-schedule-scope-fieldset select:focus-visible {
+  outline: 3px solid var(--sgp-corporate-digital-blue);
+  outline-offset: 2px;
+}
+
+.admin-schedule-scope-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  margin: 12px 0 8px;
+  padding: 12px;
+  border: 1px solid var(--sgp-border);
+  border-radius: 8px;
+  background: var(--sgp-navy-subtle);
+  color: var(--sgp-ink-secondary);
+}
+
+.admin-schedule-scope-summary strong {
+  color: var(--sgp-ink);
+}
+
+.chip-meter-count {
+  color: var(--sgp-ink-muted);
+  font-size: 11px;
+}
+
+@media (max-width: 720px) {
+  .admin-schedule-scope-options {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

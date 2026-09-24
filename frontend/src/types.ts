@@ -128,6 +128,11 @@ export interface BatchProgress {
   confirmed: number;
   review: number;
   pending: number;
+  unique_meter_count?: number | null;
+  scheduled_slot_count?: number | null;
+  confirmed_slot_count?: number | null;
+  review_slot_count?: number | null;
+  pending_slot_count?: number | null;
 }
 
 export interface ReadingBatch {
@@ -146,6 +151,17 @@ export interface RecordedBy {
 export interface BatchMeterItem {
   meter: Meter;
   reading_status: "PENDING" | "CONFIRMED" | "REVIEW";
+  scope_item_id?: string | null;
+  scope_origin?: string | null;
+  scope_status?: string | null;
+  scope_zone_id_snapshot?: string | null;
+  scope_presentation_zone_id_snapshot?: string | null;
+  scope_utility_type_snapshot?: string | null;
+  current_zone_id?: string | null;
+  current_zone_name?: string | null;
+  current_presentation_zone_id?: string | null;
+  current_presentation_zone_name?: string | null;
+  meter_availability?: 'AVAILABLE' | 'INACTIVE' | 'RETIRED' | 'MISSING' | null;
   reading?: string | null;
   recorded_at?: string | null;
   formatted_recorded_at?: string | null;
@@ -159,9 +175,11 @@ export interface ReadingRound {
   scheduled_at: string;
   scheduled_local: string;
   scheduled_time_only: string;
-  status: 'OPEN' | 'CLOSED';
+  status: 'OPEN' | 'CLOSED' | 'CANCELLED';
   is_legacy?: boolean;
-  timing_state: 'CURRENT' | 'PAST' | 'UPCOMING';
+  scope_mode?: 'SNAPSHOT' | 'LEGACY_DYNAMIC';
+  scope_meter_count?: number | null;
+  timing_state: 'CURRENT' | 'PAST' | 'UPCOMING' | 'CANCELLED';
   progress: BatchProgress;
 }
 
@@ -239,6 +257,7 @@ export interface MeterOperationItem {
   today_slots: TodayHourlySlot[];
   trend: MeterTrendPoint[];
   missed_count: number;
+  meter_availability?: 'AVAILABLE' | 'INACTIVE' | 'RETIRED' | 'MISSING' | null;
 }
 
 export interface TodayOperationsSummary {
@@ -260,6 +279,7 @@ export interface TodayOperationsResponse {
     pending_current: number;
     review_current: number;
     percent_current: number;
+    scheduled_meter_count?: number | null;
   };
   meters: MeterOperationItem[];
 }
@@ -601,6 +621,39 @@ export interface AdminSchedulePreviewRound {
   scheduled_time_only: string;
   is_conflict: boolean;
   existing_round_id?: string | null;
+  meter_count: number;
+}
+
+export type AdminScheduleScopeMode = 'ALL_ELIGIBLE' | 'BY_ZONE' | 'BY_UTILITY' | 'SELECTED_METERS';
+
+export interface AdminScheduleScopeRequest {
+  mode: AdminScheduleScopeMode;
+  zone_ids?: string[];
+  utility_types?: ('ELECTRICITY' | 'WATER' | 'OTHER' | 'UNKNOWN')[];
+  meter_ids?: string[];
+}
+
+export interface AdminScheduleScopeInvalidSelection {
+  id: string;
+  reason: 'NOT_FOUND' | 'INACTIVE' | 'RETIRED' | 'UNKNOWN_ZONE' | 'NO_ELIGIBLE_METERS';
+  label?: string | null;
+}
+
+export interface AdminScheduleZoneSummary {
+  zone_id?: string | null;
+  zone_name: string;
+  meter_count: number;
+}
+
+export interface AdminScheduleScopeSummary {
+  mode: AdminScheduleScopeMode;
+  meter_count: number;
+  electricity_count: number;
+  water_count: number;
+  other_count: number;
+  zones: AdminScheduleZoneSummary[];
+  invalid_selections: AdminScheduleScopeInvalidSelection[];
+  fingerprint: string;
 }
 
 export interface AdminSchedulePreviewResponse {
@@ -610,6 +663,7 @@ export interface AdminSchedulePreviewResponse {
   total_proposed: number;
   conflict_count: number;
   rounds: AdminSchedulePreviewRound[];
+  scope: AdminScheduleScopeSummary;
 }
 
 export interface AdminScheduleCreateResponse {
@@ -619,11 +673,14 @@ export interface AdminScheduleCreateResponse {
   created_count: number;
   message: string;
   rounds: ReadingRound[];
+  scope_materialized_count?: number | null;
+  scope_fingerprint?: string | null;
 }
 
 export interface AdminScheduleDeleteResponse {
   status: 'success';
   deleted_count: number;
+  cancelled_count?: number;
   message: string;
 }
 
@@ -1233,4 +1290,3 @@ export type {
   ActiveMapZoneGeometry,
   ActiveMapLandmark,
 } from './features/map-operations/types/activeMapConfiguration';
-

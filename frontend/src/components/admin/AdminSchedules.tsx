@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import {
   Calendar,
   Clock,
@@ -18,12 +18,17 @@ import {
 } from 'lucide-react';
 import {
   AdminSchedulePreviewResponse,
+  AdminMeterItem,
+  AdminScheduleScopeMode,
+  AdminScheduleScopeRequest,
   ReadingRoundListResponse,
   ReadingRound,
   RoundMeterListResponse,
 } from '../../types';
 import {
   createAdminSchedule,
+  getAdminMeters,
+  ApiError,
   deleteAdminScheduleRound,
   deleteAdminSchedulesByDate,
   getAdminSchedules,
@@ -45,6 +50,15 @@ export const formatDisplayDateVN = (isoDate: string): string => {
   return isoDate;
 };
 
+const getDialogFocusableElements = (root: HTMLElement | null): HTMLElement[] => {
+  if (!root) return [];
+  return Array.from(
+    root.querySelectorAll<HTMLElement>(
+      'button:not([disabled]), input:not([disabled]):not([type="hidden"]):not([tabindex="-1"]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])'
+    )
+  ).filter((element) => element.offsetParent !== null && !element.closest('[aria-hidden="true"]'));
+};
+
 export const addDays = (isoDate: string, days: number): string => {
   try {
     const [y, m, d] = isoDate.split('-').map(Number);
@@ -60,7 +74,7 @@ export const addDays = (isoDate: string, days: number): string => {
 };
 
 interface RoundTimingDerived {
-  state: 'CURRENT' | 'UPCOMING' | 'PAST_COMPLETE' | 'PAST_INCOMPLETE' | 'CLOSED';
+  state: 'CURRENT' | 'UPCOMING' | 'PAST_COMPLETE' | 'PAST_INCOMPLETE' | 'CLOSED' | 'CANCELLED';
   badgeLabel: string;
   badgeClass: string;
   isCurrent: boolean;
@@ -73,6 +87,16 @@ export const deriveRoundTimingState = (
   todayStr: string,
   currentRoundId: string | null
 ): RoundTimingDerived => {
+  if (r.status === 'CANCELLED') {
+    return {
+      state: 'CANCELLED',
+      badgeLabel: 'Đã hủy',
+      badgeClass: 'badge-past',
+      isCurrent: false,
+      isUpcoming: false,
+    };
+  }
+
   if (r.status === 'CLOSED') {
     return {
       state: 'CLOSED',
@@ -294,6 +318,41 @@ export const AdminSchedules: React.FC<AdminSchedulesProps> = ({ onInspectReading
   const [formEnd, setFormEnd] = useState<string>('17:00');
   const [intervalPreset, setIntervalPreset] = useState<number>(60);
   const [customInterval, setCustomInterval] = useState<string>('30');
+  const [scopeMode, setScopeMode] = useState<AdminScheduleScopeMode>('ALL_ELIGIBLE');
+  const [scopeMeters, setScopeMeters] = useState<AdminMeterItem[]>([]);
+  const [scopeMetersLoading, setScopeMetersLoading] = useState<boolean>(false);
+  const [scopeMetersError, setScopeMetersError] = useState<string | null>(null);
+  const [selectedZoneIds, setSelectedZoneIds] = useState<string[]>([]);
+  const [selectedUtilities, setSelectedUtilities] = useState<Array<'ELECTRICITY' | 'WATER' | 'OTHER' | 'UNKNOWN'>>([]);
+  const [selectedMeterIds, setSelectedMeterIds] = useState<string[]>([]);
+  const createDialogRef = useRef<HTMLDivElement>(null);
+  const restoreCreateFocusRef = useRef<HTMLElement | null>(null);
+
+  const scheduleScope = useMemo<AdminScheduleScopeRequest>(() => {
+    if (scopeMode === 'BY_ZONE') return { mode: scopeMode, zone_ids: selectedZoneIds };
+    if (scopeMode === 'BY_UTILITY') return { mode: scopeMode, utility_types: selectedUtilities };
+    if (scopeMode === 'SELECTED_METERS') return { mode: scopeMode, meter_ids: selectedMeterIds };
+    return { mode: 'ALL_ELIGIBLE' };
+  }, [scopeMode, selectedZoneIds, selectedUtilities, selectedMeterIds]);
+
+  const eligibleScopeMeters = useMemo(
+    () => scopeMeters.filter((meter) => meter.is_active && meter.lifecycle_status !== 'RETIRED'),
+    [scopeMeters]
+  );
+
+  const scopeZoneOptions = useMemo(() => {
+    const byId = new Map<string, string>();
+    eligibleScopeMeters.forEach((meter) => {
+      if (meter.zone_id) byId.set(meter.zone_id, meter.zone_name || meter.zone_id);
+    });
+    return Array.from(byId, ([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name, 'vi'));
+  }, [eligibleScopeMeters]);
+
+  const scopeReady =
+    scopeMode === 'ALL_ELIGIBLE' ||
+    (scopeMode === 'BY_ZONE' && selectedZoneIds.length > 0) ||
+    (scopeMode === 'BY_UTILITY' && selectedUtilities.length > 0) ||
+    (scopeMode === 'SELECTED_METERS' && selectedMeterIds.length > 0);
 
   // Preview State
   const [previewData, setPreviewData] = useState<AdminSchedulePreviewResponse | null>(null);
@@ -303,6 +362,13 @@ export const AdminSchedules: React.FC<AdminSchedulesProps> = ({ onInspectReading
   // Creation Action State
   const [creating, setCreating] = useState<boolean>(false);
   const [createSuccessMsg, setCreateSuccessMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isModalOpen || !createDialogRef.current) return;
+    restoreCreateFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    getDialogFocusableElements(createDialogRef.current)[0]?.focus();
+    return () => restoreCreateFocusRef.current?.focus();
+  }, [isModalOpen]);
 
   // Delete State
   interface DeleteTarget {
@@ -316,6 +382,15 @@ export const AdminSchedules: React.FC<AdminSchedulesProps> = ({ onInspectReading
   const [deleting, setDeleting] = useState<boolean>(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deleteSuccessMsg, setDeleteSuccessMsg] = useState<string | null>(null);
+  const deleteDialogRef = useRef<HTMLDivElement>(null);
+  const restoreDeleteFocusRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (!deleteTarget || !deleteDialogRef.current) return;
+    restoreDeleteFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    getDialogFocusableElements(deleteDialogRef.current)[0]?.focus();
+    return () => restoreDeleteFocusRef.current?.focus();
+  }, [Boolean(deleteTarget)]);
 
   const loadSchedules = async (dateStr: string) => {
     setLoading(true);
@@ -340,7 +415,7 @@ export const AdminSchedules: React.FC<AdminSchedulesProps> = ({ onInspectReading
   if (scheduleData && selectedDate === todayStr && scheduleData.rounds.length > 0) {
     const nowUtc = new Date().getTime();
     const pastOrCurr = scheduleData.rounds.filter(
-      (r) => new Date(r.scheduled_at).getTime() <= nowUtc
+      (r) => r.status === 'OPEN' && new Date(r.scheduled_at).getTime() <= nowUtc
     );
     if (pastOrCurr.length > 0) {
       currentRoundId = pastOrCurr[pastOrCurr.length - 1].id;
@@ -387,7 +462,7 @@ export const AdminSchedules: React.FC<AdminSchedulesProps> = ({ onInspectReading
     return intervalPreset === -1 ? (Number(customInterval) || 60) : intervalPreset;
   };
 
-  const handleOpenCreateModal = () => {
+  const handleOpenCreateModal = async () => {
     setFormDate(selectedDate >= todayStr ? selectedDate : todayStr);
     setFormStart('08:00');
     setFormEnd('17:00');
@@ -395,7 +470,41 @@ export const AdminSchedules: React.FC<AdminSchedulesProps> = ({ onInspectReading
     setCustomInterval('30');
     setPreviewData(null);
     setPreviewError(null);
+    setScopeMode('ALL_ELIGIBLE');
+    setSelectedZoneIds([]);
+    setSelectedUtilities([]);
+    setSelectedMeterIds([]);
+    setScopeMetersError(null);
     setIsModalOpen(true);
+    setScopeMetersLoading(true);
+    try {
+      const response = await getAdminMeters(undefined, undefined, undefined, 'ALL', 'ALL');
+      setScopeMeters(response.meters);
+    } catch (err: unknown) {
+      setScopeMetersError(err instanceof Error ? err.message : 'Không thể tải danh sách công tơ.');
+    } finally {
+      setScopeMetersLoading(false);
+    }
+  };
+
+  const handleCreateDialogKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      handleCloseModal();
+      return;
+    }
+    if (event.key !== 'Tab' || !createDialogRef.current) return;
+    const focusable = getDialogFocusableElements(createDialogRef.current);
+    if (focusable.length === 0) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
   };
 
   const handleCloseModal = () => {
@@ -421,6 +530,7 @@ export const AdminSchedules: React.FC<AdminSchedulesProps> = ({ onInspectReading
         start_time: formStart,
         end_time: formEnd,
         interval_minutes: intervalToUse,
+        scope: scheduleScope,
       });
       setPreviewData(res);
     } catch (err: unknown) {
@@ -446,6 +556,8 @@ export const AdminSchedules: React.FC<AdminSchedulesProps> = ({ onInspectReading
         start_time: formStart,
         end_time: formEnd,
         interval_minutes: intervalToUse,
+        scope: scheduleScope,
+        expected_scope_fingerprint: previewData.scope.fingerprint,
       });
       setIsModalOpen(false);
       setCreateSuccessMsg(res.message);
@@ -455,6 +567,7 @@ export const AdminSchedules: React.FC<AdminSchedulesProps> = ({ onInspectReading
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Không thể tạo lịch ghi.';
       setPreviewError(msg);
+      if (err instanceof ApiError && err.status === 409) setPreviewData(null);
     } finally {
       setCreating(false);
     }
@@ -471,7 +584,7 @@ export const AdminSchedules: React.FC<AdminSchedulesProps> = ({ onInspectReading
   const handleOpenDeleteDay = () => {
     if (!scheduleData || scheduleData.rounds.length === 0) return;
     const confirmedCount = scheduleData.rounds.reduce(
-      (acc, r) => acc + (r.progress.confirmed || 0),
+      (acc, r) => acc + (r.progress.confirmed || 0) + (r.progress.review || 0),
       0
     );
     setDeleteConfirmChecked(false);
@@ -492,6 +605,26 @@ export const AdminSchedules: React.FC<AdminSchedulesProps> = ({ onInspectReading
     }
   };
 
+  const handleDeleteDialogKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      handleCloseDeleteModal();
+      return;
+    }
+    if (event.key !== 'Tab' || !deleteDialogRef.current) return;
+    const focusable = getDialogFocusableElements(deleteDialogRef.current);
+    if (focusable.length === 0) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  };
+
   const handleConfirmDelete = async () => {
     if (!deleteTarget) return;
     if (deleteTarget.type === 'day' && (deleteTarget.confirmedCount || 0) > 0 && !deleteConfirmChecked) {
@@ -502,14 +635,14 @@ export const AdminSchedules: React.FC<AdminSchedulesProps> = ({ onInspectReading
     setDeleteError(null);
     try {
       if (deleteTarget.type === 'round' && deleteTarget.round) {
-        const res = await deleteAdminScheduleRound(deleteTarget.round.id, true);
+        const res = await deleteAdminScheduleRound(deleteTarget.round.id);
         setDeleteTarget(null);
         setDeleteConfirmChecked(false);
         setDeleteSuccessMsg(res.message);
         await loadSchedules(selectedDate);
         setTimeout(() => setDeleteSuccessMsg(null), 5000);
       } else if (deleteTarget.type === 'day' && deleteTarget.date) {
-        const res = await deleteAdminSchedulesByDate(deleteTarget.date, true);
+        const res = await deleteAdminSchedulesByDate(deleteTarget.date);
         setDeleteTarget(null);
         setDeleteConfirmChecked(false);
         setDeleteSuccessMsg(res.message);
@@ -668,8 +801,8 @@ export const AdminSchedules: React.FC<AdminSchedulesProps> = ({ onInspectReading
                 type="button"
                 className="admin-btn-secondary btn-sm text-muted"
                 onClick={handleOpenDeleteDay}
-                title={`Xóa tất cả các lượt ghi ngày ${formatDisplayDateVN(selectedDate)}`}
-                aria-label={`Xóa toàn bộ lịch ngày ${formatDisplayDateVN(selectedDate)}`}
+                title={`Gỡ các lượt rỗng và hủy các lượt có lịch sử ngày ${formatDisplayDateVN(selectedDate)}`}
+                aria-label={`Gỡ lượt rỗng và hủy lượt có lịch sử ngày ${formatDisplayDateVN(selectedDate)}`}
               >
                 <Trash2 size={13} aria-hidden="true" />
                 <span>Xóa lịch ngày</span>
@@ -761,12 +894,15 @@ export const AdminSchedules: React.FC<AdminSchedulesProps> = ({ onInspectReading
                       <td>
                         {timing.isUpcoming ? (
                           <span className="sched-progress-upcoming font-tabular">
-                            {r.progress.total} công tơ
+                            {r.scope_mode === 'SNAPSHOT'
+                              ? `${r.progress.total} công tơ trong lượt`
+                              : `Phạm vi lịch cũ · ${r.progress.total} công tơ đang hoạt động`}
                           </span>
                         ) : (
                           <div className="sched-progress-wrap">
                             <span className="sched-progress-ratio font-tabular">
-                              <strong>{r.progress.confirmed}</strong> / {r.progress.total} công tơ
+                              <strong>{r.progress.confirmed}</strong> / {r.progress.total}{' '}
+                              {r.scope_mode === 'SNAPSHOT' ? 'công tơ trong lượt' : 'công tơ đang hoạt động'}
                             </span>
                             <div className="admin-progress-bg sched-progress-bar">
                               <div
@@ -779,6 +915,9 @@ export const AdminSchedules: React.FC<AdminSchedulesProps> = ({ onInspectReading
                                 }}
                               />
                             </div>
+                            {r.scope_mode !== 'SNAPSHOT' && (
+                              <span className="text-xs text-muted">Phạm vi lịch cũ</span>
+                            )}
                           </div>
                         )}
                       </td>
@@ -844,8 +983,11 @@ export const AdminSchedules: React.FC<AdminSchedulesProps> = ({ onInspectReading
               </h2>
               {roundMetersData && (
                 <span className="admin-daily-summary-tag font-tabular">
-                  {roundMetersData.progress.confirmed}/{roundMetersData.progress.total} đã ghi ({roundMetersData.progress.review} cần kiểm tra)
+                  {roundMetersData.progress.total} công tơ trong lượt · {roundMetersData.progress.confirmed} đã ghi · {roundMetersData.progress.review} cần kiểm tra · {roundMetersData.progress.pending} chưa ghi
                 </span>
+              )}
+              {roundMetersData?.round.scope_mode === 'LEGACY_DYNAMIC' && (
+                <span className="admin-badge badge-past">Phạm vi lịch cũ</span>
               )}
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -984,10 +1126,8 @@ export const AdminSchedules: React.FC<AdminSchedulesProps> = ({ onInspectReading
                 <tbody>
                   {filteredMeters.map((item, idx) => {
                     const meterCode = item.meter.meter_code || (item.meter as any).code;
-                    const isWater =
-                      (item.meter as any).utility_type === 'WATER' ||
-                      meterCode.startsWith('W-') ||
-                      meterCode.startsWith('SIM-W');
+                    const utilityType = item.scope_utility_type_snapshot || item.meter.utility_type;
+                    const isWater = utilityType === 'WATER' || (!utilityType && (meterCode.startsWith('W-') || meterCode.startsWith('SIM-W')));
 
                     return (
                       <tr key={item.meter.id || idx}>
@@ -1022,13 +1162,21 @@ export const AdminSchedules: React.FC<AdminSchedulesProps> = ({ onInspectReading
                                 Chưa có tọa độ bản đồ
                               </span>
                             )}
+                            <span className="text-xs text-muted">
+                              Khu vực theo lịch: {item.scope_zone_id_snapshot ? (item.meter.zone_name || item.scope_zone_id_snapshot) : 'Chưa gán khu vực'}
+                            </span>
+                            {item.meter_availability !== 'MISSING' && item.current_zone_id !== item.scope_zone_id_snapshot && (
+                              <span className="text-xs text-muted">
+                                Khu vực hiện tại: {item.current_zone_name || item.current_zone_id || 'Chưa gán khu vực'}
+                              </span>
+                            )}
                           </div>
                         </td>
                         <td>
                           {item.reading ? (
                             <div style={{ display: 'flex', flexDirection: 'column' }}>
                               <span className="font-tabular font-bold" style={{ color: 'var(--sgp-ink)' }}>
-                                {item.reading} {isWater ? 'm³' : 'kWh'}
+                                {item.reading} {isWater ? 'm³' : utilityType === 'ELECTRICITY' ? 'kWh' : ''}
                               </span>
                               {item.formatted_recorded_at && (
                                 <span className="text-xs text-muted font-tabular">
@@ -1041,7 +1189,13 @@ export const AdminSchedules: React.FC<AdminSchedulesProps> = ({ onInspectReading
                           )}
                         </td>
                         <td>
-                          {item.reading_status === 'CONFIRMED' ? (
+                          {item.meter_availability === 'MISSING' ? (
+                            <span className="admin-badge badge-review font-tabular">Không còn trong danh mục</span>
+                          ) : item.meter_availability === 'RETIRED' ? (
+                            <span className="admin-badge badge-inactive font-tabular">Công tơ đã ngừng sử dụng</span>
+                          ) : item.meter_availability === 'INACTIVE' ? (
+                            <span className="admin-badge badge-inactive font-tabular">Công tơ đang tạm ngừng</span>
+                          ) : item.reading_status === 'CONFIRMED' ? (
                             <span className="admin-badge badge-active font-tabular">
                               Đã xác nhận
                             </span>
@@ -1060,6 +1214,7 @@ export const AdminSchedules: React.FC<AdminSchedulesProps> = ({ onInspectReading
                             <button
                               type="button"
                               className="admin-btn-secondary btn-sm"
+                              disabled={item.meter_availability === 'MISSING'}
                               onClick={() => {
                                 if (item.meter.map_x !== null && item.meter.map_x !== undefined && item.meter.map_y !== null && item.meter.map_y !== undefined) {
                                   locateOnMap({
@@ -1117,7 +1272,14 @@ export const AdminSchedules: React.FC<AdminSchedulesProps> = ({ onInspectReading
 
       {/* 4. CREATE SCHEDULE MODAL WITH CONFLICT DETECTION */}
       {isModalOpen && (
-        <div className="admin-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="create-sched-title">
+        <div
+          ref={createDialogRef}
+          className="admin-modal-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="create-sched-title"
+          onKeyDown={handleCreateDialogKeyDown}
+        >
           <div className="admin-modal-box modal-wide">
             <div className="admin-modal-header">
               <div className="modal-title-group">
@@ -1244,11 +1406,138 @@ export const AdminSchedules: React.FC<AdminSchedulesProps> = ({ onInspectReading
                   </div>
                 </div>
 
+                <fieldset
+                  className="admin-schedule-scope-fieldset"
+                  aria-describedby="sched_scope_help"
+                  disabled={previewing || creating || scopeMetersLoading}
+                >
+                  <legend className="admin-form-label">Phạm vi công tơ</legend>
+                  <p id="sched_scope_help" className="text-sm text-muted">
+                    Chọn chính xác công tơ sẽ có trong từng lượt đọc.
+                  </p>
+                  <div className="admin-schedule-scope-options">
+                    <label className="admin-schedule-scope-option">
+                      <input
+                        type="radio"
+                        name="schedule_scope_mode"
+                        value="ALL_ELIGIBLE"
+                        checked={scopeMode === 'ALL_ELIGIBLE'}
+                        onChange={() => { setScopeMode('ALL_ELIGIBLE'); setPreviewData(null); }}
+                      />
+                      <span>Tất cả công tơ đủ điều kiện</span>
+                    </label>
+                    <label className="admin-schedule-scope-option">
+                      <input
+                        type="radio"
+                        name="schedule_scope_mode"
+                        value="BY_ZONE"
+                        checked={scopeMode === 'BY_ZONE'}
+                        onChange={() => { setScopeMode('BY_ZONE'); setPreviewData(null); }}
+                      />
+                      <span>Theo khu vực</span>
+                    </label>
+                    <label className="admin-schedule-scope-option">
+                      <input
+                        type="radio"
+                        name="schedule_scope_mode"
+                        value="BY_UTILITY"
+                        checked={scopeMode === 'BY_UTILITY'}
+                        onChange={() => { setScopeMode('BY_UTILITY'); setPreviewData(null); }}
+                      />
+                      <span>Theo tiện ích</span>
+                    </label>
+                    <label className="admin-schedule-scope-option">
+                      <input
+                        type="radio"
+                        name="schedule_scope_mode"
+                        value="SELECTED_METERS"
+                        checked={scopeMode === 'SELECTED_METERS'}
+                        onChange={() => { setScopeMode('SELECTED_METERS'); setPreviewData(null); }}
+                      />
+                      <span>Chọn công tơ</span>
+                    </label>
+                  </div>
+
+                  {scopeMetersLoading && <p role="status">Đang tải danh sách công tơ...</p>}
+                  {scopeMetersError && <p className="admin-form-error-text" role="alert">{scopeMetersError}</p>}
+
+                  {scopeMode === 'BY_ZONE' && (
+                    <fieldset className="admin-schedule-scope-choice-group" aria-label="Chọn khu vực">
+                      <legend>Khu vực</legend>
+                      {scopeZoneOptions.length === 0 ? (
+                        <p>Chưa có khu vực với công tơ đủ điều kiện.</p>
+                      ) : scopeZoneOptions.map((zone) => (
+                        <label key={zone.id} className="admin-schedule-scope-option">
+                          <input
+                            type="checkbox"
+                            checked={selectedZoneIds.includes(zone.id)}
+                            onChange={(event) => {
+                              setSelectedZoneIds((current) => event.target.checked
+                                ? [...current, zone.id]
+                                : current.filter((id) => id !== zone.id));
+                              setPreviewData(null);
+                            }}
+                          />
+                          <span>{zone.name}</span>
+                        </label>
+                      ))}
+                    </fieldset>
+                  )}
+
+                  {scopeMode === 'BY_UTILITY' && (
+                    <fieldset className="admin-schedule-scope-choice-group" aria-label="Chọn tiện ích">
+                      <legend>Tiện ích</legend>
+                      {(['ELECTRICITY', 'WATER', 'OTHER', 'UNKNOWN'] as const).map((utility) => (
+                        <label key={utility} className="admin-schedule-scope-option">
+                          <input
+                            type="checkbox"
+                            checked={selectedUtilities.includes(utility)}
+                            onChange={(event) => {
+                              setSelectedUtilities((current) => event.target.checked
+                                ? [...current, utility]
+                                : current.filter((value) => value !== utility));
+                              setPreviewData(null);
+                            }}
+                          />
+                          <span>{utility === 'ELECTRICITY' ? 'Điện' : utility === 'WATER' ? 'Nước' : utility === 'OTHER' ? 'Khác' : 'Chưa xác định'}</span>
+                        </label>
+                      ))}
+                    </fieldset>
+                  )}
+
+                  {scopeMode === 'SELECTED_METERS' && (
+                    <div className="admin-form-group">
+                      <label htmlFor="sched_selected_meters" className="admin-form-label">Công tơ đủ điều kiện</label>
+                      <select
+                        id="sched_selected_meters"
+                        className="admin-form-select"
+                        multiple
+                        size={7}
+                        value={selectedMeterIds}
+                        aria-describedby="sched_selected_meters_help"
+                        onChange={(event) => {
+                          setSelectedMeterIds(Array.from(event.currentTarget.selectedOptions, (option) => option.value));
+                          setPreviewData(null);
+                        }}
+                      >
+                        {eligibleScopeMeters.map((meter) => (
+                          <option key={meter.id} value={meter.id}>
+                            {meter.meter_code} — {meter.name} ({meter.utility_type === 'WATER' ? 'Nước' : meter.utility_type === 'ELECTRICITY' ? 'Điện' : 'Khác'})
+                          </option>
+                        ))}
+                      </select>
+                      <p id="sched_selected_meters_help" className="text-sm text-muted">
+                        Dùng Ctrl hoặc Shift để chọn nhiều công tơ.
+                      </p>
+                    </div>
+                  )}
+                </fieldset>
+
                 <div className="admin-form-actions-inline">
                   <button
                     type="submit"
                     className="admin-btn-secondary"
-                    disabled={previewing || creating}
+                    disabled={previewing || creating || !scopeReady || Boolean(scopeMetersError)}
                   >
                     <RefreshCw size={15} className={previewing ? 'animate-spin' : ''} aria-hidden="true" />
                     <span>{previewing ? 'Đang kiểm tra...' : 'Kiểm tra trước lịch tạo'}</span>
@@ -1281,6 +1570,30 @@ export const AdminSchedules: React.FC<AdminSchedulesProps> = ({ onInspectReading
                     )}
                   </div>
 
+                  <div className="admin-schedule-scope-summary" aria-live="polite">
+                    <strong>{previewData.scope.meter_count} công tơ / lượt</strong>
+                    <span>{previewData.scope.electricity_count} điện</span>
+                    <span>{previewData.scope.water_count} nước</span>
+                    {previewData.scope.other_count > 0 && <span>{previewData.scope.other_count} tiện ích khác</span>}
+                    <strong>
+                      {previewData.scope.meter_count * previewData.total_proposed} nhiệm vụ đọc dự kiến
+                    </strong>
+                  </div>
+                  {previewData.scope.zones.length > 0 && (
+                    <p className="text-sm text-muted">
+                      Khu vực: {previewData.scope.zones.map((zone) => `${zone.zone_name} (${zone.meter_count})`).join(' · ')}
+                    </p>
+                  )}
+                  {previewData.scope.invalid_selections.length > 0 && (
+                    <div className="admin-conflict-alert" role="alert">
+                      <AlertTriangle size={16} aria-hidden="true" />
+                      <span>
+                        Cần kiểm tra lựa chọn: {previewData.scope.invalid_selections.map((item) => item.label || item.id).join(', ')}.
+                        Hãy điều chỉnh phạm vi rồi xem trước lại.
+                      </span>
+                    </div>
+                  )}
+
                   {previewData.conflict_count > 0 && (
                     <div className="admin-conflict-alert">
                       <AlertTriangle size={16} aria-hidden="true" />
@@ -1297,6 +1610,7 @@ export const AdminSchedules: React.FC<AdminSchedulesProps> = ({ onInspectReading
                         className={`preview-round-chip ${pr.is_conflict ? 'chip-conflict' : ''}`}
                       >
                         <span className="chip-time font-tabular">{pr.scheduled_time_only}</span>
+                        <span className="chip-meter-count">{pr.meter_count} công tơ</span>
                         {pr.is_conflict && <span className="chip-conflict-tag">Đã có</span>}
                       </div>
                     ))}
@@ -1310,7 +1624,13 @@ export const AdminSchedules: React.FC<AdminSchedulesProps> = ({ onInspectReading
                 type="button"
                 className="admin-btn-primary"
                 onClick={handleConfirmCreate}
-                disabled={!previewData || previewData.conflict_count > 0 || creating}
+                disabled={
+                  !previewData ||
+                  previewData.conflict_count > 0 ||
+                  previewData.scope.meter_count === 0 ||
+                  previewData.scope.invalid_selections.length > 0 ||
+                  creating
+                }
               >
                 <Check size={16} aria-hidden="true" />
                 <span>
@@ -1336,15 +1656,15 @@ export const AdminSchedules: React.FC<AdminSchedulesProps> = ({ onInspectReading
 
       {/* 5. CONFIRM DELETE MODAL */}
       {deleteTarget && (
-        <div className="admin-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="delete-sched-title">
-          <div className="admin-modal-box modal-danger">
+        <div className="admin-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="delete-sched-title" onKeyDown={handleDeleteDialogKeyDown}>
+          <div className="admin-modal-box modal-danger" ref={deleteDialogRef}>
             <div className="admin-modal-header">
               <div className="modal-title-group">
                 <AlertTriangle size={20} className="text-danger" aria-hidden="true" />
                 <h2 id="delete-sched-title" className="admin-modal-title">
                   {deleteTarget.type === 'round'
-                    ? 'Xác nhận xóa lượt ghi'
-                    : 'Xác nhận xóa toàn bộ lịch ngày'}
+                    ? 'Gỡ lượt ghi'
+                    : 'Gỡ lịch ghi trong ngày'}
                 </h2>
               </div>
               <button
@@ -1362,19 +1682,19 @@ export const AdminSchedules: React.FC<AdminSchedulesProps> = ({ onInspectReading
               {deleteTarget.type === 'round' && deleteTarget.round && (
                 <div>
                   <p className="admin-modal-confirm-text">
-                    Bạn có chắc chắn muốn xóa lượt ghi lúc{' '}
+                    Bạn có chắc chắn muốn gỡ lượt ghi lúc{' '}
                     <strong>{deleteTarget.round.scheduled_time_only}</strong> ngày{' '}
                     <strong>{formatDisplayDateVN(selectedDate)}</strong>?
                   </p>
 
-                  {deleteTarget.round.progress.confirmed > 0 && (
+                  {(deleteTarget.round.progress.confirmed + deleteTarget.round.progress.review) > 0 && (
                     <div className="admin-danger-warning-box">
                       <AlertCircle size={18} className="text-danger" aria-hidden="true" />
                       <div>
-                        <strong>Cảnh báo mất dữ liệu:</strong>
+                        <strong>Lịch sử được giữ nguyên:</strong>
                         <p>
-                          Lượt ghi này đã có{' '}
-                          <strong>{deleteTarget.round.progress.confirmed}</strong> chỉ số công tơ được ghi nhận. Việc xóa lượt ghi sẽ xóa vĩnh viễn toàn bộ các dữ liệu chỉ số này!
+                          Lượt này có <strong>{deleteTarget.round.progress.confirmed + deleteTarget.round.progress.review}</strong> kết quả.
+                          Hệ thống sẽ hủy lượt và giữ lại dữ liệu chỉ số cùng phạm vi công tơ.
                         </p>
                       </div>
                     </div>
@@ -1385,7 +1705,7 @@ export const AdminSchedules: React.FC<AdminSchedulesProps> = ({ onInspectReading
               {deleteTarget.type === 'day' && (
                 <div>
                   <p className="admin-modal-confirm-text">
-                    Bạn có chắc chắn muốn xóa toàn bộ{' '}
+                    Bạn có chắc chắn muốn gỡ các lượt rỗng và hủy các lượt có kết quả trong{' '}
                     <strong>{deleteTarget.count}</strong> lượt ghi trong ngày{' '}
                     <strong>{formatDisplayDateVN(selectedDate)}</strong>?
                   </p>
@@ -1394,10 +1714,9 @@ export const AdminSchedules: React.FC<AdminSchedulesProps> = ({ onInspectReading
                     <div className="admin-danger-warning-box">
                       <AlertCircle size={18} className="text-danger" aria-hidden="true" />
                       <div>
-                        <strong>Cảnh báo mất dữ liệu nghiêm trọng:</strong>
+                        <strong>Các kết quả sẽ được giữ nguyên:</strong>
                         <p>
-                          Đã có tổng cộng{' '}
-                          <strong>{deleteTarget.confirmedCount}</strong> chỉ số công tơ được ghi nhận trong ngày này. Thao tác này sẽ xóa toàn bộ các ca và dữ liệu đọc liên quan!
+                          Đã có <strong>{deleteTarget.confirmedCount}</strong> kết quả trong ngày này. Các lượt có kết quả sẽ được hủy.
                         </p>
                       </div>
                     </div>
@@ -1412,7 +1731,7 @@ export const AdminSchedules: React.FC<AdminSchedulesProps> = ({ onInspectReading
                         style={{ marginTop: '3px' }}
                       />
                       <span>
-                        Tôi xác nhận muốn xóa vĩnh viễn <strong>{deleteTarget.confirmedCount}</strong> dữ liệu chỉ số công tơ này.
+                        Tôi xác nhận muốn gỡ các lượt rỗng và hủy lượt có <strong>{deleteTarget.confirmedCount}</strong> kết quả.
                       </span>
                     </label>
                   )}
@@ -1435,7 +1754,7 @@ export const AdminSchedules: React.FC<AdminSchedulesProps> = ({ onInspectReading
                 disabled={deleting || (deleteTarget.type === 'day' && (deleteTarget.confirmedCount || 0) > 0 && !deleteConfirmChecked)}
               >
                 <Trash2 size={15} aria-hidden="true" />
-                <span>{deleting ? 'Đang xóa...' : 'Xác nhận xóa'}</span>
+                <span>{deleting ? 'Đang cập nhật...' : 'Gỡ lượt rỗng / hủy lượt có kết quả'}</span>
               </button>
               <button
                 type="button"
