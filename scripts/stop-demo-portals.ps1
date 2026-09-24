@@ -55,7 +55,11 @@ function Stop-TrackedProcess {
     }
 }
 
-if ($PidsData.backend_pid) {
+if ($PidsData.backend_owned -eq $true -and $PidsData.backend_pid) {
+    Stop-TrackedProcess -ProcessId $PidsData.backend_pid -Name "FastAPI Backend"
+} elseif ($PidsData.backend_owned -eq $false) {
+    Write-Host "[SURVIVED] FastAPI Backend (not owned by launcher, preserving active instance)" -ForegroundColor Gray
+} elseif ($PidsData.backend_pid) {
     Stop-TrackedProcess -ProcessId $PidsData.backend_pid -Name "FastAPI Backend"
 }
 
