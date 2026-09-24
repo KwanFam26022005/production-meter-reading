@@ -20185,4 +20185,40 @@ body:has(.focused-capture-shell) {
   font-weight: 500;
   margin-bottom: 12px;
 }
-
+/* Thread 9D: reporting workspace */
+.reporting-kpis { min-width: 0; }
+.reporting-kpi-button { text-align: left; width: 100%; cursor: pointer; color: inherit; }
+.reporting-kpi-button:hover, .reporting-kpi-button:focus-visible { border-color: var(--sgp-brand-800); }
+.reporting-secondary { display: block; color: var(--sgp-ink-muted); font-size: 11px; margin-top: 3px; }
+.reporting-note, .reporting-integrity-note, .reporting-error { margin: 0; padding: 10px 14px; border: 1px solid var(--sgp-border); border-radius: var(--radius-md); color: var(--sgp-ink-secondary); font-size: 12px; }
+.reporting-integrity-note { color: var(--sgp-warning); background: var(--sgp-warning-bg); }
+.reporting-error { color: var(--sgp-danger); background: var(--sgp-danger-bg); }
+.reporting-empty { margin: 0; padding: 22px; color: var(--sgp-ink-muted); }
+.reporting-action-type { font-weight: 700; color: var(--sgp-warning); }
+.reporting-task-list { display: grid; gap: 8px; padding: 8px; }
+.reporting-task-list > div { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.reporting-usage-controls { display: flex; flex-wrap: wrap; align-items: end; gap: 10px 16px; min-width: 0; }
+.reporting-usage-controls label { display: flex; flex-direction: column; gap: 4px; min-width: 125px; font-size: 12px; color: var(--sgp-ink-secondary); }
+.reporting-usage-controls select { max-width: min(240px, 100%); }
+.reporting-view-switch { display: flex; flex-wrap: wrap; align-items: center; gap: 2px; min-width: 0; padding: 0 10px; }
+.reporting-bars { display: grid; gap: 9px; max-height: 390px; overflow-y: auto; }
+.reporting-bar-row { display: grid; grid-template-columns: minmax(150px, 1fr) minmax(100px, 2fr) auto auto; gap: 10px; align-items: center; min-width: 0; font-size: 12px; }
+.reporting-bar-row strong { white-space: nowrap; }
+.reporting-bar-row small { color: var(--sgp-ink-muted); white-space: nowrap; }
+.reporting-bar-track { height: 12px; background: var(--sgp-canvas); border: 1px solid var(--sgp-border); border-radius: 3px; overflow: hidden; }
+.reporting-bar-track > div { height: 100%; background: var(--sgp-brand-800); }
+.reporting-heatmap-scroll { max-width: 100%; overflow-x: auto; }
+.reporting-heatmap { border-collapse: collapse; font-size: 12px; min-width: max-content; }
+.reporting-heatmap th, .reporting-heatmap td { padding: 8px 10px; border: 1px solid var(--sgp-border); text-align: center; }
+.reporting-heatmap .has-value { background: var(--sgp-navy-subtle); font-weight: 700; color: var(--sgp-brand-800); }
+.admin-reporting-page .admin-tech-tabs, .admin-reporting-page .admin-tech-content, .admin-reporting-page .admin-surface-card { min-width: 0; }
+@media (max-width: 1199px) {
+  .reporting-bar-row { grid-template-columns: minmax(105px, 1fr) minmax(80px, 2fr) auto; }
+  .reporting-bar-row small { grid-column: 1 / -1; }
+  .reporting-view-switch .admin-tech-tab { padding: 8px 10px; }
+}
+@media (max-width: 760px) {
+  .reporting-bar-row { grid-template-columns: 1fr auto; }
+  .reporting-bar-track { grid-column: 1 / -1; grid-row: 2; }
+  .reporting-usage-controls label { flex: 1 1 140px; }
+}

@@ -15,6 +15,9 @@ import {
   AdminTechnicalDetailsResponse,
   AdminTechnicalMeterListResponse,
   AdminTechnicalOverviewResponse,
+  ReportingOperationsResponse,
+  UsageOverviewResponse,
+  UsageMeterResponse,
   AttendanceActionResponse,
   BatchMeterListResponse,
   ConfirmReadingPayload,
@@ -1078,6 +1081,39 @@ export interface TechnicalReportFilterParams {
   location?: string;
   meterType?: string;
   confirmationSource?: string;
+  zoneId?: string;
+  utilityType?: string;
+}
+
+export async function getAdminReportingOperations(filters: TechnicalReportFilterParams): Promise<ReportingOperationsResponse> {
+  const params = new URLSearchParams();
+  if (filters.startDate) params.set('start_date', filters.startDate);
+  if (filters.endDate) params.set('end_date', filters.endDate);
+  if (filters.zoneId && filters.zoneId !== 'ALL') params.set('zone_id', filters.zoneId);
+  if (filters.utilityType && filters.utilityType !== 'ALL') params.set('utility_type', filters.utilityType);
+  if (filters.meterType && filters.meterType !== 'ALL') params.set('meter_type', filters.meterType);
+  const res = await apiFetch(`/api/v1/admin/reports/operations/overview?${params}`, { method: 'GET' });
+  if (!res.ok) throw new ApiError(res.status, 'Không thể tải báo cáo điều hành.');
+  return res.json();
+}
+
+export async function getAdminUsageOverview(filters: {
+  startDate: string; endDate: string; utilityType?: string; zoneId?: string; meterId?: string;
+}): Promise<UsageOverviewResponse> {
+  const params = new URLSearchParams({ start_date: filters.startDate, end_date: filters.endDate });
+  if (filters.utilityType && filters.utilityType !== 'ALL') params.set('utility_type', filters.utilityType);
+  if (filters.zoneId && filters.zoneId !== 'ALL') params.set('zone_id', filters.zoneId);
+  if (filters.meterId) params.set('meter_id', filters.meterId);
+  const res = await apiFetch(`/api/v1/admin/reports/usage/overview?${params}`, { method: 'GET' });
+  if (!res.ok) throw new ApiError(res.status, 'Không thể tải phân tích tiêu thụ.');
+  return res.json();
+}
+
+export async function getAdminMeterUsage(meterId: string, startDate: string, endDate: string): Promise<UsageMeterResponse> {
+  const params = new URLSearchParams({ start_date: startDate, end_date: endDate });
+  const res = await apiFetch(`/api/v1/admin/reports/usage/meters/${encodeURIComponent(meterId)}?${params}`, { method: 'GET' });
+  if (!res.ok) throw new ApiError(res.status, 'Không thể tải khoảng tiêu thụ công tơ.');
+  return res.json();
 }
 
 export async function getAdminTechnicalOverview(
@@ -1087,6 +1123,8 @@ export async function getAdminTechnicalOverview(
   if (filters.startDate) params.set('start_date', filters.startDate);
   if (filters.endDate) params.set('end_date', filters.endDate);
   if (filters.location && filters.location !== 'ALL') params.set('location', filters.location);
+  if (filters.zoneId && filters.zoneId !== 'ALL') params.set('zone_id', filters.zoneId);
+  if (filters.utilityType && filters.utilityType !== 'ALL') params.set('utility_type', filters.utilityType);
   if (filters.meterType && filters.meterType !== 'ALL') params.set('meter_type', filters.meterType);
   if (filters.confirmationSource && filters.confirmationSource !== 'ALL') {
     params.set('confirmation_source', filters.confirmationSource);
@@ -1114,6 +1152,8 @@ export async function getAdminTechnicalMeters(
   if (filters.startDate) params.set('start_date', filters.startDate);
   if (filters.endDate) params.set('end_date', filters.endDate);
   if (filters.location && filters.location !== 'ALL') params.set('location', filters.location);
+  if (filters.zoneId && filters.zoneId !== 'ALL') params.set('zone_id', filters.zoneId);
+  if (filters.utilityType && filters.utilityType !== 'ALL') params.set('utility_type', filters.utilityType);
   if (filters.meterType && filters.meterType !== 'ALL') params.set('meter_type', filters.meterType);
   if (filters.confirmationSource && filters.confirmationSource !== 'ALL') {
     params.set('confirmation_source', filters.confirmationSource);
@@ -1142,6 +1182,8 @@ export async function getAdminTechnicalDetails(
   if (filters.startDate) params.set('start_date', filters.startDate);
   if (filters.endDate) params.set('end_date', filters.endDate);
   if (filters.location && filters.location !== 'ALL') params.set('location', filters.location);
+  if (filters.zoneId && filters.zoneId !== 'ALL') params.set('zone_id', filters.zoneId);
+  if (filters.utilityType && filters.utilityType !== 'ALL') params.set('utility_type', filters.utilityType);
   if (filters.meterType && filters.meterType !== 'ALL') params.set('meter_type', filters.meterType);
   if (filters.confirmationSource && filters.confirmationSource !== 'ALL') {
     params.set('confirmation_source', filters.confirmationSource);
@@ -1172,6 +1214,8 @@ export function getAdminTechnicalExportUrl(filters: TechnicalReportFilterParams)
   if (filters.startDate) params.set('start_date', filters.startDate);
   if (filters.endDate) params.set('end_date', filters.endDate);
   if (filters.location && filters.location !== 'ALL') params.set('location', filters.location);
+  if (filters.zoneId && filters.zoneId !== 'ALL') params.set('zone_id', filters.zoneId);
+  if (filters.utilityType && filters.utilityType !== 'ALL') params.set('utility_type', filters.utilityType);
   if (filters.meterType && filters.meterType !== 'ALL') params.set('meter_type', filters.meterType);
   if (filters.confirmationSource && filters.confirmationSource !== 'ALL') {
     params.set('confirmation_source', filters.confirmationSource);
@@ -2395,7 +2439,9 @@ export async function updateAdminMeterMetadata(meterId: string, payload: {
   reading_method?: string;
   communication_protocol?: string;
   utility_type?: string;
-}): Promise<any> {
+  measurement_unit?: 'UNKNOWN' | 'KWH' | 'M3';
+  register_semantics?: 'UNKNOWN' | 'CUMULATIVE' | 'INTERVAL';
+}): Promise<{ id: string; meter_code: string; reading_method: string; communication_protocol: string; utility_type: string; measurement_unit: string; register_semantics: string }> {
   const csrfToken = await getCsrfToken();
   const res = await apiFetch(`/api/v1/admin/meters/${meterId}/metadata`, {
     method: 'PATCH',
@@ -2461,6 +2507,4 @@ export async function getAdminAssetOperationalContext(assetId: string): Promise<
   }
   return res.json();
 }
-
-
 

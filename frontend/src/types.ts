@@ -538,6 +538,8 @@ export interface AdminMeterItem {
   location: string | null;
   meter_type: string;
   utility_type?: string | null;
+  measurement_unit?: 'UNKNOWN' | 'KWH' | 'M3';
+  register_semantics?: 'UNKNOWN' | 'CUMULATIVE' | 'INTERVAL';
   is_active: boolean;
   lifecycle_status?: 'ACTIVE' | 'INACTIVE' | 'RETIRED';
   retired_at?: string | null;
@@ -985,6 +987,9 @@ export interface AdminTechnicalMeterSummary {
   name: string;
   location: string;
   meter_type: string;
+  utility_type: string;
+  measurement_unit: string;
+  register_semantics: string;
   is_active: boolean;
   scheduled_rounds_count: number;
   confirmed_count: number;
@@ -1008,6 +1013,7 @@ export interface AdminTechnicalMeterHistoryItem {
   confirmation_source?: string | null;
   recorded_at: string;
   operator_name: string;
+  assigned_names?: string[];
 }
 
 export interface CumulativeTrendItem {
@@ -1039,6 +1045,72 @@ export interface AdminTechnicalRecordDetail {
   confirmation_source?: string | null;
   recorded_at?: string | null;
   operator_name?: string | null;
+  meter_id?: string | null;
+  round_id?: string | null;
+  reading_id?: string | null;
+  zone_id?: string | null;
+  utility_type?: string;
+  measurement_unit?: string;
+  scope_mode?: string;
+  assigned_names?: string[];
+}
+
+export interface ReportingAssignedUser { user_id: string; name: string; role: 'PRIMARY' | 'SUPPORT'; }
+export interface ReportingTask {
+  round_id: string; scheduled_at: string; meter_id: string | null;
+  meter_code: string; meter_name: string; zone_id: string | null; zone_name: string;
+  utility_type: string; scope_mode: 'SNAPSHOT' | 'LEGACY_DYNAMIC';
+  status: 'UPCOMING' | 'CONFIRMED' | 'REVIEW' | 'MISSING';
+  shift_code: string | null; work_date: string; assigned: ReportingAssignedUser[];
+  reading_id: string | null; executor_id: string | null; executor_name: string | null;
+}
+export interface ReportingAction extends ReportingTask { type: 'UNASSIGNED_DUE' | 'OVERDUE_MISSING' | 'REVIEW' | 'DATA_INTEGRITY'; reason?: string | null; }
+export interface ReportingBreakdown {
+  round_id: string; scheduled_at: string; zone_id: string | null; zone_name: string;
+  scope_mode: string; scheduled: number; due: number; confirmed: number; review: number;
+  missing: number; assigned_due: number; unassigned_due: number; shift_codes: string[];
+}
+export interface ReportingOperationsResponse {
+  date_range: { start_date: string; end_date: string };
+  summary: { scheduled: number; scheduled_rounds: number; due: number; confirmed: number;
+    review: number; missing: number; assigned_due: number; unassigned_due: number;
+    coverage_percent: number; completion_percent: number; unassigned_zone_count: number;
+    legacy_dynamic_count: number; };
+  breakdown: ReportingBreakdown[]; actions: ReportingAction[]; tasks: ReportingTask[];
+  available_zones: { id: string; name: string }[];
+}
+export interface DerivedUsageInterval {
+  meter_id: string; utility_type: string; measurement_unit: string; register_semantics: string;
+  from_reading_id: string; to_reading_id: string; from_scheduled_at: string; to_scheduled_at: string;
+  from_value: string; to_value: string; delta: number | null; elapsed_minutes: number;
+  normalized_rate: number | null; rate_unit: string | null; quality_status: string;
+  unit_status: string; from_confirmation_source: string; to_confirmation_source: string;
+  baseline_status: 'AVAILABLE' | 'INSUFFICIENT_HISTORY'; baseline_delta: number | null;
+  difference: number | null; deviation_percent: number | null;
+}
+export interface UsageRegisterPoint { reading_id: string; round_id: string; scheduled_at: string; value: string; confirmation_source: string; }
+export interface UsageGroup {
+  utility_type: string; measurement_unit: string; total_delta: number | null; interval_count: number;
+  coverage: { eligible_meters: number; meters_with_valid_interval: number; coverage_percent: number };
+  highest_interval: DerivedUsageInterval | null; baseline_delta: number | null;
+  difference: number | null; deviation_percent: number | null;
+}
+export interface UsageOverviewResponse {
+  date_range: { start_date: string; end_date: string };
+  selection: { utility_type: string | null; zone_id: string | null; meter_id: string | null };
+  resolution: string;
+  available_meters: { id: string; code: string }[];
+  groups: UsageGroup[];
+  series: { date: string; slot: string; utility_type: string; measurement_unit: string; delta: number; contributor_count: number }[];
+  top_contributors: { meter_id: string; meter_code: string; zone_id: string | null; zone_name: string; utility_type: string; measurement_unit: string; delta: number }[];
+  zone_breakdown: { zone_id: string | null; zone_name: string; utility_type: string; measurement_unit: string; total_delta: number | null; coverage: UsageGroup['coverage'] }[];
+  intervals: DerivedUsageInterval[];
+  data_quality: Record<string, number>;
+}
+export interface UsageMeterResponse {
+  meter_id: string; meter_code: string; meter_name: string; utility_type: string;
+  measurement_unit: string; register_semantics: string;
+  points: UsageRegisterPoint[]; intervals: DerivedUsageInterval[];
 }
 
 export interface AdminTechnicalDetailsResponse {

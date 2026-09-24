@@ -5,7 +5,6 @@ import {
   Download,
   RefreshCw,
   AlertTriangle,
-  FileText,
   Activity,
   Layers,
   ChevronRight,
@@ -21,6 +20,9 @@ import {
   AdminTechnicalOverviewResponse,
   AdminTechnicalMeterListResponse,
   AdminTechnicalDetailsResponse,
+  ReportingOperationsResponse,
+  UsageOverviewResponse,
+  UsageMeterResponse,
   User,
 } from '../../types';
 import {
@@ -28,7 +30,12 @@ import {
   getAdminTechnicalMeters,
   getAdminTechnicalDetails,
   getAdminTechnicalExportUrl,
+  getAdminReportingOperations,
+  getAdminUsageOverview,
+  getAdminMeterUsage,
 } from '../../services/api';
+import { ReportingOperationsWorkspace } from './ReportingOperationsWorkspace';
+import { ReportingUsageWorkspace, ReportingMeterUsage, unitLabel } from './ReportingUsageWorkspace';
 import { LoadingState } from '../ui/LoadingState';
 import { ErrorState } from '../ui/ErrorState';
 import { VnDatePicker, addDaysToIso } from '../ui/VnDatePicker';
@@ -81,16 +88,19 @@ export const AdminReports: React.FC<AdminReportsProps> = ({ onInspectReading }) 
       return getTodayLocal();
     }
   });
-  const [selectedLocation, setSelectedLocation] = useState<string>('ALL');
+  const [selectedZone, setSelectedZone] = useState<string>('ALL');
+  const [selectedUtility, setSelectedUtility] = useState<string>('ALL');
+  const [usageUtility, setUsageUtility] = useState<string>('ELECTRICITY');
+  const [usageMeterId, setUsageMeterId] = useState<string>('');
   const [selectedType, setSelectedType] = useState<string>('ALL');
   const [selectedSource, setSelectedSource] = useState<string>('ALL');
 
   // Navigation Tab State
-  const [activeTab, setActiveTab] = useState<'overview' | 'quality' | 'meters' | 'data' | 'audit'>(() => {
+  const [activeTab, setActiveTab] = useState<'overview' | 'usage' | 'quality' | 'meters' | 'data' | 'audit'>(() => {
     try {
       const saved = sessionStorage.getItem('admin_reports_subTab');
-      if (saved && ['overview', 'quality', 'meters', 'data', 'audit'].includes(saved)) {
-        return saved as 'overview' | 'quality' | 'meters' | 'data' | 'audit';
+      if (saved && ['overview', 'usage', 'quality', 'meters', 'data', 'audit'].includes(saved)) {
+        return saved as 'overview' | 'usage' | 'quality' | 'meters' | 'data' | 'audit';
       }
     } catch {}
     return 'overview';
@@ -100,6 +110,12 @@ export const AdminReports: React.FC<AdminReportsProps> = ({ onInspectReading }) 
   const [overviewData, setOverviewData] = useState<AdminTechnicalOverviewResponse | null>(null);
   const [overviewLoading, setOverviewLoading] = useState<boolean>(true);
   const [overviewError, setOverviewError] = useState<string | null>(null);
+  const [operationsData, setOperationsData] = useState<ReportingOperationsResponse | null>(null);
+  const [operationsError, setOperationsError] = useState<string | null>(null);
+  const [usageData, setUsageData] = useState<UsageOverviewResponse | null>(null);
+  const [usageLoading, setUsageLoading] = useState<boolean>(false);
+  const [usageError, setUsageError] = useState<string | null>(null);
+  const [meterUsage, setMeterUsage] = useState<UsageMeterResponse | null>(null);
 
   // Disclosures state in Overview tab
   const [pipelineExpanded, setPipelineExpanded] = useState<boolean>(false);
@@ -219,7 +235,8 @@ export const AdminReports: React.FC<AdminReportsProps> = ({ onInspectReading }) 
       const res = await getAdminTechnicalOverview({
         startDate,
         endDate,
-        location: selectedLocation,
+        zoneId: selectedZone,
+        utilityType: selectedUtility,
         meterType: selectedType,
         confirmationSource: selectedSource,
       });
@@ -244,7 +261,8 @@ export const AdminReports: React.FC<AdminReportsProps> = ({ onInspectReading }) 
       const res = await getAdminTechnicalMeters({
         startDate,
         endDate,
-        location: selectedLocation,
+        zoneId: selectedZone,
+        utilityType: selectedUtility,
         meterType: selectedType,
         confirmationSource: selectedSource,
         meterId: targetMeterId || selectedMeterId || undefined,
@@ -271,7 +289,8 @@ export const AdminReports: React.FC<AdminReportsProps> = ({ onInspectReading }) 
       const res = await getAdminTechnicalDetails({
         startDate,
         endDate,
-        location: selectedLocation,
+        zoneId: selectedZone,
+        utilityType: selectedUtility,
         meterType: selectedType,
         confirmationSource: selectedSource,
         statusFilter: detailsStatusFilter,
@@ -290,15 +309,38 @@ export const AdminReports: React.FC<AdminReportsProps> = ({ onInspectReading }) 
 
   useEffect(() => {
     loadOverview();
-  }, [startDate, endDate, selectedLocation, selectedType, selectedSource]);
+  }, [startDate, endDate, selectedZone, selectedUtility, selectedType, selectedSource]);
+
+  useEffect(() => {
+    setOperationsData(null);
+    setOperationsError(null);
+    getAdminReportingOperations({ startDate, endDate, zoneId: selectedZone, utilityType: selectedUtility, meterType: selectedType })
+      .then(setOperationsData).catch((error: unknown) => setOperationsError(error instanceof Error ? error.message : 'Không thể tải báo cáo điều hành.'));
+  }, [startDate, endDate, selectedZone, selectedUtility, selectedType]);
+
+  useEffect(() => {
+    if (activeTab !== 'usage') return;
+    setUsageLoading(true);
+    setUsageError(null);
+    setUsageData(null);
+    getAdminUsageOverview({ startDate, endDate, utilityType: usageUtility, zoneId: selectedZone, meterId: usageMeterId || undefined })
+      .then(setUsageData).catch((error: unknown) => setUsageError(error instanceof Error ? error.message : 'Không thể tải phân tích tiêu thụ.'))
+      .finally(() => setUsageLoading(false));
+  }, [activeTab, startDate, endDate, usageUtility, selectedZone, usageMeterId]);
+
+  useEffect(() => {
+    if (activeTab !== 'meters' || !selectedMeterId) return;
+    setMeterUsage(null);
+    getAdminMeterUsage(selectedMeterId, startDate, endDate).then(setMeterUsage).catch(() => setMeterUsage(null));
+  }, [activeTab, selectedMeterId, startDate, endDate]);
 
   useEffect(() => {
     if (activeTab === 'meters') {
       loadMetersData();
-    } else if (activeTab === 'data') {
+    } else if (activeTab === 'quality') {
       loadDetailsData(1);
     }
-  }, [activeTab, startDate, endDate, selectedLocation, selectedType, selectedSource, detailsStatusFilter]);
+  }, [activeTab, startDate, endDate, selectedZone, selectedUtility, selectedType, selectedSource, detailsStatusFilter]);
 
   // Quick preset helper
   const handlePreset = (preset: 'today' | 'yesterday' | '7days' | '30days' | 'thisMonth') => {
@@ -338,7 +380,8 @@ export const AdminReports: React.FC<AdminReportsProps> = ({ onInspectReading }) 
     const url = getAdminTechnicalExportUrl({
       startDate,
       endDate,
-      location: selectedLocation,
+      zoneId: selectedZone,
+      utilityType: selectedUtility,
       meterType: selectedType,
       confirmationSource: selectedSource,
     });
@@ -358,13 +401,13 @@ export const AdminReports: React.FC<AdminReportsProps> = ({ onInspectReading }) 
   };
 
   return (
-    <div className="admin-page-container">
+    <div className="admin-page-container admin-reporting-page">
       {/* 1. PAGE HEADER */}
       <div className="admin-page-header">
         <div className="admin-page-title-group">
-          <h1 className="admin-page-title">Báo cáo kỹ thuật</h1>
+          <h1 className="admin-page-title">Báo cáo điều hành & tiêu thụ</h1>
           <p className="admin-page-subtitle">
-            Phân tích vận hành, chất lượng nhận dạng và dữ liệu ghi nhận
+            Theo dõi lượt ghi, phân công, tiêu thụ và chất lượng dữ liệu
           </p>
         </div>
 
@@ -382,87 +425,28 @@ export const AdminReports: React.FC<AdminReportsProps> = ({ onInspectReading }) 
         )}
       </div>
 
-      {/* 2. TECHNICAL WORKSPACE TABS */}
-      <div className="admin-tech-tabs" role="tablist" aria-label="Chuyển đổi góc nhìn phân tích">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={activeTab === 'overview'}
-          className={`admin-tech-tab ${activeTab === 'overview' ? 'active' : ''}`}
-          onClick={() => {
-            setActiveTab('overview');
-            try {
-              sessionStorage.setItem('admin_reports_subTab', 'overview');
-            } catch {}
-          }}
-        >
-          <Activity size={14} aria-hidden="true" />
-          <span>Tổng quan kỹ thuật</span>
-        </button>
-
-        <button
-          type="button"
-          role="tab"
-          aria-selected={activeTab === 'quality'}
-          className={`admin-tech-tab ${activeTab === 'quality' ? 'active' : ''}`}
-          onClick={() => {
-            setActiveTab('quality');
-            try {
-              sessionStorage.setItem('admin_reports_subTab', 'quality');
-            } catch {}
-          }}
-        >
-          <BarChart3 size={14} aria-hidden="true" />
-          <span>Chất lượng nhận dạng</span>
-        </button>
-
-        <button
-          type="button"
-          role="tab"
-          aria-selected={activeTab === 'meters'}
-          className={`admin-tech-tab ${activeTab === 'meters' ? 'active' : ''}`}
-          onClick={() => {
-            setActiveTab('meters');
-            try {
-              sessionStorage.setItem('admin_reports_subTab', 'meters');
-            } catch {}
-          }}
-        >
-          <Layers size={14} aria-hidden="true" />
-          <span>Theo công tơ</span>
-        </button>
-
-        <button
-          type="button"
-          role="tab"
-          aria-selected={activeTab === 'data'}
-          className={`admin-tech-tab ${activeTab === 'data' ? 'active' : ''}`}
-          onClick={() => {
-            setActiveTab('data');
-            try {
-              sessionStorage.setItem('admin_reports_subTab', 'data');
-            } catch {}
-          }}
-        >
-          <FileText size={14} aria-hidden="true" />
-          <span>Ngoại lệ & dữ liệu</span>
-        </button>
-
-        <button
-          type="button"
-          role="tab"
-          aria-selected={activeTab === 'audit'}
-          className={`admin-tech-tab ${activeTab === 'audit' ? 'active' : ''}`}
-          onClick={() => {
-            setActiveTab('audit');
-            try {
-              sessionStorage.setItem('admin_reports_subTab', 'audit');
-            } catch {}
-          }}
-        >
-          <ShieldCheck size={14} aria-hidden="true" />
-          <span>Nhật ký kiểm toán</span>
-        </button>
+      <div className="admin-tech-tabs" role="tablist" aria-label="Góc nhìn báo cáo"
+        onKeyDown={(event) => {
+          if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+          const tabs = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]'));
+          const index = tabs.indexOf(document.activeElement as HTMLButtonElement);
+          if (index < 0) return;
+          event.preventDefault();
+          const next = tabs[(index + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length];
+          next.focus(); next.click();
+        }}>
+        {([
+          { id: 'overview', label: 'Điều hành', Icon: Activity },
+          { id: 'usage', label: 'Tiêu thụ & dao động', Icon: BarChart3 },
+          { id: 'data', label: 'Việc cần xử lý', Icon: AlertTriangle },
+          { id: 'quality', label: 'Chất lượng OCR', Icon: Cpu },
+          { id: 'meters', label: 'Công tơ', Icon: Layers },
+          { id: 'audit', label: 'Kiểm toán', Icon: ShieldCheck },
+        ] as const).map(({ id, label, Icon }) => <button key={id} type="button" role="tab"
+          id={`report-tab-${id}`} aria-controls={`report-panel-${id}`}
+          aria-selected={activeTab === id} tabIndex={activeTab === id ? 0 : -1}
+          className={`admin-tech-tab ${activeTab === id ? 'active' : ''}`}
+          onClick={() => setActiveTab(id)}><Icon size={14} aria-hidden="true" /><span>{label}</span></button>)}
       </div>
 
       {/* 3. COMPACT GLOBAL TECHNICAL FILTER TOOLBAR */}
@@ -574,23 +558,27 @@ export const AdminReports: React.FC<AdminReportsProps> = ({ onInspectReading }) 
             </>
           )}
 
-          {/* Dimension Filters */}
-          <div className="admin-tech-select-group">
+          {/* Scope filters use publication-time zone and utility snapshots. */}
+          {activeTab !== 'usage' && <div className="admin-tech-select-group">
             <select
               className="admin-select admin-select-sm"
-              value={selectedLocation}
-              onChange={(e) => setSelectedLocation(e.target.value)}
+              value={selectedZone}
+              onChange={(e) => setSelectedZone(e.target.value)}
               aria-label="Lọc theo khu vực"
             >
               <option value="ALL">Tất cả khu vực</option>
-              {overviewData?.available_locations.map((loc) => (
-                <option key={loc} value={loc}>
-                  {loc}
+              {operationsData?.available_zones.map((zone) => (
+                <option key={zone.id} value={zone.id}>
+                  {zone.name}
                 </option>
               ))}
             </select>
 
-            <select
+            <select className="admin-select admin-select-sm" value={selectedUtility} onChange={(e) => setSelectedUtility(e.target.value)} aria-label="Lọc theo tiện ích">
+              <option value="ALL">Tất cả tiện ích</option><option value="ELECTRICITY">Điện</option><option value="WATER">Nước</option>
+            </select>
+
+            {(activeTab === 'quality' || activeTab === 'meters') && <select
               className="admin-select admin-select-sm"
               value={selectedType}
               onChange={(e) => setSelectedType(e.target.value)}
@@ -599,9 +587,9 @@ export const AdminReports: React.FC<AdminReportsProps> = ({ onInspectReading }) 
               <option value="ALL">Tất cả loại</option>
               <option value="LCD">LCD</option>
               <option value="MECHANICAL">Cơ</option>
-            </select>
+            </select>}
 
-            <select
+            {(activeTab === 'quality' || activeTab === 'meters') && <select
               className="admin-select admin-select-sm"
               value={selectedSource}
               onChange={(e) => setSelectedSource(e.target.value)}
@@ -611,7 +599,7 @@ export const AdminReports: React.FC<AdminReportsProps> = ({ onInspectReading }) 
               <option value="OCR_CONFIRMED">Xác nhận từ OCR</option>
               <option value="USER_CORRECTED">Đã hiệu chỉnh</option>
               <option value="MANUAL_ENTRY">Nhập thủ công</option>
-            </select>
+            </select>}
 
             <button
               type="button"
@@ -619,7 +607,7 @@ export const AdminReports: React.FC<AdminReportsProps> = ({ onInspectReading }) 
               onClick={() => {
                 loadOverview();
                 if (activeTab === 'meters') loadMetersData();
-                if (activeTab === 'data') loadDetailsData(1);
+                if (activeTab === 'quality') loadDetailsData(1);
               }}
               disabled={overviewLoading}
               title="Làm mới dữ liệu"
@@ -627,12 +615,23 @@ export const AdminReports: React.FC<AdminReportsProps> = ({ onInspectReading }) 
             >
               <RefreshCw size={13} className={overviewLoading ? 'animate-spin' : ''} aria-hidden="true" />
             </button>
-          </div>
+          </div>}
         </div>
       )}
 
+      <div id={`report-panel-${activeTab}`} role="tabpanel" aria-labelledby={`report-tab-${activeTab}`} style={{ minWidth: 0 }}>
       {/* 4. TECHNICAL TAB CONTENT */}
-      {activeTab !== 'audit' && (
+      {activeTab === 'overview' && (operationsData ? <ReportingOperationsWorkspace data={operationsData} view="overview" integrityCount={overviewData?.data_integrity.total_violations ?? 0}
+        onOpenActions={() => setActiveTab('data')} onSelectMeter={handleSelectWatchlistMeter} onInspectReading={onInspectReading} /> :
+        <p className="reporting-note" role="status">{operationsError || 'Đang tải báo cáo điều hành…'}</p>)}
+      {activeTab === 'usage' && <ReportingUsageWorkspace data={usageData} loading={usageLoading} error={usageError}
+        operations={operationsData} utilityType={usageUtility} zoneId={selectedZone} meterId={usageMeterId}
+        onUtility={setUsageUtility} onZone={setSelectedZone} onMeter={setUsageMeterId}
+        onPreset={handlePreset} onSelectMeter={handleSelectWatchlistMeter} />}
+      {activeTab === 'data' && (operationsData ? <ReportingOperationsWorkspace data={operationsData} view="actions" integrityCount={overviewData?.data_integrity.total_violations ?? 0}
+        onOpenActions={() => setActiveTab('data')} onSelectMeter={handleSelectWatchlistMeter} onInspectReading={onInspectReading} /> :
+        <p className="reporting-note" role="status">{operationsError || 'Đang tải việc cần xử lý…'}</p>)}
+      {(activeTab === 'quality' || activeTab === 'meters') && (
         overviewLoading && !overviewData ? (
           <LoadingState message="Đang tải dữ liệu phân tích kỹ thuật..." />
         ) : overviewError ? (
@@ -646,7 +645,7 @@ export const AdminReports: React.FC<AdminReportsProps> = ({ onInspectReading }) 
           {/* ======================================================== */}
           {/* TAB 1: TỔNG QUAN KỸ THUẬT (4-CARD DENSITY)               */}
           {/* ======================================================== */}
-          {activeTab === 'overview' && (
+          {activeTab === 'quality' && (
             <div className="admin-tech-content">
               {/* 4-Metric Compact Grid */}
               <div className="admin-tech-metric-strip-4">
@@ -765,13 +764,13 @@ export const AdminReports: React.FC<AdminReportsProps> = ({ onInspectReading }) 
                     <AlertTriangle size={15} className="text-warning" aria-hidden="true" />
                     <h2 className="admin-card-title">Công tơ cần theo dõi</h2>
                   </div>
-                  <span className="text-muted text-xs">Sắp xếp theo tỷ lệ can thiệp giảm dần (&ge; 5 lượt)</span>
+                  <span className="text-muted text-xs">Ưu tiên REVIEW, hiệu chỉnh và nhập thủ công; kể cả lịch sử ngắn</span>
                 </div>
 
-                {overviewData.watchlist_meters.length > 0 && overviewData.watchlist_meters.every((wm) => wm.human_intervention_rate === 0 && wm.review_count === 0) && (
+                {overviewData.watchlist_meters.length === 0 && (
                   <div style={{ padding: '8px 18px', background: 'var(--sgp-canvas)', borderBottom: '1px solid var(--sgp-border)', fontSize: '12px', color: 'var(--sgp-ink-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <ShieldCheck size={14} className="text-success" aria-hidden="true" />
-                    <span>Tất cả công tơ trong kỳ đều đạt 100% nhận diện tự động qua OCR, không phát sinh can thiệp.</span>
+                    <span>Không có công tơ phát sinh REVIEW, hiệu chỉnh hoặc nhập thủ công trong kỳ.</span>
                   </div>
                 )}
 
@@ -991,7 +990,7 @@ export const AdminReports: React.FC<AdminReportsProps> = ({ onInspectReading }) 
                   <div className="tech-provenance-legend">
                     <div className="legend-item">
                       <span className="leg-dot dot-ocr" />
-                      <span className="leg-label">Xác nhận trực tiếp từ OCR:</span>
+                      <span className="leg-label">Tỷ lệ xác nhận trực tiếp từ OCR:</span>
                       <strong className="font-tabular">{overviewData.summary.ocr_confirmed_count.toLocaleString()} ({overviewData.summary.ocr_confirmed_rate}%)</strong>
                     </div>
                     <div className="legend-item">
@@ -1203,6 +1202,8 @@ export const AdminReports: React.FC<AdminReportsProps> = ({ onInspectReading }) 
                     );
                   })()}
 
+                  <ReportingMeterUsage data={meterUsage} onInspectReading={onInspectReading} />
+
                   {/* Cumulative Reading Visualization with Scale Context (Full range, unpaginated) */}
                   {meterListData.cumulative_trend.length > 0 && (() => {
                     const points = meterListData.cumulative_trend;
@@ -1221,7 +1222,7 @@ export const AdminReports: React.FC<AdminReportsProps> = ({ onInspectReading }) 
                             <h2 className="admin-card-title">Chỉ số tích lũy theo thời gian</h2>
                           </div>
                           <span className="text-muted text-xs font-tabular">
-                            {points.length} điểm ghi nhận &bull; Đơn vị: kWh
+                            {points.length} điểm ghi nhận &bull; {unitLabel(meterListData.meters.find(m => m.meter_id === selectedMeterId)?.measurement_unit || 'UNKNOWN')}
                           </span>
                         </div>
                         <div className="admin-card-body">
@@ -1229,11 +1230,11 @@ export const AdminReports: React.FC<AdminReportsProps> = ({ onInspectReading }) 
                           <div className="tech-scale-indicators font-tabular text-xs">
                             <div className="scale-pill">
                               <span className="text-muted">Chỉ số thấp nhất:</span>
-                              <strong>{firstPt ? `${firstPt.canonical_reading} kWh` : '—'}</strong>
+                              <strong>{firstPt ? `${firstPt.canonical_reading} ${unitLabel(meterListData.meters.find(m => m.meter_id === selectedMeterId)?.measurement_unit || 'UNKNOWN')}` : '—'}</strong>
                             </div>
                             <div className="scale-pill">
                               <span className="text-muted">Chỉ số cao nhất:</span>
-                              <strong>{lastPt ? `${lastPt.canonical_reading} kWh` : '—'}</strong>
+                              <strong>{lastPt ? `${lastPt.canonical_reading} ${unitLabel(meterListData.meters.find(m => m.meter_id === selectedMeterId)?.measurement_unit || 'UNKNOWN')}` : '—'}</strong>
                             </div>
                           </div>
 
@@ -1468,7 +1469,7 @@ export const AdminReports: React.FC<AdminReportsProps> = ({ onInspectReading }) 
                                         </td>
                                         <td>
                                           <span className="font-mono font-bold font-tabular">
-                                            {h.reading ? `${h.reading} kWh` : '—'}
+                                            {h.reading ? `${h.reading} ${unitLabel(meterListData.meters.find(m => m.meter_id === selectedMeterId)?.measurement_unit || 'UNKNOWN')}` : '—'}
                                           </span>
                                         </td>
                                         <td>
@@ -1577,7 +1578,7 @@ export const AdminReports: React.FC<AdminReportsProps> = ({ onInspectReading }) 
           {/* ======================================================== */}
           {/* TAB 4: NGOẠI LỆ & DỮ LIỆU (DISTINCT COUNTS & DENSE TABLE)  */}
           {/* ======================================================== */}
-          {activeTab === 'data' && (
+          {activeTab === 'quality' && (
             <div className="admin-tech-content">
               {/* Filter Pills with Distinct Totals from Overview Summary */}
               <div className="admin-data-filter-bar" role="toolbar" aria-label="Bộ lọc kiểm toán bản ghi">
@@ -1646,6 +1647,7 @@ export const AdminReports: React.FC<AdminReportsProps> = ({ onInspectReading }) 
                           <th scope="col">NGUỒN</th>
                           <th scope="col">GHI NHẬN LÚC</th>
                           <th scope="col">NGƯỜI GHI</th>
+                          <th scope="col">PHỤ TRÁCH</th>
                           <th scope="col" className="text-center">THAO TÁC</th>
                         </tr>
                       </thead>
@@ -1677,7 +1679,7 @@ export const AdminReports: React.FC<AdminReportsProps> = ({ onInspectReading }) 
                               <td>{stBadge}</td>
                               <td>
                                 <span className="font-mono font-bold font-tabular">
-                                  {row.reading ? `${row.reading} kWh` : '—'}
+                                  {row.reading ? `${row.reading} ${unitLabel(row.measurement_unit || 'UNKNOWN')}` : '—'}
                                 </span>
                               </td>
                               <td>
@@ -1688,12 +1690,13 @@ export const AdminReports: React.FC<AdminReportsProps> = ({ onInspectReading }) 
                               <td className="font-tabular text-xs">{srcText}</td>
                               <td className="text-muted font-tabular text-xs">{row.recorded_at || '—'}</td>
                               <td className="text-muted text-xs">{row.operator_name || '—'}</td>
+                              <td className="text-muted text-xs">{row.assigned_names?.join(', ') || 'Chưa phân công'}</td>
                               <td className="text-center">
-                                {row.status !== 'MISSING' && onInspectReading ? (
+                                {row.reading_id && onInspectReading ? (
                                   <button
                                     type="button"
                                     className="admin-btn-table-action"
-                                    onClick={() => onInspectReading(row.id)}
+                                    onClick={() => onInspectReading(row.reading_id!)}
                                     title="Kiểm tra chi tiết bản ghi"
                                   >
                                     Kiểm tra
@@ -1747,6 +1750,7 @@ export const AdminReports: React.FC<AdminReportsProps> = ({ onInspectReading }) 
           <AdminAudit />
         </div>
       )}
+      </div>
     </div>
   );
 };
