@@ -35,6 +35,22 @@ The initial database had the expected table counts and passed the then-current a
 
 The final semantic audit passed: 719 readings, 60 SNAPSHOT rounds, 720 RRM rows, 269 assignments; snapshot zones match the meter operational zones; timestamps resolve to the four intended local slots; active assignments match eligible schedules and leave; one unit remains UNKNOWN; readings include REVIEW and CONFIRMED; and provenance is consistent with the available deterministic OCR value. Final database checksum and online backup are recorded in [final-state.json](evidence/database/final-state.json).
 
+## Final automated regression
+
+The final RELEASE harness run against the UAT candidate range returned `PASSED`. It included backend-focused/full, harness self-tests, User and Operations tests/builds, bundle separation, B2 freeze, 9A/9B/9C, meter logbook, spatial audit/authority, unified simulation, documentation integrity, and `git diff --check`. The required responsive review remained a separate manual gate.
+
+- Focused backend: 5/5 passed.
+- Full backend: 386 passed, 4 failed nodes, 0 new failures (390 tests total). The Phase 2.6 aggregate was 380 passed / 7 known failures; the current suite includes three added chronology cases. All four currently failed nodes are present in `harness/known-failures.json` and their observed material reasons match the records:
+  - `tests/test_v16c_asset_foundation.py::test_asset_create_read_update_and_audit` — asset list returned 0 after create; expected at least 1.
+  - `tests/test_v16d_asset_verification.py::test_meter_review_matrix_and_summary_v16d` — spatial review meter list returned 0; expected 5.
+  - `tests/test_v16e_asset_network.py::test_asset_network_endpoint_verified_only_default` — newly verified asset ID absent from the network node set.
+  - `tests/test_v16e_asset_network.py::test_asset_network_utility_filter_and_focus` — newly verified connection ID absent from the network edge set.
+- The harness compares exact node IDs and reports `UNVERIFIED_REASON`; the material-reason check above was completed manually against the final traceback and `harness/known-failures.json`.
+- The other six nodes recorded in the 10-entry known-failure file passed in this run. Since the Phase 2.6 handoff supplied aggregate totals rather than a node-by-node result, those entries remain unchanged as historical records; no new product failure was classified.
+- Harness self-tests: 59/59 passed. User suite: 92/92 passed. Operations suite: PASS (at least the 397-test accepted baseline). Focused 9A/9B/9C, logbook, spatial audit/authority, and simulation gates passed.
+- User and Operations production builds, bundle separation, B2 checksum, docs integrity, and `git diff --check`: PASS.
+- Demo V2 semantic audit: PASS. Final online backup and integrity details are in [final-state.json](evidence/database/final-state.json); full audit output is in [demo-v2-audit-final.log](evidence/database/demo-v2-audit-final.log).
+
 ## UAT defects and regression
 
 Resolved product defects and environment limitations are itemized in [UAT_DEFECTS.md](UAT_DEFECTS.md). No BLOCKER remains. The resolved HIGH-severity seed/data-truth defects have no outstanding waiver. Automated regression results are recorded in [UAT_HANDOFF.md](UAT_HANDOFF.md) after verification.

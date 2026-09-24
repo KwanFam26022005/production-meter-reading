@@ -1,7 +1,7 @@
 {
   "db_path": "D:\\Projects\\production-meter-reading\\.runtime\\data\\app.db",
   "db_sha256": "af57acc34e303f56b75da21ea3081ce0d1b0b01679b48336e52ba901b7ed2369",
-  "online_backup_path": "D:\\Projects\\production-meter-reading\\.runtime\\backups\\phase27-uat-final-baseline-20260925.sqlite",
+  "online_backup_path": "D:\\Projects\\production-meter-reading\\.runtime\\backups\\phase27-uat-final-post-regression-20260925-044040.sqlite",
   "online_backup_sha256": "6edc0feb9f8309b41145895684eee9643762f10c6009ca5076742b62c87cd97a",
   "integrity_check": "ok",
   "online_backup_integrity_check": "ok",
@@ -35,5 +35,24 @@
     "REVIEW and CONFIRMED readings exist",
     "provenance is consistent with deterministic OCR values"
   ],
-  "controlled_uat_mutations_remaining": 0
+  "controlled_uat_mutations_remaining": 0,
+  "semantic_audit_log": "evidence/database/demo-v2-audit-final.log",
+  "automated_regression": {
+    "harness_overall": "PASSED",
+    "focused_backend": "5 passed",
+    "backend_full": {
+      "passed": 386,
+      "failed_known": 4,
+      "new_failures": 0,
+      "total_tests": 390
+    },
+    "harness_self_tests": "59 passed",
+    "user_suite": "PASS",
+    "operations_suite": "PASS",
+    "user_build": "PASS",
+    "operations_build": "PASS",
+    "bundle_separation": "PASS",
+    "b2_freeze": "PASS",
+    "docs_integrity": "PASS"
+  }
 }

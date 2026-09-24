@@ -3,6 +3,7 @@
 ## Source and runtime
 
 - Candidate/branch: `e6d4b204cb871647b39fb1c5ec5d0f8e98d0fd85` / `integration/operations-v2-foundation`.
+- Entry preflight matched that branch and SHA and found one registered worktree. The worktree already contained staged changes from this authorized, in-progress UAT; those source, test, seed/audit, documentation, and evidence paths were reviewed and classified before continuing. No unrelated changes were discarded.
 - Canonical source: `D:\Projects\production-meter-reading\production-meter-reading`.
 - Canonical runtime and database: `D:\Projects\production-meter-reading\.runtime` and `.runtime\data\app.db`.
 - Python: `D:\Projects\production-meter-reading\production-meter-reading\.venv\Scripts\python.exe` (Python 3.11.9).

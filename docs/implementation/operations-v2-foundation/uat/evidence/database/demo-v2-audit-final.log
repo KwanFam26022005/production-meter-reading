@@ -1,0 +1,18 @@
+Starting Audit of Demo Data V2...
+✅ PASS: Deterministic Demo V2 table counts match the baseline.
+✅ PASS: Simulation scenario exists.
+✅ PASS: Found 60 SNAPSHOT rounds.
+✅ PASS: All SNAPSHOT rounds have correct meter scope sizes (12).
+✅ PASS: Snapshot operational zones match configured meter zones.
+✅ PASS: Round timestamps resolve to the four intended local daily slots.
+✅ PASS: Found 269 Operational Assignments.
+✅ PASS: Operational Assignments include PRIMARY and SUPPORT roles.
+✅ PASS: Every active Demo V2 assignment matches an eligible published schedule.
+✅ PASS: Found 1 meter(s) with UNKNOWN unit (as intended).
+✅ PASS: Found 11 meter(s) with CUMULATIVE semantics.
+✅ PASS: Readings include both REVIEW and CONFIRMED statuses.
+✅ PASS: Reading sources include MANUAL_ENTRY, OCR_CONFIRMED.
+✅ PASS: Reading provenance is consistent with available OCR evidence.
+
+--- Audit Summary ---
+🎉 All audits passed successfully!
