@@ -1,6 +1,7 @@
 from functools import lru_cache
 from pathlib import Path
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -21,6 +22,8 @@ class Settings(BaseSettings):
     data_mode: str = "SIMULATION"  # "SIMULATION" | "REAL"
     active_scenario: str = "tan-thuan-demo-v1"
 
+    pmr_runtime_root: str = ""
+
     # Database & Storage
     database_url: str = "sqlite:///./data/app.db"
     attendance_photo_dir: Path = Path("data/attendance_photos")
@@ -28,6 +31,17 @@ class Settings(BaseSettings):
     meter_training_dir: Path = Path("data/meter_training_samples")
     meter_reading_evidence_dir: Path = Path("data/meter_reading_evidence")
     max_evidence_upload_mb: int = 12
+
+    @model_validator(mode="after")
+    def resolve_runtime_paths(self) -> "Settings":
+        if self.pmr_runtime_root:
+            root = Path(self.pmr_runtime_root)
+            db_path = root / "data" / "app.db"
+            self.database_url = f"sqlite:///{db_path.absolute().as_posix()}"
+            self.meter_reading_evidence_dir = root / "evidence"
+            self.attendance_photo_dir = root / "attendance"
+            self.meter_training_dir = root / "training"
+        return self
 
     # Session & Security
     session_cookie_name: str = "csg_session"
