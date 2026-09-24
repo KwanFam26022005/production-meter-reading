@@ -4,6 +4,8 @@ import {
   RefreshCw,
   Info,
   X,
+  Copy,
+  Check,
 } from 'lucide-react';
 import { AdminAuditLogItem, AdminAuditLogListResponse } from '../../types';
 import { getAdminAuditLogs } from '../../services/api';
@@ -22,6 +24,25 @@ export const AdminAudit: React.FC = () => {
 
   // Selected Log Modal for deep payload inspection
   const [selectedLog, setSelectedLog] = useState<AdminAuditLogItem | null>(null);
+  const [copied, setCopied] = useState<boolean>(false);
+
+  const handleCopyJson = () => {
+    if (!selectedLog) return;
+    try {
+      const payload = {
+        id: selectedLog.id,
+        timestamp: selectedLog.created_at_local,
+        actor: `${selectedLog.actor_full_name} (${selectedLog.actor_employee_code || ''})`,
+        action: selectedLog.action,
+        resource: `${selectedLog.resource_type} (${selectedLog.resource_id || ''})`,
+        before: selectedLog.before_json ? JSON.parse(selectedLog.before_json) : null,
+        after: selectedLog.after_json ? JSON.parse(selectedLog.after_json) : null,
+      };
+      navigator.clipboard.writeText(JSON.stringify(payload, null, 2));
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {}
+  };
 
   const loadAuditLogs = async () => {
     setLoading(true);
@@ -55,12 +76,44 @@ export const AdminAudit: React.FC = () => {
       case 'METER_DEACTIVATED':
         return <span className="admin-badge badge-warning">Ngừng dùng công tơ</span>;
       case 'METER_ACTIVATED':
-        return <span className="admin-badge badge-active">Kích hoạt lại công tơ</span>;
+        return <span className="admin-badge badge-active">Kích hoạt lại</span>;
       case 'READING_ROUNDS_CREATED':
-        return <span className="admin-badge badge-active">Tạo lịch đọc</span>;
+        return <span className="admin-badge badge-active">Tạo lịch ghi</span>;
+      case 'WORK_SCHEDULE_CREATED':
+      case 'SCHEDULE_CREATED':
+        return <span className="admin-badge badge-active">Tạo lịch ca</span>;
+      case 'WORK_SCHEDULE_MODIFIED':
+      case 'SCHEDULE_MODIFIED':
+        return <span className="admin-badge badge-info">Sửa lịch ca</span>;
+      case 'ASSIGNMENT_CREATED':
+        return <span className="admin-badge badge-active">Phân công</span>;
+      case 'ASSIGNMENT_UPDATED':
+        return <span className="admin-badge badge-info">Sửa phân công</span>;
+      case 'ASSIGNMENT_CANCELLED':
+        return <span className="admin-badge badge-warning">Hủy phân công</span>;
+      case 'LEAVE_APPROVED':
+        return <span className="admin-badge badge-active">Duyệt phép</span>;
+      case 'LEAVE_REJECTED':
+        return <span className="admin-badge badge-danger">Từ chối phép</span>;
       default:
-        return <span className="admin-badge">{action}</span>;
+        return <span className="admin-badge badge-info">{action}</span>;
     }
+  };
+
+  const FIELD_LABELS: Record<string, string> = {
+    name: 'Tên',
+    location: 'Vị trí',
+    meter_type: 'Loại',
+    is_active: 'Trạng thái',
+    status: 'Trạng thái',
+    shift_code: 'Ca',
+    zone_id: 'Khu vực',
+    work_date: 'Ngày',
+    role: 'Vai trò',
+    notes: 'Ghi chú',
+    measurement_unit: 'Đơn vị',
+    utility_type: 'Tiện ích',
+    register_semantics: 'Kiểu ghi',
   };
 
   const renderJsonSummary = (beforeStr?: string | null, afterStr?: string | null) => {
@@ -70,25 +123,30 @@ export const AdminAudit: React.FC = () => {
       const before = beforeStr ? JSON.parse(beforeStr) : null;
 
       if (after && !before) {
-        // Created item
         if (after.meter_code) {
-          return <span>Tạo mới: <strong>{after.meter_code}</strong> ({after.name})</span>;
+          return <span>Tạo mới: <strong className="font-mono font-semibold">{after.meter_code}</strong> ({after.name})</span>;
         }
         if (after.date && after.count) {
-          return <span>Tạo <strong>{after.count} lượt</strong> ngày {after.date}</span>;
+          return <span>Tạo <strong className="font-tabular">{after.count} lượt</strong> ngày {after.date}</span>;
         }
+        if (after.employee_code) {
+          return <span>Phân công: <strong className="font-mono">{after.employee_code}</strong> ({after.shift_code || ''})</span>;
+        }
+        return <span className="text-muted">Khởi tạo dữ liệu</span>;
       }
 
       if (before && after) {
-        // Updated item
         const changes: string[] = [];
         for (const k of Object.keys(after)) {
           if (before[k] !== after[k]) {
-            changes.push(`${k}: ${before[k]} → ${after[k]}`);
+            const label = FIELD_LABELS[k] || k;
+            const bVal = String(before[k] ?? '—');
+            const aVal = String(after[k] ?? '—');
+            changes.push(`${label}: ${bVal} → ${aVal}`);
           }
         }
         if (changes.length > 0) {
-          return <span className="font-mono text-xs">{changes.join(', ')}</span>;
+          return <span className="font-mono text-xs">{changes.join('; ')}</span>;
         }
       }
 
@@ -172,7 +230,7 @@ export const AdminAudit: React.FC = () => {
       ) : (
         <div className="admin-surface-card table-card">
           <div className="admin-table-container">
-            <table className="admin-table" aria-label="Bảng nhật ký thao tác quản trị">
+            <table className="admin-table admin-table-compact" aria-label="Bảng nhật ký thao tác quản trị">
               <thead>
                 <tr>
                   <th scope="col">Thời gian</th>
@@ -186,7 +244,7 @@ export const AdminAudit: React.FC = () => {
               <tbody>
                 {data.logs.map((log) => (
                   <tr key={log.id}>
-                    <td className="font-mono text-sm">{log.created_at_local}</td>
+                    <td className="font-mono text-sm font-tabular">{log.created_at_local}</td>
                     <td>
                       <div className="admin-user-cell">
                         <span className="font-medium">{log.actor_full_name}</span>
@@ -277,7 +335,16 @@ export const AdminAudit: React.FC = () => {
               )}
             </div>
 
-            <div className="admin-modal-footer">
+            <div className="admin-modal-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <button
+                type="button"
+                className="admin-btn-secondary btn-sm"
+                onClick={handleCopyJson}
+                title="Sao chép toàn bộ payload nhật ký"
+              >
+                {copied ? <Check size={14} className="text-success" /> : <Copy size={14} />}
+                <span>{copied ? 'Đã sao chép!' : 'Sao chép JSON'}</span>
+              </button>
               <button
                 type="button"
                 className="admin-btn-secondary"
