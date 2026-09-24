@@ -511,9 +511,9 @@ def test_seeder_preserves_unrelated_columns(temp_meter_db, temp_manifest):
 # 7. REPOSITORY AUDIT INTEGRATION TEST
 # ==============================================================================
 
-def test_repository_audit_execution():
-    """Runs audit on authoritative repo database and verifies summary metrics."""
-    db_path = REPO_ROOT / "data" / "app.db"
+def test_repository_audit_execution(legacy_v1_db_path):
+    """Runs audit on isolated V1 data using the authoritative repository geometry."""
+    db_path = legacy_v1_db_path
     assert db_path.exists()
     assert CANONICAL_MAP_PATH.exists()
 
@@ -534,18 +534,18 @@ def test_repository_audit_execution():
     assert summary["containment_breakdown"]["INSIDE_ASSIGNED_ZONE"] == 3
 
 
-def test_cli_audit_tool_subprocess():
+def test_cli_audit_tool_subprocess(legacy_v1_db_path, tmp_path):
     """Runs scripts/audit_meter_spatial_data.py via subprocess and checks zero exit code."""
     import subprocess
-    cmd = [sys.executable, str(REPO_ROOT / "scripts" / "audit_meter_spatial_data.py"), "--quiet"]
+    cmd = [sys.executable, str(REPO_ROOT / "scripts" / "audit_meter_spatial_data.py"), "--quiet", "--db-path", str(legacy_v1_db_path), "--output-csv", str(tmp_path / "audit.csv"), "--output-json", str(tmp_path / "audit.json")]
     proc = subprocess.run(cmd, capture_output=True, text=True, cwd=str(REPO_ROOT))
     assert proc.returncode == 0
 
 
-def test_cli_seeder_tool_dry_run_subprocess():
+def test_cli_seeder_tool_dry_run_subprocess(legacy_v1_db_path):
     """Runs scripts/seed_meter_spatial_data.py --dry-run via subprocess and checks zero exit code."""
     import subprocess
-    cmd = [sys.executable, str(REPO_ROOT / "scripts" / "seed_meter_spatial_data.py"), "--dry-run"]
+    cmd = [sys.executable, str(REPO_ROOT / "scripts" / "seed_meter_spatial_data.py"), "--dry-run", "--db-path", str(legacy_v1_db_path)]
     proc = subprocess.run(cmd, capture_output=True, text=True, cwd=str(REPO_ROOT))
     assert proc.returncode == 0
     assert "DRY-RUN COMPLETE" in proc.stdout

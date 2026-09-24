@@ -2,13 +2,10 @@
 Test Suite for V16E-S1: Simulated Operational Baseline & Scenario Isolation
 """
 
-import os
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 
-from backend.app.config import get_settings
-from backend.app.db import migrate_db
 from backend.app.models import (
     Asset,
     AssetConnection,
@@ -27,27 +24,29 @@ from backend.app.map_operations import get_map_overview
 from scripts.seed_tan_thuan_demo_v1 import seed_simulation
 
 
-@pytest.fixture(autouse=True)
-def ensure_simulation_db_env():
-    os.environ["DATABASE_URL"] = "sqlite:///./data/app.db"
-    get_settings.cache_clear()
-
-
 @pytest.fixture
-def db_session():
-    os.environ["DATABASE_URL"] = "sqlite:///./data/app.db"
-    get_settings.cache_clear()
-    engine = create_engine("sqlite:///./data/app.db", connect_args={"check_same_thread": False})
-    # This suite opens the shared simulation database directly instead of going
-    # through the application lifespan. Apply the same idempotent SQLite schema
-    # patch before ORM queries so existing rounds receive LEGACY_DYNAMIC mode.
-    migrate_db(engine)
-    TestingSession = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-    db = TestingSession()
+def db_session(legacy_v1_db_path, monkeypatch):
+    from datetime import datetime, timezone
+    from backend.app import admin
+    from backend.app.config import settings
+    monkeypatch.setattr(settings, "data_mode", "SIMULATION")
+    monkeypatch.setattr(settings, "active_scenario", "tan-thuan-demo-v1")
+
+    class ScenarioClock(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            value = datetime(2026, 9, 15, 23, 0, tzinfo=timezone.utc)
+            return value.astimezone(tz) if tz else value.replace(tzinfo=None)
+
+    # DUE is time-sensitive. Exercise the scenario at its documented shift start.
+    monkeypatch.setattr(admin, "datetime", ScenarioClock)
+    engine = create_engine(f"sqlite:///{legacy_v1_db_path.as_posix()}")
+    db = sessionmaker(bind=engine)()
     try:
         yield db
     finally:
         db.close()
+        engine.dispose()
 
 
 def test_5zone_map_active_pres_gate_absent(db_session: Session):
@@ -119,7 +118,7 @@ def test_legacy_meters_quarantined_and_retired(db_session: Session):
         .filter(MeterReading.meter_id.in_(legacy_ids))
         .count()
     )
-    assert ct_readings >= 2841
+    assert ct_readings == 12
 
 
 def test_electricity_and_water_network_acyclic(db_session: Session):
@@ -201,13 +200,29 @@ def test_scenario_isolation_in_apis(db_session: Session):
 
 def test_seed_idempotency(db_session: Session):
     """Assert that re-running seed_simulation produces identical counts with zero duplicates."""
-    seed_simulation("data/app.db")
+    def reading_values():
+        return db_session.query(MeterReading.id, MeterReading.reading, MeterReading.meter_id,
+                                MeterReading.reading_round_id).order_by(MeterReading.id).all()
+
+    before = reading_values()
+    # Close the ORM read transaction before the seeder opens its own connection.
+    db_session.rollback()
+    seed_simulation(db_session.bind.url.database)
+    db_session.expire_all()
+    assert reading_values() == before
+    from sqlalchemy import text
+    assert db_session.execute(text("PRAGMA foreign_key_check")).all() == []
+    assert db_session.execute(text("SELECT COUNT(*) FROM reading_round_meters")).scalar() == 0
+    assert {r.scope_mode for r in db_session.query(ReadingRound)} == {"LEGACY_DYNAMIC"}
 
     sim_assets = db_session.query(Asset).filter(Asset.scenario_id == "tan-thuan-demo-v1").count()
     assert sim_assets == 32
 
     sim_meters = db_session.query(Meter).filter(Meter.scenario_id == "tan-thuan-demo-v1").count()
     assert sim_meters == 12
+    for meter in db_session.query(Meter).filter(Meter.scenario_id == "tan-thuan-demo-v1"):
+        assert meter.measurement_unit == ("KWH" if meter.utility_type == "ELECTRICITY" else "M3")
+        assert meter.register_semantics == "CUMULATIVE"
 
     sim_conns = db_session.query(AssetConnection).filter(AssetConnection.scenario_id == "tan-thuan-demo-v1").count()
     assert sim_conns == 31

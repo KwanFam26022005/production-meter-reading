@@ -499,7 +499,7 @@ def test_attendance_invalid_image_rejection(client, test_user):
     assert bad_res.status_code in (400, 409)  # 400 for corrupt or 409 if already checked in
 
 
-def test_protected_meter_reading_and_no_image_persistence(client, test_user):
+def test_protected_meter_reading_and_no_image_persistence(client, test_user, stub_meter_inference):
     # Unauthenticated meter reading -> 401
     with TestClient(app) as unauth_client:
         sample_img = create_dummy_image_bytes()
@@ -517,27 +517,26 @@ def test_protected_meter_reading_and_no_image_persistence(client, test_user):
     )
     csrf_token = client.get("/api/v1/auth/csrf").json()["csrf_token"]
 
-    sample_img_path = "D:/Users/013.jpg"
-    if os.path.exists(sample_img_path):
-        initial_files = set(Path(".").glob("**/*.jpg"))
-        with open(sample_img_path, "rb") as f:
-            valid_bytes = f.read()
-        res = client.post(
-            "/api/v1/read-meter",
-            files={"file": ("013.jpg", valid_bytes, "image/jpeg")},
-            headers={"X-CSRF-Token": csrf_token},
-        )
-        assert res.status_code == 200
-        data = res.json()
-        assert data["status"] == "success"
-        assert data["reading"] == "000300"
+    stub_meter_inference.assert_not_called()
+    initial_files = set(Path(".").glob("**/*.jpg"))
+    valid_bytes = create_dummy_image_bytes()
+    res = client.post(
+        "/api/v1/read-meter",
+        files={"file": ("013.jpg", valid_bytes, "image/jpeg")},
+        headers={"X-CSRF-Token": csrf_token},
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert data["status"] == "success"
+    assert data["reading"] == "000300"
 
-        # Verify NO meter images were created in attendance storage or repo root
-        after_files = set(Path(".").glob("**/*.jpg"))
-        # Any new file must only be inside test_attendance_photos, not meter images
-        new_files = after_files - initial_files
-        for nf in new_files:
-            assert "test_attendance_photos" in str(nf)
+    # Verify NO meter images were created in attendance storage or repo root
+    after_files = set(Path(".").glob("**/*.jpg"))
+    # Any new file must only be inside test_attendance_photos, not meter images
+    new_files = after_files - initial_files
+    for nf in new_files:
+        assert "test_attendance_photos" in str(nf)
+    stub_meter_inference.assert_called_once()
 
 
 def test_unauthenticated_attendance_rejected(client):

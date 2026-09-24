@@ -75,6 +75,8 @@ METERS_SPEC = [
         "zone": "pres-technical",
         "pos": (1390, 555),
         "utility": "ELECTRICITY",
+        "measurement_unit": "KWH",
+        "register_semantics": "CUMULATIVE",
         "method": "OCR",
         "display": "LCD",
         "installed_at": "SIM-MDB-01",
@@ -89,6 +91,8 @@ METERS_SPEC = [
         "zone": "pres-berth",
         "pos": (895, 300),
         "utility": "ELECTRICITY",
+        "measurement_unit": "KWH",
+        "register_semantics": "CUMULATIVE",
         "method": "OCR",
         "display": "LCD",
         "installed_at": "SIM-FDR-BERTH",
@@ -103,6 +107,8 @@ METERS_SPEC = [
         "zone": "pres-container-west",
         "pos": (755, 455),
         "utility": "ELECTRICITY",
+        "measurement_unit": "KWH",
+        "register_semantics": "CUMULATIVE",
         "method": "OCR",
         "display": "LCD",
         "installed_at": "SIM-FDR-WEST",
@@ -117,6 +123,8 @@ METERS_SPEC = [
         "zone": "pres-container-center",
         "pos": (1145, 475),
         "utility": "ELECTRICITY",
+        "measurement_unit": "KWH",
+        "register_semantics": "CUMULATIVE",
         "method": "OCR",
         "display": "LCD",
         "installed_at": "SIM-FDR-CENTER",
@@ -131,6 +139,8 @@ METERS_SPEC = [
         "zone": "pres-cfs-east",
         "pos": (1665, 365),
         "utility": "ELECTRICITY",
+        "measurement_unit": "KWH",
+        "register_semantics": "CUMULATIVE",
         "method": "OCR",
         "display": "LCD",
         "installed_at": "SIM-FDR-CFS",
@@ -145,6 +155,8 @@ METERS_SPEC = [
         "zone": "pres-technical",
         "pos": (1340, 575),
         "utility": "ELECTRICITY",
+        "measurement_unit": "KWH",
+        "register_semantics": "CUMULATIVE",
         "method": "MANUAL",
         "display": "LCD",
         "installed_at": "SIM-FDR-TECH",
@@ -159,6 +171,8 @@ METERS_SPEC = [
         "zone": "pres-container-west",
         "pos": (470, 475),
         "utility": "ELECTRICITY",
+        "measurement_unit": "KWH",
+        "register_semantics": "CUMULATIVE",
         "method": "OCR",
         "display": "LCD",
         "installed_at": "SIM-YDB-W01",
@@ -173,6 +187,8 @@ METERS_SPEC = [
         "zone": "pres-container-center",
         "pos": (1395, 395),
         "utility": "ELECTRICITY",
+        "measurement_unit": "KWH",
+        "register_semantics": "CUMULATIVE",
         "method": "OCR",
         "display": "LCD",
         "installed_at": "SIM-YDB-C01",
@@ -188,6 +204,8 @@ METERS_SPEC = [
         "zone": "pres-technical",
         "pos": (1410, 565),
         "utility": "WATER",
+        "measurement_unit": "M3",
+        "register_semantics": "CUMULATIVE",
         "method": "OCR",
         "display": "MECHANICAL",
         "installed_at": "SIM-WIN-01",
@@ -202,6 +220,8 @@ METERS_SPEC = [
         "zone": "pres-berth",
         "pos": (1130, 350),
         "utility": "WATER",
+        "measurement_unit": "M3",
+        "register_semantics": "CUMULATIVE",
         "method": "MANUAL",
         "display": "MECHANICAL",
         "installed_at": "SIM-WP-B01",
@@ -216,6 +236,8 @@ METERS_SPEC = [
         "zone": "pres-cfs-east",
         "pos": (1660, 335),
         "utility": "WATER",
+        "measurement_unit": "M3",
+        "register_semantics": "CUMULATIVE",
         "method": "OCR",
         "display": "MECHANICAL",
         "installed_at": "SIM-WP-CFS-01",
@@ -230,6 +252,8 @@ METERS_SPEC = [
         "zone": "pres-technical",
         "pos": (1415, 525),
         "utility": "WATER",
+        "measurement_unit": "M3",
+        "register_semantics": "CUMULATIVE",
         "method": "MANUAL",
         "display": "MECHANICAL",
         "installed_at": "SIM-FP-01",
@@ -379,9 +403,9 @@ def seed_simulation(db_path: str = "data/app.db"):
             INSERT INTO meters (
                 id, meter_code, name, meter_type, presentation_zone_id,
                 map_x, map_y, route_status, is_active, lifecycle_status,
-                reading_method, utility_type, data_origin, scenario_id,
+                reading_method, utility_type, measurement_unit, register_semantics, data_origin, scenario_id,
                 created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, 'VALID', 1, 'ACTIVE', ?, ?, 'SIMULATED', ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, 'VALID', 1, 'ACTIVE', ?, ?, ?, ?, 'SIMULATED', ?, ?, ?)
             ON CONFLICT(meter_code) DO UPDATE SET
                 name = excluded.name,
                 meter_type = excluded.meter_type,
@@ -390,6 +414,8 @@ def seed_simulation(db_path: str = "data/app.db"):
                 map_y = excluded.map_y,
                 reading_method = excluded.reading_method,
                 utility_type = excluded.utility_type,
+                measurement_unit = excluded.measurement_unit,
+                register_semantics = excluded.register_semantics,
                 data_origin = 'SIMULATED',
                 scenario_id = excluded.scenario_id,
                 lifecycle_status = 'ACTIVE',
@@ -405,6 +431,8 @@ def seed_simulation(db_path: str = "data/app.db"):
             norm_y,
             m["method"],
             m["utility"],
+            m["measurement_unit"],
+            m["register_semantics"],
             SCENARIO_CODE,
             now_str,
             now_str,
@@ -530,8 +558,8 @@ def seed_simulation(db_path: str = "data/app.db"):
 
             # Ensure round exists
             con.execute("""
-                INSERT INTO reading_rounds (id, batch_id, scheduled_at, status, is_legacy, created_at)
-                VALUES (?, ?, ?, 'CLOSED', 0, ?)
+                INSERT INTO reading_rounds (id, batch_id, scheduled_at, status, is_legacy, scope_mode, created_at)
+                VALUES (?, ?, ?, 'CLOSED', 0, 'LEGACY_DYNAMIC', ?)
                 ON CONFLICT(batch_id, scheduled_at) DO NOTHING
             """, (round_id, batch_id, t.strftime("%Y-%m-%d %H:%M:%S"), t.isoformat()))
 
@@ -566,8 +594,8 @@ def seed_simulation(db_path: str = "data/app.db"):
     curr_round_dt = datetime(2026, 9, 15, 23, 0, 0, tzinfo=timezone.utc)
     curr_round_id = gen_uuid("round", "2026-09-sim-2026-09-16-active")
     con.execute("""
-        INSERT INTO reading_rounds (id, batch_id, scheduled_at, status, is_legacy, created_at)
-        VALUES (?, ?, ?, 'OPEN', 0, ?)
+        INSERT INTO reading_rounds (id, batch_id, scheduled_at, status, is_legacy, scope_mode, created_at)
+        VALUES (?, ?, ?, 'OPEN', 0, 'LEGACY_DYNAMIC', ?)
         ON CONFLICT(id) DO UPDATE SET status = 'OPEN', scheduled_at = excluded.scheduled_at
     """, (curr_round_id, batch_id, curr_round_dt.strftime("%Y-%m-%d %H:%M:%S"), now_str))
 

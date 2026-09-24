@@ -1282,7 +1282,7 @@ def test_micro_dashboard_historical_review_isolated_from_current_status(client, 
     assert data["summary"]["pending_current"] == 0
 
 
-def test_no_meter_image_persistence_across_full_lifecycle(client, test_db_session, sample_user):
+def test_no_meter_image_persistence_across_full_lifecycle(client, test_db_session, sample_user, stub_meter_inference):
     import os
     from backend.app.models import MeterReading
 
@@ -1296,18 +1296,12 @@ def test_no_meter_image_persistence_across_full_lifecycle(client, test_db_sessio
 
     initial_files = set(Path(".").glob("**/*.jpg"))
 
-    # 1. Inference request with sample or dummy image
-    sample_img_path = "D:/Users/013.jpg"
-    if os.path.exists(sample_img_path):
-        with open(sample_img_path, "rb") as f:
-            img_bytes = f.read()
-    else:
-        # Create minimal 100x100 white jpeg in memory
-        import cv2
-        import numpy as np
-        img_np = np.full((100, 100, 3), 255, dtype=np.uint8)
-        _, encoded = cv2.imencode(".jpg", img_np)
-        img_bytes = encoded.tobytes()
+    # Decode a real in-memory JPEG; model inference is the only stubbed boundary.
+    import cv2
+    import numpy as np
+    img_np = np.full((100, 100, 3), 255, dtype=np.uint8)
+    _, encoded = cv2.imencode(".jpg", img_np)
+    img_bytes = encoded.tobytes()
 
     res_inf = client.post(
         "/api/v1/read-meter",
@@ -1315,6 +1309,7 @@ def test_no_meter_image_persistence_across_full_lifecycle(client, test_db_sessio
         headers={"X-CSRF-Token": csrf},
     )
     assert res_inf.status_code == 200
+    stub_meter_inference.assert_called_once()
 
     # 2. Confirm reading
     res_conf = client.post(
@@ -1324,8 +1319,8 @@ def test_no_meter_image_persistence_across_full_lifecycle(client, test_db_sessio
             "meter_id": m.id,
             "reading_round_id": round_obj.id,
             "batch_id": batch.id,
-            "reading": "9999.00",
-            "ocr_reading": "9999.00",
+            "reading": "000300",
+            "ocr_reading": "000300",
         },
     )
     assert res_conf.status_code == 200
@@ -1333,7 +1328,7 @@ def test_no_meter_image_persistence_across_full_lifecycle(client, test_db_sessio
     # 3. Verify SQLite DB has NO image data / blobs
     db_record = test_db_session.query(MeterReading).filter(MeterReading.meter_id == m.id).first()
     assert db_record is not None
-    assert db_record.reading == "9999.00"
+    assert db_record.reading == "000300"
     assert not hasattr(db_record, "photo")
     assert not hasattr(db_record, "image_data")
     assert not hasattr(db_record, "image_bytes")
