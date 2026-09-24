@@ -245,14 +245,31 @@ export const AdminSchedules: React.FC<AdminSchedulesProps> = ({ onInspectReading
 
   // Sync with workspace selectedRoundId
   useEffect(() => {
-    if (scheduleData && scheduleData.rounds.length > 0 && selectedRoundId) {
-      const matchingRound = scheduleData.rounds.find((r) => r.id === selectedRoundId);
-      if (matchingRound && selectedRoundForMeters?.id !== matchingRound.id) {
+    if (!scheduleData) return;
+
+    const matchingRound = selectedRoundId
+      ? scheduleData.rounds.find((round) => round.id === selectedRoundId)
+      : undefined;
+
+    if (matchingRound) {
+      if (selectedRoundForMeters?.id !== matchingRound.id) {
         setSelectedRoundForMeters(matchingRound);
         loadRoundMeters(matchingRound.id);
       }
+      return;
     }
-  }, [scheduleData, selectedRoundId, loadRoundMeters]);
+
+    // The workspace selection can outlive the selected day. Do not leave a
+    // different day's meter snapshot open under the newly selected date.
+    if (selectedRoundId || (selectedRoundForMeters && !scheduleData.rounds.some(
+      (round) => round.id === selectedRoundForMeters.id
+    ))) {
+      setSelectedRoundForMeters(null);
+      setRoundMetersData(null);
+      setRoundMetersError(null);
+      if (selectedRoundId) setSelectedRoundId(null);
+    }
+  }, [scheduleData, selectedRoundId, selectedRoundForMeters?.id, loadRoundMeters, setSelectedRoundId]);
 
   const filteredMeters = useMemo(() => {
     if (!roundMetersData?.meters) return [];

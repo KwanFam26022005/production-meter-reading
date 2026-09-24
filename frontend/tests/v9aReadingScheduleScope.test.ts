@@ -39,6 +39,12 @@ test('9A Admin: persisted round scope and legacy provenance are visible in round
   assert.match(adminSource, /Phạm vi lịch cũ/);
 });
 
+test('9A Admin: changing day closes a logbook selection outside the loaded daily scope', () => {
+  assert.match(adminSource, /The workspace selection can outlive the selected day/);
+  assert.match(adminSource, /selectedRoundForMeters && !scheduleData\.rounds\.some/);
+  assert.match(adminSource, /setSelectedRoundForMeters\(null\);\s*setRoundMetersData\(null\);\s*setRoundMetersError\(null\);\s*if \(selectedRoundId\) setSelectedRoundId\(null\);/);
+});
+
 test('9A Admin: schedule dialog has labelled scope controls, keyboard close, and safe delete wording', () => {
   assert.match(adminSource, /Tất cả công tơ đủ điều kiện/);
   assert.match(adminSource, /Theo khu vực/);
