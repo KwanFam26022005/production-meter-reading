@@ -33,6 +33,7 @@ import { formatUserRole, canAdministerMapConfiguration } from '../../../types';
 import type { MapMeterItem, MapOperationalZone, MapFilterOptions } from '../types';
 import { deriveCommandBarModel } from './commandBarModel';
 import { CommandPopoverSurface } from './CommandPopoverSurface';
+import { deriveShiftFromRoundTime } from '../utils/deriveOperatorShiftSummary';
 
 export interface AdaptiveCommandBarProps {
   user?: User;
@@ -244,15 +245,18 @@ export const AdaptiveCommandBar: React.FC<AdaptiveCommandBarProps> = ({
       : -1;
 
   const currentRound = activeIdx >= 0 ? rounds[activeIdx] : null;
+  const currentShiftNumber = deriveShiftFromRoundTime(
+    currentRound?.scheduled_time || currentRoundTime || undefined
+  ).shiftCode.replace('CA', '');
   const shiftDisplayLabel = currentRound
-    ? `Ca 1 (${currentRound.scheduled_time})`
+    ? `Ca ${currentShiftNumber} (${currentRound.scheduled_time})`
     : currentRoundTime
-    ? `Ca 1 (${currentRoundTime})`
+    ? `Ca ${currentShiftNumber} (${currentRoundTime})`
     : 'Ca 1 (06:00 - 14:00)';
   const shiftDisplayCompactLabel = currentRound
-    ? `Ca 1 (${currentRound.scheduled_time})`
+    ? `Ca ${currentShiftNumber} (${currentRound.scheduled_time})`
     : currentRoundTime
-    ? `Ca 1 (${currentRoundTime})`
+    ? `Ca ${currentShiftNumber} (${currentRoundTime})`
     : 'Ca 1';
 
   const userInitial = user?.full_name?.charAt(0)?.toUpperCase() || 'P';
