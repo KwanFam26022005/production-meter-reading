@@ -739,17 +739,29 @@ export default function UserApp() {
             Bạn đang đăng nhập vào <strong>Cổng Nhân viên Hiện trường</strong>. Để quản lý thiết bị, phân ca và bản đồ số, vui lòng chuyển sang <strong>Cổng Điều hành (Operations Portal)</strong>.
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={() => {
-                const opsPort = window.location.port === '5173' ? '5174' : window.location.port;
-                const opsUrl = window.location.port === '5173' ? `http://localhost:${opsPort}` : '/ops';
-                window.location.href = opsUrl;
-              }}
-            >
-              Chuyển sang Cổng Điều hành
-            </button>
+            {(() => {
+              const envOpsUrl = import.meta.env.VITE_OPERATIONS_PORTAL_URL as string | undefined;
+              const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+              const targetUrl = envOpsUrl || (isLocal ? `${window.location.protocol}//${window.location.hostname}:5174` : null);
+              if (targetUrl) {
+                return (
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={() => {
+                      window.location.href = targetUrl;
+                    }}
+                  >
+                    Chuyển sang Cổng Điều hành
+                  </button>
+                );
+              }
+              return (
+                <div style={{ padding: '8px 12px', background: '#F1F5F9', borderRadius: '8px', fontSize: '0.85rem', color: '#475569' }}>
+                  Vui lòng mở Cổng Điều hành từ đường dẫn riêng do launcher cung cấp.
+                </div>
+              );
+            })()}
             <button
               type="button"
               className="btn btn-secondary"
