@@ -271,19 +271,31 @@ export default function OperationsApp() {
             Cổng Điều hành chỉ dành cho <strong>Quản trị viên</strong> và <strong>Cán bộ điều hành cảng</strong>. Tài khoản của bạn (<strong>{currentUser.full_name}</strong> - <code>{currentUser.employee_code}</code>) không có quyền truy cập không gian này.
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <button
-              type="button"
-              className="btn btn-primary"
-              style={{ display: 'inline-flex', justifyContent: 'center', alignItems: 'center' }}
-              onClick={() => {
-                const userPort = window.location.port === '5174' ? '5173' : window.location.port;
-                const userUrl = window.location.port === '5174' ? `http://localhost:${userPort}` : '/';
-                window.location.href = userUrl;
-              }}
-            >
-              <ArrowLeft size={16} style={{ marginRight: '6px' }} />
-              Chuyển sang Cổng Nhân viên Hiện trường
-            </button>
+            {(() => {
+              const envUserUrl = import.meta.env.VITE_USER_PORTAL_URL as string | undefined;
+              const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+              const targetUrl = envUserUrl || (isLocal ? `${window.location.protocol}//${window.location.hostname}:5173` : null);
+              if (targetUrl) {
+                return (
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    style={{ display: 'inline-flex', justifyContent: 'center', alignItems: 'center' }}
+                    onClick={() => {
+                      window.location.href = targetUrl;
+                    }}
+                  >
+                    <ArrowLeft size={16} style={{ marginRight: '6px' }} />
+                    Chuyển sang Cổng Nhân viên Hiện trường
+                  </button>
+                );
+              }
+              return (
+                <div style={{ padding: '8px 12px', background: '#F1F5F9', borderRadius: '8px', fontSize: '0.85rem', color: '#475569' }}>
+                  Vui lòng mở Cổng Nhân viên Hiện trường từ đường dẫn riêng do launcher cung cấp.
+                </div>
+              );
+            })()}
             <button
               type="button"
               className="btn btn-secondary"

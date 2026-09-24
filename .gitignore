@@ -67,6 +67,8 @@ backend/output/
 backend_err.log
 backend_out.log
 .demo_pids.json
+.demo_portals_pids.json
+.demo/
 
 # Local production model directories
 models/e2/

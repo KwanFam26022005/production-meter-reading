@@ -155,7 +155,50 @@ ReadingBatch (1:N) ──> ReadingRound (1:N) ──> MeterReading
 - **AI PREDICTION $\neq$ OFFICIAL READING:** OCR results are transient predictions in RAM. Official database records are strictly created only after user review and explicit confirmation.
 - **ZERO IMAGE PERSISTENCE:** Meter photos are decoded in volatile memory for inference and immediately released. Meter images are never persisted to disk, database, or static storage.
 
-## IPHONE 14 PLUS DEMO
+## DUAL PORTAL DEMO
+
+Launch the real two-site architecture locally and (optionally) over separate Cloudflare Quick Tunnels:
+- **User Portal** (`frontend/user.html`, `src/apps/user/UserApp.tsx` on port `5173`)
+- **Operations Portal** (`frontend/operations.html`, `src/apps/operations/OperationsApp.tsx` on port `5174`)
+- **Backend API** (FastAPI on `127.0.0.1:8000`)
+
+### Running the Dual Portal Demo
+
+```powershell
+# Standard dual-portal demo with separate Cloudflare Quick Tunnels
+.\scripts\demo-portals.ps1
+
+# Local-only demo without Cloudflare tunnels
+.\scripts\demo-portals.ps1 -NoTunnel
+
+# Skip AI model verification if not testing OCR inference
+.\scripts\demo-portals.ps1 -SkipModelCheck
+```
+
+### Access URLs
+
+- **Local Access:**
+  - User Portal: `http://localhost:5173`
+  - Operations Portal: `http://localhost:5174`
+- **Remote Access (Cloudflare Demo Mode):**
+  - User Portal: `https://<user-subdomain>.trycloudflare.com`
+  - Operations Portal: `https://<ops-subdomain>.trycloudflare.com`
+
+### Role & Portal Authority Boundaries
+
+- **EMPLOYEE:** Sign in to **User Portal** (`http://localhost:5173` or User tunnel URL). Normal field meter-reading and attendance workflows. Accessing Operations Portal will return 403 Access Denied.
+- **ADMIN:** Sign in to **Operations Portal** (`http://localhost:5174` or Ops tunnel URL). Administrative dashboard, schedules, devices, reports, and digital twin Map V2. Signing in to User Portal will show the Admin portal guard without mounting the Admin workspace.
+
+### Stopping the Demo
+
+```powershell
+.\scripts\stop-demo-portals.ps1
+```
+This terminates only the recorded processes (`backend`, `user_frontend`, `operations_frontend`, and tunnels) from `.demo_portals_pids.json` without affecting unrelated system processes.
+
+---
+
+## IPHONE 14 PLUS DEMO (LEGACY SINGLE-PORTAL)
 
 Run the complete application on a local PC and demo it live from an iPhone 14 Plus using Safari over HTTPS with same-origin architecture.
 
