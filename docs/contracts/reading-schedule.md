@@ -15,7 +15,7 @@ Historical handoff: [`docs/implementation/reading-schedule-round-scope-phase-9a/
 1. **WHEN = ReadingRound; WHAT = ReadingRoundMeter**: Round scheduling and meter scope definition are strictly decoupled from operational staffing.
 2. **Snapshot Persistence**: All newly published rounds persist scope rows in [`ReadingRoundMeter`](../../backend/app/models.py) within an atomic publish transaction.
 3. **Snapshot Denominator**: The round scope denominator for snapshot rounds is the count of persisted, scheduled scope rows (`ReadingRoundMeter`), not dynamic active inventory.
-4. **Publication-Time Identity**: Each scope row preserves immutable snapshot attributes: `meter_id`, `meter_code_snapshot`, `meter_name_snapshot`, `zone_id_snapshot`, `zone_name_snapshot`, `presentation_zone_id_snapshot`, `utility_type_snapshot`, `scope_origin`, and `scope_status`.
+4. **Publication-Time Identity**: Each scope row preserves immutable snapshot attributes: `meter_id`, `meter_code_snapshot`, `meter_name_snapshot`, `zone_id_snapshot`, `presentation_zone_id_snapshot`, `utility_type_snapshot`, `scope_origin`, and `scope_status`. The current schema does not persist `zone_name_snapshot`; the zone ID is authoritative and the display name resolves from the current zone catalog.
 5. **Scope Immutability**: Historical scope rows never mutate when a meter is subsequently created, retired, or moved to a different operational zone.
 6. **Creation Validation**: Empty scope publication is rejected. Server re-verifies scope cardinality and compares preview SHA-256 fingerprint; stale publish requests return HTTP 409 Conflict.
 7. **Supported Scope Modes**:
@@ -37,7 +37,7 @@ Historical handoff: [`docs/implementation/reading-schedule-round-scope-phase-9a/
 ## Legacy / Compatibility Behavior
 - Historical rounds prior to Thread 9A are marked `LEGACY_DYNAMIC` and resolve active meters dynamically at query time.
 - Legacy dynamic rounds are never presented as immutable snapshots; no synthetic scope rows are backfilled.
-- [`backend/app/reporting.py`](../../backend/app/reporting.py) intentionally preserved dynamic inventory denominators throughout 9A.
+- Thread 9D reporting uses these scope rows for snapshot denominators. Dynamic inventory remains specific to `LEGACY_DYNAMIC` rounds ([`reporting.md`](reporting.md)).
 
 ## Forbidden Reinterpretations
 - Never assign employees in this contract; `ReadingRound` and `ReadingRoundMeter` do not own staffing.
@@ -48,7 +48,7 @@ Historical handoff: [`docs/implementation/reading-schedule-round-scope-phase-9a/
 ## Known Limitations / Unresolved Items
 - Staffing assignment is owned by Thread 9B ([`operational-assignment.md`](operational-assignment.md)).
 - Personal task projection is owned by Thread 9C ([`user-task-projection.md`](user-task-projection.md)).
-- Reporting denominators in [`backend/app/reporting.py`](../../backend/app/reporting.py) remain dynamic active inventory (deferred to Thread 9D).
+- The historical zone display name is not persisted in the 9A schema; reporting groups by the immutable zone ID and resolves the present catalog label for display.
 
 ## Source Evidence
 - Models: [`backend/app/models.py`](../../backend/app/models.py) (`ReadingRound`, `ReadingRoundMeter`, `RoundScopeMode`, `RoundScopeOrigin`)

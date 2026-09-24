@@ -59,7 +59,7 @@ Historical handoff: [`docs/implementation/user-task-projection-phase-9c/THREAD_H
 - Never create persistent task tables (`user_tasks`, etc.).
 
 ## Known Limitations / Unresolved Items
-- Reporting round/location denominators remain dynamic active inventory (deferred to Thread 9D).
+- Thread 9D reporting now uses published snapshot scope for denominators while keeping `LEGACY_DYNAMIC` explicitly dynamic ([`reporting.md`](reporting.md)).
 
 ## Source Evidence
 - Backend projection & auth: [`backend/app/user_tasks.py`](../../backend/app/user_tasks.py)
