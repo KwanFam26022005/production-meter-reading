@@ -44,6 +44,61 @@ export const formatLatestReadingTime = (timeStr?: string | null): string | null 
   return timeStr;
 };
 
+export const getMeterMeasurementInfo = (
+  utilityType?: string | null,
+  measurementUnit?: string | null
+): { label: string; badgeClass: string; unitText: string; isUnknown: boolean } => {
+  const normUnit = measurementUnit?.toUpperCase();
+  const normUtil = utilityType?.toUpperCase();
+
+  if (normUnit === 'UNKNOWN' || (!normUnit && normUtil === 'UNKNOWN')) {
+    return {
+      label: 'Chưa cấu hình đơn vị',
+      badgeClass: 'badge-unit-unknown',
+      unitText: '',
+      isUnknown: true,
+    };
+  }
+
+  if (normUnit === 'KWH' || normUtil === 'ELECTRICITY') {
+    return {
+      label: 'Điện (kWh)',
+      badgeClass: 'badge-unit-kwh',
+      unitText: 'kWh',
+      isUnknown: false,
+    };
+  }
+
+  if (normUnit === 'M3' || normUtil === 'WATER') {
+    return {
+      label: 'Nước (m³)',
+      badgeClass: 'badge-unit-m3',
+      unitText: 'm³',
+      isUnknown: false,
+    };
+  }
+
+  return {
+    label: normUtil ? `${normUtil} (${normUnit || 'Chưa rõ'})` : 'Chưa rõ đơn vị',
+    badgeClass: 'badge-unit-unknown',
+    unitText: normUnit || '',
+    isUnknown: true,
+  };
+};
+
+export const getRegisterSemanticsInfo = (
+  semantics?: string | null
+): { label: string; badgeClass: string } => {
+  const norm = semantics?.toUpperCase();
+  if (norm === 'CUMULATIVE') {
+    return { label: 'Lũy kế', badgeClass: 'badge-semantics-cumulative' };
+  }
+  if (norm === 'INTERVAL') {
+    return { label: 'Khoảng', badgeClass: 'badge-semantics-interval' };
+  }
+  return { label: 'Chưa cấu hình', badgeClass: 'badge-semantics-unknown' };
+};
+
 export interface AdminMetersProps {
   onInspectReading?: (readingId: string) => void;
 }
@@ -497,11 +552,11 @@ export const AdminMeters: React.FC<AdminMetersProps> = ({ onInspectReading }) =>
                 <thead>
                   <tr>
                     <th scope="col" style={{ width: '12%' }}>Mã công tơ</th>
-                    <th scope="col" style={{ width: '22%' }}>Tên công tơ</th>
-                    <th scope="col" style={{ width: '20%' }}>Vị trí</th>
-                    <th scope="col" style={{ width: '10%' }}>Loại</th>
-                    <th scope="col" style={{ width: '14%' }}>Trạng thái</th>
-                    <th scope="col" style={{ width: '22%' }}>Chỉ số gần nhất</th>
+                    <th scope="col" style={{ width: '18%' }}>Tên công tơ</th>
+                    <th scope="col" style={{ width: '15%' }}>Vị trí</th>
+                    <th scope="col" style={{ width: '18%' }}>Tiện ích & Đơn vị</th>
+                    <th scope="col" style={{ width: '12%' }}>Trạng thái</th>
+                    <th scope="col" style={{ width: '20%' }}>Chỉ số gần nhất</th>
                     <th scope="col" style={{ width: '56px', textAlign: 'center' }}>
                       <span className="sr-only">Thao tác</span>
                     </th>
@@ -513,6 +568,8 @@ export const AdminMeters: React.FC<AdminMetersProps> = ({ onInspectReading }) =>
                     const isMenuOpen = openMenuId === m.id;
                     const typeLabel =
                       m.meter_type.toUpperCase() === 'MECHANICAL' ? 'Cơ' : 'LCD';
+                    const measInfo = getMeterMeasurementInfo(m.utility_type, m.measurement_unit);
+                    const semInfo = getRegisterSemanticsInfo(m.register_semantics);
 
                     return (
                       <tr
@@ -543,9 +600,33 @@ export const AdminMeters: React.FC<AdminMetersProps> = ({ onInspectReading }) =>
                           </span>
                         </td>
 
-                        {/* Column 4: Loại */}
+                        {/* Column 4: Tiện ích & Đơn vị đo */}
                         <td>
-                          <span className="admin-meter-type-text">{typeLabel}</span>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                              {measInfo.isUnknown ? (
+                                <span
+                                  className="admin-badge badge-unit-unknown"
+                                  title="Đơn vị chưa được cấu hình (UNKNOWN). Cần kiểm tra hồ sơ kỹ thuật."
+                                >
+                                  <AlertTriangle size={11} aria-hidden="true" />
+                                  <span>Chưa cấu hình ĐV</span>
+                                </span>
+                              ) : (
+                                <span className={`admin-badge ${measInfo.badgeClass}`}>
+                                  {measInfo.label}
+                                </span>
+                              )}
+                              <span className="text-muted font-tabular" style={{ fontSize: 11 }}>
+                                {typeLabel}
+                              </span>
+                            </div>
+                            {m.register_semantics && (
+                              <span className="text-muted font-tabular" style={{ fontSize: 11 }}>
+                                Kiểu: {semInfo.label}
+                              </span>
+                            )}
+                          </div>
                         </td>
 
                         {/* Column 5: Trạng thái */}
@@ -563,12 +644,23 @@ export const AdminMeters: React.FC<AdminMetersProps> = ({ onInspectReading }) =>
                           )}
                         </td>
 
-                        {/* Column 6: Chỉ số gần nhất (Canonical String Preserved) */}
+                        {/* Column 6: Chỉ số gần nhất (Truthful Unit Representation) */}
                         <td>
                           {m.latest_reading ? (
                             <div className="admin-reading-cell-v2">
                               <span className="admin-reading-val font-mono font-semibold font-tabular">
-                                {m.latest_reading} {m.utility_type === 'WATER' ? 'm³' : 'kWh'}
+                                {m.latest_reading}{' '}
+                                {measInfo.isUnknown ? (
+                                  <span
+                                    className="font-normal text-xs"
+                                    title="Đơn vị đo lường chưa cấu hình"
+                                    style={{ color: 'var(--sgp-warning, #A86200)' }}
+                                  >
+                                    (Chưa rõ ĐV)
+                                  </span>
+                                ) : (
+                                  measInfo.unitText
+                                )}
                               </span>
                               {formattedTime && (
                                 <span className="admin-reading-time font-tabular">
@@ -687,7 +779,7 @@ export const AdminMeters: React.FC<AdminMetersProps> = ({ onInspectReading }) =>
           <div className="admin-meters-mobile-list">
             {data.meters.map((m) => {
               const formattedTime = formatLatestReadingTime(m.latest_reading_time);
-              const isWater = m.utility_type === 'WATER';
+              const measInfo = getMeterMeasurementInfo(m.utility_type, m.measurement_unit);
 
               return (
                 <div
@@ -697,8 +789,8 @@ export const AdminMeters: React.FC<AdminMetersProps> = ({ onInspectReading }) =>
                 >
                   <div className="admin-meter-card-top">
                     <span className="admin-meter-card-code font-mono font-bold">{m.meter_code}</span>
-                    <span className={`admin-meter-card-utility ${isWater ? 'water' : 'electricity'}`}>
-                      {isWater ? '💧 Nước' : '⚡ Điện'}
+                    <span className={`admin-meter-card-utility ${measInfo.isUnknown ? 'unknown' : m.utility_type === 'WATER' ? 'water' : 'electricity'}`}>
+                      {measInfo.isUnknown ? '⚠️ Chưa cấu hình ĐV' : m.utility_type === 'WATER' ? '💧 Nước (m³)' : '⚡ Điện (kWh)'}
                     </span>
                   </div>
 
@@ -714,7 +806,14 @@ export const AdminMeters: React.FC<AdminMetersProps> = ({ onInspectReading }) =>
                       {m.latest_reading ? (
                         <>
                           <span className="admin-meter-card-reading-val font-mono">
-                            {m.latest_reading} {isWater ? 'm³' : 'kWh'}
+                            {m.latest_reading}{' '}
+                            {measInfo.isUnknown ? (
+                              <span style={{ fontSize: 11, color: 'var(--sgp-warning, #A86200)' }}>
+                                (Chưa rõ ĐV)
+                              </span>
+                            ) : (
+                              measInfo.unitText
+                            )}
                           </span>
                           {formattedTime && (
                             <span className="admin-meter-card-reading-time">{formattedTime}</span>
@@ -866,6 +965,57 @@ export const AdminMeters: React.FC<AdminMetersProps> = ({ onInspectReading }) =>
                   <option value="UNKNOWN">Khác / Chưa xác định</option>
                 </select>
               </div>
+
+              {editingMeter && (
+                <div className="admin-form-group border-t border-slate-200 pt-4 mt-2">
+                  <label className="admin-form-label flex items-center justify-between text-xs font-bold text-slate-700 mb-2">
+                    <span>Thông số đo lường & Cấu hình</span>
+                    {editingMeter.measurement_unit === 'UNKNOWN' && (
+                      <span className="text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-300 text-[11px] font-semibold flex items-center gap-1">
+                        <AlertTriangle size={11} /> Cần bổ sung
+                      </span>
+                    )}
+                  </label>
+                  <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 space-y-2 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-500 font-medium">Loại tiện ích:</span>
+                      <span className="font-semibold text-slate-800">
+                        {editingMeter.utility_type === 'WATER'
+                          ? 'Cấp nước (WATER)'
+                          : editingMeter.utility_type === 'ELECTRICITY'
+                          ? 'Điện năng (ELECTRICITY)'
+                          : 'Chưa xác định (UNKNOWN)'}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-500 font-medium">Đơn vị đo:</span>
+                      <span className={`font-semibold ${editingMeter.measurement_unit === 'UNKNOWN' ? 'text-amber-800 font-bold' : 'text-slate-800'}`}>
+                        {editingMeter.measurement_unit === 'KWH'
+                          ? 'kWh (Kilowatt-giờ)'
+                          : editingMeter.measurement_unit === 'M3'
+                          ? 'm³ (Mét khối)'
+                          : 'Chưa cấu hình (UNKNOWN)'}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-500 font-medium">Cơ chế ghi:</span>
+                      <span className="font-semibold text-slate-800">
+                        {editingMeter.register_semantics === 'CUMULATIVE'
+                          ? 'Chỉ số lũy kế (CUMULATIVE)'
+                          : editingMeter.register_semantics === 'INTERVAL'
+                          ? 'Chỉ số khoảng (INTERVAL)'
+                          : 'Chưa xác định (UNKNOWN)'}
+                      </span>
+                    </div>
+                    {editingMeter.measurement_unit === 'UNKNOWN' && (
+                      <div className="mt-2 p-2 bg-amber-50 rounded border border-amber-200 text-amber-800 text-[11px] leading-relaxed">
+                        <AlertTriangle size={12} className="inline mr-1 text-amber-600" />
+                        Công tơ này chưa được xác định đơn vị đo lường (UNKNOWN). Cần kiểm tra hồ sơ kỹ thuật để hoàn tất cấu hình trước khi tính toán sản lượng tiêu thụ.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {editingMeter && (
                 <div className="admin-form-group border-t border-slate-200 pt-4 mt-2">
