@@ -15,7 +15,7 @@ from backend.app.auth import hash_password
 from backend.app.config import get_settings
 from backend.app.db import Base, get_db, migrate_db
 from backend.app.main import app
-from backend.app.models import Meter, MeterReading, ReadingBatch, ReadingRound, User
+from backend.app.models import Meter, MeterReading, OperationalZone, ReadingBatch, ReadingRound, User
 from backend.scripts.create_reading_batch import create_reading_batch, close_reading_batch
 from backend.scripts.create_reading_rounds import generate_reading_rounds
 from backend.scripts.import_meters import import_meters_from_csv
@@ -178,7 +178,15 @@ def test_create_reading_batch_and_single_open_enforcement(test_db_session):
 # 3. CURRENT BATCH & BATCH METERS API
 # ==============================================================================
 def test_current_batch_api_and_derived_pending(client, test_db_session, sample_user):
-    m1 = Meter(meter_code="CT-001", name="Công tơ trạm A", location="Trạm điện A", is_active=True)
+    m1 = Meter(
+        meter_code="CT-001",
+        name="Công tơ trạm A",
+        location="Trạm điện A",
+        utility_type="ELECTRICITY",
+        measurement_unit="KWH",
+        register_semantics="CUMULATIVE",
+        is_active=True,
+    )
     m2 = Meter(meter_code="CT-002", name="Công tơ kho B", location="Kho B", is_active=True)
     m3 = Meter(meter_code="CT-003", name="Công tơ cầu tàu 1", location="Cầu tàu 1", is_active=True)
     m_inactive = Meter(meter_code="CT-999", name="Công tơ hỏng", location="Kho phế liệu", is_active=False)
@@ -394,7 +402,15 @@ def test_legacy_round_visibility_and_history_audit(client, test_db_session, samp
 # 8. ROUND METERS LIST & DERIVED PENDING PER ROUND
 # ==============================================================================
 def test_round_meters_list_and_filters(client, test_db_session, sample_user):
-    m1 = Meter(meter_code="CT-001", name="Công tơ trạm A", location="Trạm điện A", is_active=True)
+    m1 = Meter(
+        meter_code="CT-001",
+        name="Công tơ trạm A",
+        location="Trạm điện A",
+        utility_type="ELECTRICITY",
+        measurement_unit="KWH",
+        register_semantics="CUMULATIVE",
+        is_active=True,
+    )
     m2 = Meter(meter_code="CT-002", name="Công tơ kho B", location="Kho B", is_active=True)
     test_db_session.add_all([m1, m2])
     test_db_session.commit()
@@ -408,6 +424,9 @@ def test_round_meters_list_and_filters(client, test_db_session, sample_user):
     assert res_search.status_code == 200
     assert len(res_search.json()["meters"]) == 1
     assert res_search.json()["meters"][0]["meter"]["meter_code"] == "CT-001"
+    assert res_search.json()["meters"][0]["meter"]["utility_type"] == "ELECTRICITY"
+    assert res_search.json()["meters"][0]["meter"]["measurement_unit"] == "KWH"
+    assert res_search.json()["meters"][0]["meter"]["register_semantics"] == "CUMULATIVE"
 
     # Filter PENDING
     res_pending = client.get(f"/api/v1/reading-rounds/{round_obj.id}/meters?status=PENDING")
@@ -623,7 +642,21 @@ def test_closed_batch_and_inactive_meter_rejections(client, test_db_session, sam
 # 13. METER DETAIL & HISTORICAL READINGS
 # ==============================================================================
 def test_meter_detail_and_reading_history(client, test_db_session, sample_user):
-    meter = Meter(meter_code="CT-300", name="Công tơ Trạm Biến Áp", location="Khu B", meter_type="LCD", is_active=True)
+    zone = OperationalZone(code="Z-300", name="Khu B", map_polygon="[]", is_active=True)
+    test_db_session.add(zone)
+    test_db_session.flush()
+    meter = Meter(
+        meter_code="CT-300",
+        name="Công tơ Trạm Biến Áp",
+        location="Khu B",
+        meter_type="LCD",
+        utility_type="ELECTRICITY",
+        measurement_unit="KWH",
+        register_semantics="CUMULATIVE",
+        zone_id=zone.id,
+        presentation_zone_id="PZ-300",
+        is_active=True,
+    )
     test_db_session.add(meter)
     test_db_session.commit()
 
@@ -637,7 +670,8 @@ def test_meter_detail_and_reading_history(client, test_db_session, sample_user):
         user_id=sample_user.id,
         reading="001000.0",
         status="CONFIRMED",
-        server_timestamp=datetime(2026, 6, 30, 8, 0, tzinfo=timezone.utc),
+        # Older scheduled reading synchronized later than the newer reading.
+        server_timestamp=datetime(2026, 7, 31, 10, 0, tzinfo=timezone.utc),
     )
     test_db_session.add(r1)
     test_db_session.commit()
@@ -652,7 +686,8 @@ def test_meter_detail_and_reading_history(client, test_db_session, sample_user):
         user_id=sample_user.id,
         reading="001250.5",
         status="CONFIRMED",
-        server_timestamp=datetime(2026, 7, 31, 9, 30, tzinfo=timezone.utc),
+        # The scheduled round is newer even though its server timestamp is older.
+        server_timestamp=datetime(2026, 6, 30, 10, 0, tzinfo=timezone.utc),
     )
     test_db_session.add(r2)
     test_db_session.commit()
@@ -664,6 +699,13 @@ def test_meter_detail_and_reading_history(client, test_db_session, sample_user):
     assert res_detail.status_code == 200
     detail = res_detail.json()
     assert detail["meter"]["meter_code"] == "CT-300"
+    assert detail["meter"]["name"] == "Công tơ Trạm Biến Áp"
+    assert detail["meter"]["utility_type"] == "ELECTRICITY"
+    assert detail["meter"]["measurement_unit"] == "KWH"
+    assert detail["meter"]["register_semantics"] == "CUMULATIVE"
+    assert detail["meter"]["zone_id"] == zone.id
+    assert detail["meter"]["zone_name"] == "Khu B"
+    assert detail["meter"]["presentation_zone_id"] == "PZ-300"
     assert len(detail["history"]) == 2
     # Verify newest first ordering
     assert detail["history"][0]["reading"] == "001250.5"
@@ -1731,8 +1773,3 @@ def test_provenance_contract_backend_validation_and_rejections(client, test_db_s
     assert d8["reading"] == "05555.5"
     assert d8["ocr_reading"] == "05555.0"
     assert d8["confirmation_source"] == "USER_CORRECTED"
-
-
-
-
-

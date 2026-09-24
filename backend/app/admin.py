@@ -240,7 +240,8 @@ def get_admin_meters(
     # Pre-fetch reading counts and latest readings for all meters in single queries
     readings = (
         db.query(MeterReading)
-        .order_by(MeterReading.server_timestamp.desc())
+        .join(ReadingRound, MeterReading.reading_round_id == ReadingRound.id)
+        .order_by(ReadingRound.scheduled_at.desc(), MeterReading.server_timestamp.desc(), MeterReading.id.desc())
         .all()
     )
 
@@ -533,7 +534,8 @@ def update_admin_meter(
     latest_r = (
         db.query(MeterReading)
         .filter(MeterReading.meter_id == meter.id, MeterReading.status == "CONFIRMED", MeterReading.reading.isnot(None))
-        .order_by(MeterReading.server_timestamp.desc())
+        .join(ReadingRound, MeterReading.reading_round_id == ReadingRound.id)
+        .order_by(ReadingRound.scheduled_at.desc(), MeterReading.server_timestamp.desc(), MeterReading.id.desc())
         .first()
     )
 
@@ -620,7 +622,8 @@ def relocate_admin_meter(
     latest_r = (
         db.query(MeterReading)
         .filter(MeterReading.meter_id == meter.id, MeterReading.status == "CONFIRMED", MeterReading.reading.isnot(None))
-        .order_by(MeterReading.server_timestamp.desc())
+        .join(ReadingRound, MeterReading.reading_round_id == ReadingRound.id)
+        .order_by(ReadingRound.scheduled_at.desc(), MeterReading.server_timestamp.desc(), MeterReading.id.desc())
         .first()
     )
 
@@ -686,7 +689,8 @@ def change_admin_meter_zone(
     latest_r = (
         db.query(MeterReading)
         .filter(MeterReading.meter_id == meter.id, MeterReading.status == "CONFIRMED", MeterReading.reading.isnot(None))
-        .order_by(MeterReading.server_timestamp.desc())
+        .join(ReadingRound, MeterReading.reading_round_id == ReadingRound.id)
+        .order_by(ReadingRound.scheduled_at.desc(), MeterReading.server_timestamp.desc(), MeterReading.id.desc())
         .first()
     )
 
@@ -769,7 +773,8 @@ def set_meter_active_state(
     latest_r = (
         db.query(MeterReading)
         .filter(MeterReading.meter_id == meter.id, MeterReading.status == "CONFIRMED", MeterReading.reading.isnot(None))
-        .order_by(MeterReading.server_timestamp.desc())
+        .join(ReadingRound, MeterReading.reading_round_id == ReadingRound.id)
+        .order_by(ReadingRound.scheduled_at.desc(), MeterReading.server_timestamp.desc(), MeterReading.id.desc())
         .first()
     )
 
@@ -844,7 +849,8 @@ def retire_admin_meter(
     latest_r = (
         db.query(MeterReading)
         .filter(MeterReading.meter_id == meter.id, MeterReading.status == "CONFIRMED", MeterReading.reading.isnot(None))
-        .order_by(MeterReading.server_timestamp.desc())
+        .join(ReadingRound, MeterReading.reading_round_id == ReadingRound.id)
+        .order_by(ReadingRound.scheduled_at.desc(), MeterReading.server_timestamp.desc(), MeterReading.id.desc())
         .first()
     )
 
@@ -2145,9 +2151,11 @@ def get_admin_meter_reading_detail(db: Session, reading_id: str) -> AdminMeterRe
             id=meter.id,
             meter_code=meter.meter_code,
             name=meter.name,
-            location=meter.location,
+            location=meter.location or "",
             meter_type=meter.meter_type,
             is_active=meter.is_active,
+            utility_type=meter.utility_type or "UNKNOWN",
+            measurement_unit=meter.measurement_unit or "UNKNOWN",
         ),
         round=AdminInspectionRound(
             id=round_obj.id,

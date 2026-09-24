@@ -27,6 +27,7 @@ from .models import (
     Meter,
     MeterAssetRelation,
     MeterReading,
+    ReadingRound,
     OperationalZone,
     MapVersion,
     MapVersionZone,
@@ -2264,8 +2265,9 @@ def get_asset_operational_context(db: Session, asset_id: str) -> AssetOperationa
         # Fetch latest reading
         latest_reading = (
             db.query(MeterReading)
+            .join(ReadingRound, MeterReading.reading_round_id == ReadingRound.id)
             .filter(MeterReading.meter_id == m.id)
-            .order_by(MeterReading.server_timestamp.desc())
+            .order_by(ReadingRound.scheduled_at.desc(), MeterReading.server_timestamp.desc(), MeterReading.id.desc())
             .first()
         )
         attached_meters.append(

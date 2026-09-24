@@ -30,6 +30,7 @@ from .meter_logbook import (
     get_open_reading_batch,
     get_round_local_time_str,
     get_round_time_only_str,
+    reading_chronology_key,
     to_utc_datetime,
 )
 from .schemas import (
@@ -464,7 +465,7 @@ def resolve_user_round_tasks(
         .filter(MeterReading.batch_id == batch.id, MeterReading.status == "CONFIRMED")
         .all()
     )
-    all_batch_readings.sort(key=lambda x: to_utc_datetime(x.server_timestamp), reverse=True)
+    all_batch_readings.sort(key=reading_chronology_key, reverse=True)
     latest_confirmed_map: dict[str, MeterReading] = {}
     for r in all_batch_readings:
         if r.meter_id not in latest_confirmed_map:
@@ -521,6 +522,8 @@ def resolve_user_round_tasks(
                 location=m_obj.location,
                 meter_type=m_obj.meter_type,
                 utility_type=m_obj.utility_type,
+                measurement_unit=m_obj.measurement_unit or "UNKNOWN",
+                register_semantics=m_obj.register_semantics or "UNKNOWN",
                 is_active=m_obj.is_active,
                 lifecycle_status=getattr(m_obj, "lifecycle_status", "ACTIVE"),
                 zone_id=m_obj.zone_id,
@@ -539,6 +542,7 @@ def resolve_user_round_tasks(
                 location=None,
                 meter_type="UNKNOWN",
                 utility_type=item["utility_type_snapshot"] or "UNKNOWN",
+                measurement_unit="UNKNOWN",
                 is_active=False,
                 lifecycle_status="MISSING",
                 zone_id=item["zone_id_snapshot"],

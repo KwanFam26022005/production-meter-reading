@@ -120,6 +120,27 @@ def test_snapshot_scope_does_not_follow_current_inventory_or_zone(db):
     assert csv_text.count("SNAPSHOT") == 3
 
 
+def test_meter_report_latest_reading_uses_round_schedule_when_sync_times_tie(db):
+    batch, zone_a, _, users = setup(db)
+    target = meter(db, "E-CHRONOLOGY", zone_a, unit="KWH", semantics="CUMULATIVE")
+    earlier = round_at(db, batch, 10, 1, [target])
+    later = round_at(db, batch, 10, 3, [target])
+    synced_at = datetime(2024, 1, 10, 5, 0, tzinfo=timezone.utc)
+    first = reading(db, batch, earlier, target, users[0], "100.0")
+    second = reading(db, batch, later, target, users[0], "125.0")
+    first.server_timestamp = synced_at
+    second.server_timestamp = synced_at
+    db.commit()
+
+    report = get_meter_report(db, target.id, "2024-01-10")
+
+    assert report.latest_confirmed is not None
+    assert report.latest_confirmed.reading == "125.0"
+    assert report.latest_confirmed.round_id == later.id
+    assert report.meter.measurement_unit == "KWH"
+    assert report.meter.register_semantics == "CUMULATIVE"
+
+
 def test_legacy_is_dynamic_and_snapshot_utility_filter_is_immutable(db):
     batch, za, zb, users = setup(db)
     water = meter(db, "W-1", za, "WATER")

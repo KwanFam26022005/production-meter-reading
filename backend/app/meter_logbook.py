@@ -86,6 +86,20 @@ def to_utc_datetime(dt: Optional[datetime]) -> datetime:
     return dt.astimezone(timezone.utc)
 
 
+def reading_chronology_key(reading: MeterReading) -> tuple[datetime, datetime, str]:
+    """Order readings by their scheduled round, then ingestion time and ID.
+
+    Readings can be uploaded together or after their scheduled rounds, so the
+    server timestamp alone does not reliably represent operational chronology.
+    """
+    round_scheduled_at = reading.round.scheduled_at if reading.round else None
+    return (
+        to_utc_datetime(round_scheduled_at or reading.server_timestamp),
+        to_utc_datetime(reading.server_timestamp),
+        str(reading.id or ""),
+    )
+
+
 def get_open_reading_batch(db: Session) -> Optional[ReadingBatch]:
     return (
         db.query(ReadingBatch)
@@ -445,6 +459,8 @@ def get_round_meters_with_status(
                 location=location,
                 meter_type=meter.meter_type if meter else "UNKNOWN",
                 utility_type=utility,
+                measurement_unit=(meter.measurement_unit or "UNKNOWN") if meter else "UNKNOWN",
+                register_semantics=(meter.register_semantics or "UNKNOWN") if meter else "UNKNOWN",
                 is_active=bool(meter and meter.is_active),
                 lifecycle_status=lifecycle,
                 zone_id=scope_row.zone_id_snapshot,
@@ -559,6 +575,8 @@ def get_round_meters_with_status(
                     location=m.location,
                     meter_type=m.meter_type,
                     utility_type=u_type,
+                    measurement_unit=m.measurement_unit or "UNKNOWN",
+                    register_semantics=m.register_semantics or "UNKNOWN",
                     is_active=m.is_active,
                     zone_id=m.zone_id,
                     zone_name=z_name,
@@ -658,6 +676,8 @@ def get_batch_meters_with_status(
                     location=m.location,
                     meter_type=m.meter_type,
                     utility_type=u_type,
+                    measurement_unit=m.measurement_unit or "UNKNOWN",
+                    register_semantics=m.register_semantics or "UNKNOWN",
                     is_active=m.is_active,
                     zone_id=m.zone_id,
                     zone_name=z_name,
@@ -1281,9 +1301,9 @@ def get_meter_history(db: Session, meter_id: str) -> list[MeterReadingHistoryIte
     readings = (
         db.query(MeterReading)
         .filter(MeterReading.meter_id == meter_id)
-        .order_by(MeterReading.server_timestamp.desc())
         .all()
     )
+    readings.sort(key=reading_chronology_key, reverse=True)
 
     history: list[MeterReadingHistoryItem] = []
     for r in readings:
@@ -1491,7 +1511,7 @@ def get_today_meter_operations(
 
     # Map latest confirmed reading for each meter
     confirmed_readings = [r for r in all_batch_readings if r.status == "CONFIRMED"]
-    confirmed_readings.sort(key=lambda x: to_utc_datetime(x.server_timestamp), reverse=True)
+    confirmed_readings.sort(key=reading_chronology_key, reverse=True)
     latest_confirmed_map: dict[str, MeterReading] = {}
     for r in confirmed_readings:
         if r.meter_id not in latest_confirmed_map:
@@ -1621,7 +1641,7 @@ def get_today_meter_operations(
 
         # 5. Trend points (recent 4-6 CONFIRMED numeric values ordered chronologically)
         meter_confirmed = [r for r in all_batch_readings if r.meter_id == m.id and r.status == "CONFIRMED" and r.reading]
-        meter_confirmed.sort(key=lambda x: to_utc_datetime(x.server_timestamp))
+        meter_confirmed.sort(key=reading_chronology_key)
         trend_points: list[MeterTrendPoint] = []
         for cr in meter_confirmed:
             clean_str = cr.reading.replace(",", "").strip()
@@ -1674,6 +1694,8 @@ def get_today_meter_operations(
                     location=m.location,
                     meter_type=getattr(m, "meter_type", "UNKNOWN"),
                     utility_type=utility_type,
+                    measurement_unit=getattr(m, "measurement_unit", None) or "UNKNOWN",
+                    register_semantics=getattr(m, "register_semantics", None) or "UNKNOWN",
                     is_active=m.is_active,
                     lifecycle_status=lifecycle_status,
                     zone_id=scope_row.zone_id_snapshot if scope_row else m.zone_id,

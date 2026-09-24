@@ -795,6 +795,7 @@ def get_meter_detail(
     history = get_meter_history(db, meter.id)
     ls = getattr(meter, "lifecycle_status", None) or ("ACTIVE" if meter.is_active else "INACTIVE")
     ret_at = meter.retired_at.isoformat() if getattr(meter, "retired_at", None) else None
+    zone_names, presentation_zone_names = meter_logbook._get_zone_resolution_maps(db)
     return MeterDetailResponse(
         meter=MeterOut(
             id=meter.id,
@@ -802,11 +803,22 @@ def get_meter_detail(
             name=meter.name,
             location=meter.location,
             meter_type=meter.meter_type,
+            utility_type=meter.utility_type,
+            measurement_unit=meter.measurement_unit or "UNKNOWN",
+            register_semantics=meter.register_semantics or "UNKNOWN",
             is_active=meter.is_active,
             lifecycle_status=ls,
             retired_at=ret_at,
             retired_by=getattr(meter, "retired_by", None),
             retirement_reason=getattr(meter, "retirement_reason", None),
+            zone_id=meter.zone_id,
+            zone_name=zone_names.get(meter.zone_id) if meter.zone_id else None,
+            presentation_zone_id=meter.presentation_zone_id,
+            presentation_zone_name=(
+                presentation_zone_names.get(meter.presentation_zone_id)
+                if meter.presentation_zone_id
+                else None
+            ),
         ),
         history=history,
     )

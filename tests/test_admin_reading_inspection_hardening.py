@@ -206,12 +206,21 @@ def test_evidence_storage_failure_non_blocking_authoritative_reading(test_db_ses
     evidence = db.query(MeterReadingEvidence).filter(MeterReadingEvidence.meter_reading_id == reading.id).first()
     assert evidence is None
 
+    # The production Demo V2 meters may not have a location string configured.
+    m1.location = None
+    m1.utility_type = "ELECTRICITY"
+    m1.measurement_unit = "KWH"
+    db.commit()
+
     # 3. Admin Inspection Detail returns evidence_available=False
     admin_client, _ = create_auth_client(db, admin)
     res = admin_client.get(f"/api/v1/admin/meter-readings/{reading.id}")
     assert res.status_code == 200
     assert res.json()["evidence_available"] is False
     assert res.json()["reading"] == "001234.5"
+    assert res.json()["meter"]["location"] == ""
+    assert res.json()["meter"]["measurement_unit"] == "KWH"
+    assert res.json()["meter"]["utility_type"] == "ELECTRICITY"
 
     # 4. Evidence endpoint returns 404
     res_img = admin_client.get(f"/api/v1/admin/meter-readings/{reading.id}/evidence")

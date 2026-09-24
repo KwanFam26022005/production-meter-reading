@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from .config import get_settings
 from .reporting_scope import load_scope_tasks
+from .meter_logbook import reading_chronology_key
 from .models import Meter, MeterReading, User
 from .schemas import (
     LatestConfirmedReading,
@@ -166,9 +167,9 @@ def get_meter_report(db: Session, meter_id: str, date_str: Optional[str] = None)
     all_meter_readings = (
         db.query(MeterReading)
         .filter(MeterReading.meter_id == meter.id)
-        .order_by(MeterReading.server_timestamp.asc())
         .all()
     )
+    all_meter_readings.sort(key=reading_chronology_key)
 
     today_readings_map: dict[str, MeterReading] = {
         r.reading_round_id: r for r in all_meter_readings if r.reading_round_id in round_ids
@@ -299,6 +300,9 @@ def get_meter_report(db: Session, meter_id: str, date_str: Optional[str] = None)
             name=meter.name,
             location=meter.location,
             meter_type=meter.meter_type,
+            utility_type=meter.utility_type,
+            measurement_unit=meter.measurement_unit or "UNKNOWN",
+            register_semantics=meter.register_semantics or "UNKNOWN",
             is_active=meter.is_active,
             created_at=meter.created_at.isoformat() if meter.created_at else None,
         ),

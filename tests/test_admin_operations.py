@@ -173,6 +173,63 @@ def test_admin_role_allowed_access(test_db_session, admin_user, client):
     assert "kpis" in res.json()
 
 
+def test_admin_meter_latest_value_uses_round_schedule_when_sync_times_tie(test_db_session, admin_user, client):
+    meter = Meter(
+        meter_code="CT-CHRONOLOGY",
+        name="Công tơ kiểm tra thứ tự",
+        meter_type="LCD",
+        utility_type="ELECTRICITY",
+        measurement_unit="KWH",
+        register_semantics="CUMULATIVE",
+        is_active=True,
+    )
+    batch = ReadingBatch(id=str(uuid.uuid4()), name="Kiểm tra thứ tự", period_key="2026-09", status="OPEN")
+    test_db_session.add_all([meter, batch])
+    test_db_session.flush()
+    earlier = ReadingRound(
+        id=str(uuid.uuid4()),
+        batch_id=batch.id,
+        scheduled_at=datetime(2026, 9, 24, 7, 0, tzinfo=timezone.utc),
+        status="OPEN",
+        is_legacy=False,
+    )
+    later = ReadingRound(
+        id=str(uuid.uuid4()),
+        batch_id=batch.id,
+        scheduled_at=datetime(2026, 9, 24, 15, 0, tzinfo=timezone.utc),
+        status="OPEN",
+        is_legacy=False,
+    )
+    test_db_session.add_all([earlier, later])
+    test_db_session.flush()
+    synced_at = datetime(2026, 9, 24, 19, 0, tzinfo=timezone.utc)
+    test_db_session.add_all(
+        [
+            MeterReading(
+                id=str(uuid.uuid4()), meter_id=meter.id, batch_id=batch.id,
+                reading_round_id=earlier.id, user_id=admin_user.id, reading="100.0",
+                status="CONFIRMED", server_timestamp=synced_at,
+            ),
+            MeterReading(
+                id=str(uuid.uuid4()), meter_id=meter.id, batch_id=batch.id,
+                reading_round_id=later.id, user_id=admin_user.id, reading="125.0",
+                status="CONFIRMED", server_timestamp=synced_at,
+            ),
+        ]
+    )
+    test_db_session.commit()
+    create_auth_session(test_db_session, admin_user, client)
+
+    # Test data is scenario-neutral; opt out of the default simulation scenario filter.
+    response = client.get("/api/v1/admin/meters?status=ALL&scenario_id=ALL")
+
+    assert response.status_code == 200
+    item = next(row for row in response.json()["meters"] if row["id"] == meter.id)
+    assert item["latest_reading"] == "125.0"
+    assert item["measurement_unit"] == "KWH"
+    assert item["register_semantics"] == "CUMULATIVE"
+
+
 def test_set_user_role_cli(test_db_session, employee_user):
     # Promote employee to ADMIN
     updated = set_user_role(test_db_session, employee_user.employee_code, "ADMIN")
@@ -841,5 +898,4 @@ def test_admin_dashboard_controlled_time_0824_and_0924(test_db_session, admin_us
         assert exc["round_id"] == r_0800.id
         assert exc["scheduled_time"] == "08:00"
         assert exc["exception_state"] == "MISSING"
-
 

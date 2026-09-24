@@ -86,6 +86,8 @@ class MeterOut(BaseModel):
     location: Optional[str] = None
     meter_type: str = "UNKNOWN"
     utility_type: Optional[str] = "UNKNOWN"
+    measurement_unit: str = "UNKNOWN"
+    register_semantics: str = "UNKNOWN"
     is_active: bool = True
     lifecycle_status: str = "ACTIVE"
     retired_at: Optional[str] = None
@@ -1186,6 +1188,8 @@ class AdminInspectionMeter(BaseModel):
     location: str
     meter_type: Optional[str] = None
     is_active: bool = True
+    utility_type: str = "UNKNOWN"
+    measurement_unit: str = "UNKNOWN"
 
 
 class AdminInspectionRound(BaseModel):

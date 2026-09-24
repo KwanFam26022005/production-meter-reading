@@ -208,6 +208,8 @@ def test_01_single_zone_primary_projection(db_session):
     z1 = create_zone(db_session, "Z1")
     z2 = create_zone(db_session, "Z2")
     m1 = create_meter(db_session, "M1", zone_id=z1.id)
+    m1.utility_type = "WATER"
+    m1.measurement_unit = "UNKNOWN"
     m2 = create_meter(db_session, "M2", zone_id=z1.id)
     m3 = create_meter(db_session, "M3", zone_id=z2.id)
 
@@ -224,6 +226,8 @@ def test_01_single_zone_primary_projection(db_session):
     codes = {item.meter.meter_code for item in resp.meters}
     assert codes == {"M1", "M2"}
     assert resp.meters[0].assignment_role == "PRIMARY"
+    assert resp.meters[0].meter.utility_type == "WATER"
+    assert resp.meters[0].meter.measurement_unit == "UNKNOWN"
     assert resp.global_round_total == 3
 
 
@@ -1082,6 +1086,65 @@ def test_36_personal_progress_does_not_redefine_round_denominator(db_session):
     assert resp.summary.assigned_total == 1
     assert resp.current_round.progress.total == 2
     assert resp.global_round_total == 2
+
+
+def test_latest_confirmed_reading_uses_round_schedule_when_server_times_tie(db_session):
+    user = create_user(db_session, "U-LATEST")
+    zone = create_zone(db_session, "Z-LATEST")
+    meter = create_meter(db_session, "M-LATEST", zone_id=zone.id)
+    meter.measurement_unit = "KWH"
+    meter.register_semantics = "CUMULATIVE"
+
+    batch = create_batch(db_session)
+    previous_round = create_round(
+        db_session,
+        batch,
+        datetime(2026, 9, 24, 8, 0, tzinfo=LOCAL_TZ).astimezone(timezone.utc),
+        scope_meters=[meter],
+    )
+    current_round = create_round(
+        db_session,
+        batch,
+        datetime(2026, 9, 24, 10, 0, tzinfo=LOCAL_TZ).astimezone(timezone.utc),
+        scope_meters=[meter],
+    )
+    create_schedule(db_session, user, "CA1", "2026-09-24")
+    create_assignment(db_session, user, zone, "CA1", "2026-09-24")
+
+    synced_at = datetime(2026, 9, 24, 17, 35, tzinfo=timezone.utc)
+    db_session.add_all(
+        [
+            MeterReading(
+                id=str(uuid.uuid4()),
+                meter_id=meter.id,
+                batch_id=batch.id,
+                reading_round_id=previous_round.id,
+                user_id=user.id,
+                reading="100.0",
+                status="CONFIRMED",
+                server_timestamp=synced_at,
+            ),
+            MeterReading(
+                id=str(uuid.uuid4()),
+                meter_id=meter.id,
+                batch_id=batch.id,
+                reading_round_id=current_round.id,
+                user_id=user.id,
+                reading="125.0",
+                status="CONFIRMED",
+                server_timestamp=synced_at,
+            ),
+        ]
+    )
+    db_session.commit()
+
+    response = resolve_user_round_tasks(db_session, user, round_id=current_round.id)
+
+    assert response.summary.assigned_total == 1
+    assert response.meters[0].latest_confirmed.reading == "125.0"
+    assert response.meters[0].latest_confirmed.round_id == current_round.id
+    assert response.meters[0].meter.measurement_unit == "KWH"
+    assert response.meters[0].meter.register_semantics == "CUMULATIVE"
 
 
 def test_37_zero_assigned_progress_is_zero(db_session):
