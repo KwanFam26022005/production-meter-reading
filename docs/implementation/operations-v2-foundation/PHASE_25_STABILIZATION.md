@@ -1,3 +1,9 @@
+> **Current status (2026-09-24): PHASE_2_5_COMPLETE.**
+> The default-port qualification below supersedes the historical pending-gate
+> statements in this report. Backend freeze is accepted as documented in
+> [BACKEND_FREEZE_REMEDIATION.md](BACKEND_FREEZE_REMEDIATION.md).
+> Phase 2.6 and UAT have not started and require separate user direction.
+
 # Phase 2.5 continuation - Windows runtime stabilization
 
 Status: **PHASE_2_5_DEFAULT_PORT_GATE_PENDING**. Isolated runtime qualification passes.
@@ -245,3 +251,73 @@ Do not begin Phase 2.6 until the manual gate and remaining freeze requirements p
 Future approved concepts remain deferred: Map = Operations Command Center;
 Reporting = Analytics Workbench; Map topology audit; Phase 3 User Portal UX;
 OCR model readiness. No merge to main is authorized or performed.
+
+
+## Final default-port qualification — completed 2026-09-24
+
+Qualified executable source: `3b1ae314bd81aed6ffa6b4b3d61e54e36f6424fb` on
+`integration/operations-v2-foundation`. This final evidence commit changes only
+reports. Its full pushed commit SHA is the PHASE_25_FINAL_SHA returned in the
+handoff and recorded in `.runtime/logs/phase25-final-sha.txt`.
+
+The user identified port 8000's previous owner as the NSSM-hosted Windows service
+`MeterReadingBackend` (automatic startup) and stopped it themselves. Preflight
+confirmed ports 8000/5173/5174 free, accepted HEAD exact, and worktree clean.
+No service configuration was changed. Final read-only check: service Stopped.
+
+All launcher and stop invocations used actual Windows PowerShell 5.1:
+`powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/dev.ps1 -NonInteractive`
+and the corresponding `scripts/stop-dev.ps1`. No port overrides were supplied.
+
+| Step | Result |
+| --- | --- |
+| First start | Exit 0; backend 8000, User 5173, Operations 5174 READY; API COMPATIBLE |
+| First ownership/state | All three root/listener identities and process-tree ownership matched; listener ports matched registry; launcher exited |
+| First health/UI | /health status ok; User and Operations HTTP 200 |
+| First stop | Exit 0; every recorded process identity gone; three ports free; registry removed |
+| Second start | Exit 0; same default ports READY; API COMPATIBLE |
+| Demo V2 audit | All semantic checks PASS |
+| Second ownership/state | All roots/listeners/tree/port matches PASS; launcher exited; health ok and both UIs HTTP 200 |
+| Final stop | Exit 0; every recorded process identity gone; three ports free; registry removed |
+| Final independent check | Ports remain free; MeterReadingBackend remains stopped |
+
+First root/listener PIDs: backend 5552/23032, User 3376/9852,
+Operations 21180/11756. Second: backend 5468/18384, User 24652/21736,
+Operations 28548/27652. These are historical evidence, never reusable ownership
+claims. Python was the primary checkout's `.venv/Scripts/python.exe` (3.11.9);
+npm resolved to `C:/Program Files/nodejs/npm.cmd`. Runtime/log paths were canonical.
+
+### Shell-specific observation
+
+An initial ad hoc ownership check in the tool shell (PowerShell 7.6.6) returned
+false: its ConvertFrom-Json converts ISO created_at strings into System.DateTime,
+whereas the identity helper compares the original ISO string. All actual lifecycle
+and subsequent identity checks above used Windows PowerShell 5.1, and passed.
+This qualification establishes the required Windows PowerShell 5.1 lifecycle;
+it does **not** establish cross-version registry consumption by PowerShell 7.6.6.
+No runtime helper was patched during this default-port-only task. Use the explicit
+powershell.exe commands above for the qualified workflow.
+
+### Integrity and raw evidence
+
+Canonical DB: `D:/Projects/production-meter-reading/.runtime/data/app.db`.
+Counts after final stop: meter_readings 719, reading_rounds 60,
+reading_round_meters 720, operational_assignments 269. The logical iterdump SHA-256
+is unchanged from the backend freeze baseline:
+`66c18f308bc50a067a96017a39419d4834c7417663ab2c1493d9647773efcc9a`.
+OCR remains a truthful warning: models_loaded=false; no artifacts downloaded.
+
+Evidence under canonical `.runtime/logs/`:
+
+- `phase25-default-start-1.log`, `phase25-default-start-2.log`
+- `phase25-default-state-1.json`, `phase25-default-state-2.json`
+- `phase25-default-stop-1.log`, `phase25-default-stop-2.log`
+- `phase25-default-demo-audit.log`
+- `phase25-default-db-after.json`
+
+The final stack is stopped, overriding the earlier historical handoff that left
+it running. No new worktree, consolidation, UAT, source behavior change, main
+merge, deployment or database reset occurred. Accepted isolated A-I and backend
+freeze evidence remain applicable because executable source is unchanged.
+
+**PHASE_2_5_COMPLETE**. Phase 2.6 remains unstarted by explicit user instruction.

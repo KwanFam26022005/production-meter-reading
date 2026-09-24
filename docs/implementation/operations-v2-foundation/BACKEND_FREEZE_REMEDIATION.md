@@ -1,3 +1,7 @@
+> **Update 2026-09-24:** The subsequent default-port gate passed and the final
+> stack is stopped. See [Phase 2.5 final qualification](PHASE_25_STABILIZATION.md#final-default-port-qualification--completed-2026-09-24).
+> Historical pending-gate statements below describe the backend freeze checkpoint.
+
 # Backend freeze remediation
 
 ## Scope and checkpoint
