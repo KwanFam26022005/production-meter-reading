@@ -5,9 +5,11 @@ skills:
     status: TRACKED_CURRENT
     path: .agent/skills/saigon-port-ui/SKILL.md
   saigon-port-admin-responsive:
-    status: PLANNED_H2
+    status: TRACKED_CURRENT
+    path: .agent/skills/saigon-port-admin-responsive/SKILL.md
   saigon-port-map-v2:
-    status: PLANNED_H2
+    status: TRACKED_CURRENT
+    path: .agent/skills/saigon-port-map-v2/SKILL.md
   ui-ux-pro-max:
     status: OPTIONAL_EXTERNAL
     use_when: Accessibility or interaction edge cases need extra guidance.
@@ -64,6 +66,7 @@ contexts:
   user-ui:
     primary:
       - .agent/skills/saigon-port-ui/SKILL.md
+    expand_on_design:
       - frontend/DESIGN_DNA.md
     expand_on_conflict:
       - frontend/src/components/ReadingBatchView.tsx
@@ -73,6 +76,7 @@ contexts:
   operations-ui:
     primary:
       - .agent/skills/saigon-port-ui/SKILL.md
+    expand_on_design:
       - frontend/DESIGN_DNA.md
     expand_on_conflict:
       - frontend/src/components/admin/AdminShell.tsx
@@ -81,25 +85,30 @@ contexts:
 
   admin-responsive:
     primary:
+      - .agent/skills/saigon-port-ui/SKILL.md
+      - .agent/skills/saigon-port-admin-responsive/SKILL.md
+    expand_on_implementation:
       - frontend/src/index.css
       - frontend/src/components/admin/AdminSchedules.tsx
-      - .agent/skills/saigon-port-ui/SKILL.md
-    expand_on_conflict:
+    expand_on_design:
       - frontend/DESIGN_DNA.md
     skill_hints:
       - saigon-port-ui
       - saigon-port-admin-responsive
     skill:
       name: saigon-port-admin-responsive
-      status: planned_h2
+      status: TRACKED_CURRENT
 
   map-v2:
     primary:
+      - .agent/skills/saigon-port-ui/SKILL.md
+      - .agent/skills/saigon-port-map-v2/SKILL.md
+    expand_on_domain_change:
       - docs/implementation/map-v2-unified-simulation-infrastructure/THREAD_HANDOFF.md
       - frontend/src/components/map-v2/utilityDemoLayout.ts
-      - .agent/skills/saigon-port-ui/SKILL.md
     expand_on_conflict:
       - scripts/verify_b2_freeze_hash.mjs
+    expand_on_design:
       - frontend/DESIGN_DNA.md
     future_contract:
       path: docs/contracts/map-v2.md
@@ -109,7 +118,7 @@ contexts:
       - saigon-port-map-v2
     skill:
       name: saigon-port-map-v2
-      status: planned_h2
+      status: TRACKED_CURRENT
 
   spatial:
     primary:
@@ -120,6 +129,7 @@ contexts:
 
   simulation:
     primary:
+      - .agent/skills/saigon-port-map-v2/SKILL.md
       - docs/implementation/map-v2-unified-simulation-infrastructure/THREAD_HANDOFF.md
       - frontend/src/components/map-v2/simulation/simulationValidation.ts
     expand_on_conflict:

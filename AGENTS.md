@@ -1,83 +1,34 @@
-# Saigon Port — Agent Engineering Rules & Execution Standards
+# Saigon Port — repository agent routing
 
-**Project:** Production Meter Reading — Cảng Sài Gòn  
-**Repository:** `D:\Projects\production-meter-reading\production-meter-reading`  
-**Scope:** Universal agent execution guidelines across field mobile reading, desktop operations, and map digital twin tasks.
+**Project:** Production Meter Reading — Cảng Sài Gòn. The product serves field meter readers, Operations staff, and the Map V2 workspace. Keep product behavior and frozen domain meanings intact unless the task explicitly changes them.
 
----
+## Plan from the harness
 
-## 1. Skill Loading & Progressive Disclosure Policy
+1. Classify changed paths with [`harness/impact-map.yml`](harness/impact-map.yml). Review the meaning of shared files before declaring affected domains. An unknown source path requires explicit impact review; a clearly documentation-only change can stay FAST.
+2. Use [`harness/context-index.yml`](harness/context-index.yml) to read the smallest current authoritative context. Do not recursively dump `.agent/`, `.agents/`, `docs/`, `frontend/`, or `backend/`; inspect targeted files and expand only when evidence conflicts.
+3. Select FAST, STANDARD, or RELEASE and the affected gates from [`harness/gates.yml`](harness/gates.yml). [`harness/commands.yml`](harness/commands.yml) owns command IDs and working directories. A user may request a stricter mode, not a mode below the derived minimum.
+4. For current known backend failures, use exact node IDs and material reasons in [`harness/known-failures.json`](harness/known-failures.json). Historic pass/fail totals are evidence, not a substitute for a current gate result.
 
-Agents working in this repository must practice **targeted progressive disclosure** rather than blanket recursive reading of customization directories.
+The harness is declarative until the H4 runner exists. Plan and verify with the recorded commands and gate dependencies; do not infer that a planned skill or contract already exists.
 
-### 1.1 Discovery Hierarchy
-- The repository provides domain-specific instructions in `.agent/skills/saigon-port-ui/SKILL.md` (Git-tracked) and design tokens in `frontend/DESIGN_DNA.md`.
-- Generic creative skills in `.agents/skills/` (`banner-design`, `brand`, `design`, `slides`) are auxiliary tools for external marketing and must remain dormant during engineering tasks.
+## Skill routing
 
-### 1.2 Task-Based Selection Matrix
+| Impact | Load only when relevant |
+| --- | --- |
+| Backend/API/database | No UI skill. Read affected source, tests, and routed domain context. |
+| User Portal UI | `.agent/skills/saigon-port-ui/SKILL.md`. |
+| Operations UI | Shared `saigon-port-ui`; add `saigon-port-admin-responsive` for adaptive Admin layout work. |
+| Map V2 or simulation UI | Shared `saigon-port-ui` plus `saigon-port-map-v2`. |
 
-| Task Domain | Primary Skill to Read | Canonical Spec / Reference | Prohibited / Skipped Skills |
-| :--- | :--- | :--- | :--- |
-| **Mobile User Portal** (Camera, OCR, Attendance, Home Hub) | `saigon-port-ui` (User Portal Scope) | `frontend/DESIGN_DNA.md` | `banner-design`, `brand`, `design`, `slides` |
-| **Operations Portal & Map V2** (Desktop Admin, GIS Network) | `saigon-port-ui` (Operations & Map V2 Scope) | `frontend/DESIGN_DNA.md` | `banner-design`, `brand`, `design`, `slides` |
-| **Backend API, SQLite, Schemas, Reconciliation** | None (Inspect `backend/app/`) | Python test fixtures | All UI and graphic design skills |
-| **General UX Edge Cases** (Touch bounds, ARIA, WCAG) | Top-level `ui-ux-pro-max/SKILL.md` only | WCAG 2.1 specifications | `.agents/skills/ui-ux-pro-max/data/` (Never dump) |
+`frontend/DESIGN_DNA.md` owns measurable colors, typography, spacing, component sizes, and contrast values; read relevant sections when design values matter. Project skills own UI judgment. Product semantics come from current source/tests and routed frozen handoffs until H3 contracts exist.
 
-### 1.3 Loading Invariants
-1. **Never dump directory trees**: Do NOT inspect `.agent` or `.agents` recursively.
-2. **Never load dormant data tables**: Do NOT open the 164 CSV/JSON data files in `.agents/skills/ui-ux-pro-max/data/` unless explicitly commanded.
-3. **Read on demand**: Inspect the skill description from system metadata first; only call `view_file` on `SKILL.md` when the task directly relates to its domain.
+External `ui-ux-pro-max` is optional for difficult UX/accessibility cases. External `banner-design`, `brand`, `design`, and `slides` are optional for requested marketing or presentation work. Do not auto-load, copy, or require external skills for ordinary engineering. Never dump their data directories.
 
----
+## Universal safety and execution
 
-## 2. Event-Driven Background-Job Execution Policy
-
-Antigravity features a fully reactive task lifecycle with guaranteed automatic wake-up. Polling loops and manual waiting commands are strictly prohibited.
-
-### 2.1 The Four Execution Invariants
-
-```text
-INVARIANT 1 (Synchronous Wait First):
-When launching commands expected to complete quickly (< 10 seconds), always supply 
-WaitMsBeforeAsync: 10000 in run_command. Allow the tool to return synchronously.
-
-INVARIANT 2 (Never Poll Task Status):
-If a long-running process transitions to a background task, retain its TaskId. 
-DO NOT repeatedly call manage_task(action: 'status') solely to ask if it has finished.
-
-INVARIANT 3 (No Shell Sleep or Timer Loops):
-NEVER execute Start-Sleep, sleep, or while-loops in terminal commands to wait for processes. 
-NEVER invoke schedule with short self-wake-up timers to check on tasks.
-
-INVARIANT 4 (Yield Control Cleanly):
-After launching a background command, either proceed with genuinely independent file work 
-or conclude your turn by stopping tool calls. The runtime will automatically resume execution 
-with MESSAGE_PRIORITY_HIGH when the process exits.
-```
-
-### 2.2 Prohibited vs. Permitted Command Usage
-- **Prohibited**: Loops of `manage_task(action: 'status')`, `Start-Sleep -Seconds 3`, `ps`, `Get-Process` solely to wait for build, test, or lint scripts.
-- **Permitted**: One-time process inspection for debugging hanging daemons, verifying port binding during development server launch, or explicit service lifecycle management.
-
----
-
-## 3. Evidence-Backed Skill Compliance Model
-
-Ceremonial compliance reports listing unread skills are obsolete. Future task deliverables must report skill compliance using an evidence-backed status taxonomy:
-
-### 3.1 Status Classification Taxonomy
-- `DISCOVERED`: Skill metadata was recognized by the runtime scanner.
-- `READ`: Skill entry point (`SKILL.md`) was explicitly viewed via `view_file`.
-- `APPLIED`: Concrete guidance from the skill directly shaped code or configuration changes.
-- `VERIFIED`: Compliance was empirically validated through passing tests, builds, or visual captures.
-- `NOT_APPLICABLE`: Skill was outside the assigned task's functional scope.
-- `NOT_READ`: Skill was not loaded during the session.
-- `UNVERIFIED`: Implementation was attempted but automated verification was unavailable.
-
-### 3.2 Reporting Standard
-Whenever summarizing work, document compliance using a concise evidence table:
-
-| Skill | Status | File / Section Cited | Concrete Application & Test Evidence |
-| :--- | :--- | :--- | :--- |
-| `saigon-port-ui` | `APPLIED` / `VERIFIED` | Scoped Operating Profiles | Applied Operations scope; verified via `npm run test:operations` |
-| `banner-design` | `NOT_APPLICABLE` | — | Non-engineering marketing skill intentionally skipped |
+- Check the required branch, full HEAD SHA, and clean worktree before branch-sensitive work. If a checkpoint differs, stop; do not reset, switch branches, stash, clean, or discard work to force a match.
+- Keep edits within the task's allowed files. Do not alter product behavior, frozen geometry, data, or historical evidence as a side effect of instruction work. Explain and justify any destructive or irreversible action before taking it.
+- Let short commands finish synchronously where practical. For long background work, continue independent work or yield; do not busy-poll status or use shell sleep loops as orchestration.
+- Preserve user-specified scope and verification limits. Run the selected gates once, honor dependencies, and report what actually ran. A documentation-only change does not need product tests or builds.
+- If source/tests, handoffs, design guidance, or harness policy disagree, identify the owner of that concern and investigate. Do not silently resolve a product-semantic conflict in a skill or design document.
+- Give concise evidence: changed files, selected mode/gates, results or why a gate was not run, known-failure delta when relevant, and remaining limits. Do not produce a separate ceremonial list of every unread skill.

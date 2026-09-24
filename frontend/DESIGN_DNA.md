@@ -291,6 +291,15 @@ Hệ thống phục vụ toàn diện cả hai vai trò: Nhân sự vận hành 
   - Số đọc công tơ: 44–56 px / font-weight 700.
   - Siêu dữ liệu / Timestamp: 12–13 px / font-weight 500.
 
+### 9.1 Spacing, shape and field control dimensions
+
+Shared measurements for field controls and surfaces:
+
+- Spacing rhythm: `4, 8, 12, 16, 20, 24, 32, 40` px; mobile horizontal padding normally `16–20` px.
+- Corner radii: controls `8` px, standard surfaces `12` px, media/result surfaces `16` px, sheets and radial controls `20–28` px or circular where appropriate.
+- Field touch targets: at least `48 × 48` px; primary field actions normally `52–56` px high. The Home Hub insight CTA remains specified separately in §7.3.
+- Keep numeric reading displays tabular and their unit visually secondary; sizing is specified in §9.
+
 ---
 
 ## 10. Motion & Transitions
