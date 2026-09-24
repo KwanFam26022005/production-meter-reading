@@ -1160,12 +1160,60 @@ from .admin_reports import (
     get_admin_technical_meters,
     get_admin_technical_details,
     export_admin_technical_csv,
+    parse_date_range,
 )
+from .reporting_scope import operational_report
+from .usage_analytics import get_usage_overview, get_meter_usage
 from .schemas import (
     AdminTechnicalOverviewResponse,
     AdminTechnicalMeterListResponse,
     AdminTechnicalDetailsResponse,
+    ReportingOperationsResponse,
+    UsageOverviewResponse,
+    UsageMeterResponse,
 )
+
+
+@app.get("/api/v1/admin/reports/operations/overview", response_model=ReportingOperationsResponse)
+def get_reporting_operations_endpoint(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    zone_id: Optional[str] = None,
+    utility_type: Optional[str] = None,
+    meter_type: Optional[str] = None,
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> ReportingOperationsResponse:
+    start, end, _, _ = parse_date_range(start_date, end_date)
+    return ReportingOperationsResponse(**operational_report(
+        db, start, end, zone_id=zone_id, utility_type=utility_type, meter_type=meter_type,
+    ))
+
+
+@app.get("/api/v1/admin/reports/usage/overview", response_model=UsageOverviewResponse)
+def get_reporting_usage_endpoint(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    utility_type: Optional[str] = None,
+    zone_id: Optional[str] = None,
+    meter_id: Optional[str] = None,
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> UsageOverviewResponse:
+    start, end, _, _ = parse_date_range(start_date, end_date)
+    return get_usage_overview(db, start, end, utility_type, zone_id, meter_id)
+
+
+@app.get("/api/v1/admin/reports/usage/meters/{meter_id}", response_model=UsageMeterResponse)
+def get_reporting_meter_usage_endpoint(
+    meter_id: str,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> UsageMeterResponse:
+    start, end, _, _ = parse_date_range(start_date, end_date)
+    return get_meter_usage(db, meter_id, start, end)
 
 
 @app.get("/api/v1/admin/reports/technical/overview", response_model=AdminTechnicalOverviewResponse)
@@ -1175,6 +1223,8 @@ def get_admin_technical_overview_endpoint(
     location: Optional[str] = None,
     meter_type: Optional[str] = None,
     confirmation_source: Optional[str] = None,
+    zone_id: Optional[str] = None,
+    utility_type: Optional[str] = None,
     admin_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ) -> AdminTechnicalOverviewResponse:
@@ -1185,6 +1235,8 @@ def get_admin_technical_overview_endpoint(
         location=location,
         meter_type=meter_type,
         confirmation_source=confirmation_source,
+        zone_id=zone_id,
+        utility_type=utility_type,
     )
 
 
@@ -1196,6 +1248,8 @@ def get_admin_technical_meters_endpoint(
     meter_type: Optional[str] = None,
     confirmation_source: Optional[str] = None,
     meter_id: Optional[str] = None,
+    zone_id: Optional[str] = None,
+    utility_type: Optional[str] = None,
     admin_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ) -> AdminTechnicalMeterListResponse:
@@ -1207,6 +1261,8 @@ def get_admin_technical_meters_endpoint(
         meter_type=meter_type,
         confirmation_source=confirmation_source,
         meter_id=meter_id,
+        zone_id=zone_id,
+        utility_type=utility_type,
     )
 
 
@@ -1220,6 +1276,8 @@ def get_admin_technical_details_endpoint(
     status_filter: Optional[str] = None,
     page: int = 1,
     limit: int = 50,
+    zone_id: Optional[str] = None,
+    utility_type: Optional[str] = None,
     admin_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ) -> AdminTechnicalDetailsResponse:
@@ -1233,6 +1291,8 @@ def get_admin_technical_details_endpoint(
         status_filter=status_filter,
         page=page,
         limit=limit,
+        zone_id=zone_id,
+        utility_type=utility_type,
     )
 
 
@@ -1243,6 +1303,8 @@ def export_admin_technical_csv_endpoint(
     location: Optional[str] = None,
     meter_type: Optional[str] = None,
     confirmation_source: Optional[str] = None,
+    zone_id: Optional[str] = None,
+    utility_type: Optional[str] = None,
     admin_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
@@ -1253,6 +1315,8 @@ def export_admin_technical_csv_endpoint(
         location=location,
         meter_type=meter_type,
         confirmation_source=confirmation_source,
+        zone_id=zone_id,
+        utility_type=utility_type,
     )
 
 

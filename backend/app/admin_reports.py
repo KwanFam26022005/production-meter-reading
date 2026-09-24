@@ -9,6 +9,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from .config import get_settings
+from .reporting_scope import load_scope_tasks
 from .models import (
     MapVersion,
     MapVersionZone,
@@ -87,6 +88,12 @@ def parse_date_range(start_date: Optional[str], end_date: Optional[str]) -> tupl
     if start_str > end_str:
         start_str, end_str = end_str, start_str
 
+    try:
+        datetime.strptime(start_str, "%Y-%m-%d")
+        datetime.strptime(end_str, "%Y-%m-%d")
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail="Ngày báo cáo phải có dạng YYYY-MM-DD") from exc
+
     return start_str, end_str, format_date_vn(start_str), format_date_vn(end_str)
 
 
@@ -148,6 +155,8 @@ def get_admin_technical_overview(
     location: Optional[str] = None,
     meter_type: Optional[str] = None,
     confirmation_source: Optional[str] = None,
+    zone_id: Optional[str] = None,
+    utility_type: Optional[str] = None,
 ) -> AdminTechnicalOverviewResponse:
     start_str, end_str, start_vn, end_vn = parse_date_range(start_date, end_date)
 
@@ -155,62 +164,29 @@ def get_admin_technical_overview(
     now_local = now_utc.astimezone(LOCAL_TZ)
     today_str = now_local.strftime("%Y-%m-%d")
 
-    # 1. Meters query (1 query - active meters only)
-    meters_q = db.query(Meter).filter(Meter.is_active == True)
+    # Asset metadata is used for OCR segmentation, including retired meters
+    # that remain in an immutable published round scope.
+    meters_q = db.query(Meter)
     if meter_type and meter_type != "ALL":
         meters_q = meters_q.filter(Meter.meter_type.ilike(f"%{meter_type}%"))
 
     meters = meters_q.order_by(Meter.meter_code.asc()).all()
     op_zone_map, map_zone_labels = _get_zone_resolution_maps(db)
-    if location and location != "ALL":
-        meters = [m for m in meters if _resolve_meter_location(m, op_zone_map, map_zone_labels) == location or m.location == location]
 
-    meter_ids = [m.id for m in meters]
-    meter_map = {m.id: m for m in meters}
-    total_meters_count = len(meters)
-
-    # 2. ReadingRounds query in range (1 query)
-    all_rounds = (
-        db.query(ReadingRound)
-        .filter(ReadingRound.is_legacy == False)
-        .order_by(ReadingRound.scheduled_at.asc())
-        .all()
-    )
-
-    in_range_rounds: list[ReadingRound] = []
-    due_rounds: list[ReadingRound] = []
-    round_map: dict[str, ReadingRound] = {}
-
-    for r in all_rounds:
-        r_sched = r.scheduled_at.replace(tzinfo=timezone.utc) if r.scheduled_at.tzinfo is None else r.scheduled_at
-        r_local = r_sched.astimezone(LOCAL_TZ)
-        r_date_str = r_local.strftime("%Y-%m-%d")
-
-        if start_str <= r_date_str <= end_str:
-            in_range_rounds.append(r)
-            round_map[r.id] = r
-            # Check if due (past or current open slot)
-            if r_date_str < today_str or (r_date_str == today_str and r_sched <= now_utc):
-                due_rounds.append(r)
-
+    # Published scope owns the denominator. Outcome/source filters do not alter it.
+    scope_tasks = load_scope_tasks(db, start_str, end_str, location=location, meter_type=meter_type, zone_id=zone_id, utility_type=utility_type)
+    scoped_meter_ids = {task.meter_id for task in scope_tasks}
+    meters = [m for m in meters if m.id in scoped_meter_ids]
+    round_map = {task.round.id: task.round for task in scope_tasks}
+    in_range_rounds = sorted(round_map.values(), key=lambda r: r.scheduled_at)
+    due_tasks = [task for task in scope_tasks if task.due]
     total_scheduled_rounds = len(in_range_rounds)
-    total_due_slots = len(due_rounds) * total_meters_count
-
-    # 3. MeterReadings query in range (1 query)
-    in_range_round_ids = [r.id for r in in_range_rounds]
-    if in_range_round_ids and meter_ids:
-        readings_q = db.query(MeterReading).filter(
-            MeterReading.reading_round_id.in_(in_range_round_ids),
-            MeterReading.meter_id.in_(meter_ids),
-        )
-        if confirmation_source and confirmation_source != "ALL":
-            readings_q = readings_q.filter(MeterReading.confirmation_source == confirmation_source)
-        all_readings = readings_q.all()
-    else:
-        all_readings = []
-
+    total_due_slots = len(due_tasks)
+    all_readings = [task.reading for task in due_tasks if task.reading]
     confirmed_readings = [rd for rd in all_readings if rd.status == "CONFIRMED"]
     review_readings = [rd for rd in all_readings if rd.status == "REVIEW"]
+    provenance_readings = [rd for rd in confirmed_readings if not confirmation_source or confirmation_source == "ALL" or rd.confirmation_source == confirmation_source]
+    provenance_ids = {rd.id for rd in provenance_readings}
 
     total_confirmed = len(confirmed_readings)
     total_review = len(review_readings)
@@ -218,9 +194,9 @@ def get_admin_technical_overview(
     completion_rate = round((total_confirmed / total_due_slots) * 100, 1) if total_due_slots > 0 else 0.0
 
     # Provenance metrics
-    ocr_confirmed = sum(1 for rd in confirmed_readings if rd.confirmation_source == "OCR_CONFIRMED")
-    user_corrected = sum(1 for rd in confirmed_readings if rd.confirmation_source == "USER_CORRECTED")
-    manual_entry = sum(1 for rd in confirmed_readings if rd.confirmation_source == "MANUAL_ENTRY")
+    ocr_confirmed = sum(1 for rd in provenance_readings if rd.confirmation_source == "OCR_CONFIRMED")
+    user_corrected = sum(1 for rd in provenance_readings if rd.confirmation_source == "USER_CORRECTED")
+    manual_entry = sum(1 for rd in provenance_readings if rd.confirmation_source == "MANUAL_ENTRY")
     human_intervention = user_corrected + manual_entry
 
     ocr_rate = round((ocr_confirmed / total_confirmed) * 100, 1) if total_confirmed > 0 else 0.0
@@ -281,7 +257,8 @@ def get_admin_technical_overview(
             r for r in d_rounds
             if (d_str < today_str or (d_str == today_str and (r.scheduled_at.replace(tzinfo=timezone.utc) if r.scheduled_at.tzinfo is None else r.scheduled_at) <= now_utc))
         ]
-        d_due_slots = len(d_due_rounds) * total_meters_count
+        due_round_ids = {r.id for r in d_due_rounds}
+        d_due_slots = sum(task.round.id in due_round_ids for task in due_tasks)
         d_readings = readings_by_date.get(d_str, [])
         d_confirmed = len(d_readings)
         d_comp_rate = round((d_confirmed / d_due_slots) * 100, 1) if d_due_slots > 0 else 0.0
@@ -296,9 +273,10 @@ def get_admin_technical_overview(
             )
         )
 
-        d_ocr = sum(1 for rd in d_readings if rd.confirmation_source == "OCR_CONFIRMED")
-        d_corr = sum(1 for rd in d_readings if rd.confirmation_source == "USER_CORRECTED")
-        d_man = sum(1 for rd in d_readings if rd.confirmation_source == "MANUAL_ENTRY")
+        d_source_readings = [rd for rd in d_readings if rd.id in provenance_ids]
+        d_ocr = sum(1 for rd in d_source_readings if rd.confirmation_source == "OCR_CONFIRMED")
+        d_corr = sum(1 for rd in d_source_readings if rd.confirmation_source == "USER_CORRECTED")
+        d_man = sum(1 for rd in d_source_readings if rd.confirmation_source == "MANUAL_ENTRY")
         daily_provenance_trend.append(
             DailyProvenanceTrendItem(
                 date=d_str,
@@ -319,7 +297,7 @@ def get_admin_technical_overview(
     for t in type_set:
         t_label = "Cơ" if t == "MECHANICAL" else ("LCD" if t == "LCD" else t)
         t_meter_ids = {m.id for m in meters if m.meter_type.upper() == t}
-        t_readings = [rd for rd in confirmed_readings if rd.meter_id in t_meter_ids]
+        t_readings = [rd for rd in provenance_readings if rd.meter_id in t_meter_ids]
         t_total = len(t_readings)
         t_ocr = sum(1 for rd in t_readings if rd.confirmation_source == "OCR_CONFIRMED")
         t_corr = sum(1 for rd in t_readings if rd.confirmation_source == "USER_CORRECTED")
@@ -338,13 +316,12 @@ def get_admin_technical_overview(
             )
         )
 
-    # 6. Quality by Location
-    loc_set = sorted(list({_resolve_meter_location(m, op_zone_map, map_zone_labels) for m in meters}))
+    # 6. Quality by publication-time operational zone
+    loc_set = sorted({task.zone_name for task in scope_tasks})
     quality_by_location: list[QualityByLocationItem] = []
     for loc_name in loc_set:
-        loc_meter_ids = {m.id for m in meters if _resolve_meter_location(m, op_zone_map, map_zone_labels) == loc_name}
-        loc_readings = [rd for rd in confirmed_readings if rd.meter_id in loc_meter_ids]
-        loc_reviews = [rd for rd in review_readings if rd.meter_id in loc_meter_ids]
+        loc_readings = [task.reading for task in due_tasks if task.zone_name == loc_name and task.status == "CONFIRMED" and task.reading.id in provenance_ids]
+        loc_reviews = [task.reading for task in due_tasks if task.zone_name == loc_name and task.status == "REVIEW"]
         l_total = len(loc_readings)
         l_ocr = sum(1 for rd in loc_readings if rd.confirmation_source == "OCR_CONFIRMED")
         l_corr = sum(1 for rd in loc_readings if rd.confirmation_source == "USER_CORRECTED")
@@ -367,7 +344,7 @@ def get_admin_technical_overview(
     # 7. Watchlist Meters (sorted by human intervention rate descending)
     watchlist_meters: list[WatchlistMeterItem] = []
     for m in meters:
-        m_readings = [rd for rd in confirmed_readings if rd.meter_id == m.id]
+        m_readings = [rd for rd in provenance_readings if rd.meter_id == m.id]
         m_reviews = [rd for rd in review_readings if rd.meter_id == m.id]
         m_total = len(m_readings)
         m_corr = sum(1 for rd in m_readings if rd.confirmation_source == "USER_CORRECTED")
@@ -390,9 +367,10 @@ def get_admin_technical_overview(
             )
         )
 
-    # Sort watchlist: prioritize meters with >= 5 confirmed readings, then highest intervention rate
+    # Short problematic histories remain visible; no minimum sample gate.
     watchlist_meters.sort(
-        key=lambda item: (item.confirmed_count >= 5, item.human_intervention_rate, item.review_count),
+        key=lambda item: (item.review_count > 0 or item.user_corrected_count > 0 or item.manual_entry_count > 0,
+                          item.review_count, item.human_intervention_rate, item.user_corrected_count, item.manual_entry_count),
         reverse=True,
     )
 
@@ -488,7 +466,7 @@ def get_admin_technical_overview(
         daily_provenance_trend=daily_provenance_trend,
         quality_by_type=quality_by_type,
         quality_by_location=quality_by_location,
-        watchlist_meters=watchlist_meters[:8],
+        watchlist_meters=[item for item in watchlist_meters if item.review_count or item.user_corrected_count or item.manual_entry_count][:8],
         data_integrity=data_integrity,
         pipeline_config=pipeline_config,
         available_locations=loc_set,
@@ -503,6 +481,8 @@ def get_admin_technical_meters(
     meter_type: Optional[str] = None,
     confirmation_source: Optional[str] = None,
     meter_id: Optional[str] = None,
+    zone_id: Optional[str] = None,
+    utility_type: Optional[str] = None,
 ) -> AdminTechnicalMeterListResponse:
     start_str, end_str, start_vn, end_vn = parse_date_range(start_date, end_date)
 
@@ -510,46 +490,20 @@ def get_admin_technical_meters(
     now_local = now_utc.astimezone(LOCAL_TZ)
     today_str = now_local.strftime("%Y-%m-%d")
 
-    meters_q = db.query(Meter).filter(Meter.is_active == True)
+    scope_tasks = load_scope_tasks(db, start_str, end_str, location=location, meter_type=meter_type, zone_id=zone_id, utility_type=utility_type)
+    scoped_ids = {task.meter_id for task in scope_tasks if task.meter_id}
+    meters_q = db.query(Meter)
     if meter_type and meter_type != "ALL":
         meters_q = meters_q.filter(Meter.meter_type.ilike(f"%{meter_type}%"))
 
-    meters = meters_q.order_by(Meter.meter_code.asc()).all()
+    meters = [m for m in meters_q.order_by(Meter.meter_code.asc()).all() if m.id in scoped_ids]
     op_zone_map, map_zone_labels = _get_zone_resolution_maps(db)
-    if location and location != "ALL":
-        meters = [m for m in meters if _resolve_meter_location(m, op_zone_map, map_zone_labels) == location or m.location == location]
-
     meter_map = {m.id: m for m in meters}
 
-    # Range rounds
-    all_rounds = (
-        db.query(ReadingRound)
-        .filter(ReadingRound.is_legacy == False)
-        .order_by(ReadingRound.scheduled_at.asc())
-        .all()
-    )
-
-    in_range_rounds: list[ReadingRound] = []
-    round_map: dict[str, ReadingRound] = {}
-    for r in all_rounds:
-        r_sched = r.scheduled_at.replace(tzinfo=timezone.utc) if r.scheduled_at.tzinfo is None else r.scheduled_at
-        r_date_str = r_sched.astimezone(LOCAL_TZ).strftime("%Y-%m-%d")
-        if start_str <= r_date_str <= end_str:
-            in_range_rounds.append(r)
-            round_map[r.id] = r
-
-    in_range_round_ids = [r.id for r in in_range_rounds]
-
-    if in_range_round_ids and meters:
-        readings_q = db.query(MeterReading).filter(
-            MeterReading.reading_round_id.in_(in_range_round_ids),
-            MeterReading.meter_id.in_([m.id for m in meters]),
-        )
-        if confirmation_source and confirmation_source != "ALL":
-            readings_q = readings_q.filter(MeterReading.confirmation_source == confirmation_source)
-        all_readings = readings_q.all()
-    else:
-        all_readings = []
+    round_map = {task.round.id: task.round for task in scope_tasks}
+    all_readings = [task.reading for task in scope_tasks if task.reading and
+                    (not confirmation_source or confirmation_source == "ALL" or task.reading.confirmation_source == confirmation_source)]
+    task_by_pair = {(task.round.id, task.meter_id): task for task in scope_tasks}
 
     user_map = {u.id: u for u in db.query(User).all()}
 
@@ -587,7 +541,10 @@ def get_admin_technical_meters(
                 location=_resolve_meter_location(m, op_zone_map, map_zone_labels),
                 meter_type="Cơ" if m.meter_type.upper() == "MECHANICAL" else "LCD",
                 is_active=m.is_active,
-                scheduled_rounds_count=len(in_range_rounds),
+                utility_type=m.utility_type or "UNKNOWN",
+                measurement_unit=m.measurement_unit or "UNKNOWN",
+                register_semantics=m.register_semantics or "UNKNOWN",
+                scheduled_rounds_count=sum(task.meter_id == m.id for task in scope_tasks),
                 confirmed_count=total_c,
                 review_count=len(m_reviews),
                 ocr_confirmed_count=ocr_c,
@@ -637,6 +594,7 @@ def get_admin_technical_meters(
                     confirmation_source=rd.confirmation_source,
                     recorded_at=rec_time_str,
                     operator_name=op_name,
+                    assigned_names=[user_map[a.user_id].full_name for a in task_by_pair[(r.id, rd.meter_id)].assignments if a.user_id in user_map],
                 )
             )
 
@@ -649,7 +607,7 @@ def get_admin_technical_meters(
                             scheduled_time=f"{r_local.strftime('%d/%m')} {get_round_time_only_str(r_sched)}",
                             canonical_reading=rd.reading,
                             value=val_float,
-                            tooltip_label=f"{rd.reading} kWh ({r_local.strftime('%d/%m')} {get_round_time_only_str(r_sched)})",
+                            tooltip_label=f"{rd.reading} {('kWh' if target_meter.measurement_unit == 'KWH' else 'm³' if target_meter.measurement_unit == 'M3' else 'Đơn vị chưa cấu hình')} ({r_local.strftime('%d/%m')} {get_round_time_only_str(r_sched)})",
                         )
                     )
                 except Exception:
@@ -679,115 +637,53 @@ def get_admin_technical_details(
     status_filter: Optional[str] = None,
     page: int = 1,
     limit: int = 50,
+    zone_id: Optional[str] = None,
+    utility_type: Optional[str] = None,
 ) -> AdminTechnicalDetailsResponse:
     start_str, end_str, start_vn, end_vn = parse_date_range(start_date, end_date)
-
-    now_utc = datetime.now(timezone.utc)
-    now_local = now_utc.astimezone(LOCAL_TZ)
-    today_str = now_local.strftime("%Y-%m-%d")
-
-    meters_q = db.query(Meter).filter(Meter.is_active == True)
-    if meter_type and meter_type != "ALL":
-        meters_q = meters_q.filter(Meter.meter_type.ilike(f"%{meter_type}%"))
-
-    meters = meters_q.all()
-    op_zone_map, map_zone_labels = _get_zone_resolution_maps(db)
-    if location and location != "ALL":
-        meters = [m for m in meters if _resolve_meter_location(m, op_zone_map, map_zone_labels) == location or m.location == location]
-
-    meter_map = {m.id: m for m in meters}
-    user_map = {u.id: u for u in db.query(User).all()}
-
-    all_rounds = (
-        db.query(ReadingRound)
-        .filter(ReadingRound.is_legacy == False)
-        .order_by(ReadingRound.scheduled_at.desc())
-        .all()
-    )
-
-    in_range_rounds: list[ReadingRound] = []
-    round_map: dict[str, ReadingRound] = {}
-    for r in all_rounds:
-        r_sched = r.scheduled_at.replace(tzinfo=timezone.utc) if r.scheduled_at.tzinfo is None else r.scheduled_at
-        r_date_str = r_sched.astimezone(LOCAL_TZ).strftime("%Y-%m-%d")
-        if start_str <= r_date_str <= end_str:
-            in_range_rounds.append(r)
-            round_map[r.id] = r
-
-    in_range_round_ids = [r.id for r in in_range_rounds]
-
-    readings_map: dict[tuple[str, str], MeterReading] = {}
-    if in_range_round_ids and meters:
-        readings = db.query(MeterReading).filter(
-            MeterReading.reading_round_id.in_(in_range_round_ids),
-            MeterReading.meter_id.in_([m.id for m in meters]),
-        ).all()
-        for rd in readings:
-            readings_map[(rd.meter_id, rd.reading_round_id)] = rd
-
-    # Construct all items across (due round, meter)
+    tasks = load_scope_tasks(db, start_str, end_str, location=location, meter_type=meter_type, zone_id=zone_id, utility_type=utility_type)
+    users = {user.id: user.full_name for user in db.query(User).all()}
+    meter_ids = {task.meter_id for task in tasks if task.meter_id}
+    meters = {m.id: m for m in db.query(Meter).filter(Meter.id.in_(meter_ids)).all()} if meter_ids else {}
     items: list[AdminTechnicalRecordDetail] = []
-    for r in in_range_rounds:
-        r_sched = r.scheduled_at.replace(tzinfo=timezone.utc) if r.scheduled_at.tzinfo is None else r.scheduled_at
-        r_local = r_sched.astimezone(LOCAL_TZ)
-        r_date_str = r_local.strftime("%Y-%m-%d")
-        is_due = (r_date_str < today_str or (r_date_str == today_str and r_sched <= now_utc))
-        if not is_due:
+    for task in tasks:
+        if not task.due:
             continue
+        rd = task.reading
+        st = task.status
+        src = rd.confirmation_source if rd else None
+        if status_filter and status_filter != "ALL":
+            if status_filter == "UNASSIGNED_DUE":
+                if task.assignments:
+                    continue
+            elif status_filter in ("REVIEW", "MISSING"):
+                if st != status_filter:
+                    continue
+            elif st != "CONFIRMED" or src != status_filter:
+                continue
+        if confirmation_source and confirmation_source != "ALL" and src != confirmation_source:
+            continue
+        scheduled = task.round.scheduled_at.replace(tzinfo=timezone.utc) if task.round.scheduled_at.tzinfo is None else task.round.scheduled_at
+        local = scheduled.astimezone(LOCAL_TZ)
+        meter = meters.get(task.meter_id)
+        items.append(AdminTechnicalRecordDetail(
+            id=f"{task.meter_code}_{task.round.id}",
+            meter_id=task.meter_id, round_id=task.round.id, reading_id=rd.id if rd else None,
+            date=local.strftime("%d/%m/%Y"), scheduled_time=local.strftime("%H:%M"),
+            meter_code=task.meter_code, meter_name=task.meter_name,
+            location=task.zone_name, zone_id=task.zone_id,
+            meter_type="Cơ" if task.meter_type == "MECHANICAL" else "LCD" if task.meter_type == "LCD" else task.meter_type,
+            utility_type=task.utility_type,
+            measurement_unit=meter.measurement_unit if meter else "UNKNOWN",
+            scope_mode=task.scope_mode, status=st,
+            reading=rd.reading if rd else None, ocr_reading=rd.ocr_reading if rd else None,
+            confirmation_source=src,
+            recorded_at=get_local_time_str(rd.server_timestamp) if rd and rd.server_timestamp else None,
+            operator_name=users.get(rd.user_id, rd.user_id) if rd else None,
+            assigned_names=[f"{users.get(a.user_id, a.user_id)} ({a.assignment_role})" for a in task.assignments],
+        ))
 
-        for m in meters:
-            rd = readings_map.get((m.id, r.id))
-            if rd:
-                st = rd.status  # "CONFIRMED" or "REVIEW"
-                src = rd.confirmation_source
-                reading_val = rd.reading
-                ocr_val = rd.ocr_reading
-                u = user_map.get(rd.user_id)
-                op_name = u.full_name if u else "Hệ thống"
-                rec_ts = get_local_time_str(rd.server_timestamp) if rd.server_timestamp else "—"
-            else:
-                st = "MISSING"
-                src = None
-                reading_val = None
-                ocr_val = None
-                op_name = None
-                rec_ts = None
-
-            # Apply tab status filter if given
-            if status_filter and status_filter != "ALL":
-                if status_filter == "REVIEW" and st != "REVIEW":
-                    continue
-                elif status_filter == "MISSING" and st != "MISSING":
-                    continue
-                elif status_filter == "OCR_CONFIRMED" and (st != "CONFIRMED" or src != "OCR_CONFIRMED"):
-                    continue
-                elif status_filter == "USER_CORRECTED" and (st != "CONFIRMED" or src != "USER_CORRECTED"):
-                    continue
-                elif status_filter == "MANUAL_ENTRY" and (st != "CONFIRMED" or src != "MANUAL_ENTRY"):
-                    continue
-
-            if confirmation_source and confirmation_source != "ALL":
-                if src != confirmation_source:
-                    continue
-
-            items.append(
-                AdminTechnicalRecordDetail(
-                    id=f"{m.id}_{r.id}",
-                    date=r_local.strftime("%d/%m/%Y"),
-                    scheduled_time=get_round_time_only_str(r_sched),
-                    meter_code=m.meter_code,
-                    meter_name=m.name,
-                    location=_resolve_meter_location(m, op_zone_map, map_zone_labels),
-                    meter_type="Cơ" if m.meter_type.upper() == "MECHANICAL" else "LCD",
-                    status=st,
-                    reading=reading_val,
-                    ocr_reading=ocr_val,
-                    confirmation_source=src,
-                    recorded_at=rec_ts,
-                    operator_name=op_name,
-                )
-            )
-
+    items.reverse()  # load_scope_tasks returns rounds in chronological order
     total_count = len(items)
     start_idx = (page - 1) * limit
     end_idx = start_idx + limit
@@ -808,6 +704,8 @@ def export_admin_technical_csv(
     location: Optional[str] = None,
     meter_type: Optional[str] = None,
     confirmation_source: Optional[str] = None,
+    zone_id: Optional[str] = None,
+    utility_type: Optional[str] = None,
 ) -> StreamingResponse:
     details = get_admin_technical_details(
         db,
@@ -816,6 +714,8 @@ def export_admin_technical_csv(
         location=location,
         meter_type=meter_type,
         confirmation_source=confirmation_source,
+        zone_id=zone_id,
+        utility_type=utility_type,
         page=1,
         limit=100000,
     )
@@ -833,10 +733,14 @@ def export_admin_technical_csv(
         "Loại công tơ",
         "Trạng thái",
         "Chỉ số chính thức",
+        "Đơn vị",
+        "Tiện ích",
         "OCR ban đầu",
         "Nguồn xác nhận",
         "Thời gian ghi nhận",
         "Người ghi nhận",
+        "Người phụ trách",
+        "Chế độ phạm vi",
     ])
 
     for item in details.items:
@@ -865,10 +769,14 @@ def export_admin_technical_csv(
             item.meter_type,
             st_label,
             item.reading or "",
+            item.measurement_unit if item.measurement_unit != "UNKNOWN" else "",
+            item.utility_type,
             item.ocr_reading or "",
             src_label,
             item.recorded_at or "",
             item.operator_name or "",
+            "; ".join(item.assigned_names),
+            item.scope_mode,
         ])
 
     output.seek(0)

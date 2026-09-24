@@ -158,6 +158,8 @@ def build_admin_meter_item(
         location=m.location,
         meter_type=m.meter_type,
         utility_type=getattr(m, "utility_type", "UNKNOWN") or "UNKNOWN",
+        measurement_unit=m.measurement_unit or "UNKNOWN",
+        register_semantics=m.register_semantics or "UNKNOWN",
         is_active=m.is_active,
         lifecycle_status=ls,
         retired_at=ret_at,

@@ -567,6 +567,8 @@ class AdminMeterItem(BaseModel):
     location: Optional[str] = None
     meter_type: str
     utility_type: Optional[str] = "UNKNOWN"
+    measurement_unit: str = "UNKNOWN"
+    register_semantics: str = "UNKNOWN"
     is_active: bool
     lifecycle_status: str = "ACTIVE"
     retired_at: Optional[str] = None
@@ -927,6 +929,9 @@ class AdminTechnicalMeterSummary(BaseModel):
     name: str
     location: str
     meter_type: str
+    utility_type: str = "UNKNOWN"
+    measurement_unit: str = "UNKNOWN"
+    register_semantics: str = "UNKNOWN"
     is_active: bool
     scheduled_rounds_count: int
     confirmed_count: int
@@ -950,6 +955,7 @@ class AdminTechnicalMeterHistoryItem(BaseModel):
     confirmation_source: Optional[str] = None
     recorded_at: str
     operator_name: str
+    assigned_names: list[str] = []
 
 
 class CumulativeTrendItem(BaseModel):
@@ -981,6 +987,14 @@ class AdminTechnicalRecordDetail(BaseModel):
     confirmation_source: Optional[str] = None
     recorded_at: Optional[str] = None
     operator_name: Optional[str] = None
+    meter_id: Optional[str] = None
+    round_id: Optional[str] = None
+    reading_id: Optional[str] = None
+    zone_id: Optional[str] = None
+    utility_type: str = "UNKNOWN"
+    measurement_unit: str = "UNKNOWN"
+    scope_mode: str = "LEGACY_DYNAMIC"
+    assigned_names: list[str] = []
 
 
 class AdminTechnicalDetailsResponse(BaseModel):
@@ -988,6 +1002,180 @@ class AdminTechnicalDetailsResponse(BaseModel):
     page: int
     limit: int
     items: list[AdminTechnicalRecordDetail]
+
+
+# Thread 9D reporting read models. These are derived, never persisted.
+class ReportingAssignedUser(BaseModel):
+    user_id: str
+    name: str
+    role: str
+
+
+class ReportingTask(BaseModel):
+    round_id: str
+    scheduled_at: str
+    meter_id: Optional[str] = None
+    meter_code: str
+    meter_name: str
+    zone_id: Optional[str] = None
+    zone_name: str
+    utility_type: str
+    scope_mode: str
+    status: str
+    shift_code: Optional[str] = None
+    work_date: str
+    assigned: list[ReportingAssignedUser]
+    reading_id: Optional[str] = None
+    executor_id: Optional[str] = None
+    executor_name: Optional[str] = None
+
+
+class ReportingAction(ReportingTask):
+    type: str
+    reason: Optional[str] = None
+
+
+class ReportingBreakdown(BaseModel):
+    round_id: str
+    scheduled_at: str
+    zone_id: Optional[str] = None
+    zone_name: str
+    scope_mode: str
+    scheduled: int
+    due: int
+    confirmed: int
+    review: int
+    missing: int
+    assigned_due: int
+    unassigned_due: int
+    shift_codes: list[str]
+
+
+class ReportingSummary(BaseModel):
+    scheduled: int
+    scheduled_rounds: int
+    due: int
+    confirmed: int
+    review: int
+    missing: int
+    assigned_due: int
+    unassigned_due: int
+    coverage_percent: float
+    completion_percent: float
+    unassigned_zone_count: int
+    legacy_dynamic_count: int
+
+
+class ReportingOperationsResponse(BaseModel):
+    date_range: dict[str, str]
+    summary: ReportingSummary
+    breakdown: list[ReportingBreakdown]
+    actions: list[ReportingAction]
+    tasks: list[ReportingTask]
+    available_zones: list[dict[str, str]]
+
+
+class UsageRegisterPoint(BaseModel):
+    reading_id: str
+    round_id: str
+    scheduled_at: str
+    value: str
+    confirmation_source: str
+
+
+class DerivedUsageInterval(BaseModel):
+    meter_id: str
+    utility_type: str
+    measurement_unit: str
+    register_semantics: str
+    from_reading_id: str
+    to_reading_id: str
+    from_scheduled_at: str
+    to_scheduled_at: str
+    from_value: str
+    to_value: str
+    delta: Optional[float] = None
+    elapsed_minutes: float
+    normalized_rate: Optional[float] = None
+    rate_unit: Optional[str] = None
+    quality_status: str
+    unit_status: str
+    from_confirmation_source: str
+    to_confirmation_source: str
+    baseline_status: str = "INSUFFICIENT_HISTORY"
+    baseline_delta: Optional[float] = None
+    difference: Optional[float] = None
+    deviation_percent: Optional[float] = None
+
+
+class UsageCoverage(BaseModel):
+    eligible_meters: int
+    meters_with_valid_interval: int
+    coverage_percent: float
+
+
+class UsageGroup(BaseModel):
+    utility_type: str
+    measurement_unit: str
+    total_delta: Optional[float] = None
+    interval_count: int
+    coverage: UsageCoverage
+    highest_interval: Optional[DerivedUsageInterval] = None
+    baseline_delta: Optional[float] = None
+    difference: Optional[float] = None
+    deviation_percent: Optional[float] = None
+
+
+class UsageSeriesItem(BaseModel):
+    date: str
+    slot: str
+    utility_type: str
+    measurement_unit: str
+    delta: float
+    contributor_count: int
+
+
+class UsageContributor(BaseModel):
+    meter_id: str
+    meter_code: str
+    zone_id: Optional[str] = None
+    zone_name: str
+    utility_type: str
+    measurement_unit: str
+    delta: float
+
+
+class UsageZoneBreakdown(BaseModel):
+    zone_id: Optional[str] = None
+    zone_name: str
+    utility_type: str
+    measurement_unit: str
+    total_delta: Optional[float] = None
+    coverage: UsageCoverage
+
+
+class UsageOverviewResponse(BaseModel):
+    date_range: dict[str, str]
+    selection: dict[str, Optional[str]]
+    resolution: str
+    available_meters: list[dict[str, str]]
+    groups: list[UsageGroup]
+    series: list[UsageSeriesItem]
+    top_contributors: list[UsageContributor]
+    zone_breakdown: list[UsageZoneBreakdown]
+    intervals: list[DerivedUsageInterval]
+    data_quality: dict[str, int]
+
+
+class UsageMeterResponse(BaseModel):
+    meter_id: str
+    meter_code: str
+    meter_name: str
+    utility_type: str
+    measurement_unit: str
+    register_semantics: str
+    points: list[UsageRegisterPoint]
+    intervals: list[DerivedUsageInterval]
 
 
 # --- Admin Meter Reading Inspection Schemas ---
@@ -1811,6 +1999,8 @@ class MeterMetadataUpdateRequest(BaseModel):
     reading_method: Optional[str] = None  # MANUAL | OCR | PULSE | MODBUS | PLC | SCADA | UNKNOWN
     communication_protocol: Optional[str] = None  # NONE | PULSE | RS485 | MODBUS_RTU | MODBUS_TCP | PLC | OTHER | UNKNOWN
     utility_type: Optional[str] = None  # ELECTRICITY | WATER | OTHER | UNKNOWN
+    measurement_unit: Optional[Literal["UNKNOWN", "KWH", "M3"]] = None
+    register_semantics: Optional[Literal["UNKNOWN", "CUMULATIVE", "INTERVAL"]] = None
 
 
 class CandidateImportRequest(BaseModel):

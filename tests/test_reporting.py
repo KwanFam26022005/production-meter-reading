@@ -198,12 +198,13 @@ def test_report_overview_metrics_hourly_and_locations(client, test_db_session, s
     assert h_r3["timing_state"] == "UPCOMING"
     assert h_r3["confirmed"] == 0
 
-    # 3. Locations
+    # 3. The compatibility "locations" field now groups operational zones.
+    # These legacy-dynamic fixtures have no zone assignment, so their mutable
+    # free-text asset locations must not become scope groups.
     locations = data["locations"]
-    assert len(locations) >= 2
-    loc_names = [l["location"] for l in locations]
-    assert "Trạm điện A" in loc_names
-    assert "Kho B" in loc_names
+    assert len(locations) == 1
+    assert locations[0]["location"] == "Chưa phân khu"
+    assert locations[0]["expected_slots"] == 9
 
 
 def test_report_meter_detail_and_trend(client, test_db_session, sample_user):
@@ -293,17 +294,22 @@ def test_export_report_csv(client, test_db_session, sample_user):
         "Khung giờ",
         "Mã công tơ",
         "Tên công tơ",
-        "Vị trí / Trạm",
+        "Khu vực tác nghiệp",
         "Loại công tơ",
         "Trạng thái",
-        "Chỉ số (kWh)",
+        "Chỉ số chính thức",
         "Chỉ số OCR",
         "Nguồn xác nhận",
         "Thời gian ghi",
         "Mã nhân viên",
         "Họ tên nhân viên",
+        "Đơn vị",
+        "Tiện ích",
+        "Chế độ phạm vi",
     ]
     assert headers == expected_headers
+    assert rows[1][headers.index("Đơn vị")] == ""
+    assert rows[1][headers.index("Chế độ phạm vi")] == "LEGACY_DYNAMIC"
 
     # Verify no leaked secrets or images
     assert "password" not in content_str.lower()

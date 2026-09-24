@@ -219,6 +219,8 @@ class Meter(Base):
     reading_method = Column(String(32), nullable=True, default="UNKNOWN")  # "MANUAL" | "OCR" | "PULSE" | "MODBUS" | "PLC" | "SCADA" | "UNKNOWN"
     communication_protocol = Column(String(32), nullable=True, default="UNKNOWN")  # "NONE" | "PULSE" | "RS485" | "MODBUS_RTU" | "MODBUS_TCP" | "PLC" | "OTHER" | "UNKNOWN"
     utility_type = Column(String(32), nullable=True, default="UNKNOWN")  # "ELECTRICITY" | "WATER" | "OTHER" | "UNKNOWN"
+    measurement_unit = Column(String(16), nullable=False, default="UNKNOWN")  # UNKNOWN | KWH | M3
+    register_semantics = Column(String(16), nullable=False, default="UNKNOWN")  # UNKNOWN | CUMULATIVE | INTERVAL
     data_origin = Column(String(32), nullable=False, default="REAL", index=True)  # "REAL" | "SIMULATED" | "LEGACY_SIMULATION"
     scenario_id = Column(String(64), nullable=True, index=True)  # e.g. "tan-thuan-demo-v1"
     retired_at = Column(DateTime(timezone=True), nullable=True)

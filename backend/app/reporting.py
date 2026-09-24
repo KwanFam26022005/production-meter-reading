@@ -7,7 +7,8 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from .config import get_settings
-from .models import Meter, MeterReading, ReadingBatch, ReadingRound, User
+from .reporting_scope import load_scope_tasks
+from .models import Meter, MeterReading, User
 from .schemas import (
     LatestConfirmedReading,
     MeterOut,
@@ -69,157 +70,63 @@ def determine_timing_state(sched_utc: datetime, now_utc: datetime, is_current: b
 
 def get_report_overview(db: Session, date_str: Optional[str] = None) -> ReportOverviewResponse:
     now_utc = datetime.now(timezone.utc)
-    now_local = now_utc.astimezone(LOCAL_TZ)
-
-    if not date_str:
-        target_date_str = now_local.strftime("%Y-%m-%d")
-    else:
-        target_date_str = date_str
-
+    target_date_str = date_str or now_utc.astimezone(LOCAL_TZ).date().isoformat()
     date_formatted = format_date_vn(target_date_str)
+    tasks = load_scope_tasks(db, target_date_str, target_date_str, now=now_utc)
+    rounds = {task.round.id: task.round for task in tasks}
+    today_rounds = sorted(rounds.values(), key=lambda row: row.scheduled_at)
+    due_rounds = [row for row in today_rounds if any(task.round.id == row.id and task.due for task in tasks)]
+    current_round_id = due_rounds[-1].id if target_date_str == now_utc.astimezone(LOCAL_TZ).date().isoformat() and due_rounds else None
 
-    # 1. Active meters (1 query)
-    meters = db.query(Meter).filter(Meter.is_active == True).order_by(Meter.meter_code.asc()).all()
-    total_meters = len(meters)
-
-    # 2. Today's non-legacy scheduled rounds across any active batches (1 query)
-    all_rounds = (
-        db.query(ReadingRound)
-        .filter(ReadingRound.is_legacy == False)
-        .order_by(ReadingRound.scheduled_at.asc())
-        .all()
-    )
-
-    today_rounds: list[ReadingRound] = []
-    for r in all_rounds:
-        r_sched = r.scheduled_at.replace(tzinfo=timezone.utc) if r.scheduled_at.tzinfo is None else r.scheduled_at
-        if r_sched.astimezone(LOCAL_TZ).strftime("%Y-%m-%d") == target_date_str:
-            today_rounds.append(r)
-
-    round_ids = [r.id for r in today_rounds]
-
-    # Find the current round if target date is today
-    current_round_id: Optional[str] = None
-    if target_date_str == now_local.strftime("%Y-%m-%d") and today_rounds:
-        past_rounds = [r for r in today_rounds if (r.scheduled_at.replace(tzinfo=timezone.utc) if r.scheduled_at.tzinfo is None else r.scheduled_at) <= now_utc]
-        if past_rounds:
-            current_round_id = past_rounds[-1].id
-
-    # 3. All readings for today's rounds (1 query)
-    readings = []
-    if round_ids:
-        readings = (
-            db.query(MeterReading)
-            .filter(MeterReading.reading_round_id.in_(round_ids))
-            .all()
-        )
-
-    # Map (meter_id, round_id) -> MeterReading
-    readings_map: dict[tuple[str, str], MeterReading] = {
-        (r.meter_id, r.reading_round_id): r for r in readings
-    }
-
-    # 4. Compute Due vs Upcoming rounds
-    due_rounds = []
-    for r in today_rounds:
-        r_sched = r.scheduled_at.replace(tzinfo=timezone.utc) if r.scheduled_at.tzinfo is None else r.scheduled_at
-        is_curr = (r.id == current_round_id)
-        timing = determine_timing_state(r_sched, now_utc, is_current=is_curr)
-        if timing in ("PAST", "CURRENT"):
-            due_rounds.append(r)
-
-    expected_slots = total_meters * len(today_rounds)
-    due_slots = total_meters * len(due_rounds)
-
-    confirmed_slots = sum(1 for r in readings if r.status == "CONFIRMED")
-    review_slots = sum(1 for r in readings if r.status == "REVIEW")
+    expected_slots = len(tasks)
+    due_slots = sum(task.due for task in tasks)
+    confirmed_slots = sum(task.status == "CONFIRMED" for task in tasks)
+    review_slots = sum(task.status == "REVIEW" for task in tasks)
     pending_slots = expected_slots - confirmed_slots - review_slots
-
-    completion_pct = (
-        round((confirmed_slots / due_slots * 100), 1)
-        if due_slots > 0
-        else (round((confirmed_slots / expected_slots * 100), 1) if expected_slots > 0 else 0.0)
-    )
-
+    total_meters = len({task.meter_id or task.meter_code for task in tasks})
     summary_out = ReportOverviewSummary(
-        total_meters=total_meters,
-        expected_slots=expected_slots,
-        due_slots=due_slots,
-        confirmed_slots=confirmed_slots,
+        total_meters=total_meters, expected_slots=expected_slots, due_slots=due_slots,
+        confirmed_slots=confirmed_slots, review_slots=review_slots,
         pending_slots=pending_slots,
-        review_slots=review_slots,
-        completion_percent=completion_pct,
+        completion_percent=round(confirmed_slots / due_slots * 100, 1) if due_slots else 0.0,
     )
 
-    # 5. Hourly Progress Section
     hourly_items: list[ReportHourlyProgressItem] = []
-    for r in today_rounds:
-        r_sched = r.scheduled_at.replace(tzinfo=timezone.utc) if r.scheduled_at.tzinfo is None else r.scheduled_at
-        is_curr = (r.id == current_round_id)
-        timing = determine_timing_state(r_sched, now_utc, is_current=is_curr)
+    for row in today_rounds:
+        round_tasks = [task for task in tasks if task.round.id == row.id]
+        total = len(round_tasks)
+        confirmed = sum(task.status == "CONFIRMED" for task in round_tasks)
+        review = sum(task.status == "REVIEW" for task in round_tasks)
+        scheduled = row.scheduled_at.replace(tzinfo=timezone.utc) if row.scheduled_at.tzinfo is None else row.scheduled_at
+        hourly_items.append(ReportHourlyProgressItem(
+            round_id=row.id, scheduled_time=get_round_time_only_str(scheduled),
+            timing_state=determine_timing_state(scheduled, now_utc, row.id == current_round_id),
+            total=total, confirmed=confirmed, review=review,
+            pending=total - confirmed - review,
+            completion_percent=round(confirmed / total * 100, 1) if total else 0.0,
+        ))
 
-        r_readings = [rd for rd in readings if rd.reading_round_id == r.id]
-        r_conf = sum(1 for rd in r_readings if rd.status == "CONFIRMED")
-        r_rev = sum(1 for rd in r_readings if rd.status == "REVIEW")
-        r_pend = total_meters - r_conf - r_rev
-        r_pct = round((r_conf / total_meters * 100), 1) if total_meters > 0 else 0.0
-
-        hourly_items.append(
-            ReportHourlyProgressItem(
-                round_id=r.id,
-                scheduled_time=get_round_time_only_str(r_sched),
-                timing_state=timing,
-                total=total_meters,
-                confirmed=r_conf,
-                review=r_rev,
-                pending=r_pend,
-                completion_percent=r_pct,
-            )
-        )
-
-    # 6. Location / Station Progress Section
-    locations_map: dict[str, list[Meter]] = {}
-    for m in meters:
-        loc_key = m.location.strip() if m.location and m.location.strip() else "Chưa xác định vị trí"
-        locations_map.setdefault(loc_key, []).append(m)
-
+    # The compatibility response calls this "locations"; values are
+    # publication-time operational zones for snapshots, not Meter.location.
+    by_zone: dict[tuple[Optional[str], str], list] = {}
+    for task in tasks:
+        by_zone.setdefault((task.zone_id, task.zone_name), []).append(task)
     location_items: list[ReportLocationProgressItem] = []
-    for loc_name, loc_meters in sorted(locations_map.items()):
-        loc_m_count = len(loc_meters)
-        loc_m_ids = {m.id for m in loc_meters}
-
-        loc_exp = loc_m_count * len(today_rounds)
-        loc_due = loc_m_count * len(due_rounds)
-
-        loc_readings = [rd for rd in readings if rd.meter_id in loc_m_ids]
-        loc_conf = sum(1 for rd in loc_readings if rd.status == "CONFIRMED")
-        loc_rev = sum(1 for rd in loc_readings if rd.status == "REVIEW")
-        loc_pend = loc_exp - loc_conf - loc_rev
-        loc_pct = (
-            round((loc_conf / loc_due * 100), 1)
-            if loc_due > 0
-            else (round((loc_conf / loc_exp * 100), 1) if loc_exp > 0 else 0.0)
-        )
-
-        location_items.append(
-            ReportLocationProgressItem(
-                location=loc_name,
-                meter_count=loc_m_count,
-                expected_slots=loc_exp,
-                due_slots=loc_due,
-                confirmed_slots=loc_conf,
-                review_slots=loc_rev,
-                pending_slots=loc_pend,
-                completion_percent=loc_pct,
-            )
-        )
-
+    for (_, zone_name), zone_tasks in sorted(by_zone.items(), key=lambda item: item[0][1]):
+        expected = len(zone_tasks)
+        due = sum(task.due for task in zone_tasks)
+        confirmed = sum(task.status == "CONFIRMED" for task in zone_tasks)
+        review = sum(task.status == "REVIEW" for task in zone_tasks)
+        location_items.append(ReportLocationProgressItem(
+            location=zone_name,
+            meter_count=len({task.meter_id or task.meter_code for task in zone_tasks}),
+            expected_slots=expected, due_slots=due, confirmed_slots=confirmed,
+            review_slots=review, pending_slots=expected - confirmed - review,
+            completion_percent=round(confirmed / due * 100, 1) if due else 0.0,
+        ))
     return ReportOverviewResponse(
-        date=target_date_str,
-        date_formatted=date_formatted,
-        summary=summary_out,
-        hourly=hourly_items,
-        locations=location_items,
+        date=target_date_str, date_formatted=date_formatted,
+        summary=summary_out, hourly=hourly_items, locations=location_items,
     )
 
 
@@ -242,19 +149,9 @@ def get_meter_report(db: Session, meter_id: str, date_str: Optional[str] = None)
             detail="Không tìm thấy công tơ.",
         )
 
-    # 2. Today's non-legacy rounds (1 query)
-    all_rounds = (
-        db.query(ReadingRound)
-        .filter(ReadingRound.is_legacy == False)
-        .order_by(ReadingRound.scheduled_at.asc())
-        .all()
-    )
-
-    today_rounds: list[ReadingRound] = []
-    for r in all_rounds:
-        r_sched = r.scheduled_at.replace(tzinfo=timezone.utc) if r.scheduled_at.tzinfo is None else r.scheduled_at
-        if r_sched.astimezone(LOCAL_TZ).strftime("%Y-%m-%d") == target_date_str:
-            today_rounds.append(r)
+    # Only rounds containing this meter in published scope are scheduled work.
+    scoped_tasks = load_scope_tasks(db, target_date_str, target_date_str, meter_id=meter.id, now=now_utc)
+    today_rounds = [task.round for task in scoped_tasks]
 
     round_ids = [r.id for r in today_rounds]
 
@@ -413,109 +310,37 @@ def get_meter_report(db: Session, meter_id: str, date_str: Optional[str] = None)
 
 
 def export_report_csv(db: Session, date_str: Optional[str] = None) -> str:
-    now_utc = datetime.now(timezone.utc)
-    now_local = now_utc.astimezone(LOCAL_TZ)
-
-    if not date_str:
-        target_date_str = now_local.strftime("%Y-%m-%d")
-    else:
-        target_date_str = date_str
-
-    date_formatted = format_date_vn(target_date_str)
-
-    # 1. Active meters
-    meters = db.query(Meter).filter(Meter.is_active == True).order_by(Meter.meter_code.asc()).all()
-
-    # 2. Today's rounds
-    all_rounds = (
-        db.query(ReadingRound)
-        .filter(ReadingRound.is_legacy == False)
-        .order_by(ReadingRound.scheduled_at.asc())
-        .all()
-    )
-
-    today_rounds: list[ReadingRound] = []
-    for r in all_rounds:
-        r_sched = r.scheduled_at.replace(tzinfo=timezone.utc) if r.scheduled_at.tzinfo is None else r.scheduled_at
-        if r_sched.astimezone(LOCAL_TZ).strftime("%Y-%m-%d") == target_date_str:
-            today_rounds.append(r)
-
-    round_ids = [r.id for r in today_rounds]
-
-    # 3. Readings
-    readings = []
-    if round_ids:
-        readings = (
-            db.query(MeterReading)
-            .filter(MeterReading.reading_round_id.in_(round_ids))
-            .all()
-        )
-
-    readings_map: dict[tuple[str, str], MeterReading] = {
-        (r.meter_id, r.reading_round_id): r for r in readings
-    }
-
-    # Write CSV with UTF-8 BOM
+    target_date_str = date_str or datetime.now(timezone.utc).astimezone(LOCAL_TZ).date().isoformat()
+    tasks = load_scope_tasks(db, target_date_str, target_date_str)
+    meter_ids = {task.meter_id for task in tasks if task.meter_id}
+    meters = {row.id: row for row in db.query(Meter).filter(Meter.id.in_(meter_ids)).all()} if meter_ids else {}
+    users = {row.id: row for row in db.query(User).all()}
     output = io.StringIO()
-    # Write UTF-8 BOM for Vietnamese Excel compatibility
     output.write("\ufeff")
-
     writer = csv.writer(output, dialect="excel")
     writer.writerow([
-        "Ngày tác nghiệp",
-        "Khung giờ",
-        "Mã công tơ",
-        "Tên công tơ",
-        "Vị trí / Trạm",
-        "Loại công tơ",
-        "Trạng thái",
-        "Chỉ số (kWh)",
-        "Chỉ số OCR",
-        "Nguồn xác nhận",
-        "Thời gian ghi",
-        "Mã nhân viên",
-        "Họ tên nhân viên",
+        "Ngày tác nghiệp", "Khung giờ", "Mã công tơ", "Tên công tơ",
+        "Khu vực tác nghiệp", "Loại công tơ", "Trạng thái", "Chỉ số chính thức",
+        "Chỉ số OCR", "Nguồn xác nhận", "Thời gian ghi", "Mã nhân viên",
+        "Họ tên nhân viên", "Đơn vị", "Tiện ích", "Chế độ phạm vi",
     ])
-
-    for r in today_rounds:
-        r_sched = r.scheduled_at.replace(tzinfo=timezone.utc) if r.scheduled_at.tzinfo is None else r.scheduled_at
-        sched_time_str = get_round_time_only_str(r_sched)
-
-        for m in meters:
-            rd = readings_map.get((m.id, r.id))
-            if rd:
-                st = "ĐÃ XÁC NHẬN" if rd.status == "CONFIRMED" else ("CẦN KIỂM TRA" if rd.status == "REVIEW" else "CHƯA GHI")
-                reading_val = rd.reading or ""
-                ocr_val = rd.ocr_reading or ""
-                conf_src = rd.confirmation_source or ""
-                rec_time = get_local_time_str(rd.server_timestamp) if rd.server_timestamp else ""
-                emp_code = rd.user.employee_code if rd.user else ""
-                emp_name = rd.user.full_name if rd.user else ""
-            else:
-                st = "CHƯA GHI"
-                reading_val = ""
-                ocr_val = ""
-                conf_src = ""
-                rec_time = ""
-                emp_code = ""
-                emp_name = ""
-
-            m_type = "LCD" if (m.meter_type and m.meter_type.upper() == "LCD") else "Cơ"
-
-            writer.writerow([
-                date_formatted,
-                sched_time_str,
-                m.meter_code,
-                m.name,
-                m.location or "Chưa xác định",
-                m_type,
-                st,
-                reading_val,
-                ocr_val,
-                conf_src,
-                rec_time,
-                emp_code,
-                emp_name,
-            ])
-
+    for task in tasks:
+        rd = task.reading
+        meter = meters.get(task.meter_id)
+        executor = users.get(rd.user_id) if rd else None
+        status_label = {
+            "UPCOMING": "SẮP ĐẾN HẠN", "CONFIRMED": "ĐÃ XÁC NHẬN",
+            "REVIEW": "CẦN KIỂM TRA", "MISSING": "CHƯA GHI",
+        }[task.status]
+        writer.writerow([
+            format_date_vn(target_date_str), get_round_time_only_str(task.round.scheduled_at),
+            task.meter_code, task.meter_name, task.zone_name,
+            "LCD" if task.meter_type == "LCD" else "Cơ" if task.meter_type == "MECHANICAL" else task.meter_type,
+            status_label, rd.reading if rd else "", rd.ocr_reading if rd else "",
+            rd.confirmation_source if rd else "",
+            get_local_time_str(rd.server_timestamp) if rd and rd.server_timestamp else "",
+            executor.employee_code if executor else "", executor.full_name if executor else "",
+            meter.measurement_unit if meter and meter.measurement_unit != "UNKNOWN" else "",
+            task.utility_type, task.scope_mode,
+        ])
     return output.getvalue()

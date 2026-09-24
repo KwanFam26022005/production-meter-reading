@@ -853,6 +853,11 @@ def migrate_db(db_engine=None) -> None:
                 cursor.execute("ALTER TABLE meters ADD COLUMN communication_protocol VARCHAR(32) DEFAULT 'UNKNOWN'")
             if "utility_type" not in meter_cols:
                 cursor.execute("ALTER TABLE meters ADD COLUMN utility_type VARCHAR(32) DEFAULT 'UNKNOWN'")
+            # Thread 9D: existing rows remain unconfigured until verified by Admin.
+            if "measurement_unit" not in meter_cols:
+                cursor.execute("ALTER TABLE meters ADD COLUMN measurement_unit VARCHAR(16) NOT NULL DEFAULT 'UNKNOWN'")
+            if "register_semantics" not in meter_cols:
+                cursor.execute("ALTER TABLE meters ADD COLUMN register_semantics VARCHAR(16) NOT NULL DEFAULT 'UNKNOWN'")
 
             # 19d. Extend meter_asset_relations with confidence, source, notes
             cursor.execute("PRAGMA table_info(meter_asset_relations)")

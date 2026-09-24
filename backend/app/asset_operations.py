@@ -1913,6 +1913,8 @@ def update_meter_metadata(
         "reading_method": meter.reading_method,
         "communication_protocol": meter.communication_protocol,
         "utility_type": meter.utility_type,
+        "measurement_unit": meter.measurement_unit,
+        "register_semantics": meter.register_semantics,
     }
 
     if payload.reading_method is not None:
@@ -1933,6 +1935,15 @@ def update_meter_metadata(
             raise HTTPException(status_code=400, detail=f"Invalid utility_type '{ut}'")
         meter.utility_type = ut
 
+    if payload.measurement_unit is not None:
+        meter.measurement_unit = payload.measurement_unit
+    if payload.register_semantics is not None:
+        meter.register_semantics = payload.register_semantics
+    if (meter.utility_type == "WATER" and meter.measurement_unit == "KWH") or (
+        meter.utility_type == "ELECTRICITY" and meter.measurement_unit == "M3"
+    ):
+        raise HTTPException(status_code=400, detail="Measurement unit conflicts with utility type")
+
     meter.updated_at = get_utc_now()
 
     log_admin_action(
@@ -1946,6 +1957,8 @@ def update_meter_metadata(
             "reading_method": meter.reading_method,
             "communication_protocol": meter.communication_protocol,
             "utility_type": meter.utility_type,
+            "measurement_unit": meter.measurement_unit,
+            "register_semantics": meter.register_semantics,
         },
     )
     db.commit()
@@ -1956,6 +1969,8 @@ def update_meter_metadata(
         "reading_method": meter.reading_method,
         "communication_protocol": meter.communication_protocol,
         "utility_type": meter.utility_type,
+        "measurement_unit": meter.measurement_unit,
+        "register_semantics": meter.register_semantics,
     }
 
 
@@ -2304,5 +2319,3 @@ def get_asset_operational_context(db: Session, asset_id: str) -> AssetOperationa
         presentation_zone_name=zone_pres_name,
         spatial_status=spatial_status,
     )
-
-
