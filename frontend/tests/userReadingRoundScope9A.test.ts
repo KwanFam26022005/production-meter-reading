@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 const here = path.dirname(fileURLToPath(import.meta.url));
 const userSource = fs.readFileSync(path.resolve(here, '../src/components/ReadingBatchView.tsx'), 'utf-8');
 const typeSource = fs.readFileSync(path.resolve(here, '../src/types.ts'), 'utf-8');
+const measurementUnitSource = fs.readFileSync(path.resolve(here, '../src/utils/measurementUnit.ts'), 'utf-8');
 
 test('9A User: current queue labels scheduled meters and shows round status counts', () => {
   assert.match(userSource, /công tơ trong lượt đã ghi/);
@@ -17,8 +18,9 @@ test('9A User: current queue labels scheduled meters and shows round status coun
 });
 
 test('9A User: scheduled water meters retain their correct reading unit', () => {
-  assert.match(userSource, /utility === 'WATER'\) return 'm³'/);
-  assert.match(userSource, /utility === 'ELECTRICITY'\) return 'kWh'/);
+  assert.match(measurementUnitSource, /case 'M3':\s*return 'm³'/);
+  assert.match(measurementUnitSource, /case 'KWH':\s*return 'kWh'/);
+  assert.match(userSource, /formatMeasurementUnit\(meter\.measurement_unit\)/);
   assert.match(userSource, /getMeterUnit\(selectedDetailMeter\.meter\)/);
 });
 

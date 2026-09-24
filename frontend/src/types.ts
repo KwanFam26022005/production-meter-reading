@@ -109,6 +109,8 @@ export interface Meter {
   location: string | null;
   meter_type: string;
   utility_type?: string | null;
+  measurement_unit?: 'UNKNOWN' | 'KWH' | 'M3' | null;
+  register_semantics?: 'UNKNOWN' | 'CUMULATIVE' | 'INTERVAL' | null;
   is_active: boolean;
   lifecycle_status?: 'ACTIVE' | 'INACTIVE' | 'RETIRED';
   retired_at?: string | null;

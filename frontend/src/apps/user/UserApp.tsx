@@ -40,6 +40,7 @@ import { LogoutConfirmModal } from '../../components/LogoutConfirmModal';
 import { UnsavedWorkConfirmModal } from '../../components/UnsavedWorkConfirmModal';
 import { AuthenticatedShell } from '../../components/AuthenticatedShell';
 import { LoadingState } from '../../components/ui/LoadingState';
+import { formatMeasurementUnit } from '../../utils/measurementUnit';
 
 const MAX_IMAGE_SIZE_BYTES = 12 * 1024 * 1024; // 12MB
 const MAX_READING_LENGTH = 12;
@@ -68,6 +69,10 @@ function sanitizeReadingInput(raw: string): string {
     }
   }
   return result;
+}
+
+function getReadingUnitLabel(meter: Meter | null): string {
+  return formatMeasurementUnit(meter?.measurement_unit) ?? 'Đơn vị chưa cấu hình';
 }
 
 function normalizeReading(val: string): string {
@@ -1124,12 +1129,12 @@ export default function UserApp() {
               <span className="verify-ocr-label">OCR NHẬN DIỆN</span>
               <span className="verify-ocr-value" aria-live="polite">
                 {result.reading ?? '—'}
-                <span className="verify-ocr-unit">kWh</span>
+                <span className="verify-ocr-unit">{getReadingUnitLabel(selectedMeter)}</span>
               </span>
             </div>
 
             {!isEditingReading ? (
-              <div className="reading-hero" aria-label={`Số sẽ lưu: ${confirmedReadingValue} kWh`}>
+              <div className="reading-hero" aria-label={`Số sẽ lưu: ${confirmedReadingValue} ${getReadingUnitLabel(selectedMeter)}`}>
                 <div className="reading-hero-header">
                   <span className="reading-hero-eyebrow">SỐ SẼ LƯU</span>
                   <button
@@ -1145,7 +1150,7 @@ export default function UserApp() {
                 </div>
                 <div className="reading-hero-value-wrap">
                   <span className="reading-hero-number">{confirmedReadingValue}</span>
-                  <span className="reading-hero-unit">kWh</span>
+                  <span className="reading-hero-unit">{getReadingUnitLabel(selectedMeter)}</span>
                 </div>
                 {confirmedReadingValue !== result.reading && (
                   <div className="corrected-notice" role="status">
@@ -1194,7 +1199,7 @@ export default function UserApp() {
                     aria-label="Thêm dấu chấm thập phân"
                     title="Dấu chấm"
                   >.</button>
-                  <span className="edit-input-unit">kWh</span>
+                  <span className="edit-input-unit">{getReadingUnitLabel(selectedMeter)}</span>
                 </div>
                 {editError && <p className="edit-error-msg">{editError}</p>}
                 <p className="edit-reading-original">
@@ -1257,7 +1262,7 @@ export default function UserApp() {
               </span>
               <div className="reading-hero-value-wrap">
                 <span className="reading-hero-number">{confirmSuccessData.reading}</span>
-                <span className="reading-hero-unit">kWh</span>
+                <span className="reading-hero-unit">{getReadingUnitLabel(selectedMeter)}</span>
               </div>
               {confirmSuccessData.confirmation_source === 'MANUAL_ENTRY' && (
                 <div className="corrected-notice" role="status">
@@ -1412,7 +1417,7 @@ export default function UserApp() {
                     aria-label="Thêm dấu chấm thập phân"
                     title="Dấu chấm"
                   >.</button>
-                  <span className="edit-input-unit">kWh</span>
+                  <span className="edit-input-unit">{getReadingUnitLabel(selectedMeter)}</span>
                 </div>
                 {manualReadingError && <p className="edit-error-msg">{manualReadingError}</p>}
                 <div className="edit-actions-row" style={{ marginTop: '14px' }}>

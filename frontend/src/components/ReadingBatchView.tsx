@@ -34,6 +34,8 @@ import { AuthenticatedShell } from './AuthenticatedShell';
 import { LoadingState } from './ui/LoadingState';
 import { ErrorState } from './ui/ErrorState';
 import { EmptyState } from './ui/EmptyState';
+import { formatMeasurementUnit } from '../utils/measurementUnit';
+import { formatMeterTypeLabel } from '../utils/meterMetadata';
 
 interface ReadingBatchViewProps {
   user: User;
@@ -44,10 +46,7 @@ interface ReadingBatchViewProps {
 type StatusFilter = 'ALL' | 'PENDING' | 'CONFIRMED';
 
 const getMeterUnit = (meter: Meter): string => {
-  const utility = meter.utility_type?.toUpperCase();
-  if (utility === 'WATER') return 'm³';
-  if (utility === 'ELECTRICITY') return 'kWh';
-  return 'đơn vị';
+  return formatMeasurementUnit(meter.measurement_unit) ?? 'đơn vị chưa cấu hình';
 };
 
 const getDialogFocusableElements = (root: HTMLElement | null): HTMLElement[] => {
@@ -511,7 +510,7 @@ export const ReadingBatchView: React.FC<ReadingBatchViewProps> = ({
                           <span className="meter-code-text">{item.meter.meter_code}</span>
                           <span className="meter-identity-divider">&bull;</span>
                           <span className="meter-type-text">
-                            {item.meter.meter_type?.toUpperCase() === 'LCD' ? 'LCD' : 'Cơ'}
+                            {formatMeterTypeLabel(item.meter.meter_type)}
                           </span>
                           <span className={`task-card-role-badge role-${item.assignment_role.toLowerCase()}`}>
                             {item.assignment_role === 'PRIMARY' ? 'Chính' : 'Hỗ trợ'}
@@ -629,7 +628,7 @@ export const ReadingBatchView: React.FC<ReadingBatchViewProps> = ({
                   <span className="modal-code-badge">{selectedDetailMeter.meter.meter_code}</span>
                   {selectedDetailMeter.meter.meter_type && (
                     <span className="smc-type-tag">
-                      {selectedDetailMeter.meter.meter_type.toUpperCase() === 'LCD' ? 'Điện tử (LCD)' : 'Cơ (Mechanical)'}
+                      {formatMeterTypeLabel(selectedDetailMeter.meter.meter_type, true)}
                     </span>
                   )}
                   <span className={`task-card-role-badge role-${selectedDetailMeter.assignment_role.toLowerCase()}`}>
@@ -863,7 +862,7 @@ export const ReadingBatchView: React.FC<ReadingBatchViewProps> = ({
                     {meterDetailData.history.map((h) => (
                       <div key={h.id} className="history-audit-card">
                         <div className="ha-top-row">
-                          <span className="ha-reading">{h.reading ? `${h.reading} kWh` : 'Cần kiểm tra'}</span>
+                          <span className="ha-reading">{h.reading ? `${h.reading} ${getMeterUnit(selectedDetailMeter.meter)}` : 'Cần kiểm tra'}</span>
                           <span className={`ha-status-badge ${h.status === 'CONFIRMED' ? 'ha-confirmed' : 'ha-review'}`}>
                             {h.status === 'CONFIRMED' ? 'ĐÃ XÁC NHẬN' : 'CẦN KT'}
                           </span>

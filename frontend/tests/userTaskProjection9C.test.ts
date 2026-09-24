@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { formatMeasurementUnit } from '../src/utils/measurementUnit';
+import { formatMeterTypeLabel } from '../src/utils/meterMetadata';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '..');
@@ -10,6 +12,7 @@ const readingSource = fs.readFileSync(path.join(root, 'src/components/ReadingBat
 const apiSource = fs.readFileSync(path.join(root, 'src/services/api.ts'), 'utf8');
 const typesSource = fs.readFileSync(path.join(root, 'src/types.ts'), 'utf8');
 const cssSource = fs.readFileSync(path.join(root, 'src/index.css'), 'utf8');
+const userAppSource = fs.readFileSync(path.join(root, 'src/apps/user/UserApp.tsx'), 'utf8');
 
 test('9C User: ReadingBatchView loads tasks via getMyMeterTasks and supports roundId parameter', () => {
   assert.match(readingSource, /getMyMeterTasks/);
@@ -62,6 +65,29 @@ test('9C User: Meter cards render assignment role, zone tag, and recorded_by pro
   assert.match(cssSource, /\.task-card-role-badge/);
   assert.match(cssSource, /\.meter-card-zone-tag/);
   assert.match(cssSource, /\.meter-card-recorded-by/);
+});
+
+test('9C User: Reading unit labels follow configured meter metadata only', () => {
+  assert.equal(formatMeasurementUnit('KWH'), 'kWh');
+  assert.equal(formatMeasurementUnit('M3'), 'm³');
+  assert.equal(formatMeasurementUnit('UNKNOWN'), null);
+  assert.equal(formatMeasurementUnit(undefined), null);
+  assert.match(typesSource, /measurement_unit\?: 'UNKNOWN' \| 'KWH' \| 'M3'/);
+  assert.match(readingSource, /formatMeasurementUnit\(meter\.measurement_unit\) \?\? 'đơn vị chưa cấu hình'/);
+  assert.match(readingSource, /\$\{h\.reading\} \$\{getMeterUnit\(selectedDetailMeter\.meter\)\}/);
+  assert.match(userAppSource, /formatMeasurementUnit\(meter\?\.measurement_unit\) \?\? 'Đơn vị chưa cấu hình'/);
+  assert.doesNotMatch(readingSource, /utility === 'WATER'.*m³/);
+  assert.doesNotMatch(userAppSource, /kWh/);
+});
+
+test('9C User: Meter type labels do not present OTHER or UNKNOWN as mechanical', () => {
+  assert.equal(formatMeterTypeLabel('LCD'), 'LCD');
+  assert.equal(formatMeterTypeLabel('MECHANICAL'), 'Cơ');
+  assert.equal(formatMeterTypeLabel('OTHER'), 'Khác');
+  assert.equal(formatMeterTypeLabel('UNKNOWN'), 'Chưa cấu hình loại');
+  assert.equal(formatMeterTypeLabel(undefined, true), 'Chưa cấu hình loại');
+  assert.match(readingSource, /formatMeterTypeLabel\(item\.meter\.meter_type\)/);
+  assert.match(readingSource, /formatMeterTypeLabel\(selectedDetailMeter\.meter\.meter_type, true\)/);
 });
 
 test('9C User: Explicitly handles 4 distinct empty states truthfully', () => {
