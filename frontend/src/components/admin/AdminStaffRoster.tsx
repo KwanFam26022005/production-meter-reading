@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
+  AlertTriangle,
   CheckCircle2,
   Clock,
   FileSpreadsheet,
@@ -72,6 +73,7 @@ export const AdminStaffRoster: React.FC<AdminStaffRosterProps> = ({ user: _curre
   const [pendingChanges, setPendingChanges] = useState<Record<string, string>>({});
   const [savingChanges, setSavingChanges] = useState<boolean>(false);
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
+  const [actionErrorMsg, setActionErrorMsg] = useState<string | null>(null);
 
   // Leave Requests state
   const [leaveRequests, setLeaveRequests] = useState<LeaveRequestItem[]>([]);
@@ -270,20 +272,20 @@ export const AdminStaffRoster: React.FC<AdminStaffRosterProps> = ({ user: _curre
     try {
       const res = await assignAdminShifts(assignments);
       setSaveSuccessMsg(res.message);
+      setActionErrorMsg(null);
       setPendingChanges({});
       await fetchRoster(currentMonth);
       setTimeout(() => setSaveSuccessMsg(null), 4000);
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : 'Lỗi khi lưu bảng phân ca.');
+      setActionErrorMsg(err instanceof Error ? err.message : 'Lỗi khi lưu bảng phân ca.');
     } finally {
       setSavingChanges(false);
     }
   };
 
   const handleUndoAll = () => {
-    if (window.confirm('Bạn có chắc muốn hoàn tác tất cả các thay đổi nháp chưa lưu?')) {
-      setPendingChanges({});
-    }
+    setPendingChanges({});
+    setActionErrorMsg(null);
   };
 
   const handleResetFilters = () => {
@@ -330,14 +332,16 @@ export const AdminStaffRoster: React.FC<AdminStaffRosterProps> = ({ user: _curre
 
   const handleApplyAutoPattern = async (patternType: string) => {
     setApplyingPattern(true);
+    setActionErrorMsg(null);
     try {
       const res = await autoPatternAdminRoster(currentMonth, [], patternType);
-      alert(res.message);
+      setSaveSuccessMsg(res.message);
       setAutoPatternModalOpen(false);
       setPendingChanges({});
       await fetchRoster(currentMonth);
+      setTimeout(() => setSaveSuccessMsg(null), 4000);
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : 'Không thể áp dụng chu kỳ ca.');
+      setActionErrorMsg(err instanceof Error ? err.message : 'Không thể áp dụng chu kỳ ca.');
     } finally {
       setApplyingPattern(false);
     }
@@ -345,12 +349,15 @@ export const AdminStaffRoster: React.FC<AdminStaffRosterProps> = ({ user: _curre
 
   const handleReviewLeave = async (requestId: string, action: 'APPROVED' | 'REJECTED', note?: string) => {
     setReviewingId(requestId);
+    setActionErrorMsg(null);
     try {
       await reviewAdminLeaveRequest(requestId, action, note);
+      setSaveSuccessMsg(`Đã ${action === 'APPROVED' ? 'duyệt' : 'từ chối'} đơn nghỉ phép.`);
       await fetchLeaves(leaveFilter);
       await fetchRoster(currentMonth);
+      setTimeout(() => setSaveSuccessMsg(null), 4000);
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : 'Lỗi khi xử lý đơn.');
+      setActionErrorMsg(err instanceof Error ? err.message : 'Lỗi khi xử lý đơn.');
     } finally {
       setReviewingId(null);
     }
@@ -403,6 +410,22 @@ export const AdminStaffRoster: React.FC<AdminStaffRosterProps> = ({ user: _curre
         <div className="admin-alert-banner alert-success" role="status">
           <CheckCircle2 size={16} />
           <span>{saveSuccessMsg}</span>
+        </div>
+      )}
+
+      {/* ERROR BANNER */}
+      {actionErrorMsg && (
+        <div className="admin-alert-banner alert-danger" role="alert">
+          <AlertTriangle size={16} />
+          <span>{actionErrorMsg}</span>
+          <button
+            type="button"
+            className="admin-btn-table-action"
+            style={{ marginLeft: 'auto', padding: '2px 8px' }}
+            onClick={() => setActionErrorMsg(null)}
+          >
+            Đóng
+          </button>
         </div>
       )}
 
