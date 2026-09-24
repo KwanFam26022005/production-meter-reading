@@ -33,8 +33,13 @@ function Responsibility({ task }: { task: ReportingTask }) {
   </>;
 }
 
+export function selectOperationalDrillTasks(tasks: ReportingTask[], filter: 'due' | 'confirmed'): ReportingTask[] {
+  return tasks.filter(task => filter === 'confirmed' ? task.status === 'CONFIRMED' : task.status !== 'UPCOMING');
+}
+
 export const ReportingOperationsWorkspace: React.FC<Props> = ({ data, view, integrityCount, onOpenActions, onSelectMeter, onInspectReading }) => {
   const [expandedRound, setExpandedRound] = useState<string | null>(null);
+  const [drillFilter, setDrillFilter] = useState<'due' | 'confirmed' | null>(null);
   const s = data.summary;
   if (view === 'actions') {
     return <div className="admin-tech-content">
@@ -68,11 +73,11 @@ export const ReportingOperationsWorkspace: React.FC<Props> = ({ data, view, inte
   }
   return <div className="admin-tech-content">
     <div className="admin-tech-metric-strip-4 reporting-kpis" aria-label="Tổng quan điều hành">
-      <button type="button" className="admin-tech-kpi-card reporting-kpi-button" onClick={onOpenActions}>
+      <button type="button" className="admin-tech-kpi-card reporting-kpi-button" aria-expanded={drillFilter === 'due'} onClick={() => setDrillFilter(drillFilter === 'due' ? null : 'due')}>
         <span className="tech-kpi-label">Đến hạn</span><strong className="tech-kpi-val font-tabular">{s.due} / {s.scheduled}</strong>
         <span className="tech-kpi-sub">{s.scheduled_rounds} lượt ghi đã lên lịch</span>
       </button>
-      <button type="button" className="admin-tech-kpi-card reporting-kpi-button" onClick={onOpenActions}>
+      <button type="button" className="admin-tech-kpi-card reporting-kpi-button" aria-expanded={drillFilter === 'confirmed'} onClick={() => setDrillFilter(drillFilter === 'confirmed' ? null : 'confirmed')}>
         <span className="tech-kpi-label">Hoàn tất</span><strong className="tech-kpi-val font-tabular">{s.confirmed} / {s.due}</strong>
         <span className="tech-kpi-sub">{s.completion_percent}% lượt đến hạn</span>
       </button>
@@ -85,6 +90,20 @@ export const ReportingOperationsWorkspace: React.FC<Props> = ({ data, view, inte
         <span className="tech-kpi-sub">{s.missing} chưa ghi · {s.review} cần kiểm tra</span>
       </button>
     </div>
+    {drillFilter && <div className="admin-surface-card">
+      <div className="admin-card-header"><h2 className="admin-card-title">{drillFilter === 'confirmed' ? 'Bản ghi đã hoàn tất' : 'Việc đã đến hạn'}</h2>
+        <button type="button" className="admin-btn-table-action" onClick={() => setDrillFilter(null)}>Thu gọn</button></div>
+      <div className="admin-table-container"><table className="admin-table admin-tech-table" aria-label={drillFilter === 'confirmed' ? 'Bản ghi đã hoàn tất' : 'Việc đã đến hạn'}>
+        <thead><tr><th scope="col">Lượt</th><th scope="col">Khu vực</th><th scope="col">Công tơ</th><th scope="col">Trạng thái</th><th scope="col">Phụ trách / Thực hiện</th><th scope="col">Bằng chứng</th></tr></thead>
+        <tbody>{selectOperationalDrillTasks(data.tasks, drillFilter).map(task =>
+          <tr key={`${task.round_id}-${task.meter_code}`}><td>{localDate(task.scheduled_at)}</td><td>{task.zone_name}</td><td className="font-mono">{task.meter_code}</td>
+            <td>{task.status === 'CONFIRMED' ? 'Đã hoàn tất' : task.status === 'REVIEW' ? 'Cần kiểm tra' : 'Chưa ghi'}</td>
+            <td><Responsibility task={task} /></td><td>{task.reading_id && onInspectReading ?
+              <button type="button" className="admin-btn-table-action" onClick={() => onInspectReading(task.reading_id!)}>Xem bản ghi</button> :
+              task.meter_id ? <button type="button" className="admin-btn-table-action" onClick={() => onSelectMeter(task.meter_id!)}>Xem công tơ</button> : '—'}</td>
+          </tr>)}</tbody>
+      </table></div>
+    </div>}
     {s.legacy_dynamic_count > 0 && <p className="reporting-note" role="status">{s.legacy_dynamic_count} meter-round dùng phạm vi động LEGACY_DYNAMIC; không có snapshot lịch sử.</p>}
     <div className="admin-surface-card">
       <div className="admin-card-header"><h2 className="admin-card-title">Tiến độ theo lượt · khu vực · ca</h2><span className="text-muted text-xs">Chọn hàng để xem công tơ trong phạm vi</span></div>

@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import type { ReportingOperationsResponse, UsageMeterResponse, UsageOverviewResponse } from '../src/types';
-import { ReportingOperationsWorkspace } from '../src/components/admin/ReportingOperationsWorkspace';
+import { ReportingOperationsWorkspace, selectOperationalDrillTasks } from '../src/components/admin/ReportingOperationsWorkspace';
 import { ReportingUsageWorkspace, ReportingMeterUsage } from '../src/components/admin/ReportingUsageWorkspace';
 
 const dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -64,6 +64,19 @@ test('9D operational view discloses workload, coverage, and separate responsibil
   assert.match(actions, /Người A \(PRIMARY\), Người B \(SUPPORT\)/);
   assert.match(actions, /Đã ghi: Người B/);
   assert.match(actions, /Xem bản ghi/);
+});
+
+test('9D KPI drill includes completed reading evidence even when the action queue is empty', () => {
+  const completed = { ...operations.actions[0], type: undefined, status: 'CONFIRMED' as const };
+  const upcoming = { ...completed, round_id: 'r2', reading_id: null, status: 'UPCOMING' as const };
+  const report = { ...operations, actions: [], tasks: [completed, upcoming] };
+  assert.equal(selectOperationalDrillTasks(report.tasks, 'confirmed')[0].reading_id, 'reading-1');
+  assert.equal(selectOperationalDrillTasks(report.tasks, 'due').length, 1);
+  const markup = renderToStaticMarkup(React.createElement(ReportingOperationsWorkspace, {
+    data: report, view: 'overview', integrityCount: 0, onOpenActions() {}, onSelectMeter() {}, onInspectReading() {},
+  }));
+  assert.match(markup, /aria-expanded="false"/);
+  assert.match(markup, /Hoàn tất/);
 });
 
 test('9D usage selection keeps electricity and water separate with explicit coverage', () => {

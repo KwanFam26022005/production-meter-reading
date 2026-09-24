@@ -26,12 +26,17 @@ but `subprocess.run(["npm", ...])` raises `FileNotFoundError: [WinError 2]`.
 This was reproduced with `npm --version` through the same Python launch
 method. No product test failure or domain-routing defect was found, and
 Harness V1 remains frozen. The exact configured commands were then run from
-PowerShell: `npm run test:operations` **396 passed**,
+PowerShell: `npm run test:operations` **397 passed**,
 `npm run build:operations` **passed**, and `npm run test:user` **90 passed**. The
 Operations build reported its existing large-chunk advisory; it produced the
 bundle successfully. Backend full, User build, Map, spatial, and simulation
 gates were not selected. Known-failure delta is not applicable without a
 backend-full gate.
+
+After the completed-KPI evidence drill was added, the five focused 9D
+frontend assertions passed, the full Operations suite passed **397/397**, and
+the Operations production build passed again. Backend scope and usage code did
+not change in that follow-up.
 
 ## Admin responsive acceptance
 

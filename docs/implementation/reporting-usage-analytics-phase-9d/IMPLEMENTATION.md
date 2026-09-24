@@ -35,6 +35,8 @@ Base: `44ff48875b1f73e25c5391c990ad10fea00b5044` on
   actionable work. Usage offers interval bars, baseline comparison, a day ×
   slot heatmap, and per-meter consumption/rate/raw-register switching. OCR
   provenance and pipeline settings remain in the quality tab.
+  Due and completed KPI cards expand their underlying tasks, including
+  reading evidence actions for completed rows.
 
 ## Semantics and limits
 
