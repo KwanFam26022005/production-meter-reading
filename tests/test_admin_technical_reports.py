@@ -19,6 +19,7 @@ from backend.app.db import Base, get_db
 from backend.app.main import app
 from backend.app.models import (
     Meter,
+    OperationalZone,
     MeterReading,
     ReadingBatch,
     ReadingRound,
@@ -124,10 +125,19 @@ def sample_operational_data(test_db_session, admin_user):
     test_db_session.add(batch)
     test_db_session.commit()
 
+    # 9D groups by operational zone, never the meters' free-text locations.
+    zones = [
+        OperationalZone(id="technical-zone-a", code="TECH-A", name="Operational Zone A", map_polygon="[]"),
+        OperationalZone(id="technical-zone-b", code="TECH-B", name="Operational Zone B", map_polygon="[]"),
+    ]
+    test_db_session.add_all(zones)
+    test_db_session.flush()
+
     # Meters
     m1 = Meter(
         id=str(uuid.uuid4()),
         meter_code="CT-001",
+        zone_id=zones[0].id,
         name="Công tơ Trạm A",
         location="Trạm điện A",
         meter_type="MECHANICAL",
@@ -136,6 +146,7 @@ def sample_operational_data(test_db_session, admin_user):
     m2 = Meter(
         id=str(uuid.uuid4()),
         meter_code="CT-002",
+        zone_id=zones[1].id,
         name="Công tơ Kho B",
         location="Kho B",
         meter_type="LCD",
@@ -281,7 +292,12 @@ def test_admin_technical_overview_metrics(test_db_session, client, admin_user, s
 
     # Quality by type
     assert len(data["quality_by_type"]) == 2
-    assert len(data["quality_by_location"]) == 2
+    groups = {row["location"]: row for row in data["quality_by_location"]}
+    assert set(groups) == {"Operational Zone A", "Operational Zone B"}
+    assert groups["Operational Zone A"]["confirmed_count"] == 2
+    assert groups["Operational Zone B"]["confirmed_count"] == 1
+    assert sample_operational_data["m1"].location not in groups
+    assert sample_operational_data["m2"].location not in groups
 
 
 def test_admin_technical_meters_endpoint(test_db_session, client, admin_user, sample_operational_data):
