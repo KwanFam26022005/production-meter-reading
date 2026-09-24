@@ -133,23 +133,29 @@ if (Test-Path $PidFile) {
 Write-Host ""
 Write-Host "Starting services for Dual Portal Demo Mode..." -ForegroundColor Cyan
 
-# 8. Launch Backend (FastAPI on 127.0.0.1:8000)
+# 8. Launch Backend (FastAPI on 127.0.0.1:$BackendPort)
+$BackendPort = if ($env:DEMO_BACKEND_PORT) { [int]$env:DEMO_BACKEND_PORT } else { 8000 }
+$BackendUrl = "http://127.0.0.1:$BackendPort"
 $BackendProcess = $null
 $BackendAlreadyRunning = $false
+$BackendOwned = $false
 try {
-    $checkB = Invoke-WebRequest -Uri "http://127.0.0.1:8000/health" -UseBasicParsing -TimeoutSec 1 -ErrorAction SilentlyContinue
+    $checkB = Invoke-WebRequest -Uri "$BackendUrl/health" -UseBasicParsing -TimeoutSec 1 -ErrorAction SilentlyContinue
     if ($checkB.StatusCode -eq 200) {
         $BackendAlreadyRunning = $true
-        Write-Host "-> FastAPI Backend is already running on port 8000 (reusing existing instance)." -ForegroundColor Green
+        Write-Host "-> FastAPI Backend is already running on port $BackendPort (reusing existing instance, not owned)." -ForegroundColor Green
     }
 } catch {}
 
 if (-not $BackendAlreadyRunning) {
-    Write-Host "-> Launching FastAPI Backend on port 8000..." -ForegroundColor White
+    Write-Host "-> Launching FastAPI Backend on port $BackendPort..." -ForegroundColor White
     $BackendProcess = Start-Process -FilePath $PythonExe `
-        -ArgumentList "-m", "uvicorn", "backend.app.main:app", "--host", "127.0.0.1", "--port", "8000" `
+        -ArgumentList "-m", "uvicorn", "backend.app.main:app", "--host", "127.0.0.1", "--port", "$BackendPort" `
         -WorkingDirectory $ProjectRoot `
         -PassThru
+    $BackendOwned = $true
+} else {
+    $BackendOwned = $false
 }
 
 # 9. Launch User Portal (Vite Dev Server on 5173)
@@ -157,14 +163,14 @@ Write-Host "-> Launching Vite User Frontend on port 5173..." -ForegroundColor Wh
 $FrontendDir = Join-Path $ProjectRoot "frontend"
 $TunnelFlag = if ($NoTunnel) { "0" } else { "1" }
 $UserProcess = Start-Process -FilePath "cmd.exe" `
-    -ArgumentList "/c", "set VITE_TUNNEL=$TunnelFlag&& set VITE_API_BASE_URL=&& npm run dev:user" `
+    -ArgumentList "/c", "set VITE_TUNNEL=$TunnelFlag&& set VITE_API_BASE_URL=&& set VITE_BACKEND_URL=$BackendUrl&& npm run dev:user" `
     -WorkingDirectory $FrontendDir `
     -PassThru
 
 # 10. Launch Operations Portal (Vite Dev Server on 5174)
 Write-Host "-> Launching Vite Operations Frontend on port 5174..." -ForegroundColor White
 $OpsProcess = Start-Process -FilePath "cmd.exe" `
-    -ArgumentList "/c", "set VITE_TUNNEL=$TunnelFlag&& set VITE_API_BASE_URL=&& npm run dev:operations" `
+    -ArgumentList "/c", "set VITE_TUNNEL=$TunnelFlag&& set VITE_API_BASE_URL=&& set VITE_BACKEND_URL=$BackendUrl&& npm run dev:operations" `
     -WorkingDirectory $FrontendDir `
     -PassThru
 
@@ -178,10 +184,10 @@ $MaxAttempts = 40
 for ($i = 1; $i -le $MaxAttempts; $i++) {
     if (-not $BackendReady) {
         try {
-            $bResp = Invoke-WebRequest -Uri "http://127.0.0.1:8000/health" -UseBasicParsing -TimeoutSec 2 -ErrorAction SilentlyContinue
+            $bResp = Invoke-WebRequest -Uri "$BackendUrl/health" -UseBasicParsing -TimeoutSec 2 -ErrorAction SilentlyContinue
             if ($bResp.StatusCode -eq 200) {
                 $BackendReady = $true
-                Write-Host "   [READY] FastAPI backend is responding on port 8000." -ForegroundColor Green
+                Write-Host "   [READY] FastAPI backend is responding on port $BackendPort." -ForegroundColor Green
             }
         } catch {}
     }
@@ -210,9 +216,10 @@ for ($i = 1; $i -le $MaxAttempts; $i++) {
 }
 
 if (-not $BackendReady) {
-    Write-Host "[ERROR] Backend service failed to start on http://127.0.0.1:8000/health" -ForegroundColor Red
+    Write-Host "[ERROR] Backend service failed to start on $BackendUrl/health" -ForegroundColor Red
     # Clean up started processes
     $CleanupPids = @{
+        backend_owned = $BackendOwned
         backend_pid = if ($BackendProcess) { $BackendProcess.Id } else { $null }
         user_frontend_pid = $UserProcess.Id
         operations_frontend_pid = $OpsProcess.Id
@@ -284,6 +291,7 @@ if (-not $NoTunnel) {
 
 # 13. Record PIDs for Clean & Targeted Process Termination
 $TrackedPids = [ordered]@{
+    backend_owned = $BackendOwned
     backend_pid = if ($BackendProcess) { $BackendProcess.Id } else { $null }
     user_frontend_pid = $UserProcess.Id
     operations_frontend_pid = $OpsProcess.Id
@@ -302,7 +310,7 @@ Write-Host " CSG — DUAL PORTAL DEMO" -ForegroundColor Green
 Write-Host "============================================================" -ForegroundColor Green
 Write-Host ""
 Write-Host "Backend" -ForegroundColor Cyan
-Write-Host "[READY] http://127.0.0.1:8000" -ForegroundColor White
+Write-Host "[READY] $BackendUrl" -ForegroundColor White
 Write-Host ""
 Write-Host "User Portal" -ForegroundColor Cyan
 Write-Host "[READY] http://localhost:5173" -ForegroundColor White
