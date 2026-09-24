@@ -4,7 +4,7 @@
 `FROZEN_AUTHORITATIVE`
 
 ## Origin / Owner Thread
-Thread 9C — User Task Projection  
+Thread 9C — User Task Projection
 Historical handoff: [`docs/implementation/user-task-projection-phase-9c/THREAD_HANDOFF.md`](../implementation/user-task-projection-phase-9c/THREAD_HANDOFF.md)
 
 ## Authoritative Entities

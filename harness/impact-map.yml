@@ -81,7 +81,9 @@ path_rules:
     impacts: [spatial]
   - paths: [deployment/**, Dockerfile*, Caddyfile*, docker-compose*, frontend/package.json, frontend/vite.config*.ts]
     impacts: [deployment]
-  - paths: [harness/**, docs/**, AGENTS.md, README.md, .agent/skills/**, frontend/DESIGN_DNA.md]
+  - paths: [tools/harness.py, tests/harness/**, harness/**]
+    impacts: [harness-infrastructure]
+  - paths: [docs/**, AGENTS.md, README.md, .agent/skills/**, frontend/DESIGN_DNA.md]
     impacts: [documentation]
   - paths: [backend/app/**, backend/scripts/**, tests/test_*.py]
     impacts: [backend-core]
@@ -188,3 +190,10 @@ domains:
     skills: {required: [], planned: []}
     gates: [docs-integrity]
     note: A clearly non-product change has no product gates.
+
+  harness-infrastructure:
+    minimum_mode: FAST
+    contexts: [harness-infrastructure]
+    skills: {required: [], planned: []}
+    gates: [harness-self-tests]
+    note: Harness self-tests and docs integrity verify the execution harness without product regressions.

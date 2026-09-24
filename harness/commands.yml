@@ -5,6 +5,7 @@ commands:
     description: Reject whitespace errors in changed files.
     cwd: .
     command: git diff --check
+    base_aware: true
     category: harness-validation
 
   - id: backend-full
@@ -114,3 +115,9 @@ commands:
     cwd: frontend
     command: npx tsx --test tests/mapV2UnifiedSimulationInfrastructure.test.ts
     category: map-validation
+
+  - id: harness-tests
+    description: Harness self-test suite.
+    cwd: .
+    command: python -m pytest -q tests/harness
+    category: harness-validation

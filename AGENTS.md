@@ -9,7 +9,7 @@
 3. Select FAST, STANDARD, or RELEASE and the affected gates from [`harness/gates.yml`](harness/gates.yml). [`harness/commands.yml`](harness/commands.yml) owns command IDs and working directories. A user may request a stricter mode, not a mode below the derived minimum.
 4. For current known backend failures, use exact node IDs and material reasons in [`harness/known-failures.json`](harness/known-failures.json). Historic pass/fail totals are evidence, not a substitute for a current gate result.
 
-The harness is declarative until the H4 runner exists. Plan and verify with the recorded commands and gate dependencies; do not infer that a planned skill or contract already exists.
+Use `python tools/harness.py plan` and `python tools/harness.py verify` for executable planning and verification with the recorded commands and gate dependencies.
 
 ## Skill routing
 
@@ -20,7 +20,7 @@ The harness is declarative until the H4 runner exists. Plan and verify with the 
 | Operations UI | Shared `saigon-port-ui`; add `saigon-port-admin-responsive` for adaptive Admin layout work. |
 | Map V2 or simulation UI | Shared `saigon-port-ui` plus `saigon-port-map-v2`. |
 
-`frontend/DESIGN_DNA.md` owns measurable colors, typography, spacing, component sizes, and contrast values; read relevant sections when design values matter. Project skills own UI judgment. Product semantics come from current source/tests and routed frozen handoffs until H3 contracts exist.
+`frontend/DESIGN_DNA.md` owns measurable colors, typography, spacing, component sizes, and contrast values; read relevant sections when design values matter. Project skills own UI judgment. Normal product semantic context comes from compact contracts in `docs/contracts/` through `harness/context-index.yml`.
 
 External `ui-ux-pro-max` is optional for difficult UX/accessibility cases. External `banner-design`, `brand`, `design`, and `slides` are optional for requested marketing or presentation work. Do not auto-load, copy, or require external skills for ordinary engineering. Never dump their data directories.
 

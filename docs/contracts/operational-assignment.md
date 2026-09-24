@@ -4,7 +4,7 @@
 `FROZEN_AUTHORITATIVE`
 
 ## Origin / Owner Thread
-Thread 9B — Operational Shift & Zone Assignment  
+Thread 9B — Operational Shift & Zone Assignment
 Historical handoff: [`docs/implementation/operational-shift-zone-assignment-phase-9b/THREAD_HANDOFF.md`](../implementation/operational-shift-zone-assignment-phase-9b/THREAD_HANDOFF.md)
 
 ## Authoritative Entities

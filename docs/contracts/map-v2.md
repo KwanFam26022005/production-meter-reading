@@ -4,7 +4,7 @@
 `FROZEN_AUTHORITATIVE`
 
 ## Origin / Owner Thread
-Map V2 Phase A / 8A / 8B Frozen Work  
+Map V2 Phase A / 8A / 8B Frozen Work
 Historical handoffs:
 - [`docs/implementation/map-v2-spatial-meter-data-phase-b/THREAD_HANDOFF.md`](../implementation/map-v2-spatial-meter-data-phase-b/THREAD_HANDOFF.md)
 - [`docs/implementation/map-v2-unified-simulation-infrastructure/THREAD_HANDOFF.md`](../implementation/map-v2-unified-simulation-infrastructure/THREAD_HANDOFF.md)
@@ -16,7 +16,7 @@ Historical handoffs:
 
 ## Frozen Truth
 1. **B2 Frozen Geometry & Verification**:
-   - Protected B2 configuration SHA-256 hash:  
+   - Protected B2 configuration SHA-256 hash:
      `7f3a8916b841e12525969128783eb835218bcdd07f645dc1ee4305bce5a5cc6a`
    - Verified via [`scripts/verify_b2_freeze_hash.mjs`](../../scripts/verify_b2_freeze_hash.mjs) and gate `map-b2-freeze` in [`harness/gates.yml`](../../harness/gates.yml).
    - Exit code alone is insufficient; verification must compare stdout hash with the expected value.

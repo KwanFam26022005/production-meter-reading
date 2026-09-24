@@ -152,3 +152,12 @@ contexts:
       - AGENTS.md
     expand_on_conflict:
       - harness/README.md
+
+  harness-infrastructure:
+    primary:
+      - harness/README.md
+      - tools/harness.py
+    expand_on_conflict:
+      - harness/impact-map.yml
+      - harness/gates.yml
+      - harness/commands.yml

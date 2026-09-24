@@ -4,7 +4,7 @@
 `FROZEN_AUTHORITATIVE`
 
 ## Origin / Owner Thread
-Thread 9A — Reading Schedule Round Scope  
+Thread 9A — Reading Schedule Round Scope
 Historical handoff: [`docs/implementation/reading-schedule-round-scope-phase-9a/THREAD_HANDOFF.md`](../implementation/reading-schedule-round-scope-phase-9a/THREAD_HANDOFF.md)
 
 ## Authoritative Entities
