@@ -5,7 +5,7 @@ import {
   Clock,
   CheckCircle2,
   AlertTriangle,
-  Sparkles,
+  ShieldCheck,
   ChevronRight,
   ChevronUp,
   Map,
@@ -572,7 +572,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onInspectR
           <section className="admin-surface-card admin-quality-card" aria-label="Chất lượng ghi nhận">
             <div className="admin-card-header">
               <div className="admin-card-title-group">
-                <Sparkles size={16} className="icon-brand" aria-hidden="true" />
+                <ShieldCheck size={16} className="icon-brand" aria-hidden="true" />
                 <h2 className="admin-card-title">Chất lượng ghi nhận</h2>
               </div>
               <span className="admin-card-badge font-tabular">
