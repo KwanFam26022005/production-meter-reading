@@ -2,7 +2,7 @@
 
 ## Acceptance state
 
-Final status is recorded after the regression, commit, and remote push steps are complete. The intended outcome is exactly one of `OPERATIONS_V2_UAT_ACCEPTED` or `OPERATIONS_V2_UAT_BLOCKED`.
+Final status: `OPERATIONS_V2_UAT_ACCEPTED`. Required workflows and gates passed, with zero BLOCKER defects and zero unwaived HIGH defects. The genuine OCR environment limitation is recorded separately and does not fabricate or claim an inference result.
 
 ## Candidate and scope
 
@@ -41,9 +41,10 @@ Final post-fix RELEASE verification:
   - `5507bc4c034f686a605ac908490a904ac2217ab8` `fix(operations): clear stale round details after date changes`
   - `0cb6bff1a9cc05217be330632a52029da7bb4291` `fix(map-v2): show shift from the selected round time`
   - `db643f8c190e557eca44f37b2d21568ce210d709` `test: align fixtures with local business-date boundaries`
-- UAT evidence/docs commit: `2c1324430f9d08272438cb50f6eb130f9ccbeddb`; the final verification addendum is committed separately after this report update.
+- UAT evidence/docs commits: `2c1324430f9d08272438cb50f6eb130f9ccbeddb` and `0e9679d6c94f1f9e3c9dc5f1155df87e521c25c8` (final verification report and audit output).
 - `UAT_FINAL_SHA`: supplied in the completion response after the final handoff commit (the commit cannot contain its own hash).
-- Remote push and final clean worktree status: recorded after the final handoff commit is pushed.
+- Remote target: `origin/integration/operations-v2-foundation`. The results commit was pushed successfully; this final acceptance handoff commit is pushed as the last branch update.
+- Final worktree status is checked clean after the last push.
 - Final canonical DB state and backup: [final-state.json](evidence/database/final-state.json).
 
 ## Deferred

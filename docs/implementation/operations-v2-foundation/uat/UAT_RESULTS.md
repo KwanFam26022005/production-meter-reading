@@ -54,3 +54,5 @@ The final RELEASE harness run against the UAT candidate range returned `PASSED`.
 ## UAT defects and regression
 
 Resolved product defects and environment limitations are itemized in [UAT_DEFECTS.md](UAT_DEFECTS.md). No BLOCKER remains. The resolved HIGH-severity seed/data-truth defects have no outstanding waiver. Automated regression results are recorded in [UAT_HANDOFF.md](UAT_HANDOFF.md) after verification.
+
+**Acceptance decision:** `OPERATIONS_V2_UAT_ACCEPTED`.
