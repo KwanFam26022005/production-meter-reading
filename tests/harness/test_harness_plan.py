@@ -38,16 +38,24 @@ def test_user_ui_routing(config):
     assert plan["status"] == "READY"
     assert "user-ui" in plan["derived_impacts"]
     assert plan["minimum_mode"] == "FAST"
-    assert plan["skills"] == ["saigon-port-ui"]
+    assert set(plan["skills"]) == {"saigon-port-ui", "ui-ux-pro-max"}
     assert "user-suite" in plan["gates"]
+
+
+def test_operations_ui_routing(config):
+    plan = resolve_plan(config, ["frontend/src/components/admin/AdminStaffRoster.tsx"])
+    assert plan["status"] == "READY"
+    assert "operations-ui" in plan["derived_impacts"]
+    assert plan["minimum_mode"] == "FAST"
+    assert set(plan["skills"]) == {"saigon-port-ui", "ui-ux-pro-max"}
+    assert "operations-suite" in plan["gates"]
 
 
 def test_admin_responsive_routing(config):
     plan = resolve_plan(config, ["frontend/src/components/admin/roster/RosterMobileView.tsx"])
     assert plan["status"] == "READY"
     assert "admin-responsive" in plan["derived_impacts"]
-    assert "saigon-port-ui" in plan["skills"]
-    assert "saigon-port-admin-responsive" in plan["skills"]
+    assert set(plan["skills"]) == {"saigon-port-ui", "saigon-port-admin-responsive", "ui-ux-pro-max"}
     assert "admin-responsive-small" in plan["gates"]
 
 
@@ -56,9 +64,22 @@ def test_map_v2_routing(config):
     assert plan["status"] == "READY"
     assert "map-v2" in plan["derived_impacts"]
     assert plan["minimum_mode"] == "STANDARD"
-    assert "saigon-port-ui" in plan["skills"]
-    assert "saigon-port-map-v2" in plan["skills"]
+    assert set(plan["skills"]) == {"saigon-port-ui", "saigon-port-map-v2"}
+    assert "ui-ux-pro-max" not in plan["skills"]
     assert "docs/contracts/map-v2.md" in plan["contexts"]
+
+
+def test_backend_core_does_not_load_design_skills(config):
+    plan = resolve_plan(
+        config,
+        ["backend/app/main.py"],
+        explicit_impacts=["backend-core"],
+        test_nodes=["tests/test_main.py::test_root"],
+    )
+    assert plan["status"] == "READY"
+    assert "backend-core" in plan["explicit_impacts"]
+    assert "ui-ux-pro-max" not in plan["skills"]
+    assert "saigon-port-ui" not in plan["skills"]
 
 
 def test_user_task_projection_backend_routing(config):
@@ -175,6 +196,7 @@ def test_admin_schedules_responsive_component_only(config):
     assert "operations-ui" in plan["derived_impacts"]
     assert "admin-responsive" in plan["explicit_impacts"]
     assert "saigon-port-admin-responsive" in plan["skills"]
+    assert "ui-ux-pro-max" in plan["skills"]
     assert "admin-responsive-small" in plan["gates"]
     assert "operations-suite" in plan["gates"]
     # No backend or build gates

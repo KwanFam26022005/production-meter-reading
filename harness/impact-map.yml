@@ -80,11 +80,13 @@ path_rules:
     additional_gates: [meter-logbook]
   - paths: [tests/test_meter_spatial_audit_and_seed.py, tests/test_v16_spatial_crud.py, tests/test_v16a_spatial_authority.py, scripts/audit_meter_spatial_data.py, scripts/seed_meter_spatial_data.py]
     impacts: [spatial]
-  - paths: [deployment/**, Dockerfile*, Caddyfile*, docker-compose*, frontend/package.json, frontend/vite.config*.ts]
+  - paths: [scripts/seed_tan_thuan*.py, scripts/audit_demo_data*.py]
+    impacts: [simulation]
+  - paths: [deployment/**, Dockerfile*, Caddyfile*, docker-compose*, frontend/package.json, frontend/vite.config*.ts, scripts/*.ps1, scripts/verify_*.mjs]
     impacts: [deployment]
   - paths: [tools/harness.py, tests/harness/**, harness/**]
     impacts: [harness-infrastructure]
-  - paths: [docs/**, AGENTS.md, README.md, .agent/skills/**, frontend/DESIGN_DNA.md]
+  - paths: [docs/**, AGENTS.md, README.md, .agent/skills/**, .agents/skills/**, design-system/**, frontend/DESIGN_DNA.md, .gitignore]
     impacts: [documentation]
   - paths: [backend/app/**, backend/scripts/**, tests/test_*.py]
     impacts: [backend-core]
@@ -133,7 +135,7 @@ domains:
   user-ui:
     minimum_mode: FAST
     contexts: [user-ui]
-    skills: {required: [saigon-port-ui], planned: []}
+    skills: {required: [saigon-port-ui, ui-ux-pro-max], planned: []}
     gates: [user-suite]
     standard_additions: [user-build]
     release_additions: [user-build]
@@ -141,7 +143,7 @@ domains:
   operations-ui:
     minimum_mode: FAST
     contexts: [operations-ui]
-    skills: {required: [saigon-port-ui], planned: []}
+    skills: {required: [saigon-port-ui, ui-ux-pro-max], planned: []}
     gates: [operations-suite]
     standard_additions: [operations-build]
     release_additions: [operations-build]
@@ -149,7 +151,7 @@ domains:
   admin-responsive:
     minimum_mode: FAST
     contexts: [admin-responsive]
-    skills: {required: [saigon-port-ui, saigon-port-admin-responsive], planned: []}
+    skills: {required: [saigon-port-ui, saigon-port-admin-responsive, ui-ux-pro-max], planned: []}
     gates: [admin-responsive-small]
     standard_additions: [operations-suite, operations-build]
     release_additions: [admin-responsive-full, operations-suite, operations-build]

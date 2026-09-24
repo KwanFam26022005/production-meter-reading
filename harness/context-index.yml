@@ -11,8 +11,9 @@ skills:
     status: TRACKED_CURRENT
     path: .agent/skills/saigon-port-map-v2/SKILL.md
   ui-ux-pro-max:
-    status: OPTIONAL_EXTERNAL
-    use_when: Accessibility or interaction edge cases need extra guidance.
+    status: TRACKED_CURRENT
+    path: .agents/skills/ui-ux-pro-max/SKILL.md
+    use_when: Frontend design, implementation, or review across User Portal, Operations Portal, shared components, responsive, accessibility, charts, density, hierarchy, and visual polish.
   banner-design:
     status: OPTIONAL_EXTERNAL
     use_when: External marketing banners only.
