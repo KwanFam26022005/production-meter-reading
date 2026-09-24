@@ -20,6 +20,7 @@ import {
   getAdminMeterReadingEvidenceUrl,
 } from '../../services/api';
 import { ImageViewerModal } from '../ImageViewerModal';
+import { formatMeterTypeLabel } from '../../utils/meterMetadata';
 
 interface AdminReadingInspectionProps {
   readingId: string;
@@ -135,6 +136,26 @@ export const AdminReadingInspection: React.FC<AdminReadingInspectionProps> = ({
     }
   }, [data]);
 
+  // Keyboard navigation: Left Arrow (prev reading), Right Arrow (next reading)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+        return;
+      }
+      if (e.key === 'ArrowLeft' && data?.prev_reading_id && onSelectReading) {
+        e.preventDefault();
+        onSelectReading(data.prev_reading_id);
+      } else if (e.key === 'ArrowRight' && data?.next_reading_id && onSelectReading) {
+        e.preventDefault();
+        onSelectReading(data.next_reading_id);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [data?.prev_reading_id, data?.next_reading_id, onSelectReading]);
+
   if (loading) {
     return (
       <div className="admin-inspection-container">
@@ -210,36 +231,13 @@ export const AdminReadingInspection: React.FC<AdminReadingInspectionProps> = ({
     }
   };
 
-  // Keyboard navigation: Left Arrow (prev reading), Right Arrow (next reading)
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement;
-      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
-        return;
-      }
-      if (e.key === 'ArrowLeft' && data?.prev_reading_id && onSelectReading) {
-        e.preventDefault();
-        onSelectReading(data.prev_reading_id);
-      } else if (e.key === 'ArrowRight' && data?.next_reading_id && onSelectReading) {
-        e.preventDefault();
-        onSelectReading(data.next_reading_id);
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [data?.prev_reading_id, data?.next_reading_id, onSelectReading]);
-
   const getUnitDisplay = () => {
     const m = data?.meter;
     if (!m) return 'kWh';
     const unit = (m as any).measurement_unit;
-    const util = (m as any).utility_type;
     if (unit === 'KWH') return 'kWh';
     if (unit === 'M3') return 'm³';
     if (unit === 'UNKNOWN') return '';
-    if (util === 'WATER') return 'm³';
-    if (util === 'ELECTRICITY') return 'kWh';
     return '';
   };
 
@@ -519,7 +517,7 @@ export const AdminReadingInspection: React.FC<AdminReadingInspectionProps> = ({
                 <dt>Vị trí:</dt>
                 <dd>{data.meter.location}</dd>
                 <dt>Chủng loại:</dt>
-                <dd>{data.meter.meter_type === 'mechanical' ? 'Cơ khí (Mechanical)' : 'Điện tử (LCD)'}</dd>
+                <dd>{formatMeterTypeLabel(data.meter.meter_type, true)}</dd>
                 <dt>Tiện ích & Đơn vị:</dt>
                 <dd>
                   {(data.meter as any).utility_type === 'WATER'
