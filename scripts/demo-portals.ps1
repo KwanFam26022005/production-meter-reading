@@ -1,6 +1,6 @@
 # ==============================================================================
 # DUAL PORTAL DEMO MODE LAUNCHER
-# Production Meter Reading — Saigon Port
+# Production Meter Reading - Saigon Port
 #
 # Launches:
 #   - Backend: FastAPI on 127.0.0.1:8000
@@ -306,7 +306,7 @@ $TrackedPids | ConvertTo-Json -Depth 4 | Set-Content -Path $PidFile -Encoding UT
 # 14. Display Summary Information
 Write-Host ""
 Write-Host "============================================================" -ForegroundColor Green
-Write-Host " CSG — DUAL PORTAL DEMO" -ForegroundColor Green
+Write-Host " CSG - DUAL PORTAL DEMO" -ForegroundColor Green
 Write-Host "============================================================" -ForegroundColor Green
 Write-Host ""
 Write-Host "Backend" -ForegroundColor Cyan
