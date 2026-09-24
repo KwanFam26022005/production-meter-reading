@@ -280,6 +280,91 @@ class TodayOperationsResponse(BaseModel):
     meters: list[MeterOperationItem]
 
 
+# Thread 9C: User Task Projection schemas
+class UserAssignedZoneContext(BaseModel):
+    zone_id: str
+    zone_code: str
+    zone_name: str
+    assignment_role: Literal["PRIMARY", "SUPPORT"]
+    shift_code: str
+    work_date: str
+    timing_state: str = "CURRENT"
+
+
+class UserAssignmentContext(BaseModel):
+    work_date: str
+    shift_code: Optional[str] = None
+    is_in_shift: bool = True
+    assigned_zones: list[UserAssignedZoneContext] = []
+
+
+class UserTaskSummary(BaseModel):
+    assigned_total: int
+    confirmed: int
+    review: int
+    pending: int
+    percent_complete: int
+    total_meters: Optional[int] = None
+    confirmed_current: Optional[int] = None
+    review_current: Optional[int] = None
+    pending_current: Optional[int] = None
+    assigned_zone_count: int
+    primary_zone_count: int
+    support_zone_count: int
+
+
+class UserRoundTaskItem(BaseModel):
+    meter: MeterOut
+    current_status: Literal["PENDING", "CONFIRMED", "REVIEW", "NO_ROUND"]
+    current_reading: Optional[str] = None
+    current_round_id: Optional[str] = None
+    current_scheduled_time: Optional[str] = None
+    current_recorded_local: Optional[str] = None
+    scope_item_id: Optional[str] = None
+    zone_id_snapshot: Optional[str] = None
+    zone_name_snapshot: Optional[str] = None
+    presentation_zone_id_snapshot: Optional[str] = None
+    utility_type_snapshot: Optional[str] = None
+    assignment_role: Literal["PRIMARY", "SUPPORT"]
+    assignment_id: Optional[str] = None
+    recorded_by: Optional[RecordedByOut] = None
+    recorded_at: Optional[str] = None
+    formatted_recorded_at: Optional[str] = None
+    latest_confirmed: Optional[LatestConfirmedReading] = None
+    recent_slots: list[RecentHourlySlot] = []
+    today_slots: list[TodayHourlySlot] = []
+    trend: list[MeterTrendPoint] = []
+    missed_count: int = 0
+    meter_availability: Optional[Literal["AVAILABLE", "INACTIVE", "RETIRED", "MISSING"]] = None
+
+
+class UserTasksResponse(BaseModel):
+    date: str
+    date_formatted: str
+    batch: Optional[ReadingBatchCurrentResponse] = None
+    current_round: Optional[ReadingRoundOut] = None
+    nearest_upcoming_round: Optional[ReadingRoundOut] = None
+    assignment_context: UserAssignmentContext
+    summary: UserTaskSummary
+    global_round_total: Optional[int] = None
+    empty_reason: Optional[Literal["NO_ROUND", "NO_ASSIGNMENT", "NO_METERS_IN_ZONE", "ALL_TASKS_COMPLETE"]] = None
+    meters: list[UserRoundTaskItem]
+
+
+class UserTaskCoverageDiagnostics(BaseModel):
+    round_id: str
+    scheduled_at: str
+    scheduled_local: str
+    scope_mode: str
+    global_scope_count: int
+    assigned_unique_meter_count: int
+    unassigned_unique_meter_count: int
+    overlapping_assignment_count: int
+    unassigned_zone_ids: list[str]
+    unassigned_zone_names: list[str]
+    assigned_zone_breakdown: list[dict[str, Any]]
+
+
 class ConfirmReadingRequest(BaseModel):
     meter_id: str
     reading_round_id: str

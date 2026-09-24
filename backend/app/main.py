@@ -89,6 +89,10 @@ from .db import get_db, init_db
 from .inference import MeterReader, decode_image
 from .models import Meter, MeterReading, ReadingBatch, ReadingRound, SessionModel, User
 from .reporting import export_report_csv, get_meter_report, get_report_overview
+from .user_tasks import (
+    get_round_task_coverage_diagnostics,
+    resolve_user_round_tasks,
+)
 from .schemas import (
     AdminAuditLogListResponse,
     AdminDashboardResponse,
@@ -129,6 +133,8 @@ from .schemas import (
     ReportOverviewResponse,
     RoundMeterListResponse,
     TodayOperationsResponse,
+    UserTasksResponse,
+    UserTaskCoverageDiagnostics,
     UserOut,
     AssetCreateRequest,
     AssetUpdateRequest,
@@ -489,6 +495,37 @@ def get_today_operations(
     user: User = Depends(get_current_user),
 ) -> TodayOperationsResponse:
     return get_today_meter_operations(db, date_filter=date)
+
+
+@app.get("/api/v1/meter-operations/my-tasks", response_model=UserTasksResponse)
+def get_my_meter_tasks(
+    date: Optional[str] = None,
+    round_id: Optional[str] = None,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> UserTasksResponse:
+    return resolve_user_round_tasks(db, user, date_filter=date, round_id=round_id)
+
+
+@app.get("/api/v1/reading-rounds/{round_id}/my-tasks", response_model=UserTasksResponse)
+def get_my_round_tasks(
+    round_id: str,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> UserTasksResponse:
+    return resolve_user_round_tasks(db, user, round_id=round_id)
+
+
+@app.get(
+    "/api/v1/admin/reading-rounds/{round_id}/coverage-diagnostics",
+    response_model=UserTaskCoverageDiagnostics,
+)
+def get_round_coverage_diagnostics(
+    round_id: str,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+) -> UserTaskCoverageDiagnostics:
+    return get_round_task_coverage_diagnostics(db, round_id=round_id)
 
 
 @app.get("/api/v1/reading-rounds/current", response_model=ReadingRoundCurrentResponse)

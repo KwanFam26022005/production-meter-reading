@@ -18,17 +18,17 @@ import {
 import {
   Meter,
   MeterDetailResponse,
-  MeterOperationItem,
   ReadingBatch,
   ReadingRound,
   TodayHourlySlot,
-  TodayOperationsResponse,
   User,
+  UserRoundTaskItem,
+  UserTasksResponse,
 } from '../types';
 import {
   getBatchRounds,
   getMeterDetail,
-  getTodayOperations,
+  getMyMeterTasks,
 } from '../services/api';
 import { AuthenticatedShell } from './AuthenticatedShell';
 import { LoadingState } from './ui/LoadingState';
@@ -64,16 +64,17 @@ export const ReadingBatchView: React.FC<ReadingBatchViewProps> = ({
   onBackToHome,
   onSelectMeter,
 }) => {
-  const [operations, setOperations] = useState<TodayOperationsResponse | null>(null);
+  const [operations, setOperations] = useState<UserTasksResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [staleNotice, setStaleNotice] = useState<string | null>(null);
 
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
 
   // Detail / History Modal State
-  const [selectedDetailMeter, setSelectedDetailMeter] = useState<MeterOperationItem | null>(null);
+  const [selectedDetailMeter, setSelectedDetailMeter] = useState<UserRoundTaskItem | null>(null);
   const [meterDetailData, setMeterDetailData] = useState<MeterDetailResponse | null>(null);
   const [loadingDetail, setLoadingDetail] = useState<boolean>(false);
   const [expandedTodayHistory, setExpandedTodayHistory] = useState<boolean>(false);
@@ -132,17 +133,21 @@ export const ReadingBatchView: React.FC<ReadingBatchViewProps> = ({
 
     try {
       const todayDateStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date());
-      const data = await getTodayOperations(todayDateStr);
+      const data = await getMyMeterTasks(todayDateStr);
       setOperations(data);
 
       if (selectedDetailMeter) {
         const updatedItem = data.meters.find((m) => m.meter.id === selectedDetailMeter.meter.id);
         if (updatedItem) {
           setSelectedDetailMeter(updatedItem);
+        } else {
+          setSelectedDetailMeter(null);
+          setMeterDetailData(null);
+          setStaleNotice('Phân công của bạn đã thay đổi. Công tơ vừa chọn không còn thuộc phân công hiện tại.');
         }
       }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Không thể tải dữ liệu điều hành công tơ hôm nay.';
+      const msg = err instanceof Error ? err.message : 'Không thể tải danh sách công việc của bạn.';
       setError(msg);
     } finally {
       setLoading(false);
@@ -169,7 +174,7 @@ export const ReadingBatchView: React.FC<ReadingBatchViewProps> = ({
     }
   };
 
-  const handleOpenDetail = async (item: MeterOperationItem) => {
+  const handleOpenDetail = async (item: UserRoundTaskItem) => {
     setSelectedDetailMeter(item);
     setExpandedTodayHistory(false);
     setLoadingDetail(true);
@@ -193,7 +198,7 @@ export const ReadingBatchView: React.FC<ReadingBatchViewProps> = ({
   // Compute pending + review actionable count
   const pendingAndReviewCount = useMemo(() => {
     if (!operations) return 0;
-    return operations.summary.pending_current + (operations.summary.review_current || 0);
+    return operations.summary.pending + (operations.summary.review || 0);
   }, [operations]);
 
   // Filter physical meters based on search and current slot status
@@ -288,6 +293,9 @@ export const ReadingBatchView: React.FC<ReadingBatchViewProps> = ({
                   ) : (
                     <span className="worklist-round-status status-closed">Chưa có lượt</span>
                   )}
+                  {operations.global_round_total !== null && operations.global_round_total !== undefined && (
+                    <span className="worklist-global-scope-pill">Lượt này có {operations.global_round_total} công tơ</span>
+                  )}
                 </div>
               </div>
 
@@ -296,26 +304,42 @@ export const ReadingBatchView: React.FC<ReadingBatchViewProps> = ({
               </div>
             </div>
 
-            {/* Progress Bar & Single Clean Count */}
+            {/* Assignment Context: Assigned Zones and Roles */}
+            {operations.assignment_context?.assigned_zones?.length > 0 && (
+              <div className="worklist-assignment-bar" aria-label="Khu vực được phân công">
+                <span className="assignment-bar-label">Khu vực:</span>
+                {operations.assignment_context.assigned_zones.map((z) => (
+                  <span key={z.zone_id} className="assignment-zone-chip">
+                    <strong>{z.zone_name}</strong>
+                    <span className={`task-role-badge role-${z.assignment_role.toLowerCase()}`}>
+                      {z.assignment_role === 'PRIMARY' ? 'Chính' : 'Hỗ trợ'}
+                    </span>
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* Personal Progress Bar & Personal Count */}
             <div className="worklist-progress-section">
               <div className="worklist-progress-label-row">
                 <span className="worklist-progress-completed-text">
-                  <strong>{operations.summary.confirmed_current}</strong>/{operations.summary.total_meters} công tơ trong lượt đã ghi
+                  <strong>{operations.summary.confirmed_current ?? operations.summary.confirmed}</strong>/{operations.summary.assigned_total} công tơ được giao đã ghi
+                  <span className="sr-only"> ({operations.summary.confirmed_current ?? operations.summary.confirmed} công tơ trong lượt đã ghi)</span>
                 </span>
-                {operations.summary.percent_current > 0 && (
-                  <span className="worklist-progress-percent">{operations.summary.percent_current}%</span>
+                {operations.summary.percent_complete > 0 && (
+                  <span className="worklist-progress-percent">{operations.summary.percent_complete}%</span>
                 )}
               </div>
-              <div className="worklist-progress-track" role="progressbar" aria-label="Tiến độ lượt ghi" aria-valuenow={operations.summary.percent_current} aria-valuemin={0} aria-valuemax={100}>
+              <div className="worklist-progress-track" role="progressbar" aria-label="Tiến độ lượt ghi" aria-valuenow={operations.summary.percent_complete} aria-valuemin={0} aria-valuemax={100}>
                 <div
                   className="worklist-progress-fill"
-                  style={{ width: `${operations.summary.percent_current}%` }}
+                  style={{ width: `${operations.summary.percent_complete}%` }}
                 />
               </div>
-              <div className="worklist-progress-breakdown" aria-label="Trạng thái công tơ trong lượt">
-                <span><strong>{operations.summary.confirmed_current}</strong> đã ghi</span>
-                <span><strong>{operations.summary.review_current}</strong> cần kiểm tra</span>
-                <span><strong>{operations.summary.pending_current}</strong> chưa ghi</span>
+              <div className="worklist-progress-breakdown" aria-label="Trạng thái công việc của bạn">
+                <span><strong>{operations.summary.confirmed_current ?? operations.summary.confirmed}</strong> đã ghi</span>
+                <span><strong>{operations.summary.review_current ?? operations.summary.review}</strong> cần kiểm tra</span>
+                <span><strong>{operations.summary.pending_current ?? operations.summary.pending}</strong> chưa ghi</span>
               </div>
             </div>
 
@@ -370,7 +394,7 @@ export const ReadingBatchView: React.FC<ReadingBatchViewProps> = ({
                 onClick={() => setStatusFilter('ALL')}
               >
                 <span>Tất cả</span>
-                <span className="segment-count">{operations.summary.total_meters}</span>
+                <span className="segment-count">{operations.summary.assigned_total}</span>
               </button>
               <button
                 type="button"
@@ -390,18 +414,62 @@ export const ReadingBatchView: React.FC<ReadingBatchViewProps> = ({
                 onClick={() => setStatusFilter('CONFIRMED')}
               >
                 <span>Đã ghi</span>
-                <span className="segment-count">{operations.summary.confirmed_current}</span>
+                <span className="segment-count">{operations.summary.confirmed}</span>
               </button>
             </div>
           </div>
 
+          {/* Stale Assignment Notice */}
+          {staleNotice && (
+            <div className="stale-notice-banner" role="alert">
+              <span>{staleNotice}</span>
+              <button
+                type="button"
+                onClick={() => setStaleNotice(null)}
+                aria-label="Đóng thông báo"
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit' }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+          )}
+
           {/* LEVEL 3: METER WORKLIST */}
           <div className="worklist-meters-stack">
             {filteredMeters.length === 0 ? (
-              <EmptyState
-                title={searchQuery ? 'Không tìm thấy công tơ phù hợp' : 'Không có công tơ nào trong mục này'}
-                message={searchQuery ? 'Thử tìm kiếm với từ khóa khác' : 'Tất cả công tơ trong danh sách đã được hoàn tất hoặc không khớp bộ lọc.'}
-              />
+              operations.meters.length === 0 ? (
+                operations.empty_reason === 'NO_ROUND' ? (
+                  <EmptyState
+                    title="Hiện chưa có lượt ghi."
+                    message="Hệ thống chưa có lượt ghi chỉ số đang mở trong ngày hôm nay."
+                  />
+                ) : operations.empty_reason === 'NO_ASSIGNMENT' ? (
+                  <EmptyState
+                    title="Bạn chưa được phân khu tác nghiệp cho lượt này."
+                    message="Vui lòng liên hệ điều độ hoặc quản lý ca để được phân công khu vực."
+                  />
+                ) : operations.empty_reason === 'NO_METERS_IN_ZONE' ? (
+                  <EmptyState
+                    title="Khu vực được phân công không có công tơ trong lượt này."
+                    message="Các khu vực bạn phụ trách không có công tơ nào trong lịch ghi của lượt hiện tại."
+                  />
+                ) : operations.empty_reason === 'ALL_TASKS_COMPLETE' ? (
+                  <EmptyState
+                    title="Bạn đã hoàn thành các công tơ được giao trong lượt này."
+                    message="Tất cả công tơ trong khu vực phân công đã được ghi nhận thành công."
+                  />
+                ) : (
+                  <EmptyState
+                    title="Không có công việc nào"
+                    message="Không tìm thấy công tơ nào được giao cho bạn trong lượt này."
+                  />
+                )
+              ) : (
+                <EmptyState
+                  title={searchQuery ? 'Không tìm thấy công tơ phù hợp' : (statusFilter === 'PENDING' ? 'Bạn đã hoàn thành các công tơ được giao trong lượt này.' : 'Không có công tơ nào trong mục này')}
+                  message={searchQuery ? 'Thử tìm kiếm với từ khóa khác' : 'Tất cả công tơ trong danh sách đã được hoàn tất hoặc không khớp bộ lọc.'}
+                />
+              )
             ) : (
               filteredMeters.map((item) => {
                 const isCurrentPending = item.current_status === 'PENDING';
@@ -437,7 +505,7 @@ export const ReadingBatchView: React.FC<ReadingBatchViewProps> = ({
                       }}
                       aria-label={`Xem chi tiết công tơ ${item.meter.meter_code} - ${item.meter.name}`}
                     >
-                      {/* 1. Identity Row: Code, Type, Chevron */}
+                      {/* 1. Identity Row: Code, Type, Role Badge, Zone Tag, Chevron */}
                       <div className="meter-card-identity-row">
                         <div className="meter-identity-left">
                           <span className="meter-code-text">{item.meter.meter_code}</span>
@@ -445,6 +513,12 @@ export const ReadingBatchView: React.FC<ReadingBatchViewProps> = ({
                           <span className="meter-type-text">
                             {item.meter.meter_type?.toUpperCase() === 'LCD' ? 'LCD' : 'Cơ'}
                           </span>
+                          <span className={`task-card-role-badge role-${item.assignment_role.toLowerCase()}`}>
+                            {item.assignment_role === 'PRIMARY' ? 'Chính' : 'Hỗ trợ'}
+                          </span>
+                          {item.zone_name_snapshot && (
+                            <span className="meter-card-zone-tag">{item.zone_name_snapshot}</span>
+                          )}
                         </div>
                         <ChevronRight size={18} className="meter-detail-chevron" aria-hidden="true" />
                       </div>
@@ -503,6 +577,13 @@ export const ReadingBatchView: React.FC<ReadingBatchViewProps> = ({
                         )
                       )}
 
+                      {/* Recorded By Provenance */}
+                      {isCurrentConfirmed && item.recorded_by && (
+                        <div className="meter-card-recorded-by">
+                          Người ghi: <strong>{item.recorded_by.full_name}</strong> ({item.recorded_by.employee_code})
+                        </div>
+                      )}
+
                       {/* 5. Missed Alert Badge (Compact Pill, only if missed_count > 0) */}
                       {item.missed_count > 0 && (
                         <div className="meter-missed-pill" role="status">
@@ -551,6 +632,12 @@ export const ReadingBatchView: React.FC<ReadingBatchViewProps> = ({
                       {selectedDetailMeter.meter.meter_type.toUpperCase() === 'LCD' ? 'Điện tử (LCD)' : 'Cơ (Mechanical)'}
                     </span>
                   )}
+                  <span className={`task-card-role-badge role-${selectedDetailMeter.assignment_role.toLowerCase()}`}>
+                    {selectedDetailMeter.assignment_role === 'PRIMARY' ? 'Chính' : 'Hỗ trợ'}
+                  </span>
+                  {selectedDetailMeter.zone_name_snapshot && (
+                    <span className="meter-card-zone-tag">{selectedDetailMeter.zone_name_snapshot}</span>
+                  )}
                 </div>
                 <h3 id="reading-meter-detail-title" className="modal-name">{selectedDetailMeter.meter.name}</h3>
                 {selectedDetailMeter.meter.location && (
@@ -588,6 +675,11 @@ export const ReadingBatchView: React.FC<ReadingBatchViewProps> = ({
                             Đã ghi nhận thành công
                             {selectedDetailMeter.current_recorded_local && ` (${selectedDetailMeter.current_recorded_local})`}
                           </span>
+                          {selectedDetailMeter.recorded_by && (
+                            <span className="dc-sub" style={{ display: 'block', marginTop: 3 }}>
+                              Người ghi: <strong>{selectedDetailMeter.recorded_by.full_name}</strong> ({selectedDetailMeter.recorded_by.employee_code})
+                            </span>
+                          )}
                         </div>
                       </div>
                     ) : selectedDetailMeter.current_status === 'REVIEW' ? (

@@ -284,6 +284,90 @@ export interface TodayOperationsResponse {
   meters: MeterOperationItem[];
 }
 
+// Thread 9C: User Task Projection types
+export interface UserAssignedZoneContext {
+  zone_id: string;
+  zone_code: string;
+  zone_name: string;
+  assignment_role: 'PRIMARY' | 'SUPPORT';
+  shift_code: string;
+  work_date: string;
+  timing_state?: string;
+}
+
+export interface UserAssignmentContext {
+  work_date: string;
+  shift_code: string | null;
+  is_in_shift: boolean;
+  assigned_zones: UserAssignedZoneContext[];
+}
+
+export interface UserTaskSummary {
+  assigned_total: number;
+  confirmed: number;
+  review: number;
+  pending: number;
+  percent_complete: number;
+  total_meters?: number;
+  confirmed_current?: number;
+  review_current?: number;
+  pending_current?: number;
+  assigned_zone_count: number;
+  primary_zone_count: number;
+  support_zone_count: number;
+}
+
+export interface UserRoundTaskItem extends MeterOperationItem {
+  scope_item_id?: string | null;
+  zone_id_snapshot?: string | null;
+  zone_name_snapshot?: string | null;
+  presentation_zone_id_snapshot?: string | null;
+  utility_type_snapshot?: string | null;
+  assignment_role: 'PRIMARY' | 'SUPPORT';
+  assignment_id?: string | null;
+  recorded_by?: {
+    employee_code: string;
+    full_name: string;
+  } | null;
+  recorded_at?: string | null;
+  formatted_recorded_at?: string | null;
+}
+
+export interface UserTasksResponse {
+  date: string;
+  date_formatted: string;
+  batch: ReadingBatch | null;
+  current_round: ReadingRound | null;
+  nearest_upcoming_round?: ReadingRound | null;
+  assignment_context: UserAssignmentContext;
+  summary: UserTaskSummary;
+  global_round_total?: number | null;
+  empty_reason?: 'NO_ROUND' | 'NO_ASSIGNMENT' | 'NO_METERS_IN_ZONE' | 'ALL_TASKS_COMPLETE' | null;
+  meters: UserRoundTaskItem[];
+}
+
+export interface UserTaskCoverageDiagnostics {
+  round_id: string;
+  scheduled_at: string;
+  scheduled_local: string;
+  scope_mode: string;
+  global_scope_count: number;
+  assigned_unique_meter_count: number;
+  unassigned_unique_meter_count: number;
+  overlapping_assignment_count: number;
+  unassigned_zone_ids: string[];
+  unassigned_zone_names: string[];
+  assigned_zone_breakdown: Array<{
+    zone_id: string;
+    zone_code: string;
+    zone_name: string;
+    scheduled_meter_count: number;
+    assignee_count: number;
+    primary_assignee?: string | null;
+    support_assignees: string[];
+  }>;
+}
+
 export interface BatchMeterListResponse {
   batch_id: string;
   batch_name: string;

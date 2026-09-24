@@ -26,11 +26,13 @@ from backend.app.meter_logbook import (
 from backend.app.models import (
     Meter,
     MeterReading,
+    OperationalAssignment,
     OperationalZone,
     ReadingBatch,
     ReadingRound,
     ReadingRoundMeter,
     User,
+    WorkSchedule,
 )
 from backend.app.schemas import AdminScheduleCreateRequest, AdminScheduleScopeRequest
 
@@ -372,11 +374,18 @@ def test_snapshot_progress_admin_list_and_user_queue_survive_inventory_changes(t
 
 def test_snapshot_submission_scope_review_confirmation_and_reconciliation(client, test_db_session, sample_user):
     csrf = login(client)
-    included = add_meter(test_db_session, "SUBMIT-IN-01")
-    included_review = add_meter(test_db_session, "SUBMIT-IN-02", utility="WATER")
-    excluded = add_meter(test_db_session, "SUBMIT-OUT-01")
+    zone = add_zone(test_db_session, "ZONE-SUBMIT", "Khu Nộp Chỉ Số")
+    included = add_meter(test_db_session, "SUBMIT-IN-01", zone_id=zone.id)
+    included_review = add_meter(test_db_session, "SUBMIT-IN-02", zone_id=zone.id, utility="WATER")
+    excluded = add_meter(test_db_session, "SUBMIT-OUT-01", zone_id=zone.id)
     batch = add_batch(test_db_session)
     round_obj = add_round(test_db_session, batch, scope_meters=[included, included_review])
+    sched_local = round_obj.scheduled_at.astimezone(LOCAL_TZ) if round_obj.scheduled_at.tzinfo else round_obj.scheduled_at.replace(tzinfo=timezone.utc).astimezone(LOCAL_TZ)
+    work_date = sched_local.date().isoformat()
+    hour = sched_local.hour
+    shift = "CA1" if 6 <= hour < 14 else ("CA2" if 14 <= hour < 22 else "CA3")
+    test_db_session.add(WorkSchedule(id=str(uuid.uuid4()), user_id=sample_user.id, work_date=work_date, shift_code=shift, status="SCHEDULED"))
+    test_db_session.add(OperationalAssignment(id=str(uuid.uuid4()), user_id=sample_user.id, zone_id=zone.id, work_date=work_date, shift_code=shift, assignment_role="PRIMARY", status="ACTIVE"))
     test_db_session.commit()
 
     confirm = client.post(

@@ -941,6 +941,9 @@ def confirm_meter_reading(
             detail=f"Chỉ số công tơ chỉ được chứa các chữ số (0-9), tối đa một dấu chấm thập phân và không vượt quá {MAX_READING_LENGTH} ký tự.",
         )
 
+    from .user_tasks import validate_meter_user_task_authority
+    validate_meter_user_task_authority(db, user, round_obj, payload.meter_id)
+
     # 6. Check existing reading for (meter_id, reading_round_id)
     existing = (
         db.query(MeterReading)
@@ -1217,6 +1220,9 @@ def mark_meter_review(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"{detail_msg} Không thể ghi nhận chỉ số mới.",
         )
+
+    from .user_tasks import validate_meter_user_task_authority
+    validate_meter_user_task_authority(db, user, round_obj, payload.meter_id)
 
     existing = (
         db.query(MeterReading)

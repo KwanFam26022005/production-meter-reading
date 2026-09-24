@@ -20052,3 +20052,137 @@ body:has(.focused-capture-shell) {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* ======================================================================
+   Thread 9C: User Task Projection & Operational Role Styles
+   Maritime Operational Minimalism: High contrast, no neon, WCAG compliant
+   ====================================================================== */
+
+.worklist-global-scope-pill {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--sgp-corporate-gray);
+  background-color: var(--sgp-gray-light);
+  border: 1px solid var(--sgp-border-derived);
+  border-radius: 6px;
+  padding: 2px 7px;
+  margin-top: 2px;
+}
+
+.worklist-assignment-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background-color: var(--sgp-corporate-porcelain);
+  border: 1px solid var(--sgp-border-derived);
+  border-radius: 10px;
+  margin-top: 4px;
+}
+
+.assignment-bar-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--sgp-corporate-gray);
+}
+
+.assignment-zone-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background-color: var(--sgp-corporate-white);
+  border: 1px solid var(--sgp-border-derived-strong);
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-size: 12px;
+  color: var(--sgp-corporate-black);
+}
+
+.task-role-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 2px 6px;
+  border-radius: 4px;
+  line-height: 1.2;
+}
+
+.task-role-badge.role-primary {
+  background-color: var(--sgp-navy-subtle);
+  color: var(--sgp-corporate-navy);
+  border: 1px solid var(--sgp-corporate-blue);
+}
+
+.task-role-badge.role-support {
+  background-color: var(--sgp-digital-blue-subtle);
+  color: var(--sgp-corporate-digital-blue);
+  border: 1px solid #b9d5ff;
+}
+
+.task-card-role-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 4px;
+  line-height: 1.2;
+}
+
+.task-card-role-badge.role-primary {
+  background-color: var(--sgp-navy-subtle);
+  color: var(--sgp-corporate-navy);
+  border: 1px solid var(--sgp-corporate-blue);
+}
+
+.task-card-role-badge.role-support {
+  background-color: var(--sgp-digital-blue-subtle);
+  color: var(--sgp-corporate-digital-blue);
+  border: 1px solid #b9d5ff;
+}
+
+.meter-card-zone-tag {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--sgp-corporate-navy);
+  background-color: var(--sgp-corporate-porcelain);
+  border: 1px solid var(--sgp-border-derived);
+  border-radius: 4px;
+  padding: 2px 6px;
+}
+
+.meter-card-recorded-by {
+  font-size: 12px;
+  color: var(--sgp-corporate-gray);
+  margin-top: 4px;
+  padding: 4px 8px;
+  background-color: var(--sgp-corporate-porcelain);
+  border-radius: 6px;
+  border-left: 3px solid var(--sgp-success);
+}
+
+.meter-card-recorded-by strong {
+  color: var(--sgp-corporate-black);
+}
+
+.stale-notice-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 14px;
+  background-color: var(--sgp-warning-bg);
+  border: 1px solid var(--sgp-warning);
+  color: var(--sgp-warning);
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 12px;
+}
+

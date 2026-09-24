@@ -32,6 +32,8 @@ import {
   RoundMeterListResponse,
   TodayAttendance,
   TodayOperationsResponse,
+  UserTasksResponse,
+  UserTaskCoverageDiagnostics,
   User,
   AdminRosterResponse,
   AdminShiftAssignItem,
@@ -469,6 +471,38 @@ export async function getTodayOperations(date?: string): Promise<TodayOperations
   const res = await apiFetch(`/api/v1/meter-operations/today${queryStr}`, { method: 'GET' });
   if (!res.ok) {
     throw new ApiError(res.status, 'Không thể tải dữ liệu điều hành công tơ hôm nay.');
+  }
+  return res.json();
+}
+
+export async function getMyMeterTasks(date?: string, roundId?: string): Promise<UserTasksResponse> {
+  const params = new URLSearchParams();
+  if (date && date.trim()) {
+    params.set('date', date.trim());
+  }
+  if (roundId && roundId.trim()) {
+    params.set('round_id', roundId.trim());
+  }
+  const queryStr = params.toString() ? `?${params.toString()}` : '';
+  const res = await apiFetch(`/api/v1/meter-operations/my-tasks${queryStr}`, { method: 'GET' });
+  if (!res.ok) {
+    throw new ApiError(res.status, 'Không thể tải danh sách công việc của bạn.');
+  }
+  return res.json();
+}
+
+export async function getMyRoundTasks(roundId: string): Promise<UserTasksResponse> {
+  const res = await apiFetch(`/api/v1/reading-rounds/${encodeURIComponent(roundId)}/my-tasks`, { method: 'GET' });
+  if (!res.ok) {
+    throw new ApiError(res.status, 'Không thể tải công việc của lượt ghi.');
+  }
+  return res.json();
+}
+
+export async function getRoundCoverageDiagnostics(roundId: string): Promise<UserTaskCoverageDiagnostics> {
+  const res = await apiFetch(`/api/v1/admin/reading-rounds/${encodeURIComponent(roundId)}/coverage-diagnostics`, { method: 'GET' });
+  if (!res.ok) {
+    throw new ApiError(res.status, 'Không thể tải chẩn đoán độ phủ lượt ghi.');
   }
   return res.json();
 }
