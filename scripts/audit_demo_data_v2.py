@@ -1,6 +1,8 @@
 import os
 import sys
 from pathlib import Path
+from datetime import timezone
+from zoneinfo import ZoneInfo
 from sqlalchemy.orm import Session
 
 # Adjust path so we can import backend
@@ -8,7 +10,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from backend.app.db import engine
 from backend.app.models import (
     SimulationScenario, User, OperationalAssignment, Meter,
-    ReadingRound, ReadingRoundMeter, MeterReading, WorkSchedule
+    ReadingRound, ReadingRoundMeter, MeterReading, WorkSchedule,
+    OperationalZone, LeaveRequest
 )
 
 def audit():
@@ -18,6 +21,24 @@ def audit():
     failures = 0
 
     with Session(engine) as session:
+        expected_counts = {
+            "meter_readings": 719,
+            "reading_rounds": 60,
+            "reading_round_meters": 720,
+            "operational_assignments": 269,
+        }
+        actual_counts = {
+            "meter_readings": session.query(MeterReading).count(),
+            "reading_rounds": session.query(ReadingRound).count(),
+            "reading_round_meters": session.query(ReadingRoundMeter).count(),
+            "operational_assignments": session.query(OperationalAssignment).count(),
+        }
+        if actual_counts == expected_counts:
+            print("✅ PASS: Deterministic Demo V2 table counts match the baseline.")
+        else:
+            print(f"❌ FAIL: Demo V2 table counts differ. Expected {expected_counts}; found {actual_counts}.")
+            failures += 1
+
         # Check Scenario
         scenario = session.query(SimulationScenario).filter_by(code="tan-thuan-demo-v2").first()
         if not scenario:
@@ -46,6 +67,45 @@ def audit():
         else:
             print("✅ PASS: All SNAPSHOT rounds have correct meter scope sizes (12).")
 
+        # Operational zone IDs and Map presentation zone IDs are separate contracts.
+        operational_zone_ids = {row[0] for row in session.query(OperationalZone.id).all()}
+        scenario_meters = session.query(Meter).filter_by(scenario_id="tan-thuan-demo-v2").all()
+        scenario_meter_zones = {meter.id: meter.zone_id for meter in scenario_meters}
+        invalid_scope_zone = 0
+        for scope in session.query(ReadingRoundMeter).join(ReadingRound).filter(
+            ReadingRound.scope_mode == "SNAPSHOT",
+            ReadingRoundMeter.scope_status == "SCHEDULED",
+        ).all():
+            if (
+                not scope.zone_id_snapshot
+                or scope.zone_id_snapshot not in operational_zone_ids
+                or scope.meter_id not in scenario_meter_zones
+                or scenario_meter_zones[scope.meter_id] != scope.zone_id_snapshot
+            ):
+                invalid_scope_zone += 1
+        if invalid_scope_zone == 0 and len(scenario_meters) == 12:
+            print("✅ PASS: Snapshot operational zones match configured meter zones.")
+        else:
+            print(f"❌ FAIL: {invalid_scope_zone} snapshot row(s) have missing or invalid operational zones.")
+            failures += 1
+
+        # Seeded timestamps are stored as UTC and resolve to the intended local
+        # round slots, including the CA3 start at 22:00 Asia/Ho_Chi_Minh.
+        local_zone = ZoneInfo("Asia/Ho_Chi_Minh")
+        local_slots = {}
+        for round_obj in session.query(ReadingRound).all():
+            scheduled = round_obj.scheduled_at
+            if scheduled.tzinfo is None:
+                scheduled = scheduled.replace(tzinfo=timezone.utc)
+            local = scheduled.astimezone(local_zone)
+            local_slots.setdefault(local.date().isoformat(), set()).add(local.strftime("%H:%M"))
+        expected_slots = {"06:00", "10:00", "14:00", "22:00"}
+        if len(local_slots) == 15 and all(slots == expected_slots for slots in local_slots.values()):
+            print("✅ PASS: Round timestamps resolve to the four intended local daily slots.")
+        else:
+            print("❌ FAIL: Round timestamps do not resolve to the intended local daily slots.")
+            failures += 1
+
         # Check Operational Assignments (Thread 9B)
         op_assignments = session.query(OperationalAssignment).filter(
             OperationalAssignment.work_date >= "2026-09-10"
@@ -63,8 +123,44 @@ def audit():
                 print("❌ FAIL: Operational Assignments missing PRIMARY or SUPPORT roles.")
                 failures += 1
 
+        demo_users = session.query(User).filter(User.employee_code.like("DEMO2-%")).all()
+        demo_user_ids = {user.id for user in demo_users}
+        schedules = {
+            (schedule.user_id, schedule.work_date): schedule
+            for schedule in session.query(WorkSchedule).filter(WorkSchedule.user_id.in_(demo_user_ids)).all()
+        }
+        approved_leaves = session.query(LeaveRequest).filter(
+            LeaveRequest.user_id.in_(demo_user_ids),
+            LeaveRequest.status == "APPROVED",
+        ).all()
+        invalid_assignments = []
+        for assignment in session.query(OperationalAssignment).filter(
+            OperationalAssignment.user_id.in_(demo_user_ids),
+            OperationalAssignment.status == "ASSIGNED",
+        ).all():
+            schedule = schedules.get((assignment.user_id, assignment.work_date))
+            leave_conflict = any(
+                leave.user_id == assignment.user_id
+                and leave.start_date <= assignment.work_date <= leave.end_date
+                and leave.shift_code in (None, "ALL", assignment.shift_code)
+                for leave in approved_leaves
+            )
+            if (
+                not schedule
+                or schedule.status != "PUBLISHED"
+                or schedule.shift_code != assignment.shift_code
+                or schedule.shift_code in ("OFF", "LEAVE")
+                or leave_conflict
+            ):
+                invalid_assignments.append(assignment.id)
+        if invalid_assignments:
+            print(f"❌ FAIL: {len(invalid_assignments)} assignment(s) lack matching eligible schedules.")
+            failures += 1
+        else:
+            print("✅ PASS: Every active Demo V2 assignment matches an eligible published schedule.")
+
         # Check Measurement Metadata (Thread 9D)
-        meters = session.query(Meter).filter_by(scenario_id="tan-thuan-demo-v2").all()
+        meters = scenario_meters
         unknown_units = sum(1 for m in meters if m.measurement_unit == "UNKNOWN")
         if unknown_units > 0:
             print(f"✅ PASS: Found {unknown_units} meter(s) with UNKNOWN unit (as intended).")
@@ -93,11 +189,33 @@ def audit():
             print("❌ FAIL: Readings missing REVIEW or CONFIRMED status.")
             failures += 1
             
-        sources = set(r.confirmation_source for r in readings)
-        if "OCR_CONFIRMED" in sources and "USER_CORRECTED" in sources and "MANUAL_ENTRY" in sources:
-            print("✅ PASS: Reading sources include OCR, USER_CORRECTED, and MANUAL_ENTRY.")
+        sources = {r.confirmation_source for r in readings}
+        required_sources = {"OCR_CONFIRMED", "MANUAL_ENTRY"}
+        if required_sources.issubset(sources):
+            print(f"✅ PASS: Reading sources include {', '.join(sorted(required_sources))}.")
         else:
             print(f"❌ FAIL: Missing required reading sources. Found: {sources}")
+            failures += 1
+
+        invalid_provenance = []
+        for reading in readings:
+            source = reading.confirmation_source
+            if source == "OCR_CONFIRMED" and (
+                not reading.ocr_reading
+                or (reading.status == "CONFIRMED" and reading.reading != reading.ocr_reading)
+            ):
+                invalid_provenance.append(reading.id)
+            elif source == "USER_CORRECTED" and not reading.ocr_reading:
+                invalid_provenance.append(reading.id)
+            elif source == "MANUAL_ENTRY" and reading.ocr_reading is not None:
+                invalid_provenance.append(reading.id)
+            elif source not in {"OCR_CONFIRMED", "USER_CORRECTED", "MANUAL_ENTRY"}:
+                invalid_provenance.append(reading.id)
+
+        if not invalid_provenance:
+            print("✅ PASS: Reading provenance is consistent with available OCR evidence.")
+        else:
+            print(f"❌ FAIL: {len(invalid_provenance)} reading(s) have invalid source/OCR provenance.")
             failures += 1
 
     print("\n--- Audit Summary ---")

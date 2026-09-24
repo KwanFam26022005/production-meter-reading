@@ -141,6 +141,19 @@ def main():
             z = session.query(OperationalZone).filter(OperationalZone.id == zid).first()
             if z:
                 zones[zid] = z
+
+        # Presentation zones are Map identifiers; operational assignments use
+        # OperationalZone identifiers. Keep both identities explicit.
+        presentation_to_operational_zone = {
+            "pres-technical": "zone-technical",
+            "pres-berth": "zone-berth",
+            "pres-container-west": "zone-container",
+            "pres-container-center": "zone-container",
+            "pres-cfs-east": "zone-warehouse",
+        }
+        missing_zones = sorted(set(presentation_to_operational_zone.values()) - set(zones))
+        if missing_zones:
+            raise RuntimeError(f"Required operational zones are missing: {missing_zones}")
         
         # 3. Work Schedules & Leave Requests
         rnd = random.Random(24092026)
@@ -148,7 +161,7 @@ def main():
         end_date = datetime.date(2026, 9, 30)
         shifts = ["CA1", "CA2", "CA3", "HC", "OFF"]
         
-        for u in employees:
+        for employee_index, u in enumerate(employees):
             curr_date = start_date
             while curr_date <= end_date:
                 # 1 missing schedule case for emp12 on a specific day
@@ -156,7 +169,10 @@ def main():
                     curr_date += datetime.timedelta(days=1)
                     continue
                     
-                shift = rnd.choice(shifts)
+                # Rotate shifts so every date has eligible coverage for each
+                # operational shift while retaining OFF and a missing-schedule
+                # case for the demo acceptance scenarios.
+                shift = shifts[((curr_date - start_date).days + employee_index) % len(shifts)]
                 ws = WorkSchedule(
                     id=gen_id("schedule", f"{u.id}-{curr_date.isoformat()}"),
                     user_id=u.id,
@@ -205,12 +221,62 @@ def main():
         # 4. Operational Assignments
         # 4 zones, date range 2026-09-10 to 2026-09-24
         assign_end_date = datetime.date(2026, 9, 24)
+        schedules_by_user_date = {
+            (schedule.user_id, schedule.work_date): schedule
+            for schedule in session.query(WorkSchedule).all()
+        }
+        approved_leaves = session.query(LeaveRequest).filter_by(status="APPROVED").all()
+
+        def eligible_for_shift(work_date, shift_code):
+            date_text = work_date.isoformat()
+            eligible = []
+            for employee in employees:
+                schedule = schedules_by_user_date.get((employee.id, date_text))
+                if not schedule or schedule.status != "PUBLISHED" or schedule.shift_code != shift_code:
+                    continue
+                on_approved_leave = any(
+                    leave.user_id == employee.id
+                    and leave.start_date <= date_text <= leave.end_date
+                    and leave.shift_code in (None, "ALL", shift_code)
+                    for leave in approved_leaves
+                )
+                if not on_approved_leave:
+                    eligible.append(employee)
+            return eligible
+
+        assignment_slots = []
+        curr_date = start_date
+        while curr_date <= assign_end_date:
+            for shift_code in ["CA1", "CA2", "CA3", "HC"]:
+                eligible = eligible_for_shift(curr_date, shift_code)
+                if not eligible:
+                    raise RuntimeError(
+                        f"No eligible employee for {curr_date.isoformat()} {shift_code}"
+                    )
+                for zone in zones.values():
+                    assignment_slots.append((curr_date, shift_code, zone.id, eligible))
+            curr_date += datetime.timedelta(days=1)
+
+        support_candidates = [
+            (work_date, shift_code, zone_id)
+            for work_date, shift_code, zone_id, eligible in assignment_slots
+            if len(eligible) > 1
+        ]
+        if len(support_candidates) < 28:
+            raise RuntimeError("The demo schedule cannot support its 28 SUPPORT assignments.")
+        support_slots = set(rnd.sample(support_candidates, 28))
+
         curr_date = start_date
         while curr_date <= assign_end_date:
             for s in ["CA1", "CA2", "CA3", "HC"]:
                 for z_code, z in zones.items():
+                    eligible = eligible_for_shift(curr_date, s)
+                    if not eligible:
+                        raise RuntimeError(
+                            f"No eligible employee for {curr_date.isoformat()} {s}"
+                        )
                     # Primary
-                    u_pri = rnd.choice(employees)
+                    u_pri = rnd.choice(eligible)
                     oa_pri = OperationalAssignment(
                         id=gen_id("op_assign", f"{z.id}-{curr_date.isoformat()}-{s}-PRI"),
                         user_id=u_pri.id,
@@ -223,9 +289,10 @@ def main():
                     )
                     session.add(oa_pri)
                     
-                    # 1 support case sporadically
-                    if rnd.random() < 0.1:
-                        u_sup = rnd.choice([e for e in employees if e != u_pri])
+                    # Preserve the deterministic baseline's 28 SUPPORT rows,
+                    # selecting only employees with matching published shifts.
+                    if (curr_date, s, z.id) in support_slots:
+                        u_sup = rnd.choice([e for e in eligible if e != u_pri])
                         oa_sup = OperationalAssignment(
                             id=gen_id("op_assign", f"{z.id}-{curr_date.isoformat()}-{s}-SUP"),
                             user_id=u_sup.id,
@@ -291,6 +358,7 @@ def main():
                 meter_code=m["code"],
                 name=m["name"],
                 meter_type="OTHER", # Simplify
+                zone_id=zones[presentation_to_operational_zone[m["zone"]]].id,
                 presentation_zone_id=m["zone"],
                 map_x=round(m["pos"][0] / 1915, 4),
                 map_y=round(m["pos"][1] / 821, 4),
@@ -322,7 +390,8 @@ def main():
             for time_str in ["06:00", "10:00", "14:00", "22:00"]:
                 rr_id = gen_id("round", f"{curr_date.isoformat()}T{time_str}")
                 dt_str = f"{curr_date.isoformat()} {time_str}:00"
-                sched_dt = datetime.datetime.strptime(dt_str, "%Y-%m-%d %H:%M:%S").replace(tzinfo=tz)
+                sched_local = datetime.datetime.strptime(dt_str, "%Y-%m-%d %H:%M:%S").replace(tzinfo=tz)
+                sched_dt = sched_local.astimezone(datetime.timezone.utc)
                 rr = ReadingRound(
                     id=rr_id,
                     batch_id=rb.id,
@@ -340,7 +409,7 @@ def main():
                         meter_id=m.id,
                         meter_code_snapshot=m.meter_code,
                         meter_name_snapshot=m.name,
-                        zone_id_snapshot=m.presentation_zone_id,
+                        zone_id_snapshot=m.zone_id,
                         presentation_zone_id_snapshot=m.presentation_zone_id,
                         utility_type_snapshot=m.utility_type,
                         scope_origin="SYSTEM",
@@ -352,7 +421,7 @@ def main():
 
         # 7. Readings
         # Need deterministic readings with growth
-        # Include CONFIRMED and REVIEW, 1 missing, 1 user-corrected, 1 negative, 1 OCR direct
+        # Include CONFIRMED and REVIEW, 1 missing, 1 negative, and direct OCR confirmation.
         all_rrms = session.query(ReadingRoundMeter).all()
         reading_vals = {m.id: float(m.meter_code[-3:]) * 100 for m in meter_objs}
         
@@ -374,9 +443,15 @@ def main():
                 status = "CONFIRMED"
                 flag = None
                 
+            # This deterministic fixture has no original OCR value for human
+            # entry rows. Keep the prior one-in-three source distribution and
+            # RNG sequence, but classify those rows as MANUAL_ENTRY rather
+            # than inventing USER_CORRECTED provenance without OCR evidence.
             conf_source = rnd.choice(["OCR_CONFIRMED", "USER_CORRECTED", "MANUAL_ENTRY"])
+            if conf_source == "USER_CORRECTED":
+                conf_source = "MANUAL_ENTRY"
             if i == 10:
-                conf_source = "USER_CORRECTED"
+                conf_source = "MANUAL_ENTRY"
             elif i == 11:
                 conf_source = "MANUAL_ENTRY"
             elif i == 12:
