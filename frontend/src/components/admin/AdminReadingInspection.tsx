@@ -210,6 +210,39 @@ export const AdminReadingInspection: React.FC<AdminReadingInspectionProps> = ({
     }
   };
 
+  // Keyboard navigation: Left Arrow (prev reading), Right Arrow (next reading)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+        return;
+      }
+      if (e.key === 'ArrowLeft' && data?.prev_reading_id && onSelectReading) {
+        e.preventDefault();
+        onSelectReading(data.prev_reading_id);
+      } else if (e.key === 'ArrowRight' && data?.next_reading_id && onSelectReading) {
+        e.preventDefault();
+        onSelectReading(data.next_reading_id);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [data?.prev_reading_id, data?.next_reading_id, onSelectReading]);
+
+  const getUnitDisplay = () => {
+    const m = data?.meter;
+    if (!m) return 'kWh';
+    const unit = (m as any).measurement_unit;
+    const util = (m as any).utility_type;
+    if (unit === 'KWH') return 'kWh';
+    if (unit === 'M3') return 'm³';
+    if (unit === 'UNKNOWN') return '';
+    if (util === 'WATER') return 'm³';
+    if (util === 'ELECTRICITY') return 'kWh';
+    return '';
+  };
+
   return (
     <div className="admin-inspection-container">
       {/* HEADER BAR */}
@@ -421,7 +454,12 @@ export const AdminReadingInspection: React.FC<AdminReadingInspectionProps> = ({
                   <div className="official-reading-row">
                     <span className="reading-label">Chính thức:</span>
                     <span className="official-reading-val font-mono">
-                      {data.reading || '—'} <span className="reading-unit">kWh</span>
+                      {data.reading || '—'}{' '}
+                      {getUnitDisplay() ? (
+                        <span className="reading-unit">{getUnitDisplay()}</span>
+                      ) : (
+                        <span className="text-warning text-xs font-normal ml-1" title="Đơn vị chưa cấu hình">(Chưa cấu hình ĐV)</span>
+                      )}
                     </span>
                   </div>
                 </div>
@@ -430,7 +468,12 @@ export const AdminReadingInspection: React.FC<AdminReadingInspectionProps> = ({
                   <div className="official-reading-row">
                     <span className="reading-label">Chỉ số chính thức:</span>
                     <span className="official-reading-val font-mono">
-                      {data.reading || '—'} <span className="reading-unit">kWh</span>
+                      {data.reading || '—'}{' '}
+                      {getUnitDisplay() ? (
+                        <span className="reading-unit">{getUnitDisplay()}</span>
+                      ) : (
+                        <span className="text-warning text-xs font-normal ml-1" title="Đơn vị chưa cấu hình">(Chưa cấu hình ĐV)</span>
+                      )}
                     </span>
                   </div>
                   <div className="ocr-reading-row mt-2">
@@ -443,7 +486,12 @@ export const AdminReadingInspection: React.FC<AdminReadingInspectionProps> = ({
                   <div className="official-reading-row">
                     <span className="reading-label">Chỉ số chính thức:</span>
                     <span className="official-reading-val font-mono">
-                      {data.reading || '—'} <span className="reading-unit">kWh</span>
+                      {data.reading || '—'}{' '}
+                      {getUnitDisplay() ? (
+                        <span className="reading-unit">{getUnitDisplay()}</span>
+                      ) : (
+                        <span className="text-warning text-xs font-normal ml-1" title="Đơn vị chưa cấu hình">(Chưa cấu hình ĐV)</span>
+                      )}
                     </span>
                   </div>
                   {data.ocr_reading && (
@@ -472,6 +520,28 @@ export const AdminReadingInspection: React.FC<AdminReadingInspectionProps> = ({
                 <dd>{data.meter.location}</dd>
                 <dt>Chủng loại:</dt>
                 <dd>{data.meter.meter_type === 'mechanical' ? 'Cơ khí (Mechanical)' : 'Điện tử (LCD)'}</dd>
+                <dt>Tiện ích & Đơn vị:</dt>
+                <dd>
+                  {(data.meter as any).utility_type === 'WATER'
+                    ? 'Nước · m³'
+                    : (data.meter as any).utility_type === 'ELECTRICITY'
+                    ? 'Điện · kWh'
+                    : (data.meter as any).measurement_unit === 'UNKNOWN'
+                    ? <span className="text-warning text-xs font-semibold">(Chưa cấu hình ĐV)</span>
+                    : (data.meter as any).measurement_unit || 'Chưa xác định'}
+                </dd>
+                {(data.meter as any).register_semantics && (
+                  <>
+                    <dt>Kiểu ghi:</dt>
+                    <dd>
+                      {(data.meter as any).register_semantics === 'CUMULATIVE'
+                        ? 'Lũy kế (CUMULATIVE)'
+                        : (data.meter as any).register_semantics === 'INTERVAL'
+                        ? 'Khoảng (INTERVAL)'
+                        : (data.meter as any).register_semantics}
+                    </dd>
+                  </>
+                )}
                 <dt>Trạng thái thiết bị:</dt>
                 <dd>
                   <span className={`status-pill ${data.meter.is_active ? 'active' : 'inactive'}`}>
@@ -555,7 +625,7 @@ export const AdminReadingInspection: React.FC<AdminReadingInspectionProps> = ({
           subtitle={
             activeView === 'roi'
               ? `Vùng cắt thực tế chuyển vào mô hình nhận dạng PP-OCRv6-Medium (${recBbox ? `${recBbox.width} × ${recBbox.height} px` : ''})`
-              : `Chỉ số chính thức: ${data.reading || '—'} kWh · Nguồn: ${formatConfirmationSource(data.confirmation_source)}`
+              : `Chỉ số chính thức: ${data.reading || '—'} ${getUnitDisplay()} · Nguồn: ${formatConfirmationSource(data.confirmation_source)}`
           }
         />
       )}
