@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "dev:user": "vite --config vite.config.user.ts --port 5173",
-    "dev:operations": "vite --config vite.config.operations.ts --port 5174",
+    "dev:user": "vite --config vite.config.user.ts",
+    "dev:operations": "vite --config vite.config.operations.ts",
     "build": "npm run build:user && npm run build:operations",
     "build:user": "tsc && vite build --config vite.config.user.ts",
     "build:operations": "tsc && vite build --config vite.config.operations.ts",

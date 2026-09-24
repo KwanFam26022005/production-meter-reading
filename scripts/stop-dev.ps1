@@ -1,36 +1,44 @@
+# Stop only processes whose full recorded identity still matches.
+# Windows PowerShell 5.1 and PowerShell 7.
+[CmdletBinding()]
+param([switch]$Force) # Compatibility only; never bypasses ownership checks.
 $ErrorActionPreference = "Stop"
-
-$IntegrationRoot = Split-Path $PSScriptRoot -Parent
-$ProjectRoot = Split-Path $IntegrationRoot -Parent
-
-if (-not $env:PMR_RUNTIME_ROOT) {
-    $env:PMR_RUNTIME_ROOT = Join-Path $ProjectRoot '.runtime'
-}
-$RuntimeRoot = $env:PMR_RUNTIME_ROOT
-
-$PidFile = Join-Path $RuntimeRoot "state\dev-pids.json"
-
-if (-not (Test-Path $PidFile)) {
-    Write-Host "No dev process state file found at $PidFile. Are they running?" -ForegroundColor Yellow
-    exit 0
-}
-
-$Pids = Get-Content $PidFile -Raw | ConvertFrom-Json -AsHashtable
-
-foreach ($key in $Pids.Keys) {
-    $pidToKill = $Pids[$key]
-    try {
-        $proc = Get-Process -Id $pidToKill -ErrorAction SilentlyContinue
-        if ($proc) {
-            Write-Host "Stopping $key (PID: $pidToKill)..."
-            Stop-Process -Id $pidToKill -Force -ErrorAction SilentlyContinue
-        } else {
-            Write-Host "Process $key (PID: $pidToKill) is no longer running." -ForegroundColor Gray
-        }
-    } catch {
-        Write-Host "Failed to stop process $key (PID: $pidToKill): $_" -ForegroundColor Red
+. (Join-Path $PSScriptRoot "dev-runtime-helpers.ps1")
+$Paths = Resolve-ProjectPaths -ScriptPath $MyInvocation.MyCommand.Path
+if (-not (Acquire-DevLock -LockFile $Paths.LockFile)) { exit 1 }
+try {
+    $State = Get-DevState -PidFile $Paths.PidFile
+    if (-not $State) {
+        if (Test-Path $Paths.PidFile) { throw "Invalid state registry; preserved for inspection." }
+        Write-Host "No development stack recorded. No process was terminated."
+        exit 0
     }
+    $roles = @("operations_tunnel", "user_tunnel", "operations_frontend", "user_frontend", "backend")
+    foreach ($role in $roles) { Stop-RecordedService -Service $State.$role -Name $role }
+    $remaining = @()
+    foreach ($role in $roles) {
+        foreach ($identity in @($State.$role.identities)) {
+            if (Test-ProcessIdentityMatch $identity) { $remaining += $identity.process_id }
+        }
+    }
+    if ($remaining.Count) { throw "Owned processes still active: $remaining. Registry retained." }
+    $occupied = $false
+    foreach ($role in @("backend", "user_frontend", "operations_frontend")) {
+        if ($State.$role.port) {
+            $ownerId = Get-PortListenerProcess -Port $State.$role.port
+            if ($ownerId) {
+                $occupied = $true
+                Write-Host "Port $($State.$role.port): occupied by unowned PID $ownerId; preserved."
+            } else { Write-Host "Port $($State.$role.port): FREE" }
+        }
+    }
+    Remove-DevState -PidFile $Paths.PidFile
+    if ($occupied) { exit 1 }
+    Write-Host "Development stack stopped cleanly."
+} catch {
+    Write-Host "Stop failed: $($_.Exception.Message)" -ForegroundColor Red
+    exit 1
+} finally {
+    Release-DevLock -LockFile $Paths.LockFile
 }
-
-Remove-Item -Path $PidFile -Force
-Write-Host "Development environment stopped successfully." -ForegroundColor Green
+exit 0
