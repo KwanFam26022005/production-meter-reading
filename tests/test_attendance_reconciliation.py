@@ -19,6 +19,7 @@ from backend.app.config import get_settings
 get_settings.cache_clear()
 
 from backend.app.db import Base, engine, SessionLocal, init_db
+from backend.app.attendance import get_current_business_date
 from backend.app.models import User, AttendanceEvent
 from backend.app.auth import hash_password, create_user_session
 from backend.app.main import app
@@ -508,7 +509,7 @@ def test_scenario_16_legacy_rows_without_submission_id_remain_readable(auth_clie
     """Scenario 16: Legacy rows without submission ID remain readable and handled conservatively."""
     legacy_event = AttendanceEvent(
         user_id=test_recon_user.id,
-        business_date=datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+        business_date=get_current_business_date(),
         event_type="CHECK_IN",
         server_timestamp=datetime.now(timezone.utc),
         photo_key="legacy_photo.jpg",

@@ -381,7 +381,9 @@ def test_snapshot_submission_scope_review_confirmation_and_reconciliation(client
     batch = add_batch(test_db_session)
     round_obj = add_round(test_db_session, batch, scope_meters=[included, included_review])
     sched_local = round_obj.scheduled_at.astimezone(LOCAL_TZ) if round_obj.scheduled_at.tzinfo else round_obj.scheduled_at.replace(tzinfo=timezone.utc).astimezone(LOCAL_TZ)
-    work_date = sched_local.date().isoformat()
+    # A CA3 round before 06:00 belongs to the previous operational work date.
+    work_date_date = sched_local.date() - timedelta(days=1) if sched_local.hour < 6 else sched_local.date()
+    work_date = work_date_date.isoformat()
     hour = sched_local.hour
     shift = "CA1" if 6 <= hour < 14 else ("CA2" if 14 <= hour < 22 else "CA3")
     test_db_session.add(WorkSchedule(id=str(uuid.uuid4()), user_id=sample_user.id, work_date=work_date, shift_code=shift, status="SCHEDULED"))
