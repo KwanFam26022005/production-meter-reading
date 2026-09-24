@@ -17,12 +17,12 @@ No file here owns product features, design tokens, frozen domain semantics, a ta
 
 ## Authority boundaries
 
-- **Product truth:** current source and tests, then frozen domain contracts. Current 9A–9C handoffs stand in for planned H3 contracts. A source/test contradiction requires investigation; do not silently treat a handoff as live behavior.
+- **Product truth:** current source and tests, then frozen domain contracts. Compact frozen domain contracts (`docs/contracts/`) define current domain truths; historical handoffs remain available as background evidence. A source/test contradiction requires investigation; do not silently treat a contract or handoff as live behavior without evidence.
 - **Design truth:** `frontend/DESIGN_DNA.md` owns measurable design values; scoped skills own interaction and visual guidance.
 - **Execution policy:** `AGENTS.md` universal safety and this harness's portable impact/mode routing.
 - **Verification policy:** `gates.yml`, with command definitions in `commands.yml` and exact failure history in `known-failures.json`.
 
-Only load skills routed by `impact-map.yml`. The tracked `saigon-port-ui` skill applies to UI impacts, not backend-only work. H2 Admin and Map skills are explicitly planned, not present. External UX/marketing skills are optional and must not be assumed installed on another machine.
+Only load skills routed by `impact-map.yml`. The tracked project skills (`saigon-port-ui`, `saigon-port-admin-responsive`, and `saigon-port-map-v2`) apply to their routed UI impacts, not backend-only work. External UX/marketing skills are optional and must not be assumed installed on another machine.
 
 ## Choose a mode
 

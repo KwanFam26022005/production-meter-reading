@@ -14,7 +14,7 @@ Create a trustworthy operational workspace with **Maritime Operational Minimalis
 
 This skill owns shared visual and interaction judgment. [`frontend/DESIGN_DNA.md`](../../../frontend/DESIGN_DNA.md) owns approved colors, derived and semantic tokens, contrast pairs, typography, spacing, radii, component dimensions, and motion timings. Use its values rather than copying HEX or size tables here. [`harness/gates.yml`](../../../harness/gates.yml) owns verification, not this skill.
 
-Current source and tests own product behavior. Use [`harness/context-index.yml`](../../../harness/context-index.yml) for the smallest domain handoff when progress, task assignment, Map data, or other product meaning matters. H3 contracts will replace those handoffs. Do not settle a domain conflict by changing UI prose.
+Current source and tests own product behavior. Use [`harness/context-index.yml`](../../../harness/context-index.yml) and compact domain contracts ([`docs/contracts/`](../../../docs/contracts/)) when progress, task assignment, Map data, or other product meaning matters. Do not settle a domain conflict by changing UI prose.
 
 ## Shared interface judgment
 
@@ -30,7 +30,7 @@ Field reading, camera capture, and attendance happen under bright outdoor light 
 
 For OCR interaction, guide the operator through capture, preview, processing, and result/review. Use a plain rectangular camera guide, preserve image detail for comparison, and show truthful processing state. The reading is visually prominent; uncertain results offer a clear retake action and manual entry when available. Do not show fabricated progress or futuristic scan effects.
 
-The Home Hub can show progress and insights, but their denominator, assignment meaning, and data source are product/domain truths. Consult the routed current source and handoff; H3 will make that contract compact. Do not turn global progress into personal progress or the reverse through UI copy alone.
+The Home Hub can show progress and insights, but their denominator, assignment meaning, and data source are product/domain truths. Consult the compact contract ([`docs/contracts/user-task-projection.md`](../../../docs/contracts/user-task-projection.md)) and current source. Do not turn global progress into personal progress or the reverse through UI copy alone.
 
 ## Operations Portal profile
 

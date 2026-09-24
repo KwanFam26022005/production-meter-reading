@@ -26,6 +26,6 @@ Use with [`saigon-port-ui`](../saigon-port-ui/SKILL.md) for shared identity. Thi
 
 ## Product truth boundary
 
-Frozen B2 geometry, its SHA-256, simulation provenance, and legacy-versus-operational assignment meaning are not defined here. Resolve them through [`harness/context-index.yml`](../../../harness/context-index.yml) and current source/tests and Map handoffs. H3 will provide `docs/contracts/map-v2.md`; use it when it exists. Do not reinterpret `ReadingRound`, `OperationalAssignment`, `UserTaskProjection`, or `MeterReading.user_id` in Map styling guidance.
+Frozen B2 geometry, its SHA-256, simulation provenance, and legacy-versus-operational assignment meaning are not defined here. Resolve them through [`harness/context-index.yml`](../../../harness/context-index.yml) and the compact domain contract [`docs/contracts/map-v2.md`](../../../docs/contracts/map-v2.md). Do not reinterpret `ReadingRound`, `OperationalAssignment`, `UserTaskProjection`, or `MeterReading.user_id` in Map styling guidance.
 
 [`harness/gates.yml`](../../../harness/gates.yml) owns the B2 freeze and applicable Map verification gates. This skill does not duplicate their hash or command matrix.

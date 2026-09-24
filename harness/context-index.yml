@@ -36,32 +36,29 @@ contexts:
 
   reading-schedule:
     primary:
-      - docs/implementation/reading-schedule-round-scope-phase-9a/THREAD_HANDOFF.md
+      - docs/contracts/reading-schedule.md
     expand_on_conflict:
       - tests/test_reading_round_scope_9a.py
-    future_contract:
-      path: docs/contracts/reading-schedule.md
-      status: planned_h3
+    historical_evidence:
+      - docs/implementation/reading-schedule-round-scope-phase-9a/THREAD_HANDOFF.md
 
   operational-assignment:
     primary:
-      - docs/implementation/operational-shift-zone-assignment-phase-9b/THREAD_HANDOFF.md
+      - docs/contracts/operational-assignment.md
     expand_on_conflict:
       - backend/app/operational_assignments.py
       - tests/test_operational_assignments_9b.py
-    future_contract:
-      path: docs/contracts/operational-assignment.md
-      status: planned_h3
+    historical_evidence:
+      - docs/implementation/operational-shift-zone-assignment-phase-9b/THREAD_HANDOFF.md
 
   user-task-projection:
     primary:
-      - docs/implementation/user-task-projection-phase-9c/THREAD_HANDOFF.md
+      - docs/contracts/user-task-projection.md
     expand_on_conflict:
       - backend/app/user_tasks.py
       - tests/test_user_task_projection_9c.py
-    future_contract:
-      path: docs/contracts/user-task-projection.md
-      status: planned_h3
+    historical_evidence:
+      - docs/implementation/user-task-projection-phase-9c/THREAD_HANDOFF.md
 
   user-ui:
     primary:
@@ -101,18 +98,18 @@ contexts:
 
   map-v2:
     primary:
+      - docs/contracts/map-v2.md
       - .agent/skills/saigon-port-ui/SKILL.md
       - .agent/skills/saigon-port-map-v2/SKILL.md
     expand_on_domain_change:
-      - docs/implementation/map-v2-unified-simulation-infrastructure/THREAD_HANDOFF.md
       - frontend/src/components/map-v2/utilityDemoLayout.ts
     expand_on_conflict:
       - scripts/verify_b2_freeze_hash.mjs
     expand_on_design:
       - frontend/DESIGN_DNA.md
-    future_contract:
-      path: docs/contracts/map-v2.md
-      status: planned_h3
+    historical_evidence:
+      - docs/implementation/map-v2-unified-simulation-infrastructure/THREAD_HANDOFF.md
+      - docs/implementation/map-v2-spatial-meter-data-phase-b/THREAD_HANDOFF.md
     skill_hints:
       - saigon-port-ui
       - saigon-port-map-v2
@@ -122,18 +119,22 @@ contexts:
 
   spatial:
     primary:
-      - docs/implementation/map-v2-spatial-meter-data-phase-b/THREAD_HANDOFF.md
+      - docs/contracts/map-v2.md
     expand_on_conflict:
       - tests/test_meter_spatial_audit_and_seed.py
       - tests/test_v16_spatial_crud.py
+    historical_evidence:
+      - docs/implementation/map-v2-spatial-meter-data-phase-b/THREAD_HANDOFF.md
 
   simulation:
     primary:
+      - docs/contracts/map-v2.md
       - .agent/skills/saigon-port-map-v2/SKILL.md
-      - docs/implementation/map-v2-unified-simulation-infrastructure/THREAD_HANDOFF.md
       - frontend/src/components/map-v2/simulation/simulationValidation.ts
     expand_on_conflict:
       - frontend/tests/mapV2UnifiedSimulationInfrastructure.test.ts
+    historical_evidence:
+      - docs/implementation/map-v2-unified-simulation-infrastructure/THREAD_HANDOFF.md
     skill_hints:
       - saigon-port-ui
       - saigon-port-map-v2
