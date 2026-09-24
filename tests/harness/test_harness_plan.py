@@ -160,3 +160,45 @@ def test_backend_focused_required_input(config):
 def test_no_local_changes_status(config):
     plan = resolve_plan(config, [])
     assert plan["status"] == "NO_LOCAL_CHANGES"
+
+
+def test_admin_schedules_responsive_component_only(config):
+    """Case A1: Component-only Admin schedule responsive fix resolves to FAST."""
+    plan = resolve_plan(
+        config,
+        ["frontend/src/components/admin/AdminSchedules.tsx"],
+        explicit_impacts=["admin-responsive"],
+    )
+    assert plan["status"] == "READY"
+    assert plan["minimum_mode"] == "FAST"
+    assert plan["effective_mode"] == "FAST"
+    assert "operations-ui" in plan["derived_impacts"]
+    assert "admin-responsive" in plan["explicit_impacts"]
+    assert "saigon-port-admin-responsive" in plan["skills"]
+    assert "admin-responsive-small" in plan["gates"]
+    assert "operations-suite" in plan["gates"]
+    # No backend or build gates
+    assert "backend-focused" not in plan["gates"]
+    assert "operations-build" not in plan["gates"]
+
+
+def test_shared_index_css_narrowing(config):
+    """Case A2: index.css blocks unreviewed, but narrows to FAST when scoped to admin-responsive."""
+    # Unreviewed index.css blocks
+    p_blocked = resolve_plan(config, ["frontend/src/index.css"])
+    assert p_blocked["status"] == "BLOCKED_SEMANTIC_REVIEW"
+    assert p_blocked["minimum_mode"] == "STANDARD"
+
+    # Reviewed index.css scoped to admin-responsive narrows to FAST
+    p_fast = resolve_plan(config, ["frontend/src/index.css"], explicit_impacts=["admin-responsive"])
+    assert p_fast["status"] == "READY"
+    assert p_fast["minimum_mode"] == "FAST"
+    assert p_fast["effective_mode"] == "FAST"
+    assert "admin-responsive-small" in p_fast["gates"]
+    assert "operations-build" not in p_fast["gates"]
+
+    # Reviewed index.css scoped to map-v2 stays STANDARD
+    p_std = resolve_plan(config, ["frontend/src/index.css"], explicit_impacts=["map-v2"])
+    assert p_std["status"] == "READY"
+    assert p_std["minimum_mode"] == "STANDARD"
+    assert "operations-build" in p_std["gates"]

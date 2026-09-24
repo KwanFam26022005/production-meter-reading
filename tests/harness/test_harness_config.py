@@ -85,3 +85,22 @@ def test_invalid_b2_expected_hash_raises_error():
     config.gates["map-b2-freeze"]["expected_hash"] = "invalid_hash_string"
     with pytest.raises(ConfigIntegrityError, match="Invalid map-b2-freeze expected_hash"):
         config.validate_integrity()
+
+
+def test_duplicate_command_id_raises_error():
+    """Verify that duplicate command IDs raise ConfigIntegrityError."""
+    repo_root = find_repo_root()
+    config = HarnessConfig(repo_root)
+    cmds = config.commands_data.get("commands", [])
+    config.commands_data["commands"] = cmds + [cmds[0]]
+    with pytest.raises(ConfigIntegrityError, match="Duplicate command ID"):
+        config.validate_integrity()
+
+
+def test_unknown_context_in_domain_raises_error():
+    """Verify that referencing an unknown context in a domain raises ConfigIntegrityError."""
+    repo_root = find_repo_root()
+    config = HarnessConfig(repo_root)
+    config.domains["backend-core"]["contexts"] = ["non-existent-ctx"]
+    with pytest.raises(ConfigIntegrityError, match="references unknown context"):
+        config.validate_integrity()

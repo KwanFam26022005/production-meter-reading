@@ -89,7 +89,12 @@ class HarnessConfig:
             if data.get("schema_version") != 1:
                 raise ConfigIntegrityError(f"{name}.yml has unsupported schema_version: {data.get('schema_version')}")
 
-        # 2. Gate commands exist
+        # 2. Command IDs unique and gate commands exist
+        commands_list = self.commands_data.get("commands", [])
+        cmd_ids = [c["id"] for c in commands_list]
+        if len(cmd_ids) != len(set(cmd_ids)):
+            raise ConfigIntegrityError("Duplicate command ID found in commands.yml")
+
         for gate_id, gate in self.gates.items():
             for cmd_id in gate.get("commands", []):
                 if cmd_id not in self.commands:
@@ -295,7 +300,6 @@ def resolve_plan(
         if path in shared_lookup:
             sf = shared_lookup[path]
             min_mode = sf.get("minimum_mode", "STANDARD")
-            derived_min_modes.append(min_mode)
             cands = sf.get("candidate_impacts", [])
             semantic_review_candidate_impacts.update(cands)
             path_additional_gates.update(sf.get("always_gates", []))
@@ -303,6 +307,10 @@ def resolve_plan(
             # Has user explicitly provided any impact for this shared file or globally?
             if not explicit_impacts_set:
                 unresolved_semantic_files.append(path)
+                derived_min_modes.append(min_mode)
+            else:
+                if not sf.get("review_can_narrow_mode"):
+                    derived_min_modes.append(min_mode)
             continue
 
         # 2. Path rules (first_match)

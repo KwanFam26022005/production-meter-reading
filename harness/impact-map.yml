@@ -28,6 +28,7 @@ shared_files:
   - path: frontend/src/index.css
     minimum_mode: STANDARD
     requires_explicit_impact: true
+    review_can_narrow_mode: true
     candidate_impacts: [user-ui, operations-ui, admin-responsive, map-v2]
     note: Inspect selectors; do not automatically assign both portals for a local CSS change.
   - path: backend/app/models.py

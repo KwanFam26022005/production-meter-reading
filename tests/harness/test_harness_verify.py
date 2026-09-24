@@ -142,6 +142,7 @@ def test_backend_full_same_count_different_node_causes_fail(config):
         gate_res = res["gate_results"][0]
         assert gate_res["status"] == "FAIL"
         assert "tests/test_different.py::test_fail" in gate_res["details"]["new_failures"]
+        assert len(gate_res["details"]["baseline_improvements"]) == 1
 
 
 def test_backend_full_baseline_improvement(config):
@@ -160,3 +161,32 @@ def test_backend_full_baseline_improvement(config):
         gate_res = res["gate_results"][0]
         assert gate_res["status"] == "QUALIFIED_WITH_KNOWN_FAILURES"
         assert len(gate_res["details"]["baseline_improvements"]) == 1
+
+
+def test_b2_hash_missing_label_fails(config):
+    plan = {"status": "READY", "gates": ["map-b2-freeze"]}
+    with patch("subprocess.run") as mock_run:
+        mock_run.return_value = MagicMock(returncode=0, stdout="Some unexpected output without hash label", stderr="")
+        res = execute_verify(config, plan)
+        assert res["overall_status"] == "FAILED"
+        assert res["gate_results"][0]["status"] == "FAIL"
+        assert "Could not parse" in res["gate_results"][0]["details"]["failure_reason"]
+
+
+def test_b2_hash_command_nonzero_fails(config):
+    plan = {"status": "READY", "gates": ["map-b2-freeze"]}
+    with patch("subprocess.run") as mock_run:
+        mock_run.return_value = MagicMock(returncode=1, stdout="", stderr="Node syntax error")
+        res = execute_verify(config, plan)
+        assert res["overall_status"] == "FAILED"
+        assert res["gate_results"][0]["status"] == "FAIL"
+
+
+def test_bundle_freshness_success_executes_bundle_separation(config):
+    plan = {"status": "READY", "gates": ["user-build", "operations-build", "bundle-separation"]}
+    with patch("subprocess.run") as mock_run:
+        mock_run.return_value = MagicMock(returncode=0, stdout="Success", stderr="")
+        res = execute_verify(config, plan)
+        assert res["overall_status"] == "PASSED"
+        bundle_res = next(g for g in res["gate_results"] if g["gate_id"] == "bundle-separation")
+        assert bundle_res["status"] == "PASS"
