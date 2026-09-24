@@ -1,0 +1,13 @@
+Starting Audit of Demo Data V2...
+✅ PASS: Simulation scenario exists.
+✅ PASS: Found 60 SNAPSHOT rounds.
+✅ PASS: All SNAPSHOT rounds have correct meter scope sizes (12).
+✅ PASS: Found 269 Operational Assignments.
+✅ PASS: Operational Assignments include PRIMARY and SUPPORT roles.
+✅ PASS: Found 1 meter(s) with UNKNOWN unit (as intended).
+✅ PASS: Found 11 meter(s) with CUMULATIVE semantics.
+✅ PASS: Readings include both REVIEW and CONFIRMED statuses.
+✅ PASS: Reading sources include OCR, USER_CORRECTED, and MANUAL_ENTRY.
+
+--- Audit Summary ---
+🎉 All audits passed successfully!

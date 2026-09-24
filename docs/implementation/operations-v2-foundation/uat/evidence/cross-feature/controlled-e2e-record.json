@@ -1,0 +1,79 @@
+{
+  "evidence_status": "CONTROLLED_UAT_OBSERVATION_RESET_AFTER_TEST",
+  "source_branch": "integration/operations-v2-foundation",
+  "source_candidate_sha": "e6d4b204cb871647b39fb1c5ec5d0f8e98d0fd85",
+  "canonical_database": "D:\\Projects\\production-meter-reading\\.runtime\\data\\app.db",
+  "final_database_note": "The authorized deterministic Demo V2 reset removed these controlled rows. They are not expected in the final baseline.",
+  "user": {
+    "id": "57840ba6-2d44-52c2-b8b7-7db9a7a0d086",
+    "employee_code": "DEMO2-004",
+    "role": "EMPLOYEE"
+  },
+  "work_schedule": {
+    "work_date": "2026-09-24",
+    "shift_code": "CA3",
+    "eligibility": "ACTIVE_MATCHING_WORK_SCHEDULE"
+  },
+  "assignment": {
+    "id": "afc034ba-bdd4-5e10-80b9-edfa4a537922",
+    "role": "PRIMARY",
+    "zone_id": "zone-technical",
+    "work_date": "2026-09-24",
+    "shift_code": "CA3",
+    "status": "ACTIVE"
+  },
+  "round": {
+    "id": "7b7a475f-8aed-4200-8efc-e33eff76dd01",
+    "batch_id": "8891f2cb-3da6-52fa-8015-9fc3ce036612",
+    "scheduled_at_local": "2026-09-25T00:00:00+07:00",
+    "scheduled_at_utc": "2026-09-24T17:00:00Z",
+    "scope_mode": "SNAPSHOT",
+    "snapshot_meter_count": 12
+  },
+  "round_scope_meter": {
+    "id": "50c00eee-d489-42e0-8343-e5caf306c2d1",
+    "meter_id": "5b3e66e1-6c3d-5682-a75d-ea0f511ac9ee",
+    "zone_id_snapshot": "zone-technical",
+    "scope_status": "SCHEDULED"
+  },
+  "meter": {
+    "id": "5b3e66e1-6c3d-5682-a75d-ea0f511ac9ee",
+    "meter_code": "SIM-EM-001",
+    "utility_type": "ELECTRICITY",
+    "measurement_unit": "KWH",
+    "register_semantics": "CUMULATIVE"
+  },
+  "reading": {
+    "id": "0c52adba-ff07-43c0-a4b4-4c4dfefbba5d",
+    "value": "705.25",
+    "status": "CONFIRMED",
+    "confirmation_source": "MANUAL_ENTRY",
+    "ocr_reading": null,
+    "actual_executor_user_id": "57840ba6-2d44-52c2-b8b7-7db9a7a0d086",
+    "evidence_available": false
+  },
+  "adjacent_interval": {
+    "previous_confirmed_value": "704.9052364291671",
+    "elapsed_minutes": 120,
+    "delta_kwh": 0.3447635708329,
+    "average_rate_kw": 0.1724,
+    "quality": "VALID",
+    "seven_day_same_window_baseline": "INSUFFICIENT_HISTORY"
+  },
+  "support_assignment_audit": {
+    "assignment_id": "fcdcd1ae-b851-4b57-8d68-ee2f5517cfbc",
+    "actions_observed": [
+      "OPERATIONAL_ASSIGNMENT_CREATED",
+      "OPERATIONAL_ASSIGNMENT_CANCELLED"
+    ],
+    "cancellation_reason": "UAT_COMPLETE"
+  },
+  "cross_feature_checks": [
+    "Admin schedule eligibility and PRIMARY assignment were valid for CA3 work date 2026-09-24.",
+    "The SNAPSHOT round persisted 12 RRM rows; the tested row joined by zone_id_snapshot.",
+    "DEMO2-004 saw the expected task and personal progress; global round progress retained its separate denominator.",
+    "The authenticated MANUAL_ENTRY reading was attributed to the actual executor, not assigned responsibility.",
+    "Dashboard, Hậu kiểm, and current Reporting reflected the same reading and round before reset.",
+    "Assignment create/cancel and round creation audit events were visible with actor and before/after detail."
+  ]
+}

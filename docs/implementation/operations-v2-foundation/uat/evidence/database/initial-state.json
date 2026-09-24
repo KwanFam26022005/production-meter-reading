@@ -1,0 +1,23 @@
+{
+  "evidence_status": "UAT_INITIAL_DB_STATE_BEFORE_SEED_CORRECTIONS",
+  "semantic_note": "The initial audit reported its then-current checks as passing; these recorded zone mismatch counts were investigated during UAT, added to the stronger semantic audit, and corrected by deterministic Demo V2 reseed.",
+  "db_path": "D:\\Projects\\production-meter-reading\\.runtime\\data\\app.db",
+  "backup_path": "D:\\Projects\\production-meter-reading\\.runtime\\backups\\phase27-uat-initial-2026-09-25.sqlite",
+  "db_sha256": "8dc620378a58dcfddd02d43c586ee3aaf84a62fd7f24dfbbcb7aeea11fc50e0c",
+  "backup_sha256": "019787eb59fc310710981e9729e07500fbb9ddd7ec1c66146c5e5f92655710ab",
+  "integrity_check": "ok",
+  "baseline_counts": {
+    "meter_readings": 719,
+    "reading_rounds": 60,
+    "reading_round_meters": 720,
+    "operational_assignments": 269
+  },
+  "scenario_meter_count": 12,
+  "scenario_meters_missing_zone": 12,
+  "snapshot_zone_id_outside_operational_catalog": 720,
+  "assignment_status_counts": {
+    "ASSIGNED": 268,
+    "CANCELLED": 1
+  },
+  "backup_size_bytes": 2211840
+}

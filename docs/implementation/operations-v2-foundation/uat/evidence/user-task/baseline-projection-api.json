@@ -1,0 +1,17 @@
+{
+  "evidence_status": "PRE_FIX_OBSERVATION",
+  "interpretation": "Captured before the Demo V2 seed zone correction. DEMO2-006 had assignment zones but projected zero meters because the seeded snapshot/meter zones did not match the operational zone catalog. This is seed-defect evidence, not the valid no-assignment acceptance case.",
+  "employee_code": "DEMO2-006",
+  "assignment_id": "66e49e03-3d77-5591-9139-0d5df7e9765d",
+  "round_id": "74eeccd5-ab51-5b9e-83c7-39e054ed729d",
+  "login_status": 200,
+  "task_status": 200,
+  "assigned_total": 0,
+  "global_round_total": 12,
+  "empty_reason": "NO_METERS_IN_ZONE",
+  "assignment_zone_ids": [
+    "zone-berth",
+    "zone-container"
+  ],
+  "returned_meter_count": 0
+}

@@ -1,0 +1,87 @@
+{
+  "admin_invalid_credentials": {
+    "method": "POST",
+    "path": "/api/v1/auth/login",
+    "status": 401
+  },
+  "admin_login": {
+    "method": "POST",
+    "path": "/api/v1/auth/login",
+    "status": 200
+  },
+  "admin_role": {
+    "value": "ADMIN"
+  },
+  "admin_dashboard": {
+    "method": "GET",
+    "path": "/api/v1/admin/dashboard",
+    "status": 200
+  },
+  "admin_schedule_list": {
+    "method": "GET",
+    "path": "/api/v1/admin/schedules",
+    "status": 200
+  },
+  "admin_csrf": {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  "admin_logout": {
+    "method": "POST",
+    "path": "/api/v1/auth/logout",
+    "status": 200
+  },
+  "admin_session_after_logout": {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 401
+  },
+  "invalid_session": {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 401
+  },
+  "employee_invalid_credentials": {
+    "method": "POST",
+    "path": "/api/v1/auth/login",
+    "status": 401
+  },
+  "employee_login": {
+    "method": "POST",
+    "path": "/api/v1/auth/login",
+    "status": 200
+  },
+  "employee_role": {
+    "value": "EMPLOYEE"
+  },
+  "employee_my_tasks": {
+    "method": "GET",
+    "path": "/api/v1/meter-operations/my-tasks",
+    "status": 200
+  },
+  "employee_task_summary": {
+    "assigned_total": 0,
+    "empty_reason": "NO_ROUND"
+  },
+  "employee_admin_dashboard_forbidden": {
+    "method": "GET",
+    "path": "/api/v1/admin/dashboard",
+    "status": 403
+  },
+  "employee_csrf": {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  "employee_logout": {
+    "method": "POST",
+    "path": "/api/v1/auth/logout",
+    "status": 200
+  },
+  "employee_session_after_logout": {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 401
+  }
+}
