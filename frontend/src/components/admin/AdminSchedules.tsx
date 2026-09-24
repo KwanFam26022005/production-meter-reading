@@ -797,16 +797,6 @@ export const AdminSchedules: React.FC<AdminSchedulesProps> = ({ onInspectReading
               <span className="admin-daily-summary-tag font-tabular">
                 {getDailySummary()}
               </span>
-              <button
-                type="button"
-                className="admin-btn-secondary btn-sm text-muted"
-                onClick={handleOpenDeleteDay}
-                title={`Gỡ các lượt rỗng và hủy các lượt có lịch sử ngày ${formatDisplayDateVN(selectedDate)}`}
-                aria-label={`Gỡ lượt rỗng và hủy lượt có lịch sử ngày ${formatDisplayDateVN(selectedDate)}`}
-              >
-                <Trash2 size={13} aria-hidden="true" />
-                <span>Xóa lịch ngày</span>
-              </button>
             </div>
           </div>
 
@@ -968,6 +958,28 @@ export const AdminSchedules: React.FC<AdminSchedulesProps> = ({ onInspectReading
                 })}
               </tbody>
             </table>
+          </div>
+          <div
+            style={{
+              padding: '10px 18px',
+              borderTop: '1px solid var(--sgp-border)',
+              display: 'flex',
+              justifyContent: 'flex-end',
+              alignItems: 'center',
+              background: 'var(--sgp-canvas)',
+            }}
+          >
+            <button
+              type="button"
+              className="admin-btn-ghost text-muted"
+              style={{ fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer', padding: '4px 8px' }}
+              onClick={handleOpenDeleteDay}
+              title={`Gỡ các lượt rỗng và hủy các lượt có lịch sử ngày ${formatDisplayDateVN(selectedDate)}`}
+              aria-label={`Gỡ lượt rỗng và hủy lượt có lịch sử ngày ${formatDisplayDateVN(selectedDate)}`}
+            >
+              <Trash2 size={13} aria-hidden="true" />
+              <span>Gỡ lượt rỗng / Hủy lịch ngày này</span>
+            </button>
           </div>
         </div>
       )}
