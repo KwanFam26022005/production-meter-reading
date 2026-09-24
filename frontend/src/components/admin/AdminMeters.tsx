@@ -30,6 +30,7 @@ import { MeterAssetRelation } from '../../features/assets/types';
 import { LoadingState } from '../ui/LoadingState';
 import { ErrorState } from '../ui/ErrorState';
 import { MapOperationsPage } from '../../features/map-operations/MapOperationsPage';
+import { formatMeterTypeLabel } from '../../utils/meterMetadata';
 
 export const formatLatestReadingTime = (timeStr?: string | null): string | null => {
   if (!timeStr) return null;
@@ -196,7 +197,8 @@ export const AdminMeters: React.FC<AdminMetersProps> = ({ onInspectReading }) =>
     setFormCode(m.meter_code);
     setFormName(m.name);
     setFormLocation(m.location || '');
-    setFormType(m.meter_type === 'MECHANICAL' ? 'MECHANICAL' : 'LCD');
+    const meterType = m.meter_type?.toUpperCase() || 'UNKNOWN';
+    setFormType(['LCD', 'MECHANICAL', 'OTHER', 'UNKNOWN'].includes(meterType) ? meterType : 'UNKNOWN');
     setFormError(null);
     setMeterRelations([]);
     getAdminMeterRelations(m.id)
@@ -413,6 +415,8 @@ export const AdminMeters: React.FC<AdminMetersProps> = ({ onInspectReading }) =>
             <option value="ALL">Tất cả loại</option>
             <option value="LCD">LCD</option>
             <option value="MECHANICAL">Cơ</option>
+            <option value="OTHER">Khác</option>
+            <option value="UNKNOWN">Chưa cấu hình loại</option>
           </select>
 
           <button
@@ -552,11 +556,11 @@ export const AdminMeters: React.FC<AdminMetersProps> = ({ onInspectReading }) =>
                 <thead>
                   <tr>
                     <th scope="col" style={{ width: '12%' }}>Mã công tơ</th>
-                    <th scope="col" style={{ width: '18%' }}>Tên công tơ</th>
-                    <th scope="col" style={{ width: '15%' }}>Vị trí</th>
+                    <th scope="col" style={{ width: '16%' }}>Tên công tơ</th>
+                    <th scope="col" style={{ width: '18%' }}>Khu vực / vị trí</th>
                     <th scope="col" style={{ width: '18%' }}>Tiện ích & Đơn vị</th>
                     <th scope="col" style={{ width: '12%' }}>Trạng thái</th>
-                    <th scope="col" style={{ width: '20%' }}>Chỉ số gần nhất</th>
+                    <th scope="col" style={{ width: '19%' }}>Chỉ số gần nhất</th>
                     <th scope="col" style={{ width: '56px', textAlign: 'center' }}>
                       <span className="sr-only">Thao tác</span>
                     </th>
@@ -566,8 +570,7 @@ export const AdminMeters: React.FC<AdminMetersProps> = ({ onInspectReading }) =>
                   {data.meters.map((m) => {
                     const formattedTime = formatLatestReadingTime(m.latest_reading_time);
                     const isMenuOpen = openMenuId === m.id;
-                    const typeLabel =
-                      m.meter_type.toUpperCase() === 'MECHANICAL' ? 'Cơ' : 'LCD';
+                    const typeLabel = formatMeterTypeLabel(m.meter_type);
                     const measInfo = getMeterMeasurementInfo(m.utility_type, m.measurement_unit);
                     const semInfo = getRegisterSemanticsInfo(m.register_semantics);
 
@@ -593,11 +596,14 @@ export const AdminMeters: React.FC<AdminMetersProps> = ({ onInspectReading }) =>
                           <span className="admin-meter-name font-medium">{m.name}</span>
                         </td>
 
-                        {/* Column 3: Vị trí */}
+                        {/* Column 3: Operational zone and physical location */}
                         <td>
-                          <span className="admin-meter-location">
-                            {m.location || <span className="text-muted">—</span>}
-                          </span>
+                          <div className="admin-meter-location" style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                            <span>{m.zone_name || <span className="text-muted">Chưa phân khu</span>}</span>
+                            {m.location && (
+                              <span className="text-muted" style={{ fontSize: 11 }}>Vị trí: {m.location}</span>
+                            )}
+                          </div>
                         </td>
 
                         {/* Column 4: Tiện ích & Đơn vị đo */}
@@ -798,7 +804,12 @@ export const AdminMeters: React.FC<AdminMetersProps> = ({ onInspectReading }) =>
 
                   <div className="admin-meter-card-zone">
                     <MapPin size={13} className="shrink-0 text-slate-400" />
-                    <span>{m.location || 'Chưa có vị trí'}</span>
+                    <span>
+                      {m.zone_name || m.location || 'Chưa phân khu / vị trí'}
+                      {m.location && m.zone_name && (
+                        <span className="block text-xs text-slate-500">Vị trí: {m.location}</span>
+                      )}
+                    </span>
                   </div>
 
                   <div className="admin-meter-card-bottom">
@@ -962,9 +973,32 @@ export const AdminMeters: React.FC<AdminMetersProps> = ({ onInspectReading }) =>
                 >
                   <option value="LCD">Điện tử (LCD)</option>
                   <option value="MECHANICAL">Cơ (Mechanical)</option>
-                  <option value="UNKNOWN">Khác / Chưa xác định</option>
+                  <option value="OTHER">Khác</option>
+                  <option value="UNKNOWN">Chưa cấu hình loại</option>
                 </select>
               </div>
+
+              {editingMeter && (
+                <div className="admin-form-group border-t border-slate-200 pt-4 mt-2">
+                  <label className="admin-form-label flex items-center justify-between text-xs font-bold text-slate-700 mb-2">
+                    <span>Khu vực công tơ</span>
+                  </label>
+                  <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 space-y-2 text-xs">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-slate-500 font-medium">Khu vực tác nghiệp:</span>
+                      <span className="font-semibold text-slate-800 text-right">
+                        {editingMeter.zone_name || 'Chưa xác minh'}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-slate-500 font-medium">Khu vực bản đồ:</span>
+                      <span className="font-semibold text-slate-800 text-right">
+                        {editingMeter.presentation_zone_name || 'Chưa cấu hình'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {editingMeter && (
                 <div className="admin-form-group border-t border-slate-200 pt-4 mt-2">

@@ -77,19 +77,36 @@ export const AdminAudit: React.FC = () => {
         return <span className="admin-badge badge-warning">Ngừng dùng công tơ</span>;
       case 'METER_ACTIVATED':
         return <span className="admin-badge badge-active">Kích hoạt lại</span>;
+      case 'METER_RELOCATED':
+        return <span className="admin-badge badge-info">Di chuyển công tơ</span>;
+      case 'METER_ZONE_CHANGED':
+        return <span className="admin-badge badge-info">Đổi khu vực công tơ</span>;
+      case 'METER_RETIRED':
+        return <span className="admin-badge badge-warning">Ngừng sử dụng công tơ</span>;
+      case 'METER_HARD_DELETED':
+        return <span className="admin-badge badge-danger">Xóa công tơ</span>;
       case 'READING_ROUNDS_CREATED':
         return <span className="admin-badge badge-active">Tạo lịch ghi</span>;
+      case 'READING_ROUND_CANCELLED':
+        return <span className="admin-badge badge-warning">Hủy lượt ghi</span>;
+      case 'READING_ROUND_DELETED':
+        return <span className="admin-badge badge-danger">Xóa lượt ghi</span>;
+      case 'READING_ROUNDS_BATCH_CLEANED':
+        return <span className="admin-badge badge-warning">Dọn đợt lịch ghi</span>;
       case 'WORK_SCHEDULE_CREATED':
       case 'SCHEDULE_CREATED':
         return <span className="admin-badge badge-active">Tạo lịch ca</span>;
       case 'WORK_SCHEDULE_MODIFIED':
       case 'SCHEDULE_MODIFIED':
+      case 'UPDATE_SCHEDULE':
         return <span className="admin-badge badge-info">Sửa lịch ca</span>;
       case 'ASSIGNMENT_CREATED':
+      case 'OPERATIONAL_ASSIGNMENT_CREATED':
         return <span className="admin-badge badge-active">Phân công</span>;
       case 'ASSIGNMENT_UPDATED':
         return <span className="admin-badge badge-info">Sửa phân công</span>;
       case 'ASSIGNMENT_CANCELLED':
+      case 'OPERATIONAL_ASSIGNMENT_CANCELLED':
         return <span className="admin-badge badge-warning">Hủy phân công</span>;
       case 'LEAVE_APPROVED':
         return <span className="admin-badge badge-active">Duyệt phép</span>;
@@ -129,10 +146,17 @@ export const AdminAudit: React.FC = () => {
         if (after.date && after.count) {
           return <span>Tạo <strong className="font-tabular">{after.count} lượt</strong> ngày {after.date}</span>;
         }
+        if (after.user_id && after.role && after.zone_id) {
+          return <span>Phân công <strong>{after.role}</strong>: {after.zone_id} · {after.shift_code || '—'} · {after.work_date || '—'}</span>;
+        }
         if (after.employee_code) {
           return <span>Phân công: <strong className="font-mono">{after.employee_code}</strong> ({after.shift_code || ''})</span>;
         }
         return <span className="text-muted">Khởi tạo dữ liệu</span>;
+      }
+
+      if (before && !after && before.round_id && before.date) {
+        return <span>Xóa lượt ngày <strong>{before.date}</strong> lúc {before.scheduled_time || '—'}</span>;
       }
 
       if (before && after) {

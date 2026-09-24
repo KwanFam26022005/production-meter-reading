@@ -50,6 +50,44 @@ test('9D tab navigation keeps the requested operational order and original keys'
   ]);
 });
 
+test('audit labels cover the current schedule, assignment, and meter lifecycle events', () => {
+  const source = fs.readFileSync(path.resolve(dirname, '../src/components/admin/AdminAudit.tsx'), 'utf8');
+  for (const [event, label] of [
+    ['READING_ROUND_CANCELLED', 'Hủy lượt ghi'],
+    ['READING_ROUND_DELETED', 'Xóa lượt ghi'],
+    ['OPERATIONAL_ASSIGNMENT_CREATED', 'Phân công'],
+    ['OPERATIONAL_ASSIGNMENT_CANCELLED', 'Hủy phân công'],
+    ['UPDATE_SCHEDULE', 'Sửa lịch ca'],
+    ['METER_RELOCATED', 'Di chuyển công tơ'],
+    ['METER_ZONE_CHANGED', 'Đổi khu vực công tơ'],
+    ['METER_RETIRED', 'Ngừng sử dụng công tơ'],
+  ]) {
+    assert.match(source, new RegExp(`case '${event}':[\\s\\S]{0,180}${label}`));
+  }
+  assert.match(source, /after\.user_id && after\.role && after\.zone_id/);
+  assert.match(source, /before\.round_id && before\.date/);
+});
+
+test('Operations meter inspection and editing preserve OTHER and UNKNOWN type metadata', () => {
+  const inspectionSource = fs.readFileSync(path.resolve(dirname, '../src/components/admin/AdminReadingInspection.tsx'), 'utf8');
+  const metersSource = fs.readFileSync(path.resolve(dirname, '../src/components/admin/AdminMeters.tsx'), 'utf8');
+  assert.match(inspectionSource, /formatMeterTypeLabel\(data\.meter\.meter_type, true\)/);
+  assert.match(metersSource, /setFormType\(\['LCD', 'MECHANICAL', 'OTHER', 'UNKNOWN'\]\.includes/);
+  assert.match(metersSource, /const typeLabel = formatMeterTypeLabel\(m\.meter_type\)/);
+  assert.match(metersSource, /<option value="OTHER">Khác<\/option>/);
+  assert.match(metersSource, /<option value="UNKNOWN">Chưa cấu hình loại<\/option>/);
+});
+
+test('Operations meter inventory and edit drawer expose operational and map zones', () => {
+  const source = fs.readFileSync(path.resolve(dirname, '../src/components/admin/AdminMeters.tsx'), 'utf8');
+  assert.match(source, /Khu vực \/ vị trí/);
+  assert.match(source, /m\.zone_name \|\| <span className="text-muted">Chưa phân khu<\/span>/);
+  assert.match(source, /Khu vực tác nghiệp:/);
+  assert.match(source, /editingMeter\.zone_name \|\| 'Chưa xác minh'/);
+  assert.match(source, /Khu vực bản đồ:/);
+  assert.match(source, /editingMeter\.presentation_zone_name \|\| 'Chưa cấu hình'/);
+});
+
 test('9D operational view discloses workload, coverage, and separate responsibility/executor', () => {
   const overview = renderToStaticMarkup(React.createElement(ReportingOperationsWorkspace, {
     data: operations, view: 'overview', integrityCount: 0, onOpenActions() {}, onSelectMeter() {},
