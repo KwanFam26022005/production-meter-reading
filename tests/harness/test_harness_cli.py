@@ -21,11 +21,12 @@ def test_discover_changed_files_normalizes_paths():
 
 def test_discover_changed_files_with_base_ref():
     repo_root = find_repo_root()
-    # HEAD~1 must return committed files from H3
+    # Committed files from base ref must be discovered
     files = discover_changed_files(repo_root, base="HEAD~1")
     assert len(files) > 0
-    # Should include docs/contracts files from H3 commit
-    assert any("docs/contracts/" in f for f in files)
+    # Diff against H3 contracts base (27a5bb2) must include docs/contracts files
+    h3_files = discover_changed_files(repo_root, base="27a5bb2")
+    assert any("docs/contracts/" in f for f in h3_files)
 
 
 def test_pattern_matching_edge_cases():

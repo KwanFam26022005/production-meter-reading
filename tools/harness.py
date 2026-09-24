@@ -9,6 +9,7 @@ import json
 import os
 import re
 import shlex
+import shutil
 import subprocess
 import sys
 import time
@@ -188,11 +189,70 @@ def matches_pattern(path: str, pattern: str) -> bool:
     return bool(regex.match(path))
 
 
+def resolve_executable(cmd_token: str, _os_name: Optional[str] = None) -> Optional[str]:
+    """
+    Resolve command executable portably across operating systems.
+
+    Rules:
+    - 'python': sys.executable
+    - Explicit path (contains path separators or is absolute): preserved as-is
+    - Windows: resolves through OS search path and PATHEXT (preferring launchable
+      binaries/shims such as .cmd, .exe, .bat, .com over .ps1)
+    - POSIX: standard executable lookup via shutil.which
+    - Resolution failure: returns None
+    """
+    if not cmd_token:
+        return None
+
+    if cmd_token == "python":
+        return sys.executable
+
+    # Explicit path: preserve as-is (e.g. ./scripts/run.sh, C:\bin\tool.exe)
+    if "/" in cmd_token or "\\" in cmd_token or Path(cmd_token).is_absolute():
+        return cmd_token
+
+    target_os = _os_name or os.name
+
+    if target_os == "nt":
+        # Windows launchable extensions directly supported by CreateProcess / subprocess
+        win_launchable_exts = (".cmd", ".bat", ".exe", ".com")
+
+        resolved = shutil.which(cmd_token)
+        if resolved:
+            ext = Path(resolved).suffix.lower()
+            if ext in win_launchable_exts:
+                return resolved
+            # If resolved was .ps1 or extensionless, do NOT prefer it; fall through to probe launchable exts
+
+        # Fallback: probe launchable extensions explicitly in priority order
+        for ext in win_launchable_exts:
+            candidate = shutil.which(f"{cmd_token}{ext}")
+            if candidate and Path(candidate).suffix.lower() in win_launchable_exts:
+                return candidate
+
+        return None
+
+    # POSIX: preserve standard lookup
+    return shutil.which(cmd_token)
+
+
 def run_git_cmd(repo_root: Path, args: List[str]) -> Tuple[int, str, str]:
     """Execute a git command in repository root."""
-    cmd = ["git"] + args
-    res = subprocess.run(cmd, cwd=str(repo_root), capture_output=True, text=True, check=False)
-    return res.returncode, res.stdout.strip(), res.stderr.strip()
+    git_bin = resolve_executable("git") or "git"
+    cmd = [git_bin] + args
+    try:
+        res = subprocess.run(
+            cmd,
+            cwd=str(repo_root),
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            check=False,
+        )
+        return res.returncode, res.stdout.strip(), res.stderr.strip()
+    except Exception as e:
+        return 1, "", str(e)
 
 
 def discover_changed_files(repo_root: Path, base: Optional[str] = None) -> List[str]:
@@ -596,8 +656,30 @@ def execute_verify(
                     cmd_str = f"{cmd_str} {base}"
 
                 cmd_parts = shlex.split(cmd_str)
-                if cmd_parts and cmd_parts[0] == "python":
-                    cmd_parts[0] = sys.executable
+                if not cmd_parts:
+                    continue
+
+                exe_token = cmd_parts[0]
+                resolved_exe = resolve_executable(exe_token)
+                if not resolved_exe:
+                    error_msg = (
+                        f"Executable resolution failed for command '{cmd_id}': "
+                        f"executable token '{exe_token}' could not be resolved in PATH (cwd: {cwd})"
+                    )
+                    cmd_result = {
+                        "command_id": cmd_id,
+                        "cmd": cmd_str,
+                        "exit_code": 1,
+                        "duration_ms": 0,
+                        "stdout": "",
+                        "stderr": error_msg,
+                    }
+                    executed_commands[cmd_id] = cmd_result
+                    gate_pass = False
+                    gate_details["failure_reason"] = error_msg
+                    break
+
+                cmd_parts[0] = resolved_exe
 
                 t0 = time.time()
                 try:
@@ -606,6 +688,8 @@ def execute_verify(
                         cwd=str(cwd),
                         capture_output=True,
                         text=True,
+                        encoding="utf-8",
+                        errors="replace",
                         check=False,
                     )
                     duration_ms = round((time.time() - t0) * 1000, 1)
@@ -624,7 +708,7 @@ def execute_verify(
                         "exit_code": 1,
                         "duration_ms": 0,
                         "stdout": "",
-                        "stderr": str(e),
+                        "stderr": f"Command execution failed for '{cmd_id}' (executable '{resolved_exe}', cwd: {cwd}): {e}",
                     }
                 executed_commands[cmd_id] = cmd_result
             else:
@@ -721,6 +805,7 @@ def execute_verify(
             "duration_ms": c["duration_ms"],
             "stdout_preview": c["stdout"][:200] if c["stdout"] else "",
             "stderr_preview": c["stderr"][:200] if c["stderr"] else "",
+            "stderr": c["stderr"],
         })
 
     return {

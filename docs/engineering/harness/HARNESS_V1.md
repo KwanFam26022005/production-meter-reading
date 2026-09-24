@@ -84,6 +84,10 @@ The Lean SE Harness provides declarative policy and an executable runner that se
 - Text-based pytest output matching cannot reliably verify that an assertion failure matches the historical material reason.
 - Harness V1 honestly reports `reason_check: UNVERIFIED_REASON` for accounted known failures. Structured JUnit/XML parsing is deferred.
 
+### 5.3 Windows Command Resolution Portability
+- **Decision:** Use an explicit argv[0] executable resolver via `shutil.which` without enabling `shell=True`.
+- **Rationale:** On Windows, `subprocess.run(shell=False)` with extensionless command names (e.g. `npm`, `npx`) fails with `WinError 2` because `CreateProcessW` does not resolve `.cmd` launcher shims from `PATHEXT`. The resolver maps tool names to launchable shims (`npm.cmd`) while rejecting `.ps1`, preserving argv-based isolation, exact error attribution, and POSIX compatibility.
+
 ---
 
 ## 6. Known Limitations & Deferred Work
