@@ -1,0 +1,190 @@
+schema_version: 1
+
+matching:
+  path_separator: /
+  shared_files_preempt_path_rules: true
+  path_rules: first_match
+  unmatched_source:
+    minimum_mode: STANDARD
+    requires_semantic_review: true
+    requires_explicit_impact: true
+    gate_selection: blocked_until_impact_declared
+  unmatched_documentation:
+    minimum_mode: FAST
+    context: documentation
+    gate: docs-integrity
+
+shared_files:
+  - path: frontend/src/types.ts
+    minimum_mode: STANDARD
+    requires_explicit_impact: true
+    candidate_impacts: [user-ui, operations-ui, map-v2]
+    note: Declare which portal or Map contracts changed.
+  - path: frontend/src/services/api.ts
+    minimum_mode: STANDARD
+    requires_explicit_impact: true
+    candidate_impacts: [user-ui, operations-ui, map-v2]
+    note: Declare affected API consumers and add backend domain when its contract changed.
+  - path: frontend/src/index.css
+    minimum_mode: STANDARD
+    requires_explicit_impact: true
+    candidate_impacts: [user-ui, operations-ui, admin-responsive, map-v2]
+    note: Inspect selectors; do not automatically assign both portals for a local CSS change.
+  - path: backend/app/models.py
+    minimum_mode: STANDARD
+    requires_explicit_impact: true
+    candidate_impacts: [backend-core, reading-schedule, operational-assignment, user-task-projection, spatial]
+  - path: backend/app/main.py
+    minimum_mode: STANDARD
+    requires_explicit_impact: true
+    candidate_impacts: [backend-core, reading-schedule, operational-assignment, user-task-projection, spatial]
+  - path: backend/app/db.py
+    minimum_mode: STANDARD
+    requires_explicit_impact: true
+    candidate_impacts: [backend-core, reading-schedule, operational-assignment, user-task-projection, spatial]
+    note: Schema and migration changes require affected domain review.
+  - path: backend/app/meter_logbook.py
+    minimum_mode: STANDARD
+    requires_explicit_impact: true
+    candidate_impacts: [reading-schedule, user-task-projection, backend-core]
+    always_gates: [meter-logbook]
+
+path_rules:
+  - paths: [frontend/src/components/map-v2/utilityDemoLayout.ts]
+    impacts: [map-v2]
+    additional_gates: [map-b2-freeze]
+  - paths: [frontend/src/components/map-v2/simulation/**]
+    impacts: [map-v2, simulation]
+    note: Add map-b2-freeze only if B2-protected geometry is affected.
+  - paths: [frontend/tests/mapV2UnifiedSimulationInfrastructure.test.ts]
+    impacts: [map-v2, simulation]
+  - paths: [frontend/tests/v16SpatialCrud.test.ts, frontend/tests/v16aSpatialAuthority.test.ts]
+    impacts: [operations-ui, spatial]
+  - paths: [frontend/src/components/map-v2/**, frontend/tests/map*.test.ts]
+    impacts: [map-v2]
+  - paths: [frontend/src/components/admin/roster/RosterMobileView.tsx]
+    impacts: [operations-ui, admin-responsive]
+  - paths: [frontend/src/components/admin/**, frontend/tests/v*.test.ts, frontend/tests/tab*.test.ts, frontend/tests/canonical*.test.ts]
+    impacts: [operations-ui]
+  - paths: [frontend/src/components/home/**, frontend/src/components/ReadingBatchView.tsx, frontend/src/components/MeterCamera.tsx, frontend/src/components/UserScheduleView.tsx, frontend/src/components/AttendanceView.tsx, frontend/src/components/HomeHub.tsx, frontend/src/components/ReportsView.tsx, frontend/src/components/LoginView.tsx, frontend/tests/user*.test.ts, frontend/tests/focused*.test.ts]
+    impacts: [user-ui]
+  - paths: [backend/app/user_tasks.py, tests/test_user_task_projection_9c.py]
+    impacts: [user-task-projection]
+  - paths: [backend/app/operational_assignments.py, backend/app/work_schedule.py, tests/test_operational_assignments_9b.py, tests/test_work_schedule.py]
+    impacts: [operational-assignment]
+  - paths: [backend/scripts/create_reading_rounds.py, tests/test_reading_round_scope_9a.py]
+    impacts: [reading-schedule]
+  - paths: [tests/test_meter_logbook.py]
+    impacts: [reading-schedule]
+    additional_gates: [meter-logbook]
+  - paths: [tests/test_meter_spatial_audit_and_seed.py, tests/test_v16_spatial_crud.py, tests/test_v16a_spatial_authority.py, scripts/audit_meter_spatial_data.py, scripts/seed_meter_spatial_data.py]
+    impacts: [spatial]
+  - paths: [deployment/**, Dockerfile*, Caddyfile*, docker-compose*, frontend/package.json, frontend/vite.config*.ts]
+    impacts: [deployment]
+  - paths: [harness/**, docs/**, AGENTS.md, README.md, .agent/skills/**, frontend/DESIGN_DNA.md]
+    impacts: [documentation]
+  - paths: [backend/app/**, backend/scripts/**, tests/test_*.py]
+    impacts: [backend-core]
+
+domains:
+  backend-core:
+    minimum_mode: STANDARD
+    contexts: [backend-core]
+    skills: {required: [], planned: []}
+    gates: [backend-focused]
+    release_additions: [backend-full]
+    note: Select affected backend test nodes after semantic review.
+
+  reading-schedule:
+    minimum_mode: STANDARD
+    contexts: [reading-schedule]
+    skills: {required: [], planned: []}
+    gates: [reading-schedule]
+    release_additions: [backend-full]
+    conditional_gates:
+      - when: Mutation or current-round semantics changed.
+        gates: [meter-logbook]
+
+  operational-assignment:
+    minimum_mode: STANDARD
+    contexts: [operational-assignment]
+    skills: {required: [], planned: []}
+    gates: [operational-assignment]
+    release_additions: [backend-full]
+    conditional_gates:
+      - when: Eligibility or shift matching changed.
+        gates: [user-task-projection]
+
+  user-task-projection:
+    minimum_mode: STANDARD
+    contexts: [user-task-projection]
+    skills: {required: [], planned: []}
+    gates: [user-task-projection]
+    release_additions: [backend-full]
+    conditional_gates:
+      - when: Submission authority changed.
+        gates: [meter-logbook]
+      - when: User API or UI integration changed.
+        gates: [user-suite]
+
+  user-ui:
+    minimum_mode: FAST
+    contexts: [user-ui]
+    skills: {required: [saigon-port-ui], planned: []}
+    gates: [user-suite]
+    standard_additions: [user-build]
+    release_additions: [user-build]
+
+  operations-ui:
+    minimum_mode: FAST
+    contexts: [operations-ui]
+    skills: {required: [saigon-port-ui], planned: []}
+    gates: [operations-suite]
+    standard_additions: [operations-build]
+    release_additions: [operations-build]
+
+  admin-responsive:
+    minimum_mode: FAST
+    contexts: [admin-responsive]
+    skills: {required: [saigon-port-ui], planned: [saigon-port-admin-responsive]}
+    gates: [admin-responsive-small]
+    standard_additions: [operations-suite, operations-build]
+    release_additions: [admin-responsive-full, operations-suite, operations-build]
+
+  map-v2:
+    minimum_mode: STANDARD
+    contexts: [map-v2]
+    skills: {required: [saigon-port-ui], planned: [saigon-port-map-v2]}
+    gates: [operations-suite]
+    standard_additions: [operations-build]
+    release_additions: [operations-build]
+    note: B2 gate is selected by protected-path rule or explicit geometry impact, not every Map edit.
+
+  spatial:
+    minimum_mode: STANDARD
+    contexts: [spatial]
+    skills: {required: [], planned: []}
+    gates: [spatial-audit]
+    standard_additions: [spatial-authority]
+    release_additions: [spatial-authority, backend-full]
+
+  simulation:
+    minimum_mode: STANDARD
+    contexts: [simulation]
+    skills: {required: [saigon-port-ui], planned: [saigon-port-map-v2]}
+    gates: [unified-simulation]
+    release_additions: [operations-suite]
+
+  deployment:
+    minimum_mode: RELEASE
+    contexts: [deployment]
+    skills: {required: [], planned: []}
+    gates: [bundle-separation]
+    note: Bundle gate requires fresh User and Operations builds.
+
+  documentation:
+    minimum_mode: FAST
+    contexts: [documentation]
+    skills: {required: [], planned: []}
+    gates: [docs-integrity]
+    note: A clearly non-product change has no product gates.

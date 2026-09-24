@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "baseline_sha": "57db422b668bb77dfce8cb1a3fea64b29fe60178",
+  "first_verified_checkpoint": "2026-09-23 / Thread 9A baseline attribution",
+  "policy": {
+    "comparison_key": "exact test_node_id",
+    "aggregate_failure_count_authoritative": false,
+    "new_failed_node": "NEW_FAILURE; regression",
+    "known_node_same_material_reason": "KNOWN_FAILURE",
+    "known_node_changed_material_reason": "KNOWN_FAILURE_CHANGED_REASON; review required",
+    "known_node_now_passing": "BASELINE_IMPROVEMENT; review and remove entry",
+    "clean_run": "PASS",
+    "never_force_historical_failure_count": true
+  },
+  "failures": [
+    {
+      "test_node_id": "tests/test_v16c_asset_foundation.py::test_asset_create_read_update_and_audit",
+      "classification": "PRE_EXISTING_FIXTURE_EXPECTATION",
+      "material_reason": "Asset list returned 0 after create; expected at least 1.",
+      "first_verified_checkpoint": "2026-09-23 / Thread 9A baseline attribution"
+    },
+    {
+      "test_node_id": "tests/test_v16d_asset_verification.py::test_meter_review_matrix_and_summary_v16d",
+      "classification": "PRE_EXISTING_FIXTURE_EXPECTATION",
+      "material_reason": "Spatial review meter list returned 0; expected 5.",
+      "first_verified_checkpoint": "2026-09-23 / Thread 9A baseline attribution"
+    },
+    {
+      "test_node_id": "tests/test_v16e_asset_network.py::test_asset_network_endpoint_verified_only_default",
+      "classification": "PRE_EXISTING_FIXTURE_EXPECTATION",
+      "material_reason": "New verified asset ID was absent from an empty network node set.",
+      "first_verified_checkpoint": "2026-09-23 / Thread 9A baseline attribution"
+    },
+    {
+      "test_node_id": "tests/test_v16e_asset_network.py::test_asset_network_utility_filter_and_focus",
+      "classification": "PRE_EXISTING_FIXTURE_EXPECTATION",
+      "material_reason": "New verified connection ID was absent from an empty network edge set.",
+      "first_verified_checkpoint": "2026-09-23 / Thread 9A baseline attribution"
+    },
+    {
+      "test_node_id": "tests/test_v16e_s1_simulation.py::test_scenario_isolation_in_apis",
+      "classification": "PRE_EXISTING_FIXTURE_EXPECTATION",
+      "material_reason": "Legacy asset list returned 0; expected 364 seeded records.",
+      "first_verified_checkpoint": "2026-09-23 / Thread 9A baseline attribution"
+    },
+    {
+      "test_node_id": "tests/test_v16e_s1_simulation.py::test_fresh_seed_current_round_zero_of_twelve",
+      "classification": "PRE_EXISTING_DATE_DRIFT",
+      "material_reason": "Fixed 2026-09-16 round had due_count 0 at runtime; expected 12.",
+      "first_verified_checkpoint": "2026-09-23 / Thread 9A baseline attribution"
+    },
+    {
+      "test_node_id": "tests/test_v16e_s1_simulation.py::test_one_meter_completion_real_workflow",
+      "classification": "PRE_EXISTING_DATE_DRIFT",
+      "material_reason": "Fixed 2026-09-16 round had due_count 0 at runtime; expected 11.",
+      "first_verified_checkpoint": "2026-09-23 / Thread 9A baseline attribution"
+    },
+    {
+      "test_node_id": "tests/test_meter_logbook.py::test_reading_round_creation_and_current_selection",
+      "classification": "PRE_EXISTING_DATE_DRIFT",
+      "material_reason": "Current-round selection assertion depended on runtime date.",
+      "first_verified_checkpoint": "2026-09-23 / Thread 9A baseline attribution"
+    },
+    {
+      "test_node_id": "tests/test_meter_logbook.py::test_today_meter_operations_active_meters_and_current_status",
+      "classification": "PRE_EXISTING_DATE_DRIFT",
+      "material_reason": "Today/current-status assertion depended on runtime date.",
+      "first_verified_checkpoint": "2026-09-23 / Thread 9A baseline attribution"
+    },
+    {
+      "test_node_id": "tests/test_reporting.py::test_report_overview_metrics_hourly_and_locations",
+      "classification": "PRE_EXISTING_DATE_DRIFT",
+      "material_reason": "Report current-round metrics assertion depended on runtime date.",
+      "first_verified_checkpoint": "2026-09-23 / Thread 9A baseline attribution"
+    }
+  ]
+}

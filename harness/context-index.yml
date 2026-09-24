@@ -1,0 +1,143 @@
+schema_version: 1
+
+skills:
+  saigon-port-ui:
+    status: TRACKED_CURRENT
+    path: .agent/skills/saigon-port-ui/SKILL.md
+  saigon-port-admin-responsive:
+    status: PLANNED_H2
+  saigon-port-map-v2:
+    status: PLANNED_H2
+  ui-ux-pro-max:
+    status: OPTIONAL_EXTERNAL
+    use_when: Accessibility or interaction edge cases need extra guidance.
+  banner-design:
+    status: OPTIONAL_EXTERNAL
+    use_when: External marketing banners only.
+  brand:
+    status: OPTIONAL_EXTERNAL
+    use_when: External brand artifacts only.
+  design:
+    status: OPTIONAL_EXTERNAL
+    use_when: External design artifacts only.
+  slides:
+    status: OPTIONAL_EXTERNAL
+    use_when: Presentations only.
+
+contexts:
+  backend-core:
+    primary:
+      - backend/app/main.py
+      - backend/app/models.py
+    expand_on_conflict:
+      - backend/app/db.py
+
+  reading-schedule:
+    primary:
+      - docs/implementation/reading-schedule-round-scope-phase-9a/THREAD_HANDOFF.md
+    expand_on_conflict:
+      - tests/test_reading_round_scope_9a.py
+    future_contract:
+      path: docs/contracts/reading-schedule.md
+      status: planned_h3
+
+  operational-assignment:
+    primary:
+      - docs/implementation/operational-shift-zone-assignment-phase-9b/THREAD_HANDOFF.md
+    expand_on_conflict:
+      - backend/app/operational_assignments.py
+      - tests/test_operational_assignments_9b.py
+    future_contract:
+      path: docs/contracts/operational-assignment.md
+      status: planned_h3
+
+  user-task-projection:
+    primary:
+      - docs/implementation/user-task-projection-phase-9c/THREAD_HANDOFF.md
+    expand_on_conflict:
+      - backend/app/user_tasks.py
+      - tests/test_user_task_projection_9c.py
+    future_contract:
+      path: docs/contracts/user-task-projection.md
+      status: planned_h3
+
+  user-ui:
+    primary:
+      - .agent/skills/saigon-port-ui/SKILL.md
+      - frontend/DESIGN_DNA.md
+    expand_on_conflict:
+      - frontend/src/components/ReadingBatchView.tsx
+    skill_hints:
+      - saigon-port-ui
+
+  operations-ui:
+    primary:
+      - .agent/skills/saigon-port-ui/SKILL.md
+      - frontend/DESIGN_DNA.md
+    expand_on_conflict:
+      - frontend/src/components/admin/AdminShell.tsx
+    skill_hints:
+      - saigon-port-ui
+
+  admin-responsive:
+    primary:
+      - frontend/src/index.css
+      - frontend/src/components/admin/AdminSchedules.tsx
+      - .agent/skills/saigon-port-ui/SKILL.md
+    expand_on_conflict:
+      - frontend/DESIGN_DNA.md
+    skill_hints:
+      - saigon-port-ui
+      - saigon-port-admin-responsive
+    skill:
+      name: saigon-port-admin-responsive
+      status: planned_h2
+
+  map-v2:
+    primary:
+      - docs/implementation/map-v2-unified-simulation-infrastructure/THREAD_HANDOFF.md
+      - frontend/src/components/map-v2/utilityDemoLayout.ts
+      - .agent/skills/saigon-port-ui/SKILL.md
+    expand_on_conflict:
+      - scripts/verify_b2_freeze_hash.mjs
+      - frontend/DESIGN_DNA.md
+    future_contract:
+      path: docs/contracts/map-v2.md
+      status: planned_h3
+    skill_hints:
+      - saigon-port-ui
+      - saigon-port-map-v2
+    skill:
+      name: saigon-port-map-v2
+      status: planned_h2
+
+  spatial:
+    primary:
+      - docs/implementation/map-v2-spatial-meter-data-phase-b/THREAD_HANDOFF.md
+    expand_on_conflict:
+      - tests/test_meter_spatial_audit_and_seed.py
+      - tests/test_v16_spatial_crud.py
+
+  simulation:
+    primary:
+      - docs/implementation/map-v2-unified-simulation-infrastructure/THREAD_HANDOFF.md
+      - frontend/src/components/map-v2/simulation/simulationValidation.ts
+    expand_on_conflict:
+      - frontend/tests/mapV2UnifiedSimulationInfrastructure.test.ts
+    skill_hints:
+      - saigon-port-ui
+      - saigon-port-map-v2
+
+  deployment:
+    primary:
+      - deployment/scripts/build_artifacts.ps1
+      - frontend/package.json
+    expand_on_conflict:
+      - deployment/docker/docker-compose.staging.yml
+      - Caddyfile
+
+  documentation:
+    primary:
+      - AGENTS.md
+    expand_on_conflict:
+      - harness/README.md

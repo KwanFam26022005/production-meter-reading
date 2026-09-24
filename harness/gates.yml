@@ -1,0 +1,175 @@
+schema_version: 1
+
+mode_order: [FAST, STANDARD, RELEASE]
+mode_selection:
+  default: impact-derived
+  requested_mode_may_escalate: true
+  requested_mode_may_downgrade: false
+  unknown_source_minimum_mode: STANDARD
+  unknown_source_requires_semantic_review: true
+  clearly_documentation_only_minimum_mode: FAST
+  escalate_to_standard:
+    - shared-semantic-file
+    - authorization-or-permission-change
+    - database-schema-or-migration-change
+    - api-contract-change
+    - cross-domain-behavior-change
+    - uncertain-impact
+  escalate_to_release:
+    - requested-integration-or-release-qualification
+    - bundle-entry-or-separation-architecture-change
+    - broad-cross-surface-integration-needing-full-evidence
+  documentation_presence_alone_escalates: false
+
+modes:
+  FAST:
+    use_for: Documentation, isolated low-risk UI/CSS, copy, or local component fixes.
+    always_gates: [docs-integrity]
+    domain_gate_fields: [gates]
+    full_regression_default: false
+  STANDARD:
+    use_for: Product features, backend/API behavior, permissions, and shared semantics.
+    always_gates: [docs-integrity]
+    domain_gate_fields: [gates, standard_additions]
+    full_regression_default: false
+  RELEASE:
+    use_for: Integration, merge/release qualification, or build-boundary changes.
+    always_gates: [docs-integrity]
+    domain_gate_fields: [gates, standard_additions, release_additions]
+    full_qualification_gates: [backend-full, user-suite, operations-suite, bundle-separation]
+    full_qualification_only_when_explicit: true
+    relevant_map_spatial_simulation_gates: affected_domains_only
+    visual_gates: changed_surface_only
+
+gate_selection:
+  combine_affected_domains: true
+  include_path_rule_additional_gates: true
+  include_shared_file_always_gates: true
+  conditional_gates_require_declared_semantic_trigger: true
+  deduplicate_gate_ids: true
+  run_dependencies_before_gate: true
+  successful_dependencies_must_be_fresh_for_this_verification: true
+  do_not_infer_product_gates_from_documentation_alone: true
+
+gates:
+  docs-integrity:
+    purpose: Check changed documentation/configuration without product verification.
+    commands: [docs-diff-check]
+    checks:
+      - structured-files-parse-when-parser-available
+      - json-parses
+      - referenced-current-paths-exist
+      - changed-files-within-task-allowlist
+    evidence: concise-validation-result
+
+  backend-focused:
+    purpose: Run reviewed affected backend test nodes only.
+    commands: [backend-focused]
+    selected_test_nodes_required: true
+    selection_source: semantic-impact-review
+
+  backend-full:
+    purpose: Full backend regression with exact historical failure comparison.
+    commands: [backend-full]
+    known_failures: harness/known-failures.json
+    comparison_key: exact-test-node-id
+    outcomes: [NEW_FAILURE, KNOWN_FAILURE, KNOWN_FAILURE_CHANGED_REASON, BASELINE_IMPROVEMENT, PASS]
+    changed_material_reason_requires_review: true
+    aggregate_failure_count_authoritative: false
+
+  reading-schedule:
+    purpose: Frozen 9A round-scope behavior.
+    commands: [backend-9a]
+
+  operational-assignment:
+    purpose: Frozen 9B staffing and shift behavior.
+    commands: [backend-9b]
+
+  user-task-projection:
+    purpose: Frozen 9C assigned-task behavior.
+    commands: [backend-9c]
+
+  meter-logbook:
+    purpose: Reading submission and logbook behavior.
+    commands: [backend-meter-logbook]
+
+  user-suite:
+    purpose: User Portal tests.
+    commands: [frontend-user-tests]
+
+  operations-suite:
+    purpose: Operations Portal tests.
+    commands: [frontend-operations-tests]
+
+  user-build:
+    purpose: TypeScript validation and User production bundle.
+    commands: [frontend-user-build]
+
+  operations-build:
+    purpose: TypeScript validation and Operations production bundle.
+    commands: [frontend-operations-build]
+
+  frontend-build-all:
+    purpose: Explicit combined frontend build when requested independently.
+    commands: [frontend-build-all]
+    note: Do not select alongside bundle-separation's two fresh-build dependencies.
+
+  typescript:
+    purpose: Standalone TypeScript validation when a build is not selected.
+    commands: [frontend-typescript]
+
+  map-b2-freeze:
+    purpose: Verify frozen B2 geometry hash.
+    commands: [map-b2-hash]
+    expected_hash: 7f3a8916b841e12525969128783eb835218bcdd07f645dc1ee4305bce5a5cc6a
+    stdout_label: 'FROZEN B2 CONFIG SHA256:'
+    assertions:
+      stdout_hash_equals_expected: true
+      command_exit_code_alone_is_sufficient: false
+
+  bundle-separation:
+    purpose: Verify isolation using bundles built during this verification.
+    requires_gates: [user-build, operations-build]
+    requires_successful_fresh_dependencies: true
+    commands: [bundle-separation]
+
+  spatial-audit:
+    purpose: Spatial audit and seed behavior.
+    commands: [spatial-audit-seed]
+
+  spatial-authority:
+    purpose: Spatial CRUD and authority behavior.
+    commands: [spatial-crud-authority]
+
+  unified-simulation:
+    purpose: Unified Map V2 simulation behavior.
+    commands: [map-unified-simulation]
+
+  admin-responsive-small:
+    purpose: Daily affected Admin viewport acceptance.
+    automation_status: planned_h4
+    viewport_matrix: [1024x768, 1366x768, 1920x1080]
+    assertions:
+      - no-horizontal-page-overflow
+      - navigation-does-not-overlap
+      - dialog-inside-viewport
+      - primary-action-reachable
+      - no-clipped-required-control
+
+  admin-responsive-full:
+    purpose: Full Admin viewport and zoom acceptance when affected.
+    automation_status: planned_h4
+    requires_gates: [admin-responsive-small]
+    viewport_matrix: [768x1024, 1024x768, 1280x800, 1366x768, 1440x900, 1536x864, 1920x1080, 2560x1440]
+    zoom_percent: [100, 125]
+    assertions:
+      - no-horizontal-page-overflow
+      - navigation-does-not-overlap
+      - dialog-inside-viewport
+      - primary-action-reachable
+      - no-clipped-required-control
+      - modal-body-scrolls-when-needed
+      - persistent-dialog-actions
+      - no-shrink-to-unreadable-type
+      - table-remains-operable
+      - keyboard-reachability

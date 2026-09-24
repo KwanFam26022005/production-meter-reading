@@ -1,0 +1,116 @@
+schema_version: 1
+
+commands:
+  - id: docs-diff-check
+    description: Reject whitespace errors in changed files.
+    cwd: .
+    command: git diff --check
+    category: harness-validation
+
+  - id: backend-full
+    description: Full backend regression suite.
+    cwd: .
+    command: python -m pytest -q
+    category: backend
+
+  - id: backend-focused
+    description: Run explicitly selected affected backend tests.
+    cwd: .
+    command: python -m pytest -q
+    category: backend
+    requires: [selected_test_nodes]
+    notes: Append one or more reviewed test node IDs; never run this command without them.
+
+  - id: backend-9a
+    description: Reading round scope tests.
+    cwd: .
+    command: python -m pytest -q tests/test_reading_round_scope_9a.py
+    category: backend
+
+  - id: backend-9b
+    description: Operational assignment tests.
+    cwd: .
+    command: python -m pytest -q tests/test_operational_assignments_9b.py
+    category: backend
+
+  - id: backend-9c
+    description: User task projection tests.
+    cwd: .
+    command: python -m pytest -q tests/test_user_task_projection_9c.py
+    category: backend
+
+  - id: backend-meter-logbook
+    description: Meter reading logbook tests.
+    cwd: .
+    command: python -m pytest -q tests/test_meter_logbook.py
+    category: backend
+
+  - id: frontend-user-tests
+    description: User Portal test suite.
+    cwd: frontend
+    command: npm run test:user
+    category: frontend-test
+
+  - id: frontend-operations-tests
+    description: Operations Portal test suite.
+    cwd: frontend
+    command: npm run test:operations
+    category: frontend-test
+
+  - id: frontend-user-build
+    description: TypeScript validation and User production build.
+    cwd: frontend
+    command: npm run build:user
+    category: frontend-build
+
+  - id: frontend-operations-build
+    description: TypeScript validation and Operations production build.
+    cwd: frontend
+    command: npm run build:operations
+    category: frontend-build
+
+  - id: frontend-build-all
+    description: Combined User and Operations production build.
+    cwd: frontend
+    command: npm run build
+    category: frontend-build
+    notes: Alternative explicit combined-build gate; bundle separation requires its own fresh-build dependencies.
+
+  - id: frontend-typescript
+    description: TypeScript validation without a Vite build.
+    cwd: frontend
+    command: npx tsc --noEmit
+    category: frontend-validation
+
+  - id: map-b2-hash
+    description: Print the B2 geometry SHA-256 for gate comparison.
+    cwd: .
+    command: node scripts/verify_b2_freeze_hash.mjs
+    category: map-validation
+    notes: Exit code does not assert the expected hash; map-b2-freeze does.
+
+  - id: bundle-separation
+    description: Inspect built User and Operations bundles for isolation.
+    cwd: .
+    command: node scripts/verify_bundle_separation.mjs
+    category: build-validation
+    notes: Reads dist artifacts; freshness is enforced by gate dependencies.
+
+  - id: spatial-audit-seed
+    description: Spatial audit and seed tests.
+    cwd: .
+    command: python -m pytest -q tests/test_meter_spatial_audit_and_seed.py
+    category: spatial
+
+  - id: spatial-crud-authority
+    description: Spatial CRUD and authority tests.
+    cwd: .
+    command: python -m pytest -q tests/test_v16_spatial_crud.py tests/test_v16a_spatial_authority.py
+    category: spatial
+    notes: Focused selection from existing test modules; not a historically reported single gate.
+
+  - id: map-unified-simulation
+    description: Unified Map V2 simulation tests.
+    cwd: frontend
+    command: npx tsx --test tests/mapV2UnifiedSimulationInfrastructure.test.ts
+    category: map-validation
