@@ -71,21 +71,63 @@ export const ReportingUsageWorkspace: React.FC<Props> = ({ data, loading, error,
     {error && <p className="reporting-error" role="alert">{error}</p>}
     {data && <>
       <p className="reporting-note">Độ phân giải: {data.resolution} Các khoảng được tính giữa hai chỉ số đã xác nhận.</p>
-      <div className="admin-tech-metric-strip-4 reporting-kpis" aria-label="Tổng quan tiêu thụ">
-        <div className="admin-tech-kpi-card"><span className="tech-kpi-label">Tiêu thụ / Delta</span>
-          <strong className="tech-kpi-val font-tabular">{physical ? `${number(group!.total_delta!)} ${unitLabel(unit)}` : 'Chưa đủ dữ liệu'}</strong>
-          <span className="tech-kpi-sub">{group ? `${group.coverage.meters_with_valid_interval}/${group.coverage.eligible_meters} công tơ có khoảng hợp lệ` : 'Chưa có công tơ phù hợp'}</span></div>
-        <div className="admin-tech-kpi-card"><span className="tech-kpi-label">Khoảng cao nhất</span>
-          <strong className="tech-kpi-val font-tabular">{highest?.delta != null ? `${number(highest.delta)} ${unitLabel(unit)}` : '—'}</strong>
-          <span className="tech-kpi-sub">{highest ? `${time(highest.from_scheduled_at)} – ${time(highest.to_scheduled_at)}` : 'Chưa có khoảng hợp lệ'}</span></div>
-        <div className="admin-tech-kpi-card"><span className="tech-kpi-label">So với nền</span>
-          <strong className="tech-kpi-val font-tabular">{group?.deviation_percent != null ? `${group.deviation_percent > 0 ? '+' : ''}${group.deviation_percent}%` : 'Chưa đủ lịch sử'}</strong>
-          <span className="tech-kpi-sub">Trung vị tối thiểu 3 khoảng cùng khung giờ trong 7 ngày trước</span></div>
-        <div className="admin-tech-kpi-card"><span className="tech-kpi-label">Chất lượng dữ liệu</span>
-          <strong className="tech-kpi-val font-tabular">{group ? `${group.coverage.meters_with_valid_interval} / ${group.coverage.eligible_meters}` : '—'}</strong>
-          <span className="tech-kpi-sub">Coverage {group?.coverage.coverage_percent ?? 0}% · {data.data_quality.RESET_OR_ROLLOVER_SUSPECTED || 0} cần kiểm tra</span></div>
-      </div>
-      {unit === 'UNKNOWN' && <p className="reporting-note" role="status">Đơn vị chưa cấu hình. Chênh lệch chỉ số gốc không được tính thành tiêu thụ vật lý.</p>}
+      {!physical ? (
+        <div className="admin-surface-card" style={{ padding: '16px 20px', marginBottom: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+            <div style={{ width: '32px', height: '32px', borderRadius: '6px', background: 'var(--sgp-warning-bg, #FFF4DF)', color: 'var(--sgp-warning, #A86200)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
+              ℹ
+            </div>
+            <div>
+              <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 600, color: 'var(--sgp-corporate-navy, #003875)' }}>
+                Mức độ sẵn sàng dữ liệu tiêu thụ &amp; dao động
+              </h3>
+              <p style={{ margin: '2px 0 0', fontSize: '12px', color: 'var(--sgp-corporate-gray, #5E5B5B)' }}>
+                Cần tối thiểu 2 chỉ số xác nhận liên tiếp và cấu hình đơn vị đo chuẩn để phân tích tiêu thụ vật lý.
+              </p>
+            </div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', padding: '12px', background: 'var(--sgp-canvas, #F8F9FA)', borderRadius: '6px' }}>
+            <div>
+              <span style={{ fontSize: '11px', color: 'var(--sgp-corporate-gray, #5E5B5B)', display: 'block' }}>Công tơ cấu hình hợp lệ</span>
+              <strong style={{ fontSize: '15px', fontWeight: 600 }}>{group ? `${group.coverage.meters_with_valid_interval} / ${group.coverage.eligible_meters}` : '0 công tơ'}</strong>
+            </div>
+            <div>
+              <span style={{ fontSize: '11px', color: 'var(--sgp-corporate-gray, #5E5B5B)', display: 'block' }}>Trạng thái đơn vị đo</span>
+              <strong style={{ fontSize: '13px', fontWeight: 600, color: unit === 'UNKNOWN' ? 'var(--sgp-warning, #A86200)' : 'var(--sgp-success, #167A5A)' }}>
+                {unit === 'UNKNOWN' ? 'Đơn vị chưa cấu hình · Chưa đủ dữ liệu' : unitLabel(unit)}
+              </strong>
+            </div>
+            <div>
+              <span style={{ fontSize: '11px', color: 'var(--sgp-corporate-gray, #5E5B5B)', display: 'block' }}>Độ phủ khoảng hợp lệ</span>
+              <strong style={{ fontSize: '15px', fontWeight: 600 }}>{group?.coverage.coverage_percent ?? 0}%</strong>
+            </div>
+            <div>
+              <span style={{ fontSize: '11px', color: 'var(--sgp-corporate-gray, #5E5B5B)', display: 'block' }}>Lịch sử so sánh nền</span>
+              <strong style={{ fontSize: '12px', fontWeight: 500, color: 'var(--sgp-corporate-gray, #5E5B5B)' }}>Cần tối thiểu 3 khoảng cùng khung giờ</strong>
+            </div>
+          </div>
+          {unit === 'UNKNOWN' && (
+            <p style={{ margin: '10px 0 0', fontSize: '12px', color: 'var(--sgp-warning, #A86200)' }}>
+              ⚠️ Lưu ý: Một số công tơ chưa được cấu hình đơn vị đo (measurement_unit = UNKNOWN). Chênh lệch chỉ số gốc không được tính thành tiêu thụ vật lý cho đến khi xác nhận đơn vị.
+            </p>
+          )}
+        </div>
+      ) : (
+        <div className="admin-tech-metric-strip-4 reporting-kpis" aria-label="Tổng quan tiêu thụ">
+          <div className="admin-tech-kpi-card"><span className="tech-kpi-label">Tiêu thụ / Delta</span>
+            <strong className="tech-kpi-val font-tabular">{number(group!.total_delta!)} {unitLabel(unit)}</strong>
+            <span className="tech-kpi-sub">{group.coverage.meters_with_valid_interval}/{group.coverage.eligible_meters} công tơ có khoảng hợp lệ</span></div>
+          <div className="admin-tech-kpi-card"><span className="tech-kpi-label">Khoảng cao nhất</span>
+            <strong className="tech-kpi-val font-tabular">{highest?.delta != null ? `${number(highest.delta)} ${unitLabel(unit)}` : '—'}</strong>
+            <span className="tech-kpi-sub">{highest ? `${time(highest.from_scheduled_at)} – ${time(highest.to_scheduled_at)}` : 'Chưa có khoảng hợp lệ'}</span></div>
+          <div className="admin-tech-kpi-card"><span className="tech-kpi-label">So với nền</span>
+            <strong className="tech-kpi-val font-tabular">{group?.deviation_percent != null ? `${group.deviation_percent > 0 ? '+' : ''}${group.deviation_percent}%` : 'Chưa đủ lịch sử'}</strong>
+            <span className="tech-kpi-sub">Trung vị tối thiểu 3 khoảng cùng khung giờ trong 7 ngày trước</span></div>
+          <div className="admin-tech-kpi-card"><span className="tech-kpi-label">Chất lượng dữ liệu</span>
+            <strong className="tech-kpi-val font-tabular">{group.coverage.meters_with_valid_interval} / {group.coverage.eligible_meters}</strong>
+            <span className="tech-kpi-sub">Coverage {group.coverage.coverage_percent ?? 0}% · {data.data_quality.RESET_OR_ROLLOVER_SUSPECTED || 0} cần kiểm tra</span></div>
+        </div>
+      )}
       {Object.entries(data.data_quality).some(([status, count]) => status !== 'VALID' && count > 0) && <p className="reporting-note" role="status">
         Chất lượng khoảng: {Object.entries(data.data_quality).filter(([status, count]) => status !== 'VALID' && count > 0).map(([status, count]) => `${count} ${qualityLabel[status] || status}`).join(' · ')}.
       </p>}
